@@ -27,6 +27,18 @@ Each season requires different priorities.
 
 ---
 
+# Pacing
+
+Confirmed 2026-09-23 (Mike, reviewing Claude Code's TimeManager implementation).
+
+A full in-game day takes 30 real minutes. Each season lasts 28 in-game days, a 112-day year. A new game begins at 6:00 AM on Spring, day 1.
+
+Daytime is meant to feel generous rather than strictly realistic — roughly twice as long as night in every season, and never flipping to night-heavy the way a real mid-latitude Winter would. Confirmed day/night split: Summer 17h day / 7h night, Spring and Fall 16h/8h, Winter 14h/10h. Dawn and Dusk each span 2 in-game hours bridging sunrise and sunset into full Day or Night.
+
+These values live in TimeManager.cs as Inspector-tunable defaults; this section records what's currently confirmed, not a permanent lock. See 06_AI_Collaboration/Current_Task_List.md for the review history.
+
+---
+
 # Spring
 
 Primary Focus:
@@ -194,6 +206,14 @@ Fall:
 
 Winter:
 - Minimal foraging
+
+---
+
+# Future System
+
+Homestead Region Selection
+
+Not Alpha 0.1. The full game may let players choose a real-world region or latitude for their homestead, shaping day-length swing and climate character. Alpha 0.1 uses one fixed, unspecified temperate location instead. Source: DayNightCycle.cs's open latitude question, confirmed with Mike 2026-09-23 — see 06_AI_Collaboration/Current_Task_List.md.
 
 ---
 

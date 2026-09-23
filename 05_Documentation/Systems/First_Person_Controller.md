@@ -32,7 +32,7 @@ Movement should never feel arcade-like or overly floaty. This is a survival simu
 
 ## Walk
 
-Default movement speed.
+Default movement speed. Confirmed 2026-09-23 (Mike): 2.5 m/s baseline.
 
 No Fatigue cost beyond passive Workload accumulation.
 
@@ -40,7 +40,7 @@ No Fatigue cost beyond passive Workload accumulation.
 
 ## Sprint
 
-Increased speed.
+Increased speed. Confirmed 2026-09-23 (Mike): 5 m/s. Blocked while overloaded (see Inventory System's carry limits).
 
 Costs Fatigue.
 
@@ -50,7 +50,7 @@ Reduces stealth — affects Wildlife detection during Hunting, per Wildlife Syst
 
 ## Crouch
 
-Reduced speed.
+Reduced speed. Confirmed 2026-09-23 (Mike): 1.3 m/s, standing height 1.8 m drops to 1.1 m crouched (eye height 1.65 m standing).
 
 Reduced visibility to wildlife.
 
@@ -100,6 +100,8 @@ Stamina governs:
 - Climbing
 - Swimming (future)
 
+Confirmed 2026-09-23 (Mike): 100 stamina, sprinting drains 15/s, recovery is 25/s after a 1s delay at rest.
+
 Stamina recovers quickly at rest. Fatigue recovers only through Sleep.
 
 Full Fatigue detail is defined in Core Survival System documentation.
@@ -116,7 +118,7 @@ No third-person mode planned for Alpha 0.1.
 
 # Discovery Integration
 
-Discovery triggers are detected by player proximity and line of sight while using the First Person Controller.
+Discovery triggers are detected by player proximity and line of sight while using the First Person Controller. Confirmed 2026-09-23 (Mike): sites can be discovered by walking into them, or by line of sight from up to 40 m away if nothing solid blocks the view. General world interaction (pickup, use) has a 2.5 m range.
 
 Full discovery behavior is defined in Discovery System documentation.
 

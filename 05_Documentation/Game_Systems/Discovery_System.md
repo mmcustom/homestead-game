@@ -158,6 +158,10 @@ Journal Categories:
 - Wildlife
 - Fishing
 - Property Features
+- History — permanent milestone entries, one per category's first discovery (e.g. "First Water Source Found") plus other systems' own firsts (e.g. First Successful Deer Harvest). Mirrors this doc's Historical Records section below.
+- Notes — player-written notes not tied to any specific discovered site.
+
+History and Notes confirmed 2026-09-23 (Mike), added by JournalManager.cs beyond the five categories above.
 
 The journal becomes the player's field notebook.
 

@@ -58,14 +58,14 @@ Full item detail — spoilage, sale value, and similar — lives in the relevant
 
 # Carrying Capacity
 
-The player has a limited carry weight and/or slot capacity.
+The player has a limited carry weight, not slots — weight-based, tied to First Person Controller's movement speed.
 
 Exceeding capacity:
 
 - Prevents picking up more items, or
 - Applies a movement speed penalty
 
-Exact limits are a balancing pass, not a design decision, and should be tuned once the core survival loop is playable.
+Exact limits are a balancing pass, not a design decision, and should be tuned once the core survival loop is playable. First confirmed balancing pass, 2026-09-23 (Mike, after playtesting InventoryManager.cs): encumbered above 30 kg (about 66 lbs) — movement speed penalty begins; hard cap 45 kg (about 99 lbs) — can't carry more. Sprinting is blocked while overloaded. These remain Inspector-tunable, not locked.
 
 ---
 

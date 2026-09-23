@@ -132,6 +132,8 @@ Winter's primary weather condition.
 
 ## Wind
 
+Wind exists two ways: as a standing direction and strength present at all times (even during Clear weather), and as its own weather type when wind effects become dominant enough to be the defining condition. Confirmed 2026-09-23 (Mike) — both roles stay.
+
 Effects:
 
 - Affects scent detection during hunting
@@ -170,6 +172,12 @@ Bass Hole — Slower After Cold Fronts
 
 ---
 
+# Forecasting
+
+Not Alpha 0.1. Players get no advance weather information by default — conditions arrive as they happen. Confirmed 2026-09-23 (Mike): a future Radio (or similar item) should unlock forecasting once it exists. No such item is designed yet; this is a confirmed direction, not a built system. See Feature_Backlog.md.
+
+---
+
 # Season Effects
 
 ## Spring
@@ -194,6 +202,8 @@ Cooling trends.
 
 Increasing wind.
 
+Light snow can occasionally occur late in the season. Confirmed 2026-09-23 (Mike).
+
 ---
 
 ## Winter
@@ -203,6 +213,8 @@ Snow and cold fronts dominate.
 Weather becomes a central survival concern.
 
 Detailed seasonal behavior is defined in Season System documentation.
+
+Exact per-season weather odds, temperature ranges, and duration numbers are implemented and Inspector-tunable in WeatherManager.cs; Mike has accepted Claude Code's real-world-grounded first pass (confirmed 2026-09-23) rather than hand-setting each value here.
 
 ---
 

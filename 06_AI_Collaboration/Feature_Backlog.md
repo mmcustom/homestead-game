@@ -61,6 +61,12 @@ Each entry links back to the doc that first flagged it, so the reasoning and any
 
 ---
 
+# Weather
+
+- **Radio-Based Weather Forecasting** — players get no advance weather info by default; a future Radio or similar item should unlock it. No such item exists yet. Source: Weather_System.md.
+
+---
+
 # Player Systems
 
 - **Swim** — a fourth movement state. Source: Systems/First_Person_Controller.md.
@@ -82,6 +88,7 @@ Each entry links back to the doc that first flagged it, so the reasoning and any
 - **Advanced Temperature Systems** — beyond the current Exposure System's tiered effects. Source: Core_Survival_System.md.
 - **Beekeeping** — already anticipated as an Economy revenue source (Honey) without a system behind it yet. Source: Core_Survival_System.md, Economy_System.md.
 - **Maple Syrup Production** — same situation as Beekeeping. Source: Core_Survival_System.md, Economy_System.md.
+- **Homestead Region Selection** — a real-world region/latitude choice for the property, shaping day-length swing and climate character. Alpha 0.1 uses one fixed, unspecified temperate location. Source: Season_System.md.
 
 ---
 
