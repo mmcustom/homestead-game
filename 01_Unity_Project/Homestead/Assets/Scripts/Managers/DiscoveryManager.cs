@@ -109,7 +109,7 @@ public class DiscoveryManager : MonoBehaviour, ISaveable
         recordsById.Add(siteId, record);
         Discovered?.Invoke(record);
 
-        RecordMilestone("first_" + category, $"First {DiscoveryCategoryNames.Of(category)} found: {displayName}");
+        RecordMilestone("first_" + category, DiscoveryCategoryNames.FirstFound(category));
         return true;
     }
 

@@ -53,10 +53,14 @@ public static class DiscoveryCategoryNames
         {
             case DiscoveryCategory.WaterSource: return "Water Source";
             case DiscoveryCategory.Plant: return "Plant";
-            case DiscoveryCategory.Wildlife: return "Wildlife";
+            case DiscoveryCategory.Wildlife: return "Wildlife Area";
             case DiscoveryCategory.Fishing: return "Fishing Location";
             case DiscoveryCategory.PropertyFeature: return "Property Feature";
             default: return category.ToString();
         }
     }
+
+    // Text for the automatic first-of-category milestone, e.g. "First Water Source found".
+    // No site name (Mike, 2026-09-23) — the site's own journal entry already records it.
+    public static string FirstFound(DiscoveryCategory category) => $"First {Of(category)} found";
 }
