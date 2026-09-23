@@ -84,7 +84,7 @@ Stone's 5 kg matches the exact test value Claude Code already used when verifyin
 
 # Tools
 
-One equipped slot per InventoryManager.cs; not stacked, don't spoil.
+Only one can be equipped at a time per InventoryManager.cs; don't spoil. Correction (2026-09-23, per Claude Code's implementation notes): Tools stack in inventory like every other item (carrying two Rabbit Snares is one stack of 2) — this doc originally said "not stacked," which doesn't match InventoryManager's actual behavior. Stacking has no effect on the one-equipped-tool rule; it's just how the carried quantity displays.
 
 | id | Source | Weight (kg) |
 |---|---|---|
