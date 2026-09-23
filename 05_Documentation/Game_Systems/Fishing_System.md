@@ -85,6 +85,8 @@ Advantages:
 Disadvantages:
 
 - Require placement and maintenance
+- Ineffective on Bass — Bass is a sight hunter that responds to active lure presentation, not passive bait/scent. See 05_Documentation/Fishing/Bass.md.
+- Especially effective on Catfish — a scent-driven bottom scavenger, the natural fit for passive gear. See 05_Documentation/Fishing/Catfish.md.
 
 ---
 
@@ -117,7 +119,7 @@ Availability:
 Benefits:
 
 - Easy to catch
-- Reliable food
+- Reliable food (smallest yield of the four species, active all day — see 05_Documentation/Fishing/Bluegill.md)
 
 ---
 
@@ -129,7 +131,7 @@ Availability:
 
 Benefits:
 
-- Large food yield
+- Large food yield (biggest single catch of the four species; works especially well in Fish Traps — see 05_Documentation/Fishing/Catfish.md)
 
 ---
 
@@ -141,7 +143,7 @@ Availability:
 
 Benefits:
 
-- Desirable catch
+- Desirable catch (effectively Rod and Reel / Cane Pole only — see 05_Documentation/Fishing/Bass.md)
 
 ---
 
@@ -149,7 +151,7 @@ Benefits:
 
 Availability:
 
-- Seasonal
+- Seasonal (schools move to shallow water to spawn in Spring, becoming dramatically easier to catch — see 05_Documentation/Fishing/Crappie.md for the Spring Spawn Window)
 
 Benefits:
 

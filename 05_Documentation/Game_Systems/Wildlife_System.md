@@ -49,7 +49,7 @@ Examples:
 Uses:
 
 - Meat
-- Fur
+- Small Furs
 
 Primary Acquisition:
 

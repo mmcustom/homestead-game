@@ -78,7 +78,7 @@ Advantages:
 Primary Benefits:
 
 - Meat
-- Fur
+- Small Furs
 - Rapid breeding
 
 Advantages:
@@ -226,7 +226,7 @@ Detailed Role
 Benefits:
 
 - Meat production
-- Fur production
+- Small Furs production
 
 Advantages:
 

@@ -51,7 +51,7 @@ Harvest Resources
 Purpose:
 
 - Meat
-- Fur
+- Small Furs
 
 Requirements:
 
@@ -164,7 +164,7 @@ Each check should feel somewhat unpredictable.
 Resources:
 
 - Meat
-- Fur
+- Small Furs
 
 ---
 
@@ -173,7 +173,7 @@ Resources:
 Resources:
 
 - Meat
-- Fur
+- Small Furs
 
 ---
 
@@ -237,11 +237,11 @@ Trapping supports:
 
 Food Supply
 ↓
-Fur Collection
+Small Furs Collection
 ↓
 Surplus Income
 
-Furs may be sold.
+Small Furs may be sold.
 
 Meat may be consumed or preserved.
 

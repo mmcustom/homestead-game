@@ -107,103 +107,13 @@ Rapid health loss.
 
 ---
 
-# Water Sources
+# Water Sources (Summary)
 
-## Developed Spring
+Water quality ranges from Excellent (developed springs, wells) down to Unsafe (stagnant ponds, floodwater), with Good and Questionable covering moving water, rain collection, and slow streams in between.
 
-Quality:
+Lower-quality sources carry higher illness risk and should be purified before drinking.
 
-Excellent
-
-Lowest contamination risk.
-
----
-
-## Well
-
-Quality:
-
-Excellent
-
-Requires:
-
-- Drilling
-- Hand Pump
-- Future Pump Systems
-
----
-
-## Fast-Moving Creek
-
-Quality:
-
-Good
-
-May require boiling.
-
----
-
-## Slow Stream
-
-Quality:
-
-Questionable
-
-Boiling recommended.
-
----
-
-## Pond
-
-Quality:
-
-Unsafe
-
-High contamination risk.
-
----
-
-# Water Quality Ratings
-
-## Excellent
-
-Minimal illness risk.
-
-Examples:
-
-- Developed Spring
-- Well
-
----
-
-## Good
-
-Small illness risk.
-
-Examples:
-
-- Fast creek
-
----
-
-## Questionable
-
-Moderate illness risk.
-
-Examples:
-
-- Slow stream
-
----
-
-## Unsafe
-
-High illness risk.
-
-Examples:
-
-- Stagnant pond
-- Floodwater
+Full source list, exact quality ratings, transportation, and storage are defined in Water System documentation.
 
 ---
 
@@ -334,25 +244,11 @@ Heavy penalties next day.
 
 ---
 
-# Morale
+# Morale (Summary)
 
-Represents player outlook and motivation.
+Represents player outlook and motivation. Provides small efficiency and recovery modifiers.
 
-Increased by:
-
-- Good meals
-- Comfortable shelter
-- Successful hunting
-- Accomplishments
-
-Reduced by:
-
-- Hunger
-- Illness
-- Lack of sleep
-- Severe weather
-
-Morale provides small efficiency modifiers.
+Full Morale mechanics, increase and decrease sources, and effect tiers are defined in Health System documentation.
 
 ---
 
@@ -456,35 +352,16 @@ Stores:
 
 ---
 
-# Trapping System
+# Trapping System (Summary)
 
-Purpose:
-
-Passive food and fur acquisition.
-
-Trap Types:
-
-- Rabbit Snares
-- Box Traps
-- Future Advanced Traps
-
-Loop:
-
-Place Trap
-↓
-Bait Trap
-↓
-Wait
-↓
-Check Trap
-↓
-Harvest Catch
+Passive food and small fur acquisition through placed, baited traps that must be checked and maintained.
 
 Outputs:
 
 - Meat
-- Fur
-- Hide
+- Small Furs
+
+Full trap types, placement, bait, and maintenance detail are defined in Trapping System documentation.
 
 ---
 

@@ -240,6 +240,7 @@ Examples:
 - Hunger
 - Illness
 - Lack of sleep
+- Overwork / Lack of rest
 - Storm damage
 - Livestock loss
 

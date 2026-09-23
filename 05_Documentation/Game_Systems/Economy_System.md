@@ -46,8 +46,8 @@ The homestead comes first.
 
 Examples:
 
-- Rabbit Fur
-- Squirrel Fur
+- Rabbit Small Furs
+- Squirrel Small Furs
 - Deer Hide
 - Antlers
 - Wild Mushrooms

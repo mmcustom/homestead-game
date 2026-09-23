@@ -238,3 +238,183 @@ Highest water safety.
 # Water Transportation
 
 Early Game
+
+## Hand Carrying
+
+Methods:
+
+- Buckets
+- Yoke and Buckets
+
+Advantages:
+
+- No construction required
+- Available from Day One
+
+Disadvantages:
+
+- Time-consuming
+- Limited volume per trip
+- Physically demanding
+
+---
+
+## Wagon or Cart Hauling
+
+Methods:
+
+- Barrel on Cart
+
+Advantages:
+
+- Larger volume per trip
+
+Disadvantages:
+
+- Requires a cart
+- Requires passable ground
+
+---
+
+# Future Water Transportation
+
+Not Alpha 0.1
+
+Examples:
+
+- Piped Distribution
+- Pressure Water Systems
+- Powered Pumps
+
+Deferred until the core survival loop is proven fun.
+
+---
+
+# Water Storage
+
+## Cistern
+
+Purpose:
+
+Bulk water storage from rain or hauled water.
+
+Benefits:
+
+- Reduces trips to source
+- Buffer against dry spells
+
+---
+
+## Rain Barrel
+
+Purpose:
+
+Small-scale rain collection storage.
+
+Benefits:
+
+- Low cost
+- Easy to construct early
+
+---
+
+# Discovery Integration
+
+Water sources must be discovered before they appear on the map.
+
+Journal Records:
+
+- Location
+- Water Quality
+- Discovery Date
+
+Example:
+
+Discovery Unlocked
+
+Natural Spring
+
+Water Quality: Excellent
+
+Journal Updated
+
+Map Updated
+
+Full discovery behavior is defined in Discovery System documentation.
+
+---
+
+# Season Effects
+
+## Spring
+
+Highest water availability.
+
+Rain and snowmelt replenish most sources.
+
+---
+
+## Summer
+
+Variable availability.
+
+Droughts may occur.
+
+Livestock water needs increase.
+
+---
+
+## Fall
+
+Generally stable availability.
+
+---
+
+## Winter
+
+Surface water may freeze.
+
+Springs and wells remain valuable and may become the only reliable sources.
+
+Detailed seasonal behavior is defined in Season System documentation.
+
+---
+
+# Livestock Integration
+
+Livestock require daily access to clean water.
+
+Water needs increase during:
+
+- Summer
+- Drought
+- High activity
+
+Full livestock water requirements are defined in Livestock System documentation.
+
+---
+
+# Economy Integration
+
+Water infrastructure is a primary Economic Sink.
+
+Examples:
+
+- Well Drilling
+- Cistern Construction
+
+Full economic sink detail is defined in Economy System documentation.
+
+---
+
+# Design Rules
+
+1. Water takes priority over food.
+
+2. Water quality determines illness risk.
+
+3. Purification reduces risk but requires fire and time.
+
+4. Water availability should shape where and how the player builds.
+
+5. Winter should make water noticeably harder to secure.
