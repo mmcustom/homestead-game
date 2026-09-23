@@ -60,6 +60,29 @@ public static class DiscoveryCategoryNames
         }
     }
 
+    // The fact shown in the discovery notification: the first entry in Discovery_System.md's "Information Recorded"
+    // list for the category that describes the site itself (Location and Discovery Date are recorded separately).
+    public static string HeadlineFactLabel(DiscoveryCategory category)
+    {
+        switch (category)
+        {
+            case DiscoveryCategory.WaterSource: return "Water Quality";
+            case DiscoveryCategory.Plant: return "Harvest Season";
+            case DiscoveryCategory.Wildlife: return "Activity Periods";
+            case DiscoveryCategory.Fishing: return "Species Found";
+            case DiscoveryCategory.PropertyFeature: return "Buildability";
+            default: return null;
+        }
+    }
+
+    // e.g. "Spring Hollow — Water Quality: Excellent". Just the name if the site doesn't record its headline fact.
+    public static string Summary(DiscoveryRecord record)
+    {
+        string label = HeadlineFactLabel(record.category);
+        DiscoveryFact fact = record.facts.Find(f => f.label == label);
+        return fact != null ? $"{record.displayName} — {fact.label}: {fact.value}" : record.displayName;
+    }
+
     // Text for the automatic first-of-category milestone, e.g. "First Water Source found".
     // No site name (Mike, 2026-09-23) — the site's own journal entry already records it.
     public static string FirstFound(DiscoveryCategory category) => $"First {Of(category)} found";
