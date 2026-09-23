@@ -161,6 +161,9 @@ public class SaveManager : MonoBehaviour
     // so a system added after the save was made starts fresh instead of breaking the load.
     public bool LoadGame()
     {
+        // A background write may still hold the files open.
+        WaitForPendingWrite();
+
         if (!HasSave)
             return false;
 

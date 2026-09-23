@@ -59,6 +59,8 @@ public class GameManager : MonoBehaviour
 
         if (TimeManager.Instance != null)
             TimeManager.Instance.ResetClock();
+        if (WeatherManager.Instance != null)
+            WeatherManager.Instance.ResetWeather();
 
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing));
     }

@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 199833583}
   - component: {fileID: 199833585}
   - component: {fileID: 199833586}
+  - component: {fileID: 199833587}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -199,6 +200,104 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61adf814ed18bd84cbd1b8a6d5d05bec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveManager
+--- !u!114 &199833587
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 661696c7cd2d8d64493e9ae97bfef14d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WeatherManager
+  seasons:
+  - weights:
+    - 30
+    - 30
+    - 22
+    - 10
+    - 3
+    - 2
+    - 0
+    - 3
+    highC: 18
+    lowC: 5
+    windStrength: 0.3
+  - weights:
+    - 64
+    - 25
+    - 3
+    - 1
+    - 2
+    - 0
+    - 0
+    - 5
+    highC: 30
+    lowC: 18
+    windStrength: 0.2
+  - weights:
+    - 40
+    - 28
+    - 10
+    - 4
+    - 1
+    - 7
+    - 0
+    - 10
+    highC: 17
+    lowC: 5
+    windStrength: 0.4
+  - weights:
+    - 20
+    - 25
+    - 3
+    - 0
+    - 0
+    - 15
+    - 30
+    - 7
+    highC: 5
+    lowC: -6
+    windStrength: 0.35
+  weatherTypes:
+  - minHours: 6
+    maxHours: 24
+    temperatureOffsetC: 0
+    minWindStrength: 0
+  - minHours: 4
+    maxHours: 16
+    temperatureOffsetC: -1
+    minWindStrength: 0
+  - minHours: 2
+    maxHours: 8
+    temperatureOffsetC: -2
+    minWindStrength: 0.2
+  - minHours: 2
+    maxHours: 6
+    temperatureOffsetC: -3
+    minWindStrength: 0.4
+  - minHours: 1
+    maxHours: 3
+    temperatureOffsetC: -3
+    minWindStrength: 0.7
+  - minHours: 24
+    maxHours: 48
+    temperatureOffsetC: -8
+    minWindStrength: 0.5
+  - minHours: 4
+    maxHours: 18
+    temperatureOffsetC: -2
+    minWindStrength: 0.2
+  - minHours: 4
+    maxHours: 12
+    temperatureOffsetC: -1
+    minWindStrength: 0.8
+  dailyTemperatureVariationC: 4
+  dailyWindShiftDegrees: 45
+  maxTemperatureChangePerHour: 3
+  droughtDryDays: 5
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
