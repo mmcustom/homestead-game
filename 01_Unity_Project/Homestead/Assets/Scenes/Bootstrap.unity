@@ -135,6 +135,7 @@ GameObject:
   - component: {fileID: 199833588}
   - component: {fileID: 199833589}
   - component: {fileID: 199833590}
+  - component: {fileID: 199833591}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -339,6 +340,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c289483d808aeb549914f03d2385e647, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JournalManager
+--- !u!114 &199833591
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 183e7e1b94833bc4f94a0dfe1ccb2a83, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AudioManager
+  menuMusic: {fileID: 0}
+  worldMusic: {fileID: 0}
+  musicFadeSeconds: 2
+  ambientLayers: []
+  ambientFadeSeconds: 3
+  sfxVoices: 12
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
