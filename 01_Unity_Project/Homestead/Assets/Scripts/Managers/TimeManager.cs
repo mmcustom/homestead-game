@@ -88,8 +88,7 @@ public class TimeManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        minuteOfDay = startHour * 60f % MinutesPerDay;
-        phase = ComputePhase();
+        ResetClock();
         IsRunning = runOnStart;
     }
 
@@ -152,6 +151,14 @@ public class TimeManager : MonoBehaviour
     {
         float target = Mathf.Repeat(hour * 60f, MinutesPerDay);
         AdvanceMinutes(Mathf.Repeat(target - minuteOfDay, MinutesPerDay));
+    }
+
+    // Back to Spring day 1, Year 1 at the start hour — used when starting a new game. Fires no events.
+    public void ResetClock()
+    {
+        totalDays = 0;
+        minuteOfDay = startHour * 60f % MinutesPerDay;
+        phase = ComputePhase();
     }
 
     public TimeSaveData CaptureState() => new TimeSaveData { totalDays = totalDays, minuteOfDay = minuteOfDay };
