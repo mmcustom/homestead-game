@@ -72,6 +72,15 @@ public class TimeManager : MonoBehaviour, ISaveable
     // relatively (e.g. Large_Game.md's Rut Window is "the second half of Fall": SeasonProgress >= 0.5).
     public float SeasonProgress => (totalDays % daysPerSeason + minuteOfDay / MinutesPerDay) / daysPerSeason;
 
+    // A day count (e.g. a stored TotalDays) as "Spring 3, Year 1".
+    public string FormatDate(int day)
+    {
+        day = Mathf.Max(0, day);
+        var season = (Season)(day / daysPerSeason % SeasonCount);
+        int year = day / (daysPerSeason * SeasonCount) + 1;
+        return $"{season} {day % daysPerSeason + 1}, Year {year}";
+    }
+
     public DayPhase Phase => phase;
     public float SunriseHour => sunriseSunset[(int)CurrentSeason].x;
     public float SunsetHour => sunriseSunset[(int)CurrentSeason].y;

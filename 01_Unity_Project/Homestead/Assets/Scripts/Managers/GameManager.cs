@@ -65,6 +65,8 @@ public class GameManager : MonoBehaviour
             InventoryManager.Instance.ResetInventory();
         if (DiscoveryManager.Instance != null)
             DiscoveryManager.Instance.ResetDiscoveries();
+        if (JournalManager.Instance != null)
+            JournalManager.Instance.ResetJournal();
 
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing));
     }
