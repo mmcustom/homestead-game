@@ -1,5 +1,5 @@
 # Homestead
-## AI Collaboration Rules v1.0
+## AI Collaboration Rules v2.0
 
 Status: Active
 
@@ -7,7 +7,18 @@ Status: Active
 
 # Purpose
 
-This document defines how Claude and GitHub Copilot collaborate on Homestead, so work doesn't get duplicated, overwritten, or lost between sessions.
+This document defines how Claude and Claude Code collaborate on Homestead, so work doesn't get duplicated, overwritten, or lost between sessions.
+
+---
+
+# A Note on Naming
+
+Both AI tools on this project are Claude products, which makes clear naming important. Throughout this document and every other Homestead doc:
+
+- **"Claude"** always means this session — Claude in Cowork, working through the device bridge to Mike's computer. Docs, project organization, cross-file consistency.
+- **"Claude Code"** always means the separate Claude Code CLI, installed and run locally on Mike's Windows machine (in a terminal or VS Code), connected live to the Unity Editor via the Unity MCP server. Unity Editor work and C# implementation.
+
+Neither name is ever shortened in a way that could mean the other. "Claude Code" is always written out in full — never just "Claude" — anywhere it appears in these docs.
 
 ---
 
@@ -29,13 +40,15 @@ Does not own:
 
 ---
 
-## Copilot
+## Claude Code
 
 Owns:
 
 - C# implementation
 - Unity Editor work (scenes, prefabs, Inspector configuration, NavMesh, sprite atlases, and similar)
 - Anything requiring compiler or Play Mode verification
+
+Via the Unity MCP server (CoplayDev/unity-mcp, connected 2026-09-23), Claude Code also has live access to the running Unity Editor — reading console output, scene hierarchy, and component state directly, and running tests, rather than only writing files blindly. This is a real capability gain over the previous Copilot-based setup, where several early scaffolding issues (Review_004_Unity_Architecture.md) went unnoticed until Claude reviewed the files after the fact.
 
 Does not own:
 
@@ -47,23 +60,29 @@ Does not own:
 
 Final decision-maker on design direction and role changes.
 
-Carries handoffs between Claude and Copilot — there is no direct channel between the two.
+Carries handoffs between Claude and Claude Code — there is no direct channel between the two, even though both are Claude products. They run as separate, unconnected sessions.
 
 ---
 
 # Why This Split
 
-Claude has no Unity Editor access in this environment and cannot compile or run C# against this project. Copilot is embedded in the IDE with live compiler feedback and Editor access, which makes it the better fit for implementation and Editor-native work.
+Claude (this session) has no Unity Editor access and cannot compile or run C# — it works through a device bridge to Mike's files, not a live Editor connection. Claude Code, running locally with the Unity MCP server, has exactly the live Editor access and compiler feedback that implementation work needs.
 
-Documentation and cross-file consistency work benefit from higher usage headroom, which Claude currently has more of than Copilot.
+Documentation and cross-file consistency work benefit from higher usage headroom, which Claude (Cowork) has relative to a locally-run coding session.
 
-This split was set on 2026-09-22 at Mike's request, replacing an earlier split proposed during initial brainstorming with Copilot.
+---
+
+## Revision History Context
+
+This is the second version of this split. The first (v1.0, 2026-09-22) assigned the implementation role to GitHub Copilot. That role now moves to Claude Code as of 2026-09-23, at Mike's request, because Copilot repeatedly ran out of usage mid-task. See Decisions_Log.md for the full decision record, including the Unity MCP server chosen (CoplayDev/unity-mcp) and the setup guide (05_Documentation/Unity_Architecture/Claude_Code_Unity_MCP_Setup.md).
+
+Everything Copilot produced before the pivot (the initial scene/manager scaffolding reviewed in Review_004_Unity_Architecture.md) stays as project history and as Claude Code's starting point — it isn't being redone from scratch, just picked up and continued.
 
 ---
 
 # Handoff Protocol
 
-## When Claude produces something Copilot needs to act on
+## When Claude produces something Claude Code needs to act on
 
 Examples:
 
@@ -73,13 +92,13 @@ Examples:
 Claude must:
 
 1. Say so explicitly in the chat response to Mike.
-2. Add an entry to Current_Task_List.md under "Needs Copilot," naming the file(s) involved and what's needed.
+2. Add an entry to Current_Task_List.md under "Needs Claude Code," naming the file(s) involved and what's needed.
 
-Mike carries the notification to Copilot's session.
+Mike carries the notification to the Claude Code session.
 
 ---
 
-## When Copilot produces something Claude should review
+## When Claude Code produces something Claude should review
 
 Examples:
 
@@ -99,13 +118,13 @@ Claude will also flag anything found during a routine consistency pass that appe
 
 ## 05_Documentation
 
-Claude primary. Copilot may reference but should flag Mike before restructuring.
+Claude primary. Claude Code may reference but should flag Mike before restructuring.
 
 ---
 
 ## 01_Unity_Project
 
-Copilot primary. Claude may propose C# scaffolding here only when asked, and only as a clearly flagged, unverified draft.
+Claude Code primary. Claude may propose C# scaffolding here only when asked, and only as a clearly flagged, unverified draft.
 
 ---
 
@@ -115,9 +134,9 @@ Claude only.
 
 ---
 
-## 06_AI_Collaboration/Copilot
+## 06_AI_Collaboration/Claude_Code
 
-Copilot only.
+Claude Code only. Replaces the old `06_AI_Collaboration/Copilot` folder, which stays in place (empty) as project history rather than being deleted — Claude has no way to delete files on Mike's machine.
 
 ---
 
@@ -135,8 +154,12 @@ Before editing a file that may be in progress elsewhere:
 2. If none exists, proceed.
 3. If one exists and it isn't yours, don't touch it — ask Mike first.
 
+This matters more now than under the old split: Claude Code runs with live Editor access and can save changes at any time, so a file that looked stable a minute ago may not be. When in doubt, re-check before writing.
+
 ---
 
 # Revision History
 
 v1.0 — 2026-09-22 — Rules established. Claude given the expanded documentation and project organization role; Copilot scoped to Unity Editor work and C# implementation, per Mike's decision.
+
+v2.0 — 2026-09-23 — Copilot replaced by Claude Code as the implementation partner, connected to the Unity Editor via the Unity MCP server (CoplayDev/unity-mcp), because Copilot repeatedly ran out of usage. Added the Naming section to keep "Claude" and "Claude Code" unambiguous across all docs. File ownership and Handoff Protocol updated to name Claude Code in place of Copilot; the old `06_AI_Collaboration/Copilot` folder is retired in favor of `06_AI_Collaboration/Claude_Code`.
