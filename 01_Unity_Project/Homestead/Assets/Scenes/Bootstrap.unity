@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 199833584}
   - component: {fileID: 199833583}
   - component: {fileID: 199833585}
+  - component: {fileID: 199833586}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -186,6 +187,18 @@ MonoBehaviour:
   - {x: 7, y: 18.5}
   - {x: 7.5, y: 17}
   twilightHours: 2
+--- !u!114 &199833586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61adf814ed18bd84cbd1b8a6d5d05bec, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

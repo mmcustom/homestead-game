@@ -16,7 +16,7 @@ public struct TimeSaveData
 }
 
 // Clock, day/night, calendar and seasons (Unity_Architecture.md, Season_System.md).
-public class TimeManager : MonoBehaviour
+public class TimeManager : MonoBehaviour, ISaveable
 {
     public const int MinutesPerDay = 1440;
     const int SeasonCount = 4;
@@ -92,10 +92,20 @@ public class TimeManager : MonoBehaviour
         IsRunning = runOnStart;
     }
 
+    void Start()
+    {
+        if (Instance == this && SaveManager.Instance != null)
+            SaveManager.Instance.Register(this);
+    }
+
     void OnDestroy()
     {
-        if (Instance == this)
-            Instance = null;
+        if (Instance != this)
+            return;
+
+        if (SaveManager.Instance != null)
+            SaveManager.Instance.Unregister(this);
+        Instance = null;
     }
 
     void OnValidate()
@@ -170,6 +180,12 @@ public class TimeManager : MonoBehaviour
         minuteOfDay = Mathf.Repeat(data.minuteOfDay, MinutesPerDay);
         phase = ComputePhase();
     }
+
+    // Save_Data_Model.md's World Block.
+    string ISaveable.SaveFile => "world";
+    string ISaveable.SaveKey => "time";
+    object ISaveable.CaptureState() => CaptureState();
+    void ISaveable.RestoreState(string json) => RestoreState(JsonUtility.FromJson<TimeSaveData>(json));
 
     void StartNewDay()
     {

@@ -22,6 +22,7 @@ public class GameManager : MonoBehaviour
 
     public GameState State => state;
     public bool IsLoading => state == GameState.Loading;
+    public bool HasSaveGame => SaveManager.Instance != null && SaveManager.Instance.HasSave;
 
     // 0–1 progress of the scene currently loading behind the Loading scene.
     public float LoadProgress { get; private set; }
@@ -62,10 +63,23 @@ public class GameManager : MonoBehaviour
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing));
     }
 
+    // Loads World, then restores the save once the scene's systems exist and have registered.
+    public void ContinueGame()
+    {
+        if (IsLoading || !HasSaveGame)
+            return;
+
+        StartCoroutine(LoadRoutine(WorldScene, GameState.Playing, () => SaveManager.Instance.LoadGame()));
+    }
+
     public void ReturnToMainMenu()
     {
         if (IsLoading)
             return;
+
+        // Save_System.md: never lose progress silently. State is captured before the World scene unloads.
+        if (SaveManager.Instance != null && (state == GameState.Playing || state == GameState.Paused))
+            SaveManager.Instance.SaveGame();
 
         StartCoroutine(LoadRoutine(MainMenuScene, GameState.MainMenu));
     }
@@ -106,7 +120,8 @@ public class GameManager : MonoBehaviour
     }
 
     // Shows the Loading scene, then loads the target scene in the background.
-    IEnumerator LoadRoutine(string sceneName, GameState stateWhenLoaded)
+    // If afterLoad returns false, falls back to the main menu instead of entering stateWhenLoaded.
+    IEnumerator LoadRoutine(string sceneName, GameState stateWhenLoaded, Func<bool> afterLoad = null)
     {
         SetState(GameState.Loading);
         LoadProgress = 0f;
@@ -121,6 +136,14 @@ public class GameManager : MonoBehaviour
         }
 
         LoadProgress = 1f;
+
+        // Don't enter gameplay on a failed load — an auto-save would overwrite the real save with default state.
+        if (afterLoad != null && !afterLoad())
+        {
+            yield return LoadRoutine(MainMenuScene, GameState.MainMenu);
+            yield break;
+        }
+
         SetState(stateWhenLoaded);
     }
 
