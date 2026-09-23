@@ -182,15 +182,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a848a26fbde7770429831960662d2cf1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimeManager
-  realMinutesPerDay: 24
+  realMinutesPerDay: 30
   daysPerSeason: 28
   startHour: 6
   runOnStart: 1
   sunriseSunset:
-  - {x: 6.5, y: 19.5}
-  - {x: 6, y: 20.5}
-  - {x: 7, y: 18.5}
-  - {x: 7.5, y: 17}
+  - {x: 5, y: 21}
+  - {x: 4.5, y: 21.5}
+  - {x: 5, y: 21}
+  - {x: 6, y: 20}
   twilightHours: 2
 --- !u!114 &199833586
 MonoBehaviour:
@@ -301,6 +301,8 @@ MonoBehaviour:
   dailyTemperatureVariationC: 4
   dailyWindShiftDegrees: 45
   maxTemperatureChangePerHour: 3
+  lateFallSnowShare: 4
+  lateFallStartsAt: 0.75
   droughtDryDays: 5
 --- !u!114 &199833588
 MonoBehaviour:
@@ -314,8 +316,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ffe37b0b5e03664d93eacf6b7b0b524, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryManager
-  encumberedWeightKg: 25
-  maxCarryWeightKg: 40
+  encumberedWeightKg: 30
+  maxCarryWeightKg: 45
 --- !u!114 &199833589
 MonoBehaviour:
   m_ObjectHideFlags: 0

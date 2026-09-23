@@ -23,23 +23,24 @@ public class TimeManager : MonoBehaviour, ISaveable
 
     public static TimeManager Instance { get; private set; }
 
-    // Pacing values below aren't defined in the design docs yet — tuning defaults, not design decisions.
+    // Season_System.md's Pacing section (confirmed 2026-09-23): 30-minute days, 28-day seasons, start 06:00 Spring 1.
     [Header("Pacing")]
     [Tooltip("Real-time minutes for one full in-game day.")]
-    [SerializeField, Min(0.1f)] float realMinutesPerDay = 24f;
+    [SerializeField, Min(0.1f)] float realMinutesPerDay = 30f;
     [SerializeField, Min(1)] int daysPerSeason = 28;
     [SerializeField, Range(0f, 24f)] float startHour = 6f;
     [SerializeField] bool runOnStart = true;
 
     [Header("Daylight")]
-    [Tooltip("Sunrise (x) and sunset (y) hour per season, in Season order: Spring, Summer, Fall, Winter. " +
-             "Season_System.md: Summer has long daylight hours, Fall has shorter days.")]
+    // Season_System.md's confirmed day/night split: daytime is generous in every season rather than realistic —
+    // Summer 17h, Spring and Fall 16h, Winter 14h — centred on about 13:00.
+    [Tooltip("Sunrise (x) and sunset (y) hour per season, in Season order: Spring, Summer, Fall, Winter.")]
     [SerializeField] Vector2[] sunriseSunset =
     {
-        new Vector2(6.5f, 19.5f),
-        new Vector2(6f, 20.5f),
-        new Vector2(7f, 18.5f),
-        new Vector2(7.5f, 17f),
+        new Vector2(5f, 21f),
+        new Vector2(4.5f, 21.5f),
+        new Vector2(5f, 21f),
+        new Vector2(6f, 20f),
     };
     [Tooltip("Length of Dawn (after sunrise) and Dusk (before sunset). " +
              "Research.md: deer are most active in the first ~2 hours after sunrise and last ~2 before sunset.")]

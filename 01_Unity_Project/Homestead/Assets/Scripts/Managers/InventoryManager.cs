@@ -19,12 +19,12 @@ public class InventoryManager : MonoBehaviour, ISaveable
 
     public static InventoryManager Instance { get; private set; }
 
-    // Inventory_System.md: exact limits are a balancing pass — these are placeholder defaults.
+    // Inventory_System.md's first confirmed balancing pass (2026-09-23): 30 kg encumbered, 45 kg hard cap.
     [Header("Carrying (kg)")]
     [Tooltip("Carried weight above this slows the player (First_Person_Controller.md).")]
-    [SerializeField, Min(0f)] float encumberedWeightKg = 25f;
+    [SerializeField, Min(0f)] float encumberedWeightKg = 30f;
     [Tooltip("Nothing more can be picked up past this weight.")]
-    [SerializeField, Min(0f)] float maxCarryWeightKg = 40f;
+    [SerializeField, Min(0f)] float maxCarryWeightKg = 45f;
 
     readonly Dictionary<string, InventoryContainer> storage = new Dictionary<string, InventoryContainer>();
     ItemDefinition equippedTool;

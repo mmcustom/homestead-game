@@ -93,6 +93,12 @@ public class WeatherManager : MonoBehaviour, ISaveable
              "a cold front arrives over a few hours rather than instantly.")]
     [SerializeField, Min(0.1f)] float maxTemperatureChangePerHour = 3f;
 
+    [Header("Late Fall snow")]
+    [Tooltip("Weather_System.md: light snow can occasionally occur late in Fall. Snow's share of the time " +
+             "(same scale as the season weights) once Fall is this far through.")]
+    [SerializeField, Min(0f)] float lateFallSnowShare = 4f;
+    [SerializeField, Range(0f, 1f)] float lateFallStartsAt = 0.75f;
+
     [Header("Drought")]
     [Tooltip("Consecutive Summer days without rain before a drought sets in (Season_System.md, Water_System.md).")]
     [SerializeField, Min(1)] int droughtDryDays = 5;
@@ -251,7 +257,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
     void RollNextWeather(System.Random rng, bool notify)
     {
         WeatherType previous = current;
-        current = PickWeather(rng, CurrentClimate.weights);
+        current = PickWeather(rng, CurrentWeights());
 
         WeatherTypeSettings settings = weatherTypes[(int)current];
         hoursRemaining = rng.Next(settings.minHours, settings.maxHours + 1);
@@ -261,6 +267,19 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
         if (notify && current != previous)
             WeatherChanged?.Invoke(current);
+    }
+
+    // The current season's weights, plus the rare late-Fall snow.
+    float[] CurrentWeights()
+    {
+        float[] weights = CurrentClimate.weights;
+        TimeManager time = TimeManager.Instance;
+        if (time == null || time.CurrentSeason != Season.Fall || time.SeasonProgress < lateFallStartsAt)
+            return weights;
+
+        var lateFall = (float[])weights.Clone();
+        lateFall[(int)WeatherType.Snow] = Mathf.Max(lateFall[(int)WeatherType.Snow], lateFallSnowShare);
+        return lateFall;
     }
 
     // Weights are shares of time, so each type's roll chance is divided by its average duration.
