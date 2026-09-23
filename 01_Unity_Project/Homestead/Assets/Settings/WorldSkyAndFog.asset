@@ -43,6 +43,16 @@ MonoBehaviour:
   includeSunInBaking:
     m_OverrideState: 0
     m_Value: 0
+  m_SkyVersion: 2
+  m_ObsoleteEarthPreset:
+    m_OverrideState: 0
+    m_Value: 1
+  planetaryRadius:
+    m_OverrideState: 0
+    m_Value: 6378100
+  planetCenterPosition:
+    m_OverrideState: 0
+    m_Value: {x: 0, y: -6378100, z: 0}
   type:
     m_OverrideState: 0
     m_Value: 1
@@ -133,16 +143,6 @@ MonoBehaviour:
   horizonZenithShift:
     m_OverrideState: 0
     m_Value: 0
-  m_SkyVersion: 2
-  m_ObsoleteEarthPreset:
-    m_OverrideState: 0
-    m_Value: 1
-  planetaryRadius:
-    m_OverrideState: 0
-    m_Value: 6378100
-  planetCenterPosition:
-    m_OverrideState: 0
-    m_Value: {x: 0, y: -6378100, z: 0}
 --- !u!114 &-4151792930034644520
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -213,6 +213,9 @@ MonoBehaviour:
   sliceDistributionUniformity:
     m_OverrideState: 0
     m_Value: 0.75
+  multipleScatteringIntensity:
+    m_OverrideState: 0
+    m_Value: 0
   m_FogControlMode:
     m_OverrideState: 0
     m_Value: 0
@@ -241,7 +244,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
-  m_Name: SkyandFogSettingsProfile
+  m_Name: WorldSkyAndFog
   m_EditorClassIdentifier: 
   components:
   - {fileID: 1142777632297148762}
@@ -261,6 +264,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   active: 1
+  m_Version: 1
   skyType:
     m_OverrideState: 1
     m_Value: 4
@@ -269,7 +273,7 @@ MonoBehaviour:
     m_Value: 0
   skyAmbientMode:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 1
   planetRadius:
     m_OverrideState: 0
     m_Value: 6378.1
@@ -291,7 +295,6 @@ MonoBehaviour:
   fogType:
     m_OverrideState: 1
     m_Value: 0
-  m_Version: 1
 --- !u!114 &7642060734654139733
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -322,7 +325,7 @@ MonoBehaviour:
     m_Value: 0
   limitMin:
     m_OverrideState: 1
-    m_Value: 2
+    m_Value: -2
   limitMax:
     m_OverrideState: 1
     m_Value: 14
