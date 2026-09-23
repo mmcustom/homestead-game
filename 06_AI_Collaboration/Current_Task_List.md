@@ -17,7 +17,7 @@ See AI_Collaboration_Rules.md for the handoff protocol and file ownership behind
 
 # Needs Copilot
 
-Nothing currently queued.
+- **Unity Architecture review findings (2026-09-22)** — Claude reviewed the initial Unity project scaffolding (see `06_AI_Collaboration/Claude/Reviews/Review_004_Unity_Architecture.md`) and found four things needing Copilot's attention: (1) `Unity_Architecture.md` wasn't found anywhere in the repo despite being reported as created — needs the path confirmed or a re-save; (2) none of the four new scenes (Bootstrap, MainMenu, World, Loading) are registered in Build Settings yet, so the intended scene flow can't run; (3) Bootstrap.unity still carries the default HDRP template's Sun/Sky and Fog Volume/Main Camera/StaticLightingSky objects — worth confirming whether those belong there or in World.unity; (4) leftover default template assets (`OutdoorsScene.unity`, `Readme.asset`, `TutorialInfo/`) at the Assets root are cleanup candidates. Also found while adding this entry: (5) **Decisions_Log.md's "Unity Version Lock" entry says 6000.5.9f1, but the actual installed editor (`ProjectVersion.txt`) is 6000.3.24f1** — the same version named in Copilot's own status report. Two different versions are now on record for the same project; needs Copilot to say which is correct so the other can be fixed. None of the five are blocking or urgent — just flagged for whenever Copilot picks the project back up.
 
 ---
 
@@ -164,9 +164,11 @@ Owner: Claude
 
 ## 05_Documentation/Unity_Architecture
 
-Status: Not Started
+Status: Blocked — Copilot reported this doc created, but it wasn't found anywhere in the repo (see Review_004 below)
 
-Purpose (confirmed 2026-09-22): Unity project-specific conventions — scene organization, prefab structure, folder/namespace conventions inside 01_Unity_Project. Requires visibility into 01_Unity_Project, which is Copilot's domain and hasn't been opened up to Claude yet.
+Purpose (confirmed 2026-09-22): Unity project-specific conventions — scene organization, prefab structure, folder/namespace conventions inside 01_Unity_Project.
+
+Copilot has started Unity work as of 2026-09-22 (see 01_Unity_Project below) and reported writing a `Unity_Architecture.md`, but it isn't present in `05_Documentation/Unity_Architecture/`, `06_AI_Collaboration/Copilot/`, or the project root. Waiting on Copilot to confirm the path or re-save it before this can move forward.
 
 ---
 
@@ -198,7 +200,9 @@ Owner: Claude
 
 # 01_Unity_Project
 
-Status: Not reviewed by Claude — Copilot's domain, per AI_Collaboration_Rules.md.
+Status: In Progress (Copilot) — initial architecture scaffolded 2026-09-22, reviewed by Claude at Mike's request (see Review_004 below). Still Copilot's domain per AI_Collaboration_Rules.md; Claude's review was read-only, no files touched.
+
+Confirmed in place: Unity 6000.3.24f1 LTS, HDRP installed and active. Four scenes (Bootstrap, MainMenu, World, Loading) exist under Assets/Scenes. A Scripts folder structure (Core, Discovery, Inventory, Managers, Player, Saving, Survival, UI, Wildlife, World) anticipates the documented systems. Eight Manager scripts exist (GameManager, SaveManager, TimeManager, DiscoveryManager, JournalManager, InventoryManager, WeatherManager, AudioManager); only GameManager is currently attached to the Managers GameObject in Bootstrap.unity, and all eight are still empty default templates pending real implementation.
 
 ---
 
@@ -221,3 +225,5 @@ Status: Not reviewed by Claude — Copilot's domain, per AI_Collaboration_Rules.
 2026-09-22 — Claude — Confirmed 01_Unity_Project is empty (Copilot hasn't started Unity work yet); Mike confirmed this was expected. While waiting, ran a full post-batch consistency pass (Review_003_Post_Batch_Consistency.md) across every Game_Systems, Systems, and Technical_Design doc — found and fixed a "Fur" vs. "Small Furs" terminology drift left over from an earlier correction, in Wildlife_System.md, Hunting_System.md, Economy_System.md, Trapping_System.md, and Livestock_System.md (5 spots across 4 docs), plus a stale forward-reference in Save_Data_Model.md that predated the Livestock species sheets being written. Also consolidated every "Future System / Not Alpha 0.1" note scattered across all docs into Feature_Backlog.md (was empty), organized by category (Wildlife & Hunting, Trapping, Livestock, Water, Fishing, Player Systems, Economy, Environment), with a pointer to Development_Roadmap.md for the larger Stage 2–4 deferrals rather than duplicating them.
 
 2026-09-22 — Claude — Completed 05_Documentation/Fishing (4/4 species), closing the gap Review_003 had flagged for awareness. Added a Fish Species Behavior Grounding section to Research.md first (Bluegill vs. Crappie vs. Bass vs. Catfish real-world feeding/activity/habitat differences), then drafted and confirmed one file per species with Mike, one at a time: Bluegill.md (easiest catch, smallest yield, active all day), Crappie.md (hardest to find normally, but gets a confirmed Spring Spawn Window — schools move shallow and become dramatically easier to catch, modeled as a real behavior shift like the Deer Rut Window), Bass.md (locked out of passive Fish Traps, rewards active fishing), Catfish.md (top yield, especially effective in Fish Traps, the mirror of Bass). Updated Fishing_System.md's Fish Species and Fish Traps sections with cross-references, and removed the now-closed "Fishing per-species stat sheets" entry from Feature_Backlog.md.
+
+2026-09-22 — Claude — Copilot began Unity work and Mike relayed its status report for review (Bootstrap/MainMenu/World/Loading scenes, an 8-manager architecture, Unity_Architecture.md). Reviewed the actual project files on disk against the report — see `06_AI_Collaboration/Claude/Reviews/Review_004_Unity_Architecture.md`. Confirmed: Unity 6000.3.24f1 LTS, HDRP active, all four scenes present, GameManager correctly attached to a Managers GameObject in Bootstrap.unity, all eight Manager scripts present, and a Scripts folder structure already anticipating the documented systems. Four things flagged back to Copilot via the new "Needs Copilot" entry above: Unity_Architecture.md not found anywhere in the repo, none of the four scenes registered in Build Settings yet, Bootstrap.unity carrying leftover default HDRP template objects (Sun/Sky and Fog Volume/Main Camera/StaticLightingSky) that likely belong in World.unity instead, and leftover default template assets at the Assets root as cleanup candidates. While adding this entry, also found that Copilot had separately written a "Unity Version Lock" entry directly to Decisions_Log.md naming 6000.5.9f1 — which doesn't match the 6000.3.24f1 actually installed (per ProjectVersion.txt) or reported. Added as a fifth item. Nothing in 01_Unity_Project was touched — review was read-only per AI_Collaboration_Rules.md.
