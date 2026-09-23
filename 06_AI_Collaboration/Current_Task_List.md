@@ -23,7 +23,8 @@ See AI_Collaboration_Rules.md for the handoff protocol and file ownership behind
 
 # Needs Claude Review
 
-- **Unity_Architecture.md location** — the doc exists at `05_Documentation/Technical_Design/Unity_Architecture.md` (not `05_Documentation/Unity_Architecture/`, where Review_004 looked). Claude to review its content and decide whether it should move into the Unity_Architecture folder, whose confirmed purpose is Unity project conventions. Flagged by Claude Code 2026-09-23; not moved, since 05_Documentation is Claude-primary.
+- **Done 2026-09-23 (Claude) — see Log.** ~~**Unity_Architecture.md location**~~ — the doc existed at `05_Documentation/Technical_Design/Unity_Architecture.md`; moved into `05_Documentation/Unity_Architecture/`, whose confirmed purpose is Unity project conventions. Content unchanged, only reformatted to house style. Old location left as a short stub pointing to the new one, since Claude has no way to delete files on Mike's machine.
+- **TimeManager pacing defaults (Claude Code, 2026-09-23)** — `Assets/Scripts/Managers/TimeManager.cs` implements the clock/calendar/seasons from Season_System.md, but the docs don't define pacing, so these are Inspector-tunable placeholder defaults pending Mike's confirmation: 24 real minutes per in-game day; 28 days per season (112-day year); game starts 06:00 on Spring day 1; sunrise/sunset per season Spring 6:30–19:30, Summer 6:00–20:30, Fall 7:00–18:30, Winter 7:30–17:00; Dawn = 2h after sunrise, Dusk = 2h before sunset (per Research.md's deer activity grounding). Also exposes `SeasonProgress` (0–1) so relative windows like Large_Game.md's "second half of Fall" Rut Window work without fixed day ranges. Once confirmed, Season_System.md could record them — and Large_Game.md's note about converting the Rut Window to day numbers could be resolved.
 
 ---
 
@@ -74,6 +75,8 @@ Status: Done
 Purpose (confirmed 2026-09-22): architecture and data model documentation — how systems are structured in code, not what they do in gameplay terms.
 
 Doc added 2026-09-22 by Claude: Save_Data_Model.md — informal field-level sketch of Save_System.md's "What Must Be Saved," organized into Player/World/Property/Economy blocks. Explicitly marked Design Draft — Sketch, Not Implementation, with an "Open Questions for Copilot" section (serialization format, file structure, currency type) flagged as implementation calls, not design decisions.
+
+Unity_Architecture.md briefly lived here too (Copilot wrote it 2026-09-22 but it wasn't found until Claude Code's Review_004 follow-up work); moved to 05_Documentation/Unity_Architecture on 2026-09-23 by Claude, since that's its correct home. A stub pointing to the new location remains here — Claude can't delete files on Mike's machine.
 
 Owner: Claude
 
@@ -164,13 +167,13 @@ Owner: Claude
 
 ## 05_Documentation/Unity_Architecture
 
-Status: Blocked — the actual Unity_Architecture.md still doesn't exist (see Review_004 below); a setup guide for Claude Code does exist as of 2026-09-23
+Status: Done — Unity_Architecture.md now lives here
 
 Purpose (confirmed 2026-09-22): Unity project-specific conventions — scene organization, prefab structure, folder/namespace conventions inside 01_Unity_Project.
 
-Copilot reported writing a `Unity_Architecture.md` on 2026-09-22 but it was never found on disk (Review_004). Copilot has since been replaced by Claude Code (see Log below) — writing this doc for real is the first item on Claude Code's list once connected. In the meantime, Claude added `Claude_Code_Unity_MCP_Setup.md` to this folder — a one-time setup guide for Mike, not the architecture doc itself.
+Copilot reported writing a `Unity_Architecture.md` on 2026-09-22, but Review_004 couldn't find it anywhere in the repo. Claude Code (Copilot's replacement — see Log) tracked it down on 2026-09-23: it existed all along, just at `05_Documentation/Technical_Design/Unity_Architecture.md` instead of here. Claude Code flagged the location/content call for Claude to make (05_Documentation is Claude-primary); Claude moved it here the same day, content unchanged, reformatted to house style. `Claude_Code_Unity_MCP_Setup.md` also lives in this folder — a one-time setup guide for Mike, not the architecture doc itself.
 
-Owner: Claude Code (once connected)
+Owner: Claude
 
 ---
 
@@ -233,3 +236,5 @@ Confirmed in place: Unity 6000.3.24f1 LTS, HDRP installed and active. Four scene
 2026-09-23 — Claude — Mike reported Copilot kept running out of usage and asked about pivoting to Claude Code plus a Unity MCP server. Researched current options and, per Mike's decisions, fully replaced Copilot with Claude Code (connected to the Unity Editor via the free, open-source CoplayDev/unity-mcp server rather than Unity's official MCP, which needs an AI-beta subscription). Published AI_Collaboration_Rules.md v2.0 (Copilot → Claude Code throughout, plus a new Naming section to keep "Claude" and "Claude Code" unambiguous since both are Claude products), a new setup guide (`05_Documentation/Unity_Architecture/Claude_Code_Unity_MCP_Setup.md` — install steps, MCP connection steps, and a pointer back to Review_004's findings as Claude Code's first to-do list), and a Decisions_Log.md entry. The "Needs Copilot" list is now "Needs Claude Code" and carries the same five items from Review_004 forward — nothing is being redone, Claude Code picks up where Copilot's scaffolding left off.
 
 2026-09-23 — Claude Code — Closed out Review_004's five findings. (1) Unity_Architecture.md does exist, at `05_Documentation/Technical_Design/Unity_Architecture.md` — queued under "Needs Claude Review" for a location/content call. (2) Build Settings already listed Bootstrap, MainMenu, World, Loading (all enabled); no change needed. (3) Per Unity_Architecture.md ("Bootstrap: initialize all game managers… loads MainMenu"), removed the HDRP template Sun, Sky and Fog Volume, Main Camera, and StaticLightingSky from Bootstrap.unity — it now holds only the Managers GameObject. World.unity already has its own Global Volume, Directional Light, and Main Camera prefab instance, so nothing needed moving. (4) Deleted the unused template assets `Assets/OutdoorsScene.unity`, `Assets/Readme.asset`, `Assets/TutorialInfo/`, plus two empty duplicate scenes found at the Assets root (`Assets/World.unity`, `Assets/Loading.unity`, unreferenced copies of the real ones under Assets/Scenes). Unity console clean afterward. (5) Mike confirmed 6000.3.24f1 is the correct version; Decisions_Log.md's Version Lock entry corrected and reformatted to match the log's style.
+
+2026-09-23 — Claude — Closed the "Unity_Architecture.md location" review Claude Code flagged. Moved the doc from `05_Documentation/Technical_Design/Unity_Architecture.md` to `05_Documentation/Unity_Architecture/Unity_Architecture.md`, its correct home per that folder's confirmed purpose. Content unchanged — Copilot's original Engine/Scene Architecture/Bootstrap/Manager Architecture/Save Architecture/Script Organization/Design Rules content carried over as-is, only reformatted from one-line paragraphs into this doc set's usual prose-with-`---`-dividers style. Left a short stub at the old location pointing to the new one, since files can't be deleted from this session. 05_Documentation/Unity_Architecture and 05_Documentation/Technical_Design are both Done again.
