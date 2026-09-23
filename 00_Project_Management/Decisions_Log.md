@@ -103,25 +103,25 @@ Verified 01_Unity_Project is genuinely empty (no stray Unity project elsewhere i
 **2026-09-22 — 05_Documentation/Fishing species sheets confirmed (Mike)**
 Closed the Fishing per-species gap Review_003 had flagged for awareness only. Added a Fish Species Behavior Grounding section to Research.md first, then worked through Bluegill, Crappie, Bass, and Catfish one at a time, same propose-then-confirm pattern as Livestock/Wildlife/Plants — one file per species, matching Livestock's structure since Fishing_System.md already treats each species individually rather than by category. Confirmed: Bluegill is the easiest, most reliable catch (active all day, works with the cheapest gear) with the smallest yield (1 Food/catch); Crappie is normally the hardest to find (deep structure, dawn/dusk/night only, 2 Food/catch) but gets a real Spring Spawn Window — schools move to shallow water and become dramatically easier to catch, modeled as an actual behavior shift rather than a label, the same way the Deer Rut Window works; Bass (3 Food/catch) is effectively locked out of the passive Fish Trap method since it's a sight hunter that needs active lure presentation, making it the one species that specifically rewards Rod and Reel / Cane Pole; Catfish (4 Food/catch, top of the scale) has no hard time-of-day gating and is especially effective in Fish Traps as a scent-driven bottom scavenger — the mirror image of Bass. Fishing_System.md's Fish Species and Fish Traps sections were updated with cross-references, and Feature_Backlog.md's now-closed Fishing awareness note was removed. All four 05_Documentation species/data categories (Livestock, Wildlife, Plants, Fishing) are now fully confirmed and locked; only Unity_Architecture remains, pending access to 01_Unity_Project.
 
-## 2026-09-22
+---
 
-### Unity Version Lock
+**2026-09-22 — Unity Version Lock (Copilot; version corrected 2026-09-23 by Claude Code, confirmed by Mike)**
+Homestead is locked to Unity 6000.3.24f1 LTS for Alpha development, matching `ProjectSettings/ProjectVersion.txt` and `05_Documentation/Technical_Design/Unity_Architecture.md`. Do not upgrade Unity during active development unless a critical bug requires it, a required package requires it, or Mike approves the upgrade. Upgrades require a full project backup and git commit before proceeding.
 
-Homestead is locked to:
-
-Unity 6000.5.9f1
-
-This version will be used for Alpha development.
-
-Do not upgrade Unity during active development unless:
-
-- A critical bug requires it
-- A required package requires it
-- Project leadership approves the upgrade
-
-Upgrades require a full project backup and git commit before proceeding.
+Correction note: this entry originally named 6000.5.9f1, which never matched the installed editor (flagged in Review_004_Unity_Architecture.md, Finding 5). Mike confirmed 6000.3.24f1 is correct on 2026-09-23.
 
 ---
 
 **2026-09-22 — Unity Architecture review (Claude)**
 Copilot reported the initial Unity project scaffolding complete and ready for review: Unity 6000.3.24f1 LTS, four scenes (Bootstrap, MainMenu, World, Loading), an eight-manager architecture (GameManager, SaveManager, TimeManager, DiscoveryManager, JournalManager, InventoryManager, WeatherManager, AudioManager), and a Unity_Architecture.md doc. Claude reviewed the actual project files on disk per AI_Collaboration_Rules.md's Handoff Protocol — full findings in `06_AI_Collaboration/Claude/Reviews/Review_004_Unity_Architecture.md`. Confirmed: HDRP active, all four scenes present, GameManager correctly attached to a Managers GameObject in Bootstrap.unity, all eight manager scripts present, and a Scripts folder structure already anticipating the documented systems (Core, Discovery, Inventory, Managers, Player, Saving, Survival, UI, Wildlife, World). Five things flagged back to Copilot: Unity_Architecture.md not found anywhere in the repo despite being reported as created; none of the four scenes registered in Build Settings yet; Bootstrap.unity carrying leftover default HDRP template objects (Sun, Sky and Fog Volume, Main Camera, StaticLightingSky) that likely belong in World.unity instead; leftover default template assets at the Assets root as cleanup candidates; and **this doc's own Unity Version Lock entry immediately above says 6000.5.9f1, which doesn't match the 6000.3.24f1 actually installed on the project or named in Copilot's status report** — needs Copilot to confirm which is correct. Nothing in 01_Unity_Project was touched; review was read-only.
+
+---
+
+**2026-09-23 — Copilot replaced by Claude Code as implementation partner (Mike)**
+Mike reported Copilot kept running out of usage mid-task and asked about pivoting to Claude Code, plus giving it a live Unity MCP connection. Claude researched current options rather than relying on possibly-stale knowledge: Unity's own official MCP package exists but requires an active Unity AI tools beta subscription; two free/open-source third-party servers were found instead — CoplayDev/unity-mcp (MIT, 47 tools, supports Unity 2021.3 LTS through 6.x) and IvanMurzak/Unity-MCP (70+ tools, adds runtime/in-game debugging and Roslyn code execution). Mike decided, via three explicit choices: (1) Claude Code fully replaces Copilot rather than the two running in parallel; (2) CoplayDev/unity-mcp is the server to connect, over Unity's official subscription-gated option and over IvanMurzak/Unity-MCP; (3) Claude should draft all the pivot documentation now rather than just walk through setup steps in chat first.
+
+Reasoning: Copilot's repeated usage exhaustion was blocking implementation progress outright, which outweighs any advantage to running two implementation AIs in parallel. CoplayDev/unity-mcp was preferred over Unity's official MCP because it needs no separate paid beta enrollment, and over IvanMurzak/Unity-MCP because its smaller, more focused tool set is a better fit for a first-time setup, even though IvanMurzak's is more feature-rich.
+
+Everything Copilot already built (reviewed in Review_004_Unity_Architecture.md) carries forward as Claude Code's starting point rather than being redone. AI_Collaboration_Rules.md was rewritten to v2.0 (Copilot → Claude Code throughout, plus a new Naming section distinguishing "Claude," this session, from "Claude Code," the separate local CLI — both are Claude products, so the docs are explicit everywhere). A new setup guide, `05_Documentation/Unity_Architecture/Claude_Code_Unity_MCP_Setup.md`, walks Mike through installing Claude Code, installing the CoplayDev/unity-mcp package, connecting the two, and lists Review_004's five findings as Claude Code's first to-do list once it's running. Current_Task_List.md's "Needs Copilot" section is now "Needs Claude Code," carrying the same five items forward.
+
+Installing Claude Code and the Unity MCP package on Mike's machine is a manual step Mike needs to do himself — Claude (this session) has no ability to install software or run commands there.

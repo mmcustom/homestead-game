@@ -9,21 +9,21 @@ Status: Active — updated by both Claude and Copilot
 
 Status values: Not Started / In Progress / Needs Review / Needs Copilot / Blocked / Done
 
-Owner values: Claude / Copilot / Mike
+Owner values: Claude / Claude Code / Mike ("Claude Code" is always written in full — see AI_Collaboration_Rules.md's Naming note)
 
 See AI_Collaboration_Rules.md for the handoff protocol and file ownership behind this list.
 
 ---
 
-# Needs Copilot
+# Needs Claude Code
 
-- **Unity Architecture review findings (2026-09-22)** — Claude reviewed the initial Unity project scaffolding (see `06_AI_Collaboration/Claude/Reviews/Review_004_Unity_Architecture.md`) and found four things needing Copilot's attention: (1) `Unity_Architecture.md` wasn't found anywhere in the repo despite being reported as created — needs the path confirmed or a re-save; (2) none of the four new scenes (Bootstrap, MainMenu, World, Loading) are registered in Build Settings yet, so the intended scene flow can't run; (3) Bootstrap.unity still carries the default HDRP template's Sun/Sky and Fog Volume/Main Camera/StaticLightingSky objects — worth confirming whether those belong there or in World.unity; (4) leftover default template assets (`OutdoorsScene.unity`, `Readme.asset`, `TutorialInfo/`) at the Assets root are cleanup candidates. Also found while adding this entry: (5) **Decisions_Log.md's "Unity Version Lock" entry says 6000.5.9f1, but the actual installed editor (`ProjectVersion.txt`) is 6000.3.24f1** — the same version named in Copilot's own status report. Two different versions are now on record for the same project; needs Copilot to say which is correct so the other can be fixed. None of the five are blocking or urgent — just flagged for whenever Copilot picks the project back up.
+- **Done 2026-09-23 (Claude Code) — see Log.** ~~**Unity Architecture review findings, carried over from Copilot (originally 2026-09-22)**~~ — Claude reviewed the initial Unity project scaffolding (see `06_AI_Collaboration/Claude/Reviews/Review_004_Unity_Architecture.md`) and found five things needing attention, now redirected to Claude Code since Copilot has been replaced (see Log below): (1) `Unity_Architecture.md` wasn't found anywhere in the repo despite being reported as created — needs writing for real; (2) none of the four new scenes (Bootstrap, MainMenu, World, Loading) are registered in Build Settings yet, so the intended scene flow can't run; (3) Bootstrap.unity still carries the default HDRP template's Sun/Sky and Fog Volume/Main Camera/StaticLightingSky objects — worth confirming whether those belong there or in World.unity; (4) leftover default template assets (`OutdoorsScene.unity`, `Readme.asset`, `TutorialInfo/`) at the Assets root are cleanup candidates; (5) **Decisions_Log.md's "Unity Version Lock" entry says 6000.5.9f1, but the actual installed editor (`ProjectVersion.txt`) is 6000.3.24f1** — needs Claude Code to say which is correct so the other can be fixed. None of the five are blocking or urgent — first things to tackle once Claude Code is connected, per `05_Documentation/Unity_Architecture/Claude_Code_Unity_MCP_Setup.md`'s Part 4.
 
 ---
 
 # Needs Claude Review
 
-Nothing currently queued.
+- **Unity_Architecture.md location** — the doc exists at `05_Documentation/Technical_Design/Unity_Architecture.md` (not `05_Documentation/Unity_Architecture/`, where Review_004 looked). Claude to review its content and decide whether it should move into the Unity_Architecture folder, whose confirmed purpose is Unity project conventions. Flagged by Claude Code 2026-09-23; not moved, since 05_Documentation is Claude-primary.
 
 ---
 
@@ -164,11 +164,13 @@ Owner: Claude
 
 ## 05_Documentation/Unity_Architecture
 
-Status: Blocked — Copilot reported this doc created, but it wasn't found anywhere in the repo (see Review_004 below)
+Status: Blocked — the actual Unity_Architecture.md still doesn't exist (see Review_004 below); a setup guide for Claude Code does exist as of 2026-09-23
 
 Purpose (confirmed 2026-09-22): Unity project-specific conventions — scene organization, prefab structure, folder/namespace conventions inside 01_Unity_Project.
 
-Copilot has started Unity work as of 2026-09-22 (see 01_Unity_Project below) and reported writing a `Unity_Architecture.md`, but it isn't present in `05_Documentation/Unity_Architecture/`, `06_AI_Collaboration/Copilot/`, or the project root. Waiting on Copilot to confirm the path or re-save it before this can move forward.
+Copilot reported writing a `Unity_Architecture.md` on 2026-09-22 but it was never found on disk (Review_004). Copilot has since been replaced by Claude Code (see Log below) — writing this doc for real is the first item on Claude Code's list once connected. In the meantime, Claude added `Claude_Code_Unity_MCP_Setup.md` to this folder — a one-time setup guide for Mike, not the architecture doc itself.
+
+Owner: Claude Code (once connected)
 
 ---
 
@@ -200,7 +202,7 @@ Owner: Claude
 
 # 01_Unity_Project
 
-Status: In Progress (Copilot) — initial architecture scaffolded 2026-09-22, reviewed by Claude at Mike's request (see Review_004 below). Still Copilot's domain per AI_Collaboration_Rules.md; Claude's review was read-only, no files touched.
+Status: In Progress — initial architecture scaffolded by Copilot 2026-09-22, reviewed by Claude at Mike's request (see Review_004 below). Copilot has since been replaced by Claude Code as of 2026-09-23 (see Log below and AI_Collaboration_Rules.md v2.0) — Claude Code picks up from Copilot's scaffolding rather than starting over. Still not Claude's (this session's) domain per AI_Collaboration_Rules.md; Claude's review was read-only, no files touched.
 
 Confirmed in place: Unity 6000.3.24f1 LTS, HDRP installed and active. Four scenes (Bootstrap, MainMenu, World, Loading) exist under Assets/Scenes. A Scripts folder structure (Core, Discovery, Inventory, Managers, Player, Saving, Survival, UI, Wildlife, World) anticipates the documented systems. Eight Manager scripts exist (GameManager, SaveManager, TimeManager, DiscoveryManager, JournalManager, InventoryManager, WeatherManager, AudioManager); only GameManager is currently attached to the Managers GameObject in Bootstrap.unity, and all eight are still empty default templates pending real implementation.
 
@@ -227,3 +229,7 @@ Confirmed in place: Unity 6000.3.24f1 LTS, HDRP installed and active. Four scene
 2026-09-22 — Claude — Completed 05_Documentation/Fishing (4/4 species), closing the gap Review_003 had flagged for awareness. Added a Fish Species Behavior Grounding section to Research.md first (Bluegill vs. Crappie vs. Bass vs. Catfish real-world feeding/activity/habitat differences), then drafted and confirmed one file per species with Mike, one at a time: Bluegill.md (easiest catch, smallest yield, active all day), Crappie.md (hardest to find normally, but gets a confirmed Spring Spawn Window — schools move shallow and become dramatically easier to catch, modeled as a real behavior shift like the Deer Rut Window), Bass.md (locked out of passive Fish Traps, rewards active fishing), Catfish.md (top yield, especially effective in Fish Traps, the mirror of Bass). Updated Fishing_System.md's Fish Species and Fish Traps sections with cross-references, and removed the now-closed "Fishing per-species stat sheets" entry from Feature_Backlog.md.
 
 2026-09-22 — Claude — Copilot began Unity work and Mike relayed its status report for review (Bootstrap/MainMenu/World/Loading scenes, an 8-manager architecture, Unity_Architecture.md). Reviewed the actual project files on disk against the report — see `06_AI_Collaboration/Claude/Reviews/Review_004_Unity_Architecture.md`. Confirmed: Unity 6000.3.24f1 LTS, HDRP active, all four scenes present, GameManager correctly attached to a Managers GameObject in Bootstrap.unity, all eight Manager scripts present, and a Scripts folder structure already anticipating the documented systems. Four things flagged back to Copilot via the new "Needs Copilot" entry above: Unity_Architecture.md not found anywhere in the repo, none of the four scenes registered in Build Settings yet, Bootstrap.unity carrying leftover default HDRP template objects (Sun/Sky and Fog Volume/Main Camera/StaticLightingSky) that likely belong in World.unity instead, and leftover default template assets at the Assets root as cleanup candidates. While adding this entry, also found that Copilot had separately written a "Unity Version Lock" entry directly to Decisions_Log.md naming 6000.5.9f1 — which doesn't match the 6000.3.24f1 actually installed (per ProjectVersion.txt) or reported. Added as a fifth item. Nothing in 01_Unity_Project was touched — review was read-only per AI_Collaboration_Rules.md.
+
+2026-09-23 — Claude — Mike reported Copilot kept running out of usage and asked about pivoting to Claude Code plus a Unity MCP server. Researched current options and, per Mike's decisions, fully replaced Copilot with Claude Code (connected to the Unity Editor via the free, open-source CoplayDev/unity-mcp server rather than Unity's official MCP, which needs an AI-beta subscription). Published AI_Collaboration_Rules.md v2.0 (Copilot → Claude Code throughout, plus a new Naming section to keep "Claude" and "Claude Code" unambiguous since both are Claude products), a new setup guide (`05_Documentation/Unity_Architecture/Claude_Code_Unity_MCP_Setup.md` — install steps, MCP connection steps, and a pointer back to Review_004's findings as Claude Code's first to-do list), and a Decisions_Log.md entry. The "Needs Copilot" list is now "Needs Claude Code" and carries the same five items from Review_004 forward — nothing is being redone, Claude Code picks up where Copilot's scaffolding left off.
+
+2026-09-23 — Claude Code — Closed out Review_004's five findings. (1) Unity_Architecture.md does exist, at `05_Documentation/Technical_Design/Unity_Architecture.md` — queued under "Needs Claude Review" for a location/content call. (2) Build Settings already listed Bootstrap, MainMenu, World, Loading (all enabled); no change needed. (3) Per Unity_Architecture.md ("Bootstrap: initialize all game managers… loads MainMenu"), removed the HDRP template Sun, Sky and Fog Volume, Main Camera, and StaticLightingSky from Bootstrap.unity — it now holds only the Managers GameObject. World.unity already has its own Global Volume, Directional Light, and Main Camera prefab instance, so nothing needed moving. (4) Deleted the unused template assets `Assets/OutdoorsScene.unity`, `Assets/Readme.asset`, `Assets/TutorialInfo/`, plus two empty duplicate scenes found at the Assets root (`Assets/World.unity`, `Assets/Loading.unity`, unreferenced copies of the real ones under Assets/Scenes). Unity console clean afterward. (5) Mike confirmed 6000.3.24f1 is the correct version; Decisions_Log.md's Version Lock entry corrected and reformatted to match the log's style.
