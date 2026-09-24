@@ -16,3 +16,6 @@ UserSettings/
 
 Thumbs.db
 .DS_Store
+
+# Mike's spare sound candidates from audio sourcing — kept locally, not part of the project
+/Xtra Sound files/
