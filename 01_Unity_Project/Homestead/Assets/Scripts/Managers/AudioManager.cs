@@ -168,6 +168,9 @@ public class AudioManager : MonoBehaviour
 
         uiSource = CreateSource("UI", AudioChannel.Ui, loop: false);
         uiSource.ignoreListenerPause = true;
+        // PlayOneShot scales by the source's own volume, and CreateSource starts sources silent — so this one must
+        // be full volume, leaving each cue's Sound.volume and the UI mixer group to set the level.
+        uiSource.volume = 1f;
     }
 
     void Start()
