@@ -54,6 +54,10 @@ public static class PropertyTerrainBuilder
 
     const float EdgeBand = 30f; // forest thickens over this distance from the property edge
 
+    // Trees alone leave gaps a player can squeeze through, and past the terrain's edge there's nothing to stand
+    // on. Invisible walls sit this far inside the edge, deep in the thickest forest, so the edge is never reached.
+    const float BoundaryInset = 12f;
+
     enum Layer { Grass, Dirt, Gravel }
 
     static Vector2[] noiseOffsets;
@@ -320,6 +324,20 @@ public static class PropertyTerrainBuilder
         water.AddComponent<MeshFilter>().sharedMesh = WaterMesh(creek, creekLevel, creekHalf, springLevel, pondLevel);
         water.AddComponent<MeshRenderer>().sharedMaterial = LitMaterial("Water", new Color(0.08f, 0.16f, 0.18f), 0.95f);
         GameObjectUtility.SetStaticEditorFlags(water, (StaticEditorFlags)~0);
+
+        var boundary = new GameObject("Property Boundary");
+        boundary.transform.SetParent(root.transform);
+        float span = Size - BoundaryInset * 2f, offset = Size / 2f - BoundaryInset;
+        const float WallHeight = 120f, WallThickness = 2f;
+        foreach (Vector2 side in new[] { Vector2.up, Vector2.down, Vector2.left, Vector2.right })
+        {
+            var wall = boundary.AddComponent<BoxCollider>();
+            wall.center = new Vector3(side.x * (offset + WallThickness / 2f), WallHeight / 2f - 20f, side.y * (offset + WallThickness / 2f));
+            wall.size = side.x != 0f
+                ? new Vector3(WallThickness, WallHeight, span + WallThickness * 2f)
+                : new Vector3(span + WallThickness * 2f, WallHeight, WallThickness);
+        }
+        GameObjectUtility.SetStaticEditorFlags(boundary, (StaticEditorFlags)~0);
 
         // Sites and spawn onto the new ground.
         MoveSite("South Ridge Cabin Site", CabinSite, terrain);

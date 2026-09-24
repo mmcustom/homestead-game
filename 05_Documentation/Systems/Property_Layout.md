@@ -1,7 +1,7 @@
 # Homestead
 ## Property Layout v1.0
 
-Status: Implemented (2026-09-24) — built in World.unity by `Assets/Scripts/Editor/PropertyTerrainBuilder.cs`; awaiting Mike's in-game walkthrough (Design Rule 4)
+Status: Implemented and walked (2026-09-24) — built in World.unity by `Assets/Scripts/Editor/PropertyTerrainBuilder.cs`; Mike confirmed the property itself (size, ridge, water, sites) reads as intended. One implementation bug found in the walkthrough — falling off the world at the property edge — tracked in Current_Task_List.md, not a design change.
 
 ---
 
