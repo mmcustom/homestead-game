@@ -218,6 +218,20 @@ Exact per-season weather odds, temperature ranges, and duration numbers are impl
 
 ---
 
+# Visual Feedback
+
+Confirmed 2026-09-24 (Mike): weather that includes precipitation should render visible particles, not just the cloud cover, fog, and exposure dimming Claude Code already built (2026-09-24 DayNightCycle fix). This is presentation of the gameplay state already defined above, not a new gameplay effect — Design Rule 1 still holds, and none of the mechanical effects per weather type change.
+
+- **Light Rain** — light, sparse rain particles.
+- **Heavy Rain** — denser, heavier rain particles, consistent with Heavy Rain's already-documented reduced visibility.
+- **Thunderstorm** — same rain particle treatment as Heavy Rain; this doc doesn't define a separate precipitation intensity for storms.
+- **Snow** — falling snowflakes, Winter's primary weather condition.
+- **Clear, Cloudy, Cold Front, Wind** — no precipitation particles; none of these are precipitation types.
+
+Exact particle system choice, density, and performance tuning are Claude Code's implementation call.
+
+---
+
 # Design Rules
 
 1. Weather is a gameplay system, not decoration.

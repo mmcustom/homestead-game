@@ -1142,6 +1142,27 @@ MonoBehaviour:
   - 0.8
   - 0.35
   - 0.9
+  weatherFogDistance:
+  - 400
+  - 300
+  - 200
+  - 120
+  - 80
+  - 350
+  - 150
+  - 400
+  weatherCloudCover:
+  - 0
+  - 0.9
+  - 0.9
+  - 1
+  - 1
+  - 0.5
+  - 1
+  - 0.3
+  weatherDarkening: 0.7
+  fogBaseHeight: 20
+  fogMaximumHeight: 80
   weatherBlendPerHour: 2
   fallbackHour: 12
 --- !u!4 &1078844309
@@ -1360,6 +1381,76 @@ Transform:
   - {fileID: 1656471330}
   - {fileID: 1139663419}
   - {fileID: 1502140611}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1318218081
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1318218083}
+  - component: {fileID: 1318218082}
+  m_Layer: 0
+  m_Name: Precipitation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1318218082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318218081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7777078912984c244abff49e57e92aff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Precipitation
+  rainMaterial: {fileID: 2100000, guid: 71be8f26787c0454aa17789d777a068b, type: 2}
+  snowMaterial: {fileID: 2100000, guid: fe841af4a0c3fab42b0a157534aae72b, type: 2}
+  rainPerSecond:
+  - 0
+  - 0
+  - 1500
+  - 6000
+  - 6000
+  - 0
+  - 0
+  - 0
+  rainFallSpeed: 10
+  snowPerSecond:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 800
+  - 0
+  snowFallSpeed: 1.2
+  areaSize: 50
+  spawnHeight: 15
+  windDrift: 3
+  fadeSeconds: 8
+--- !u!4 &1318218083
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318218081}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1354432045
@@ -2289,3 +2380,4 @@ SceneRoots:
   - {fileID: 1022411199}
   - {fileID: 8133855621114530108}
   - {fileID: 1251429018}
+  - {fileID: 1318218083}
