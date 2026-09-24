@@ -124,6 +124,10 @@ All 22 files are in place under `Assets/Audio/`, verified by folder listing. Fil
 
 Not part of the 22-file spec: `SFX/footsteps rain.wav`. Mike kept this on purpose as a possible future rain-footstep variant — leave it unwired for now, it isn't tied to any documented trigger.
 
+**Decided (2026-09-23):** `menu button click.wav` and `menu cancel click.wav` turned out to be byte-for-byte identical. Rather than sourcing a distinct file, Mike confirmed reusing the same sound for both sfx_ui_click and sfx_ui_back — they don't play at the same time, so there's no doubling issue like the Day.wav/Gameplay Day.wav pair below. No replacement needed for this pair; `menu cancel click.wav` can stay as-is (redundant but harmless) or be dropped in favor of pointing both ids at `menu button click.wav` — implementation detail, Claude Code's call.
+
+**Resolved (2026-09-23):** `Ambient/Day.wav` and `Music/Gameplay Day.wav` were also byte-for-byte identical — Mike sourced a new recording and replaced `Ambient/Day.wav`'s content in place (same filename, mapping above still applies). All 22 files are now distinct; nothing left blocking the commit.
+
 ---
 
 # Design Rules
