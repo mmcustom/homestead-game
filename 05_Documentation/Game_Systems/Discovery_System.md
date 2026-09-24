@@ -137,13 +137,15 @@ Example:
 
 Discovery Unlocked
 
-Natural Spring
+Spring Hollow
 
 Water Quality: Excellent
 
 Journal Updated
 
 Map Updated
+
+Updated 2026-09-23 (Claude, matching Claude Code's HUD implementation): the notification uses the site's own name (e.g. "Spring Hollow"), not its generic type ("Natural Spring") — this example originally predated Discovery_Test_Sites.md, back when sites didn't have proper names yet. The site's name is what's in the player's journal, so that's what should be on screen. Steps 3–4 (Minimap/World Map) don't apply yet — no map system exists — so the HUD currently only does steps 1–2 (notification, then "Journal Updated").
 
 ---
 
