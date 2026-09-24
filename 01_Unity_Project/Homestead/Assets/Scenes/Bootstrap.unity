@@ -383,6 +383,7 @@ MonoBehaviour:
     - 0.7
     - 0.4
     scaleWithWind: 0
+    softenUnderCover: 0
   - name: Night
     sound:
       clip: {fileID: 8300000, guid: 95873eec506536b49aa4637ab2fdca2f, type: 3}
@@ -396,6 +397,7 @@ MonoBehaviour:
     - 1
     - 1
     scaleWithWind: 0
+    softenUnderCover: 0
   - name: Light Rain
     sound:
       clip: {fileID: 8300000, guid: 4a723e50b23af834d8e4d578cfc66e7e, type: 3}
@@ -409,6 +411,7 @@ MonoBehaviour:
     - 1
     - 1
     scaleWithWind: 0
+    softenUnderCover: 1
   - name: Heavy Rain
     sound:
       clip: {fileID: 8300000, guid: e08729e46040377468a96a8a1a6d7bb5, type: 3}
@@ -422,6 +425,7 @@ MonoBehaviour:
     - 1
     - 1
     scaleWithWind: 0
+    softenUnderCover: 1
   - name: Snow
     sound:
       clip: {fileID: 8300000, guid: 2892aeffd6f8db040aba63dfbbd49faa, type: 3}
@@ -435,6 +439,7 @@ MonoBehaviour:
     - 1
     - 1
     scaleWithWind: 0
+    softenUnderCover: 1
   - name: Wind
     sound:
       clip: {fileID: 8300000, guid: 8dbb6c31f0f70f04997dbd52a8784f36, type: 3}
@@ -448,7 +453,10 @@ MonoBehaviour:
     - 1
     - 1
     scaleWithWind: 1
+    softenUnderCover: 0
   ambientFadeSeconds: 3
+  canopyAmbientVolume: 0.75
+  roofAmbientVolume: 0.4
   waterProximity:
     clip: {fileID: 8300000, guid: 9a5710b4f675552488736609fe3ca7ee, type: 3}
     volume: 0.27
@@ -471,6 +479,36 @@ MonoBehaviour:
   footstepsGravel:
     clip: {fileID: 8300000, guid: 003ad9dec3a931e49962cca949e48a49, type: 3}
     volume: 0.11
+  footstepsGrassTimes:
+  - 0.08
+  - 0.32
+  - 0.63
+  - 0.95
+  - 1.26
+  - 1.55
+  - 1.88
+  - 2.18
+  footstepsDirtTimes:
+  - 0.55
+  - 1.09
+  - 1.64
+  - 2.18
+  - 2.73
+  - 3.27
+  - 3.82
+  - 4.36
+  - 4.91
+  - 5.46
+  - 6
+  footstepsGravelTimes:
+  - 1.15
+  - 1.77
+  - 2.63
+  - 3.35
+  - 4.06
+  - 4.75
+  - 5.25
+  - 5.98
   sprintBreathing:
     clip: {fileID: 8300000, guid: b2670edcde9a0ef4c8a54d6d9808a0c1, type: 3}
     volume: 1

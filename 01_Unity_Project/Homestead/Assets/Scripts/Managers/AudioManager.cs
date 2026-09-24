@@ -33,6 +33,9 @@ public class AmbientLayer
     [Tooltip("Scale with WeatherManager.WindStrength rather than switching on and off (Audio_System.md: ambient_wind).")]
     public bool scaleWithWind;
 
+    [Tooltip("Quieter under tree canopy or a roof (Audio_System.md: rain and snow ambience under cover).")]
+    public bool softenUnderCover;
+
     [NonSerialized] public AudioSource source;
 
     // 0–1 fade position, separate from the output volume so a muted channel still fades and stops layers.
@@ -76,6 +79,9 @@ public class AudioManager : MonoBehaviour
     [Header("Ambient")]
     [SerializeField] List<AmbientLayer> ambientLayers = new List<AmbientLayer>();
     [SerializeField, Min(0f)] float ambientFadeSeconds = 3f;
+    [Tooltip("Volume of cover-softened ambience (rain, snow) under a full tree canopy, and under a roof.")]
+    [SerializeField, Range(0f, 1f)] float canopyAmbientVolume = 0.75f;
+    [SerializeField, Range(0f, 1f)] float roofAmbientVolume = 0.4f;
     [Tooltip("Plays at each discovered Water Source site, fading with distance (Audio_System.md: ambient_water_proximity).")]
     [SerializeField] Sound waterProximity = new Sound();
     [SerializeField, Min(1f)] float waterAudibleDistance = 25f;
@@ -89,6 +95,11 @@ public class AudioManager : MonoBehaviour
     [SerializeField] Sound footstepsGrass = new Sound();
     [SerializeField] Sound footstepsDirt = new Sound();
     [SerializeField] Sound footstepsGravel = new Sound();
+    [Tooltip("Where each footfall starts in the footstep recordings, in seconds. The recordings are sequences of steps " +
+             "at their own pace; PlayerAudio plays one footfall per stride instead of looping them.")]
+    [SerializeField] List<float> footstepsGrassTimes = new List<float>();
+    [SerializeField] List<float> footstepsDirtTimes = new List<float>();
+    [SerializeField] List<float> footstepsGravelTimes = new List<float>();
     [SerializeField] Sound sprintBreathing = new Sound();
     [SerializeField] Sound encumberedBreathing = new Sound();
 
@@ -118,6 +129,7 @@ public class AudioManager : MonoBehaviour
     bool pendingDiscoveryChime;
     bool pendingMilestone;
     bool volumesApplied;
+    float coverVolume = 1f, coverVolumeTarget = 1f, nextCoverCheck;
     InventoryContainer watchedInventory;
 
     public AudioClip CurrentMusic => musicSources[activeMusic] != null ? musicSources[activeMusic].clip : null;
@@ -280,6 +292,16 @@ public class AudioManager : MonoBehaviour
     public Sound Thunder => thunder;
     public IReadOnlyList<Vector2> ThunderSlices => thunderSlices;
 
+    public IReadOnlyList<float> FootstepTimes(SurfaceType surface)
+    {
+        switch (surface)
+        {
+            case SurfaceType.Dirt: return footstepsDirtTimes;
+            case SurfaceType.Gravel: return footstepsGravelTimes;
+            default: return footstepsGrassTimes;
+        }
+    }
+
     public Sound SprintBreathing => sprintBreathing;
     public Sound EncumberedBreathing => encumberedBreathing;
 
@@ -401,6 +423,7 @@ public class AudioManager : MonoBehaviour
         WeatherManager weather = WeatherManager.Instance;
         bool active = InGame && time != null;
         float step = ambientFadeSeconds > 0f ? dt / ambientFadeSeconds : 1f;
+        UpdateCover(dt);
 
         foreach (AmbientLayer layer in ambientLayers)
         {
@@ -431,8 +454,29 @@ public class AudioManager : MonoBehaviour
                 ? Mathf.InverseLerp(0.1f, 1f, weather.WindStrength)
                 : 1f;
 
-            source.volume = layer.level * layer.sound.volume * seasonScale * windScale;
+            float coverScale = layer.softenUnderCover ? coverVolume : 1f;
+
+            source.volume = layer.level * layer.sound.volume * seasonScale * windScale * coverScale;
         }
+    }
+
+    // How sheltered the listener is, from the same OverheadCover check Precipitation uses.
+    void UpdateCover(float dt)
+    {
+        if (Time.unscaledTime >= nextCoverCheck)
+        {
+            nextCoverCheck = Time.unscaledTime + 0.25f;
+            Camera listener = InGame ? Camera.main : null;
+            coverVolumeTarget = 1f;
+            if (listener != null)
+            {
+                Vector3 position = listener.transform.position;
+                coverVolumeTarget = OverheadCover.Roofed(position)
+                    ? roofAmbientVolume
+                    : Mathf.Lerp(1f, canopyAmbientVolume, OverheadCover.CanopyFraction(position));
+            }
+        }
+        coverVolume = Mathf.MoveTowards(coverVolume, coverVolumeTarget, dt);
     }
 
     // One positional loop per discovered Water Source, audible only in-game. Sites that are no longer known

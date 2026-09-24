@@ -1,7 +1,7 @@
 # Homestead
 ## Audio System v1.0
 
-Status: Design Draft, content confirmed — all 22 original Alpha 0.1 files sourced, mapped, and implemented (2026-09-23). One new file, sfx_thunder, added and sourced 2026-09-24 for Weather_System.md's lightning/thunder feature; not yet implemented (Claude Code's turn) — see Sourcing below.
+Status: Design Draft, content confirmed — all 22 original Alpha 0.1 files sourced, mapped, and implemented (2026-09-23). sfx_thunder added, sourced, and implemented 2026-09-24 (sliced into five clips — see Sourced Files); not yet confirmed by ear, since Claude Code can't listen.
 
 ---
 
@@ -50,13 +50,16 @@ Three tracks is deliberately minimal for Alpha 0.1 — season-variant or tension
 | ambient_wind | WeatherManager: Wind (its weather-type role, per Weather_System.md's confirmed dual-role) | Layers under whatever else is playing rather than replacing it — Wind was confirmed to also be a standing property, so this should scale with wind strength, not just switch on/off. |
 | ambient_snow | WeatherManager: Snow | Quiet, muffled — snow should sound like it's dampening the world, not adding to it. |
 | ambient_water_proximity | Player near a discovered Water Source site (Spring Hollow, etc.) | Soft trickle/flow, distance-faded. Ties discovery to a lasting sensory reward — you don't just see the marker, the place sounds different once you know it. |
-| sfx_thunder | WeatherManager: Thunderstorm, timed with a lightning flash per Weather_System.md's Visual Feedback section (2026-09-24) | New, added after the original 22 — sourced (`Thunderstorm.wav`, see Sourced Files below), not yet wired. One-shot, not a loop, unlike its neighbors above. Only one clip so far — fine for a first pass, though back-to-back repeats of the same clip may stand out more than the other SFX's variety. Delay after its paired flash, and clap-vs-rumble character, follow the near/far distinction Weather_System.md specifies. |
+
+**Confirmed 2026-09-24 (Mike, from playtest):** ambient_rain_light, ambient_rain_heavy, and ambient_snow should get quieter under overhead cover, the same way the falling particles already do — Mike checked in-game and the particles visibly thin out under a tree crown, but the rain/snow sound stayed exactly as loud. `OverheadCover.cs` already computes this per-frame for `Precipitation.cs`; AudioManager should read the same value and pull these ambient layers down under partial cover, quieter still (or off) under full cover. Mike described the target as "a little bit softer," not necessarily matching the particles' exact 30%/0% curve — the precise attenuation amount is Claude Code's call.
+
+| sfx_thunder | WeatherManager: Thunderstorm, timed with a lightning flash per Weather_System.md's Visual Feedback section (2026-09-24) | Implemented 2026-09-24 (Claude Code). `Thunderstorm.wav` turned out to be a 4½-minute storm recording rather than a single one-shot, so AudioManager holds five hand-picked slices cut from it (7s, 45.8s, 92.8s, 198.8s, 232.2s; 8–12s each), chosen by loudness/low-frequency analysis as the clearest thunderclaps standing above the rain bed. Each strike plays a random slice with a fade-out, never the same one twice in a row — more variety than the single-clip plan assumed. Routed to the Ambient mixer group; distant strikes play through a low-pass filter (~600Hz) for the rumble, close strikes unfiltered for the crack. Import changed from 96kHz/uncompressed to Compressed In Memory / Vorbis / 48kHz so slices can seek without loading the whole file. **Not yet confirmed by ear** — Claude Code picked the slices from measurements, not listening; Mike should confirm they actually sound like thunder and not just louder rain. |
 
 ## Player SFX
 
 | id | Trigger | Notes |
 |---|---|---|
-| sfx_footstep_grass / _dirt / _gravel | PlayerController movement, by ground material | Needs a surface-tag lookup if one doesn't exist yet — flag to Claude Code as a small prerequisite. |
+| sfx_footstep_grass / _dirt / _gravel | PlayerController movement, by ground material | Needs a surface-tag lookup if one doesn't exist yet — flag to Claude Code as a small prerequisite. **Bug (2026-09-24, Mike's playtest):** grass footsteps play at almost double the cadence of dirt and gravel. Step rate should be driven by the player's actual movement speed/stride, the same for every surface — only the sound played each step should change with ground material. Likely cause is the three source clips being pre-baked footstep-sequence loops of different lengths/step-spacing (per the Sourced Files table: `footsteps grass loop.wav` / `footsteps dirt loop.wav` / `footsteps gravel loop.mp3`), so looping each at its own native length produces a different apparent cadence per surface instead of one driven by the player. Worth checking whether footsteps are event-triggered per stride (correct) or just looping a clip that already has its own internal step timing (the likely bug). |
 | sfx_sprint_breathing | PlayerController: sprinting, Stamina draining | Per First_Person_Controller.md's confirmed Stamina numbers. |
 | sfx_encumbered_breathing | InventoryManager: at/above 30 kg | Distinct from sprint breathing — heavier, slower. |
 | sfx_item_pickup / sfx_item_drop | InventoryManager: item added/removed | |
@@ -127,7 +130,7 @@ All 22 files are in place under `Assets/Audio/`, verified by folder listing. Fil
 
 Not part of the 22-file spec: `SFX/footsteps rain.wav`. Mike kept this on purpose as a possible future rain-footstep variant — leave it unwired for now, it isn't tied to any documented trigger.
 
-**Added 2026-09-24:** `SFX/Thunderstorm.wav` → sfx_thunder.
+**Added 2026-09-24:** `SFX/Thunderstorm.wav` → sfx_thunder. Turned out to be a 4½-minute storm recording rather than a single clip — see the Ambient table's sfx_thunder row above for how Claude Code sliced it into five reusable thunderclaps.
 
 **Decided (2026-09-23):** `menu button click.wav` and `menu cancel click.wav` turned out to be byte-for-byte identical. Rather than sourcing a distinct file, Mike confirmed reusing the same sound for both sfx_ui_click and sfx_ui_back — they don't play at the same time, so there's no doubling issue like the Day.wav/Gameplay Day.wav pair below. No replacement needed for this pair; `menu cancel click.wav` can stay as-is (redundant but harmless) or be dropped in favor of pointing both ids at `menu button click.wav` — implementation detail, Claude Code's call.
 
