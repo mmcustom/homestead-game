@@ -58,6 +58,31 @@ public class TimeManager : MonoBehaviour, ISaveable
 
     public bool IsRunning { get; private set; }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Testing only (TimeDebugControls): speeds up the calendar without touching Time.timeScale, so movement and
+    // physics stay normal. Compiled out of release builds, and never saved.
+    public float DebugSpeed { get; set; } = 1f;
+    float SpeedMultiplier => DebugSpeed;
+
+    // Testing only: jumps ahead, firing every hour/day/season event on the way so other systems keep up.
+    public void DebugSkipDays(int days) => AdvanceMinutes(Mathf.Max(0, days) * (float)MinutesPerDay);
+
+    // Testing only: jumps to day 1 of the given season (next year's if it's already that season or past it),
+    // keeping the time of day.
+    public void DebugSkipToSeason(Season season)
+    {
+        int yearLength = daysPerSeason * SeasonCount;
+        int dayOfYear = totalDays % yearLength;
+        int target = (int)season * daysPerSeason;
+        int days = target - dayOfYear;
+        if (days <= 0)
+            days += yearLength;
+        DebugSkipDays(days);
+    }
+#else
+    const float SpeedMultiplier = 1f;
+#endif
+
     public int TotalDays => totalDays;
     public float MinuteOfDay => minuteOfDay;
     public float HourOfDay => minuteOfDay / 60f;
@@ -129,7 +154,7 @@ public class TimeManager : MonoBehaviour, ISaveable
         if (!IsRunning)
             return;
 
-        AdvanceMinutes(Time.deltaTime * MinutesPerDay / (realMinutesPerDay * 60f));
+        AdvanceMinutes(Time.deltaTime * SpeedMultiplier * MinutesPerDay / (realMinutesPerDay * 60f));
     }
 
     public void Pause() => IsRunning = false;
