@@ -393,7 +393,9 @@ public class PlayerController : MonoBehaviour, ISaveable
 
     public void RestoreState(PlayerSaveData data)
     {
-        Teleport(data.position, data.yaw);
+        // Disabled first so the ground probe can't hit the player's own collider.
+        controller.enabled = false;
+        Teleport(AboveGround(data.position), data.yaw);
         pitch = Mathf.Clamp(data.pitch, -maxPitch, maxPitch);
         stamina = Mathf.Clamp(data.stamina, 0f, maxStamina);
         crouched = data.crouched;
@@ -401,6 +403,16 @@ public class PlayerController : MonoBehaviour, ISaveable
         ApplyHeight(crouched ? crouchingHeight : standingHeight, crouched ? crouchingEyeHeight : standingEyeHeight);
         if (cameraTransform != null)
             cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
+    }
+
+    // A save made before the terrain was built or reshaped can hold a position that's now underground.
+    static Vector3 AboveGround(Vector3 position)
+    {
+        const float ProbeHeight = 500f;
+        if (Physics.Raycast(position + Vector3.up * ProbeHeight, Vector3.down, out RaycastHit hit, ProbeHeight * 2f,
+                            ~0, QueryTriggerInteraction.Ignore) && hit.point.y > position.y)
+            return hit.point;
+        return position;
     }
 
     // Save_Data_Model.md's Player Block: position (survival stats will join this file when implemented).

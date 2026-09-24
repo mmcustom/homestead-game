@@ -33,3 +33,6 @@
 # Fonts
 *.ttf filter=lfs diff=lfs merge=lfs -text
 *.otf filter=lfs diff=lfs merge=lfs -text
+
+# Terrain heightmaps/splatmaps — Unity always saves TerrainData as binary, and the property builder rewrites it on every rebuild
+*TerrainData.asset filter=lfs diff=lfs merge=lfs -text

@@ -88,7 +88,7 @@ public class PlayerAudio : MonoBehaviour
         {
             GroundSurface surface = hit.collider.GetComponentInParent<GroundSurface>();
             if (surface != null)
-                return surface.Surface;
+                return surface.SurfaceAt(hit.point);
         }
         return defaultSurface;
     }
