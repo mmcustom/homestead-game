@@ -1,10 +1,12 @@
 using UnityEngine;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.HighDefinition;
 
 // Moves the sun (and a dim moon) through the sky from TimeManager's clock, so the world matches Dawn, Day, Dusk and
 // Night (Wildlife_System.md's activity cycles) and Season_System.md's long Summer / short Winter days. Works with
 // HDRP's Physically Based Sky, which colours dawn, dusk and night from the sun's angle on its own. Overcast and
-// stormy weather dims the sun (Weather_System.md: lower visibility). Everything follows the in-game clock, so the
-// lighting freezes while paused.
+// stormy weather dims the sun, thickens the fog and covers the sky (Weather_System.md: lower visibility). Everything
+// follows the in-game clock, so the lighting freezes while paused.
 public class DayNightCycle : MonoBehaviour
 {
     [SerializeField] Light sun;
@@ -29,6 +31,17 @@ public class DayNightCycle : MonoBehaviour
     [Tooltip("Sunlight multiplier per weather type, in WeatherType order: " +
              "Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind.")]
     [SerializeField] float[] weatherSunlight = { 1f, 0.5f, 0.35f, 0.2f, 0.15f, 0.8f, 0.35f, 0.9f };
+    [Tooltip("Fog attenuation distance per weather type, in metres, in WeatherType order. Shorter = thicker fog.")]
+    [SerializeField] float[] weatherFogDistance = { 400f, 300f, 200f, 120f, 80f, 350f, 150f, 400f };
+    [Tooltip("Cloud cover (0–1) per weather type, in WeatherType order.")]
+    [SerializeField] float[] weatherCloudCover = { 0f, 0.9f, 0.9f, 1f, 1f, 0.5f, 1f, 0.3f };
+    [Tooltip("How much of the sun's weather dimming shows on screen. Auto exposure would otherwise brighten a " +
+             "stormy day back to look like a clear one; 0 lets it, 1 shows the full dimming.")]
+    [SerializeField, Range(0f, 1f)] float weatherDarkening = 0.7f;
+    [Tooltip("Fog is thickest below this height and thins out up to the maximum, in world metres. Set for the " +
+             "property's terrain, which sits roughly 15–35m up.")]
+    [SerializeField] float fogBaseHeight = 20f;
+    [SerializeField] float fogMaximumHeight = 80f;
     [Tooltip("How quickly the light adjusts to a weather change, per in-game hour.")]
     [SerializeField, Min(0.01f)] float weatherBlendPerHour = 2f;
 
@@ -37,19 +50,67 @@ public class DayNightCycle : MonoBehaviour
     [SerializeField, Range(0f, 24f)] float fallbackHour = 12f;
 
     const int SeasonCount = 4;
+    const int WeatherTypeCount = 8;
     const float SunriseAzimuth = 90f; // east; the sun crosses south (180°) to set in the west (270°)
 
     float weatherFactor = 1f;
+    float fogDistance, cloudCover;
     float lastHour = -1f;
+
+    // Weather overrides live on a runtime volume above the scene's own, so the profile asset is never modified.
+    VolumeProfile weatherProfile;
+    Fog fog;
+    CloudLayer clouds;
+    Exposure exposure;
 
     // Current sun elevation in degrees; negative is below the horizon.
     public float SunElevation { get; private set; }
 
     void Start()
     {
-        if (WeatherManager.Instance != null)
-            weatherFactor = WeatherSunlight(WeatherManager.Instance.Current);
+        WeatherType weather = WeatherManager.Instance != null ? WeatherManager.Instance.Current : WeatherType.Clear;
+        weatherFactor = WeatherSunlight(weather);
+        fogDistance = PerWeather(weatherFogDistance, weather, 400f);
+        cloudCover = PerWeather(weatherCloudCover, weather, 0f);
+        CreateWeatherVolume();
         Apply();
+    }
+
+    void OnDestroy()
+    {
+        if (weatherProfile != null)
+            Destroy(weatherProfile);
+    }
+
+    void CreateWeatherVolume()
+    {
+        weatherProfile = ScriptableObject.CreateInstance<VolumeProfile>();
+        weatherProfile.name = "Weather (runtime)";
+
+        fog = weatherProfile.Add<Fog>();
+        fog.meanFreePath.overrideState = true;
+        fog.baseHeight.Override(fogBaseHeight);
+        fog.maximumHeight.Override(fogMaximumHeight);
+
+        var environment = weatherProfile.Add<VisualEnvironment>();
+        environment.cloudType.Override((int)CloudType.CloudLayer);
+        clouds = weatherProfile.Add<CloudLayer>();
+        clouds.opacity.overrideState = true;
+        // The default cloud map's red channel is scattered cloud; the other channels fill the gaps toward overcast.
+        clouds.layerA.opacityR.Override(1f);
+        clouds.layerA.opacityG.overrideState = true;
+        clouds.layerA.opacityB.overrideState = true;
+        clouds.layerA.opacityA.overrideState = true;
+
+        exposure = weatherProfile.Add<Exposure>();
+        exposure.compensation.overrideState = true;
+
+        var holder = new GameObject("Weather Volume");
+        holder.transform.SetParent(transform, false);
+        var volume = holder.AddComponent<Volume>();
+        volume.isGlobal = true;
+        volume.priority = 10f;
+        volume.sharedProfile = weatherProfile;
     }
 
     void Update() => Apply();
@@ -58,8 +119,12 @@ public class DayNightCycle : MonoBehaviour
     {
         if (middayElevation == null || middayElevation.Length != SeasonCount)
             System.Array.Resize(ref middayElevation, SeasonCount);
-        if (weatherSunlight == null || weatherSunlight.Length != 8)
-            System.Array.Resize(ref weatherSunlight, 8);
+        if (weatherSunlight == null || weatherSunlight.Length != WeatherTypeCount)
+            System.Array.Resize(ref weatherSunlight, WeatherTypeCount);
+        if (weatherFogDistance == null || weatherFogDistance.Length != WeatherTypeCount)
+            System.Array.Resize(ref weatherFogDistance, WeatherTypeCount);
+        if (weatherCloudCover == null || weatherCloudCover.Length != WeatherTypeCount)
+            System.Array.Resize(ref weatherCloudCover, WeatherTypeCount);
     }
 
     void Apply()
@@ -74,8 +139,11 @@ public class DayNightCycle : MonoBehaviour
         if (WeatherManager.Instance != null && time != null)
         {
             float elapsedHours = lastHour < 0f ? 0f : Mathf.Repeat(hour - lastHour, 24f);
-            weatherFactor = Mathf.MoveTowards(weatherFactor, WeatherSunlight(WeatherManager.Instance.Current),
-                                              weatherBlendPerHour * elapsedHours);
+            WeatherType weather = WeatherManager.Instance.Current;
+            float blend = weatherBlendPerHour * elapsedHours;
+            weatherFactor = Mathf.MoveTowards(weatherFactor, WeatherSunlight(weather), blend);
+            fogDistance = Mathf.MoveTowards(fogDistance, PerWeather(weatherFogDistance, weather, 400f), blend * 400f);
+            cloudCover = Mathf.MoveTowards(cloudCover, PerWeather(weatherCloudCover, weather, 0f), blend);
         }
         lastHour = hour;
 
@@ -90,6 +158,17 @@ public class DayNightCycle : MonoBehaviour
             sun.transform.rotation = Quaternion.Euler(elevation, azimuth + 180f, 0f);
             sun.intensity = sunIntensity * daylight * weatherFactor;
             sun.enabled = daylight > 0f;
+        }
+
+        if (fog != null)
+        {
+            fog.meanFreePath.value = Mathf.Max(1f, fogDistance);
+            float cover = Mathf.Clamp01(cloudCover);
+            clouds.opacity.value = cover;
+            clouds.layerA.opacityG.value = cover;
+            clouds.layerA.opacityB.value = cover;
+            clouds.layerA.opacityA.value = cover;
+            exposure.compensation.value = Mathf.Log(Mathf.Max(weatherFactor, 0.01f), 2f) * weatherDarkening;
         }
 
         if (moon != null)
@@ -133,9 +212,11 @@ public class DayNightCycle : MonoBehaviour
         return Mathf.Lerp(middayElevation[season], middayElevation[neighbour], Mathf.Abs(progress - 0.5f));
     }
 
-    float WeatherSunlight(WeatherType weather)
+    float WeatherSunlight(WeatherType weather) => Mathf.Clamp01(PerWeather(weatherSunlight, weather, 1f));
+
+    static float PerWeather(float[] values, WeatherType weather, float fallback)
     {
         int index = (int)weather;
-        return index < weatherSunlight.Length ? Mathf.Clamp01(weatherSunlight[index]) : 1f;
+        return values != null && index < values.Length ? values[index] : fallback;
     }
 }

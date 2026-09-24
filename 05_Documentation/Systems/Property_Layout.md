@@ -1,7 +1,7 @@
 # Homestead
 ## Property Layout v1.0
 
-Status: Implemented and walked (2026-09-24) — built in World.unity by `Assets/Scripts/Editor/PropertyTerrainBuilder.cs`; Mike confirmed the property itself (size, ridge, water, sites) reads as intended. One implementation bug found in the walkthrough — falling off the world at the property edge — tracked in Current_Task_List.md, not a design change.
+Status: Implemented and confirmed (2026-09-24) — built in World.unity by `Assets/Scripts/Editor/PropertyTerrainBuilder.cs`. Mike confirmed the property itself (size, ridge, water, sites) reads as intended. The one bug found in the walkthrough — falling off the world at the property edge — is fixed (invisible boundary wall hidden in the treeline); Design Rule 1's boundary language updated to match.
 
 ---
 
@@ -21,7 +21,7 @@ The GDD opens with "an undeveloped parcel of land" — this should read as real,
 
 Proposed scale: roughly 400m to 500m across, larger than the current 200m flat placeholder — Discovery_Test_Sites.md already described Bass Hole as "further out" than the other four sites, which the current 200m footprint doesn't really give room for. Still small enough to cross on foot in a normal play session, not open-world scale.
 
-Boundary: natural rather than a hard wall — forest thickening at the property's edges discourages wandering off without needing an invisible barrier. Real-world acreage conversion isn't needed for Alpha 0.1; this is a Unity-meters scale proposal, and the exact number within this range is Claude Code's call.
+Boundary: natural-looking rather than an obvious wall — forest thickening at the property's edges is what the player sees and reads as the property's limit. In practice this still needs an actual physical stop past the treeline (an invisible collision wall, hidden by the forest, 12m inside the true edge) so wandering off doesn't end in falling off the terrain mesh — the visual intent is a hidden boundary, not a barrier-free one. Real-world acreage conversion isn't needed for Alpha 0.1; this is a Unity-meters scale proposal, and the exact number within this range is Claude Code's call.
 
 ---
 
