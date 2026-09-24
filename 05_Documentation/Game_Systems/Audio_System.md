@@ -1,7 +1,7 @@
 # Homestead
 ## Audio System v1.0
 
-Status: Design Draft, content confirmed — all 22 Alpha 0.1 files sourced and mapped (2026-09-23); ready for Claude Code to implement
+Status: Design Draft, content confirmed — all 22 original Alpha 0.1 files sourced, mapped, and implemented (2026-09-23). One new file, sfx_thunder, added and sourced 2026-09-24 for Weather_System.md's lightning/thunder feature; not yet implemented (Claude Code's turn) — see Sourcing below.
 
 ---
 
@@ -50,6 +50,7 @@ Three tracks is deliberately minimal for Alpha 0.1 — season-variant or tension
 | ambient_wind | WeatherManager: Wind (its weather-type role, per Weather_System.md's confirmed dual-role) | Layers under whatever else is playing rather than replacing it — Wind was confirmed to also be a standing property, so this should scale with wind strength, not just switch on/off. |
 | ambient_snow | WeatherManager: Snow | Quiet, muffled — snow should sound like it's dampening the world, not adding to it. |
 | ambient_water_proximity | Player near a discovered Water Source site (Spring Hollow, etc.) | Soft trickle/flow, distance-faded. Ties discovery to a lasting sensory reward — you don't just see the marker, the place sounds different once you know it. |
+| sfx_thunder | WeatherManager: Thunderstorm, timed with a lightning flash per Weather_System.md's Visual Feedback section (2026-09-24) | New, added after the original 22 — sourced (`Thunderstorm.wav`, see Sourced Files below), not yet wired. One-shot, not a loop, unlike its neighbors above. Only one clip so far — fine for a first pass, though back-to-back repeats of the same clip may stand out more than the other SFX's variety. Delay after its paired flash, and clap-vs-rumble character, follow the near/far distinction Weather_System.md specifies. |
 
 ## Player SFX
 
@@ -94,6 +95,8 @@ This is Mike's call, not a design decision — flagging it rather than picking o
 
 **Resolved (2026-09-23):** Mike sourced all 22 files from free libraries. See "Sourced Files" below for the exact filename-to-id mapping.
 
+**Resolved (2026-09-24):** Mike already had a thunder sound sitting in the repo root's `Xtra Sound files/` folder (`Thunderstorm.wav`) — moved into `Assets/Audio/SFX/Thunderstorm.wav` alongside the other sourced SFX. Only one clip for now, not the 2–3 suggested above; fine as a first pass, more variations can be added later if repetition becomes noticeable. See the Sourced Files table below for the filename-to-id mapping.
+
 ## Folder and Naming (2026-09-23)
 
 Unity_Architecture_Plan.md already reserves `Assets/Audio` as the top-level folder for this content. Save sourced files under `01_Unity_Project/Homestead/Assets/Audio/`, in subfolders matching the four mixer groups above: `Music/`, `Ambient/`, `SFX/`, `UI/`. Name each file after its id from the tables above (e.g. `music_main_menu.mp3`, `sfx_discovery_chime.wav`) — that's not required for Unity to import them, but it means Claude Code can wire up triggers by filename instead of having to ask which file is which.
@@ -123,6 +126,8 @@ All 22 files are in place under `Assets/Audio/`, verified by folder listing. Fil
 **UI/** — `menu button click.wav` → sfx_ui_click · `menu cancel click.wav` → sfx_ui_back · `discovery bell ding.wav` → sfx_discovery_chime · `page turn sound.wav` → sfx_journal_updated · `success fanfare short.wav` → sfx_milestone
 
 Not part of the 22-file spec: `SFX/footsteps rain.wav`. Mike kept this on purpose as a possible future rain-footstep variant — leave it unwired for now, it isn't tied to any documented trigger.
+
+**Added 2026-09-24:** `SFX/Thunderstorm.wav` → sfx_thunder.
 
 **Decided (2026-09-23):** `menu button click.wav` and `menu cancel click.wav` turned out to be byte-for-byte identical. Rather than sourcing a distinct file, Mike confirmed reusing the same sound for both sfx_ui_click and sfx_ui_back — they don't play at the same time, so there's no doubling issue like the Day.wav/Gameplay Day.wav pair below. No replacement needed for this pair; `menu cancel click.wav` can stay as-is (redundant but harmless) or be dropped in favor of pointing both ids at `menu button click.wav` — implementation detail, Claude Code's call.
 

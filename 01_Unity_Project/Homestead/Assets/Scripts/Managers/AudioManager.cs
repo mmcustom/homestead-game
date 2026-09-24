@@ -79,6 +79,11 @@ public class AudioManager : MonoBehaviour
     [Tooltip("Plays at each discovered Water Source site, fading with distance (Audio_System.md: ambient_water_proximity).")]
     [SerializeField] Sound waterProximity = new Sound();
     [SerializeField, Min(1f)] float waterAudibleDistance = 25f;
+    [Tooltip("sfx_thunder (Audio_System.md). Played by Lightning, a slice at a time.")]
+    [SerializeField] Sound thunder = new Sound();
+    [Tooltip("Stretches of the thunder clip that each hold one thunderclap, as (start, length) in seconds. The clip is " +
+             "a long storm recording, so each strike plays a different slice rather than the whole file.")]
+    [SerializeField] List<Vector2> thunderSlices = new List<Vector2>();
 
     [Header("Player")]
     [SerializeField] Sound footstepsGrass = new Sound();
@@ -271,6 +276,9 @@ public class AudioManager : MonoBehaviour
             default: return footstepsGrass;
         }
     }
+
+    public Sound Thunder => thunder;
+    public IReadOnlyList<Vector2> ThunderSlices => thunderSlices;
 
     public Sound SprintBreathing => sprintBreathing;
     public Sound EncumberedBreathing => encumberedBreathing;

@@ -3,7 +3,8 @@ using UnityEngine;
 // Falling rain and snow around the camera (Weather_System.md: Visual Feedback). Presentation only — it reads
 // WeatherManager's current weather and never changes it. Light Rain is sparse; Heavy Rain and Thunderstorm share a
 // denser rain; Snow falls slowly and drifts; Clear, Cloudy, Cold Front and Wind have none. Particles spawn in a box
-// above the camera and are simulated in world space, so they don't slide along as the player walks.
+// above the camera and are simulated in world space, so they don't slide along as the player walks. Overhead
+// cover thins it out: lighter under tree canopy, none under a roof (OverheadCover).
 public class Precipitation : MonoBehaviour
 {
     [SerializeField] Material rainMaterial;
@@ -30,12 +31,20 @@ public class Precipitation : MonoBehaviour
     [Tooltip("Seconds for precipitation to build up or die away when the weather changes.")]
     [SerializeField, Min(0.01f)] float fadeSeconds = 8f;
 
+    [Header("Overhead cover")]
+    [Tooltip("How much of the precipitation a full tree canopy keeps off the player, 0–1.")]
+    [SerializeField, Range(0f, 1f)] float canopyShelter = 0.7f;
+    [Tooltip("Seconds to adjust when walking in or out of cover.")]
+    [SerializeField, Min(0.01f)] float coverFadeSeconds = 1f;
+
     const int WeatherTypeCount = 8;
+    const float CoverCheckInterval = 0.25f;
 
     ParticleSystem rain, snow;
     Material rainInstance, snowInstance;
     Color rainColor, snowColor;
     float rainRate, snowRate;
+    float canopy, roof, canopyTarget, roofTarget, nextCoverCheck;
     Transform cameraTransform;
     DayNightCycle dayNight;
 
@@ -109,15 +118,27 @@ public class Precipitation : MonoBehaviour
             drift = -new Vector3(Mathf.Sin(bearing), 0f, Mathf.Cos(bearing)) * (weather.WindStrength * windDrift);
         }
 
+        if (Time.time >= nextCoverCheck)
+        {
+            nextCoverCheck = Time.time + CoverCheckInterval;
+            roofTarget = OverheadCover.Roofed(cameraTransform.position) ? 1f : 0f;
+            canopyTarget = canopyShelter * OverheadCover.CanopyFraction(cameraTransform.position);
+        }
+        float coverStep = Time.deltaTime / coverFadeSeconds;
+        canopy = Mathf.MoveTowards(canopy, canopyTarget, coverStep);
+        roof = Mathf.MoveTowards(roof, roofTarget, coverStep);
+        // Canopy thins what falls; a roof also hides drops already in the air, so it's dry indoors straight away.
+        float reach = (1f - canopy) * (1f - roof);
+
         // Unlit particles would glow at night, so they follow the daylight.
         float light = dayNight != null ? Mathf.Lerp(0.12f, 1f, Mathf.InverseLerp(-6f, 10f, dayNight.SunElevation)) : 1f;
 
-        Drive(rain, rainRate, rainFallSpeed, drift, rainInstance, rainColor, light);
-        Drive(snow, snowRate, snowFallSpeed, drift * 0.6f, snowInstance, snowColor, light);
+        Drive(rain, rainRate * reach, rainFallSpeed, drift, rainInstance, rainColor, light, 1f - roof);
+        Drive(snow, snowRate * reach, snowFallSpeed, drift * 0.6f, snowInstance, snowColor, light, 1f - roof);
     }
 
     static void Drive(ParticleSystem system, float rate, float fallSpeed, Vector3 drift, Material material, Color color,
-                      float light)
+                      float light, float opacity)
     {
         ParticleSystem.EmissionModule emission = system.emission;
         emission.rateOverTime = rate;
@@ -128,7 +149,7 @@ public class Precipitation : MonoBehaviour
         velocity.z = drift.z;
 
         if (material != null)
-            material.SetColor("_UnlitColor", new Color(color.r * light, color.g * light, color.b * light, color.a));
+            material.SetColor("_UnlitColor", new Color(color.r * light, color.g * light, color.b * light, color.a * opacity));
 
         if (rate > 0f && !system.isPlaying)
             system.Play();

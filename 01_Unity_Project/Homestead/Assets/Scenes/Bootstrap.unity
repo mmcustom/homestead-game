@@ -453,6 +453,15 @@ MonoBehaviour:
     clip: {fileID: 8300000, guid: 9a5710b4f675552488736609fe3ca7ee, type: 3}
     volume: 0.27
   waterAudibleDistance: 25
+  thunder:
+    clip: {fileID: 8300000, guid: 8286afc7dc3ff33479c29682852c82ed, type: 3}
+    volume: 0.8
+  thunderSlices:
+  - {x: 7, y: 9}
+  - {x: 45.8, y: 10}
+  - {x: 92.8, y: 8}
+  - {x: 198.8, y: 9}
+  - {x: 232.2, y: 12}
   footstepsGrass:
     clip: {fileID: 8300000, guid: 060979d4feace40498bf608af498f888, type: 3}
     volume: 0.72

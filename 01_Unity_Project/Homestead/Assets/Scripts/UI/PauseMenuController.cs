@@ -128,7 +128,7 @@ public class PauseMenuController : MonoBehaviour
             statusLabel.text = message;
     }
 
-    // e.g. "Spring 3, Year 1 · 14:30 · Light Rain, 12°C"
+    // e.g. "Spring 3, Year 1 · 14:30 · Light Rain, 54°F" (Weather_System.md: temperature is displayed in °F)
     static string DescribeNow()
     {
         TimeManager time = TimeManager.Instance;
@@ -139,7 +139,7 @@ public class PauseMenuController : MonoBehaviour
 
         WeatherManager weather = WeatherManager.Instance;
         if (weather != null)
-            text += $" · {SplitWords(weather.Current.ToString())}, {weather.TemperatureC:0}°C";
+            text += $" · {SplitWords(weather.Current.ToString())}, {weather.TemperatureF:0}°F";
 
         return text;
     }

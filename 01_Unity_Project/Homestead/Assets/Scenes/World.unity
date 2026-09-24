@@ -1393,8 +1393,10 @@ GameObject:
   m_Component:
   - component: {fileID: 1318218083}
   - component: {fileID: 1318218082}
+  - component: {fileID: 1318218085}
+  - component: {fileID: 1318218084}
   m_Layer: 0
-  m_Name: Precipitation
+  m_Name: Weather Effects
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1438,6 +1440,8 @@ MonoBehaviour:
   spawnHeight: 15
   windDrift: 3
   fadeSeconds: 8
+  canopyShelter: 0.7
+  coverFadeSeconds: 1
 --- !u!4 &1318218083
 Transform:
   m_ObjectHideFlags: 0
@@ -1453,6 +1457,47 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1318218084
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318218081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 984f57f81535a144aa64046897e852e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GroundSnow
+  buildPerHour: 0.15
+  meltPerHour: 0.02
+  meltPerHourPerDegreeC: 0.01
+  canopyShelter: 0.7
+  repaintStep: 0.02
+  snowTileSize: 3
+--- !u!114 &1318218085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318218081}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62ff261b3ee04a240b731d007ca8ff38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Lightning
+  secondsBetweenStrikes: {x: 8, y: 30}
+  closeChance: 0.2
+  closeDistance: {x: 150, y: 500}
+  distantDistance: {x: 1500, y: 4000}
+  closeFlashLux: 50000
+  distantFlashLux: 6000
+  boltMaterial: {fileID: 2100000, guid: b4cabce0949d83f42ad5fb9cfaeccd64, type: 2}
+  boltHeight: 250
+  thunderCutoff: {x: 22000, y: 600}
+  thunderVolume: {x: 1, y: 0.35}
+  thunderFadeOutSeconds: 1.5
 --- !u!1 &1354432045
 GameObject:
   m_ObjectHideFlags: 0

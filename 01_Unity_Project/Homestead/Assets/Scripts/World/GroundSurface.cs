@@ -15,7 +15,8 @@ public struct TerrainLayerSurface
 // Marks what a ground collider is made of, for footstep sounds. Put it on the collider's object or a parent.
 // Ground without one uses PlayerAudio's default surface. On a Terrain, each texture layer can be mapped to a
 // surface instead (Property_Layout.md: Grass by default, Dirt on trails, Gravel at creek and pond banks) — the
-// layer painted strongest at the player's feet wins.
+// listed layer painted strongest at the player's feet wins. Unlisted layers (e.g. GroundSnow's) are ignored, so
+// snow over a trail still sounds like the trail.
 public class GroundSurface : MonoBehaviour
 {
     [Tooltip("The surface for plain colliders, and for terrain layers not listed below.")]
@@ -23,10 +24,12 @@ public class GroundSurface : MonoBehaviour
     [Tooltip("On a Terrain: the surface each texture layer counts as.")]
     [SerializeField] List<TerrainLayerSurface> terrainLayers = new List<TerrainLayerSurface>();
 
-    // Terrain painting is read once; the terrain isn't repainted at runtime.
+    // Terrain painting is read once. The only runtime repaint is GroundSnow's unlisted layer, which scales the
+    // listed layers evenly, so the strongest listed layer stays the same.
     Terrain terrain;
     float[,,] alphamaps;
     SurfaceType[] layerSurfaces;
+    bool[] layerListed;
 
     public SurfaceType Surface => surface;
 
@@ -41,13 +44,13 @@ public class GroundSurface : MonoBehaviour
         int x = Mathf.Clamp((int)(local.x / data.size.x * res), 0, res - 1);
         int z = Mathf.Clamp((int)(local.z / data.size.z * res), 0, res - 1);
 
-        int strongest = 0;
-        for (int i = 1; i < layerSurfaces.Length; i++)
+        int strongest = -1;
+        for (int i = 0; i < layerSurfaces.Length; i++)
         {
-            if (alphamaps[z, x, i] > alphamaps[z, x, strongest])
+            if (layerListed[i] && (strongest < 0 || alphamaps[z, x, i] > alphamaps[z, x, strongest]))
                 strongest = i;
         }
-        return layerSurfaces[strongest];
+        return strongest >= 0 ? layerSurfaces[strongest] : surface;
     }
 
     bool CacheTerrain()
@@ -60,10 +63,12 @@ public class GroundSurface : MonoBehaviour
         TerrainData data = terrain.terrainData;
         alphamaps = data.GetAlphamaps(0, 0, data.alphamapWidth, data.alphamapHeight);
         layerSurfaces = new SurfaceType[data.alphamapLayers];
+        layerListed = new bool[data.alphamapLayers];
         for (int i = 0; i < layerSurfaces.Length; i++)
         {
             TerrainLayer layer = i < data.terrainLayers.Length ? data.terrainLayers[i] : null;
             int mapped = terrainLayers.FindIndex(m => m.layer == layer);
+            layerListed[i] = mapped >= 0;
             layerSurfaces[i] = mapped >= 0 ? terrainLayers[mapped].surface : surface;
         }
         return layerSurfaces.Length > 0;
