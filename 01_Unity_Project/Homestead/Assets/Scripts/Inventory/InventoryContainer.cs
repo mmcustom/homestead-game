@@ -34,6 +34,11 @@ public class InventoryContainer
 
     public event Action Changed;
 
+    // Fired for items entering or leaving through Add/Remove/MoveTo (not Clear or LoadData),
+    // e.g. for pickup/drop sounds. Arguments: item id, quantity.
+    public event Action<string, int> ItemsAdded;
+    public event Action<string, int> ItemsRemoved;
+
     public string Id { get; }
 
     // Hard limit: items that would push the total past this can't be added.
@@ -93,6 +98,7 @@ public class InventoryContainer
 
         AddStack(item, added, acquiredDay);
         Changed?.Invoke();
+        ItemsAdded?.Invoke(item.Id, added);
         return added;
     }
 
@@ -101,7 +107,10 @@ public class InventoryContainer
     {
         int removed = TakeOldest(itemId, quantity, null);
         if (removed > 0)
+        {
             Changed?.Invoke();
+            ItemsRemoved?.Invoke(itemId, removed);
+        }
         return removed;
     }
 
@@ -120,6 +129,8 @@ public class InventoryContainer
         TakeOldest(itemId, toMove, (day, amount) => target.AddStack(item, amount, day));
         Changed?.Invoke();
         target.Changed?.Invoke();
+        ItemsRemoved?.Invoke(itemId, toMove);
+        target.ItemsAdded?.Invoke(itemId, toMove);
         return toMove;
     }
 

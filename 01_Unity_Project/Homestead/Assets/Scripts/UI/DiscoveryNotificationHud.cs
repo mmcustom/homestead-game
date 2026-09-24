@@ -64,6 +64,9 @@ public class DiscoveryNotificationHud : MonoBehaviour
             if (JournalHasEntryFor(record))
             {
                 journalConfirmation.alpha = 0f;
+                // Audio_System.md: sfx_journal_updated pairs with this line.
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.Play(SoundCue.JournalUpdated);
                 yield return CrossFade(popup, journalConfirmation);
                 yield return new WaitForSeconds(journalHoldSeconds);
                 yield return Fade(journalConfirmation, 0f);

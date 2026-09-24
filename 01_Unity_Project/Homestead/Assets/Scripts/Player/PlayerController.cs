@@ -95,6 +95,8 @@ public class PlayerController : MonoBehaviour, ISaveable
     public float MaxStamina => maxStamina;
     public bool IsCrouching => crouched;
     public bool IsSprinting => State == MovementState.Sprinting;
+    public bool IsGrounded => controller != null && controller.isGrounded;
+    public float HorizontalSpeed => horizontalVelocity.magnitude;
 
     // For Wildlife/Hunting: how noticeable the player currently is (First_Person_Controller.md, Design Rule 2).
     public float DetectionMultiplier

@@ -354,11 +354,141 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 183e7e1b94833bc4f94a0dfe1ccb2a83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
-  menuMusic: {fileID: 0}
-  worldMusic: {fileID: 0}
+  mixer: {fileID: 24100000, guid: 7d5bb38f3e21ce64ea977337d4a2ce8b, type: 2}
+  musicGainDb: 0
+  ambientGainDb: 14
+  sfxGainDb: 19
+  uiGainDb: 6
+  menuMusic:
+    clip: {fileID: 8300000, guid: 78733365b75de4c409c0979db7ba510e, type: 3}
+    volume: 0.33
+  dayMusic:
+    clip: {fileID: 8300000, guid: ab3f760f369aa44408cded5c7e5780c1, type: 3}
+    volume: 0.79
+  nightMusic:
+    clip: {fileID: 8300000, guid: 92cb0d22fc1cc8849bfdb93dd655b9d5, type: 3}
+    volume: 0.74
   musicFadeSeconds: 2
-  ambientLayers: []
+  ambientLayers:
+  - name: Day
+    sound:
+      clip: {fileID: 8300000, guid: c6aa6294b139d7c40898e51c7ceda361, type: 3}
+      volume: 0.2
+    seasons: 
+    phases: 010000000200000003000000
+    weather: 00000000010000000500000007000000
+    seasonVolume:
+    - 0.85
+    - 1
+    - 0.7
+    - 0.4
+    scaleWithWind: 0
+  - name: Night
+    sound:
+      clip: {fileID: 8300000, guid: 95873eec506536b49aa4637ab2fdca2f, type: 3}
+      volume: 0.94
+    seasons: 
+    phases: 00000000
+    weather: 00000000010000000500000007000000
+    seasonVolume:
+    - 1
+    - 1
+    - 1
+    - 1
+    scaleWithWind: 0
+  - name: Light Rain
+    sound:
+      clip: {fileID: 8300000, guid: 4a723e50b23af834d8e4d578cfc66e7e, type: 3}
+      volume: 0.55
+    seasons: 
+    phases: 
+    weather: 02000000
+    seasonVolume:
+    - 1
+    - 1
+    - 1
+    - 1
+    scaleWithWind: 0
+  - name: Heavy Rain
+    sound:
+      clip: {fileID: 8300000, guid: e08729e46040377468a96a8a1a6d7bb5, type: 3}
+      volume: 0.22
+    seasons: 
+    phases: 
+    weather: 0300000004000000
+    seasonVolume:
+    - 1
+    - 1
+    - 1
+    - 1
+    scaleWithWind: 0
+  - name: Snow
+    sound:
+      clip: {fileID: 8300000, guid: 2892aeffd6f8db040aba63dfbbd49faa, type: 3}
+      volume: 0.19
+    seasons: 
+    phases: 
+    weather: 06000000
+    seasonVolume:
+    - 1
+    - 1
+    - 1
+    - 1
+    scaleWithWind: 0
+  - name: Wind
+    sound:
+      clip: {fileID: 8300000, guid: 8dbb6c31f0f70f04997dbd52a8784f36, type: 3}
+      volume: 0.035
+    seasons: 
+    phases: 
+    weather: 
+    seasonVolume:
+    - 1
+    - 1
+    - 1
+    - 1
+    scaleWithWind: 1
   ambientFadeSeconds: 3
+  waterProximity:
+    clip: {fileID: 8300000, guid: 9a5710b4f675552488736609fe3ca7ee, type: 3}
+    volume: 0.27
+  waterAudibleDistance: 25
+  footstepsGrass:
+    clip: {fileID: 8300000, guid: 060979d4feace40498bf608af498f888, type: 3}
+    volume: 0.72
+  footstepsDirt:
+    clip: {fileID: 8300000, guid: 4acabb39a5e10e54080cbddced7bae6d, type: 3}
+    volume: 0.95
+  footstepsGravel:
+    clip: {fileID: 8300000, guid: 003ad9dec3a931e49962cca949e48a49, type: 3}
+    volume: 0.11
+  sprintBreathing:
+    clip: {fileID: 8300000, guid: b2670edcde9a0ef4c8a54d6d9808a0c1, type: 3}
+    volume: 1
+  encumberedBreathing:
+    clip: {fileID: 8300000, guid: 431ee18ff54d641428d45bde9a35b97f, type: 3}
+    volume: 0.47
+  itemPickup:
+    clip: {fileID: 8300000, guid: 9489232f45891434988643f01200bf19, type: 3}
+    volume: 0.27
+  itemDrop:
+    clip: {fileID: 8300000, guid: 41359ac1cd8733f4386f2cf4a53f0369, type: 3}
+    volume: 0.05
+  uiClick:
+    clip: {fileID: 8300000, guid: 9099bea00c166e348b2ec6a2a6e58a77, type: 3}
+    volume: 0.37
+  uiBack:
+    clip: {fileID: 8300000, guid: d60a5d1df18a2cb49b25f4abde330603, type: 3}
+    volume: 0.37
+  discoveryChime:
+    clip: {fileID: 8300000, guid: 7955b795e4d2891448ccd19fae74bb85, type: 3}
+    volume: 0.56
+  journalUpdated:
+    clip: {fileID: 8300000, guid: 8c8b66f7f859f4a47972f7754d3b5106, type: 3}
+    volume: 0.68
+  milestone:
+    clip: {fileID: 8300000, guid: 28e81fb6402fb344ba312fb4b69014d3, type: 3}
+    volume: 0.94
   sfxVoices: 12
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

@@ -30,6 +30,16 @@ public class PauseMenuController : MonoBehaviour
         saveButton.onClick.AddListener(OnSave);
         mainMenuButton.onClick.AddListener(() => GameManager.Instance?.ReturnToMainMenu());
         quitButton.onClick.AddListener(() => GameManager.Instance?.QuitGame());
+
+        // Resume's sound comes from the menu closing (OnStateChanged), which also covers closing it with Esc.
+        foreach (Button button in new[] { saveButton, mainMenuButton, quitButton })
+            button.onClick.AddListener(() => PlaySound(SoundCue.UiClick));
+    }
+
+    static void PlaySound(SoundCue cue)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(cue);
     }
 
     void OnEnable()
@@ -61,7 +71,17 @@ public class PauseMenuController : MonoBehaviour
         subscribed = false;
     }
 
-    void OnStateChanged(GameState state) => Show(state == GameState.Paused);
+    // Opening the menu clicks; closing it back to gameplay (Resume or Esc) plays the back sound.
+    void OnStateChanged(GameState state)
+    {
+        bool wasShowing = menuRoot.activeSelf;
+        Show(state == GameState.Paused);
+
+        if (state == GameState.Paused && !wasShowing)
+            PlaySound(SoundCue.UiClick);
+        else if (state == GameState.Playing && wasShowing)
+            PlaySound(SoundCue.UiBack);
+    }
 
     void Show(bool visible)
     {

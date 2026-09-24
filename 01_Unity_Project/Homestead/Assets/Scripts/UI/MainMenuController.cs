@@ -33,6 +33,17 @@ public class MainMenuController : MonoBehaviour
         quitButton.onClick.AddListener(OnQuit);
         confirmYesButton.onClick.AddListener(StartNewGame);
         confirmNoButton.onClick.AddListener(CloseConfirm);
+
+        // Audio_System.md: click for choices, back for cancelling out.
+        foreach (Button button in new[] { continueButton, newGameButton, quitButton, confirmYesButton })
+            button.onClick.AddListener(() => PlaySound(SoundCue.UiClick));
+        confirmNoButton.onClick.AddListener(() => PlaySound(SoundCue.UiBack));
+    }
+
+    static void PlaySound(SoundCue cue)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(cue);
     }
 
     void OnEnable()
