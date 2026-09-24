@@ -373,7 +373,7 @@ MonoBehaviour:
   - name: Day
     sound:
       clip: {fileID: 8300000, guid: c6aa6294b139d7c40898e51c7ceda361, type: 3}
-      volume: 0.2
+      volume: 0.94
     seasons: 
     phases: 010000000200000003000000
     weather: 00000000010000000500000007000000
