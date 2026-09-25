@@ -22,6 +22,7 @@ The controller should support:
 - Walking
 - Sprinting (Fatigue cost)
 - Crouching (stalking, stealth during hunting)
+- Jumping (small, grounded hop over low obstacles — not a movement priority)
 - Interaction with the world (pickup, use, harvest)
 
 Movement should never feel arcade-like or overly floaty. This is a survival simulator, not an action game.
@@ -55,6 +56,16 @@ Reduced speed. Confirmed 2026-09-23 (Mike): 1.3 m/s, standing height 1.8 m drops
 Reduced visibility to wildlife.
 
 Required for close-range bow stalking, per Hunting System documentation.
+
+---
+
+## Jump
+
+**Confirmed 2026-09-25 (Mike, playtest):** the controller had no jump at all — Mike found this out by trying and asked for one. Adding a real Jump as its own movement state.
+
+Should stay consistent with this doc's own grounded, non-floaty philosophy: a small hop for clearing low obstacles (logs, fences, rocks, creek edges), not an arcade-style traversal jump. Exact height, air control, and Stamina cost (Stamina already lists Climbing/Swimming as future consumers alongside Sprinting — Jump likely belongs on that same list) are Claude Code's call within that constraint.
+
+No interaction with Fatigue/Workload beyond ordinary Stamina cost, same treatment as Sprint.
 
 ---
 

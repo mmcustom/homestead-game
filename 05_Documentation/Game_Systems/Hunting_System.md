@@ -111,6 +111,12 @@ Disadvantages:
 
 ---
 
+# Aiming
+
+**Update 2026-09-25 (Mike, playtest):** neither weapon has any aiming aid right now — Mike found it hard to tell where a shot would actually land at a deer. Wants a scope or sights added for shooting/aiming. Not specced anywhere before this; both weapons currently fire from wherever the camera points with no on-screen reference. Exact treatment per weapon is Claude Code's call — a simple crosshair/reticle would suit the Recurve Bow's instinctive, close-range feel, while the Bolt-Action Rifle could reasonably get real aim-down-sights (iron sights or a scope with a slight zoom), consistent with the doc's existing "longer effective range" framing for the rifle versus the bow's "rewards close-range stalking skill." Whichever reticle/sight picture is shown should read clearly against Shot Placement & Outcomes below, since the whole point is helping the player judge heart/lung placement rather than guessing.
+
+---
+
 # Future Weapons
 
 Not Alpha 0.1

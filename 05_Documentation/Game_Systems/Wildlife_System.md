@@ -294,6 +294,8 @@ Recovery
 
 Good shot placement improves harvest success.
 
+**Noted 2026-09-25 (Mike, playtest):** after a wounding hit with no way to track the animal, Mike flagged that when this gets built, the blood trail needs to actually be visible enough to follow — not a faint/easy-to-lose decal. Requirement carried forward for whenever this Future System gets scoped; not Alpha 0.1 yet.
+
 ---
 
 # Predator Species
