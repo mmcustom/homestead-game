@@ -85,6 +85,20 @@ Larger capacity, not carried, tied to a specific structure.
 
 ---
 
+# Inventory Screen (UI)
+
+Confirmed 2026-09-25 (Mike). A dedicated screen, opened and closed with the I key.
+
+Shows the player's on-person inventory — items carried, current weight measured against the Carrying Capacity thresholds above, and whether the player is Encumbered — and lets the player select which Tool is currently equipped (`InventoryManager`'s existing `EquippedTool`).
+
+No buildable structures exist yet in Alpha 0.1 (Building_Housing_System.md is still a Design Draft with nothing built), so Home Storage transfer — moving items between on-person and a Root Cellar/Shed/Barn — isn't needed by this screen yet. `InventoryManager` already supports per-structure storage containers in code (`GetOrCreateStorage`), so wiring an existing container into this same screen should be a small follow-up once a structure actually exists to interact with, not a redesign.
+
+This screen doesn't need to solve eating by itself — no food-producing systems (Foraging, Fishing) exist yet to put food items in the inventory in the first place — but it's the piece Claude Code flagged as missing in its Hydration/Hunger implementation log: Hunger can currently only be refilled with a debug key since there's no inventory UI to consume an item from. This closes that gap for whenever Foraging/Fishing land and real food items exist to select and eat.
+
+Layout (grid vs. list), interaction (drag-and-drop vs. click-to-equip/use), and whether opening it pauses gameplay are Claude Code's call, same as the Minimap and compass were left open.
+
+---
+
 # Spoilage Interaction
 
 Raw food spoils whether carried or stored, per the Spoilage System defined in Core Survival System documentation.

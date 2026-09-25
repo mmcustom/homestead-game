@@ -77,8 +77,9 @@ Milk gets the shortest shelf life in the game (dairy spoils fast); eggs get one 
 | lumber | Building_Housing_System.md | 5.0 | — |
 | stone | (general building material) | 5.0 | — |
 | cordage | Trapping_System.md | 0.3 | — |
+| firewood | Core_Survival_System.md (Fire System) | 1.5 | — |
 
-Stone's 5 kg matches the exact test value Claude Code already used when verifying the 45 kg hard cap ("nine 5 kg stones fit, the tenth was refused") — carried over here rather than picking a different number.
+Stone's 5 kg matches the exact test value Claude Code already used when verifying the 45 kg hard cap ("nine 5 kg stones fit, the tenth was refused") — carried over here rather than picking a different number. Firewood added 2026-09-25, matching Claude Code's Fire Building implementation: 40 deadfall piles give 2-3 Firewood each, one Firewood burns for 2 in-game hours. Weight is a first proposal, same status as everything else in this doc.
 
 ---
 
@@ -97,6 +98,9 @@ Only one can be equipped at a time per InventoryManager.cs; don't spoil. Correct
 | box_trap | Trapping_System.md | 2.0 |
 | fish_trap | Fishing_System.md | 3.0 |
 | bucket | Water_System.md (hand carrying) | 1.5 |
+| flint_and_steel | Core_Survival_System.md (Fire System) | 0.2 |
+
+Flint and Steel added 2026-09-25, matching Claude Code's Fire Building implementation — the ignition source the doc's Fire System requires, carried (not equipped) to light a built campfire.
 
 ---
 
@@ -107,6 +111,12 @@ Deliberately thin for now.
 | id | Source | Weight (kg) |
 |---|---|---|
 | water | Water_System.md | 1.0 |
+| water_excellent | Water_System.md (Water Quality Levels) | 1.0 per litre |
+| water_good | Water_System.md (Water Quality Levels) | 1.0 per litre |
+| water_questionable | Water_System.md (Water Quality Levels) | 1.0 per litre |
+| water_unsafe | Water_System.md (Water Quality Levels) | 1.0 per litre |
+
+The four quality-tagged water items added 2026-09-25, matching Claude Code's Water Collection implementation: carried water keeps its source's quality as a separate item rather than one generic `water` id, so purification (boiling, not yet built) has something concrete to act on. All non-perishable, no illness risk modeled yet — that's the Water Purification entry's job. The original generic `water` item is untouched for now; Claude Code's own note suggests it could become Purified Water's id once that system lands, but that's a call for whoever builds it, not decided here.
 
 Cooked, smoked, and dried food variants (Cooked Meat, Dried Berries, and similar) aren't included here — they're Core_Survival_System.md's Spoilage/Preservation mechanics to define, not something to invent as a side effect of this pass. Raw Resources above are enough to get InventoryManager populated and testable; Consumables can grow once that system gets its own numbers worked out.
 
