@@ -53,6 +53,23 @@ public class WaterSource : MonoBehaviour, IInteractable
         zones = qualityZones ?? Array.Empty<QualityZone>();
     }
 
+    // The quality zone a point is in (e.g. "Spring Hollow" or "Bass Hole pond"), or null for the default water.
+    public string ZoneAt(Vector3 position)
+    {
+        string found = null;
+        float best = float.MaxValue;
+        foreach (QualityZone zone in zones)
+        {
+            float d = Vector2.Distance(new Vector2(position.x, position.z), new Vector2(zone.center.x, zone.center.z));
+            if (d <= zone.radius && d < best)
+            {
+                best = d;
+                found = zone.name;
+            }
+        }
+        return found;
+    }
+
     public WaterQuality QualityAt(Vector3 position)
     {
         WaterQuality quality = defaultQuality;

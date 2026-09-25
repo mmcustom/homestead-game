@@ -139,6 +139,10 @@ GameObject:
   - component: {fileID: 199833592}
   - component: {fileID: 199833593}
   - component: {fileID: 199833594}
+  - component: {fileID: 199833598}
+  - component: {fileID: 199833597}
+  - component: {fileID: 199833596}
+  - component: {fileID: 199833595}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -365,18 +369,38 @@ MonoBehaviour:
   menuMusic:
     clip: {fileID: 8300000, guid: 78733365b75de4c409c0979db7ba510e, type: 3}
     volume: 0.33
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   dayMusic:
     clip: {fileID: 8300000, guid: ab3f760f369aa44408cded5c7e5780c1, type: 3}
     volume: 0.79
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   nightMusic:
     clip: {fileID: 8300000, guid: 92cb0d22fc1cc8849bfdb93dd655b9d5, type: 3}
     volume: 0.74
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   musicFadeSeconds: 2
   ambientLayers:
   - name: Day
     sound:
       clip: {fileID: 8300000, guid: c6aa6294b139d7c40898e51c7ceda361, type: 3}
       volume: 0.94
+      startTime: 0
+      loopEnd: 0
+      maxDuration: 0
+      fadeOut: 0.2
+      pitch: 1
     seasons: 
     phases: 010000000200000003000000
     weather: 00000000010000000500000007000000
@@ -391,6 +415,11 @@ MonoBehaviour:
     sound:
       clip: {fileID: 8300000, guid: 95873eec506536b49aa4637ab2fdca2f, type: 3}
       volume: 0.94
+      startTime: 0
+      loopEnd: 0
+      maxDuration: 0
+      fadeOut: 0.2
+      pitch: 1
     seasons: 
     phases: 00000000
     weather: 00000000010000000500000007000000
@@ -405,6 +434,11 @@ MonoBehaviour:
     sound:
       clip: {fileID: 8300000, guid: 4a723e50b23af834d8e4d578cfc66e7e, type: 3}
       volume: 0.55
+      startTime: 0
+      loopEnd: 0
+      maxDuration: 0
+      fadeOut: 0.2
+      pitch: 1
     seasons: 
     phases: 
     weather: 02000000
@@ -419,6 +453,11 @@ MonoBehaviour:
     sound:
       clip: {fileID: 8300000, guid: e08729e46040377468a96a8a1a6d7bb5, type: 3}
       volume: 0.22
+      startTime: 0
+      loopEnd: 0
+      maxDuration: 0
+      fadeOut: 0.2
+      pitch: 1
     seasons: 
     phases: 
     weather: 0300000004000000
@@ -433,6 +472,11 @@ MonoBehaviour:
     sound:
       clip: {fileID: 8300000, guid: 2892aeffd6f8db040aba63dfbbd49faa, type: 3}
       volume: 0.19
+      startTime: 0
+      loopEnd: 0
+      maxDuration: 0
+      fadeOut: 0.2
+      pitch: 1
     seasons: 
     phases: 
     weather: 06000000
@@ -447,6 +491,11 @@ MonoBehaviour:
     sound:
       clip: {fileID: 8300000, guid: 8dbb6c31f0f70f04997dbd52a8784f36, type: 3}
       volume: 0.035
+      startTime: 0
+      loopEnd: 0
+      maxDuration: 0
+      fadeOut: 0.2
+      pitch: 1
     seasons: 
     phases: 
     weather: 
@@ -463,10 +512,20 @@ MonoBehaviour:
   waterProximity:
     clip: {fileID: 8300000, guid: 9a5710b4f675552488736609fe3ca7ee, type: 3}
     volume: 0.27
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   waterAudibleDistance: 25
   thunder:
     clip: {fileID: 8300000, guid: 8286afc7dc3ff33479c29682852c82ed, type: 3}
     volume: 0.8
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   thunderSlices:
   - {x: 7, y: 9}
   - {x: 45.8, y: 10}
@@ -476,12 +535,27 @@ MonoBehaviour:
   footstepsGrass:
     clip: {fileID: 8300000, guid: 060979d4feace40498bf608af498f888, type: 3}
     volume: 0.72
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   footstepsDirt:
     clip: {fileID: 8300000, guid: 4acabb39a5e10e54080cbddced7bae6d, type: 3}
     volume: 0.95
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   footstepsGravel:
     clip: {fileID: 8300000, guid: 003ad9dec3a931e49962cca949e48a49, type: 3}
     volume: 0.11
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   footstepsGrassTimes:
   - 0.08
   - 0.32
@@ -515,33 +589,131 @@ MonoBehaviour:
   sprintBreathing:
     clip: {fileID: 8300000, guid: b2670edcde9a0ef4c8a54d6d9808a0c1, type: 3}
     volume: 1
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   encumberedBreathing:
     clip: {fileID: 8300000, guid: 431ee18ff54d641428d45bde9a35b97f, type: 3}
     volume: 0.47
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   itemPickup:
     clip: {fileID: 8300000, guid: 9489232f45891434988643f01200bf19, type: 3}
     volume: 0.27
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   itemDrop:
     clip: {fileID: 8300000, guid: 41359ac1cd8733f4386f2cf4a53f0369, type: 3}
     volume: 0.05
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   uiClick:
     clip: {fileID: 8300000, guid: 9099bea00c166e348b2ec6a2a6e58a77, type: 3}
     volume: 0.37
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   uiBack:
     clip: {fileID: 8300000, guid: d60a5d1df18a2cb49b25f4abde330603, type: 3}
     volume: 0.37
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   discoveryChime:
     clip: {fileID: 8300000, guid: 7955b795e4d2891448ccd19fae74bb85, type: 3}
     volume: 0.56
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   journalUpdated:
     clip: {fileID: 8300000, guid: 8c8b66f7f859f4a47972f7754d3b5106, type: 3}
     volume: 0.68
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   milestone:
     clip: {fileID: 8300000, guid: 28e81fb6402fb344ba312fb4b69014d3, type: 3}
     volume: 0.94
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   drink:
     clip: {fileID: 8300000, guid: 0532e40d99c3f934199c13293f568eb6, type: 3}
     volume: 0.24
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
+  gunshot:
+    clip: {fileID: 8300000, guid: 29dacd7aa99738e48bab1c075c4e43ff, type: 3}
+    volume: 0.3
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
+  bowRelease:
+    clip: {fileID: 8300000, guid: d03dee41d77d8a74891f29433324e83f, type: 3}
+    volume: 0.06
+    startTime: 0.25
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
+  fishBite:
+    clip: {fileID: 8300000, guid: 88f2e14c76e145d4497585fe002e110e, type: 3}
+    volume: 0.05
+    startTime: 0.95
+    loopEnd: 0
+    maxDuration: 0.75
+    fadeOut: 0.25
+    pitch: 1.1
+  splash:
+    clip: {fileID: 8300000, guid: 988233395e326f5498bd1a142d7b13ea, type: 3}
+    volume: 0.09
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
+  fishingReel:
+    clip: {fileID: 8300000, guid: bf86b4e9b4ee1eb43b5cebdf9843a2b8, type: 3}
+    volume: 0.2
+    startTime: 0.75
+    loopEnd: 10.4
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
+  trapSet:
+    clip: {fileID: 8300000, guid: 5870914d3872c9e40a71548d51dd4343, type: 3}
+    volume: 0.07
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   sfxVoices: 12
 --- !u!114 &199833592
 MonoBehaviour:
@@ -610,6 +782,169 @@ MonoBehaviour:
   buildDistance: 1.8
   minSpacing: 3
   maxSlope: 25
+--- !u!114 &199833595
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 67351ab8dc9aa4b46acc5e1abc8e6c58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WildlifeManager
+  species:
+  - speciesId: deer
+    displayName: Deer
+    prefab: {fileID: 4752857679890896366, guid: 7afb1c39478667c418c364850e6ddffa, type: 3}
+    meatItem: venison
+    meat: 8
+    extraItem: 
+    extraCount: 0
+  - speciesId: turkey
+    displayName: Turkey
+    prefab: {fileID: 6988506949691311757, guid: 736815d7088b89f44ab9ef5b38d7c4a5, type: 3}
+    meatItem: turkey_meat
+    meat: 4
+    extraItem: feathers
+    extraCount: 3
+  - speciesId: waterfowl
+    displayName: Duck
+    prefab: {fileID: 143148297372585899, guid: 5e7314e5cd7bf8441b42f9e8a2dcb2f1, type: 3}
+    meatItem: waterfowl_meat
+    meat: 3
+    extraItem: feathers
+    extraCount: 2
+  - speciesId: rabbit
+    displayName: Rabbit
+    prefab: {fileID: 98290067658369239, guid: a0697ff7c8ebfe3498b5e5627f9965d3, type: 3}
+    meatItem: small_game_meat
+    meat: 1
+    extraItem: small_furs
+    extraCount: 1
+  - speciesId: squirrel
+    displayName: Squirrel
+    prefab: {fileID: 5298184577350183793, guid: ed945eadaac683445ab9b0b1e169a54a, type: 3}
+    meatItem: small_game_meat
+    meat: 1
+    extraItem: small_furs
+    extraCount: 1
+  despawnDistance: 200
+  tickSeconds: 2
+  pondSiteName: Bass Hole
+--- !u!114 &199833596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f03c0c92518e68c45ad4247010c3ca76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrapManager
+  prefabs:
+    rabbitSnare: {fileID: 189043496197363011, guid: 4519e80e334c389408319845a2ab4a30, type: 3}
+    boxTrap: {fileID: 1976091462811493564, guid: 0508ff537ac21a9418ebfe8689eff829, type: 3}
+    fishTrap: {fileID: 3788477171781507220, guid: c0e206fe9f2860a479f1cd7177d866ef, type: 3}
+  snareChance: 0.035
+  boxChance: 0.03
+  unbaitedShare: 0.15
+  fishChance: 0.04
+  fishTrapCapacity: 3
+  baitStolenChance: 0.006
+  wearPerDay: 0.1
+  damageWear: 0.5
+--- !u!114 &199833597
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71846baa8f435814782bfc038f27ce02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishingManager
+  species:
+  - itemId: bluegill
+    yield: 1
+    pond: 1
+    creek: 0.7
+    night: 1
+    dawn: 1
+    day: 1
+    dusk: 1
+    spring: 1
+    winter: 0.5
+    nearCover: 1
+    hookRod: 0.95
+    hookCane: 0.9
+    reelSeconds: 1.5
+    trap: 1.5
+  - itemId: crappie
+    yield: 2
+    pond: 0.35
+    creek: 0.1
+    night: 2.2
+    dawn: 2.2
+    day: 0.35
+    dusk: 2.2
+    spring: 3.5
+    winter: 0.5
+    nearCover: 1
+    hookRod: 0.8
+    hookCane: 0.65
+    reelSeconds: 2.5
+    trap: 0.6
+  - itemId: bass
+    yield: 3
+    pond: 0.5
+    creek: 0.25
+    night: 0.15
+    dawn: 1
+    day: 1.4
+    dusk: 1
+    spring: 1
+    winter: 0.4
+    nearCover: 1.8
+    hookRod: 0.7
+    hookCane: 0.35
+    reelSeconds: 4
+    trap: 0.05
+  - itemId: catfish
+    yield: 4
+    pond: 0.4
+    creek: 0.5
+    night: 2
+    dawn: 1.4
+    day: 1
+    dusk: 1.4
+    spring: 1
+    winter: 0.5
+    nearCover: 1
+    hookRod: 0.8
+    hookCane: 0.5
+    reelSeconds: 5
+    trap: 3
+  baseWaitSeconds: 11
+  coverRange: 30
+  coverSiteName: Bass Hole
+--- !u!114 &199833598
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d261f557f94510b44990847943a8c25c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ForagingManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

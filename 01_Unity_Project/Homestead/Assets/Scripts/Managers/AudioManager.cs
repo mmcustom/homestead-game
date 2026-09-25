@@ -15,6 +15,15 @@ public class Sound
 {
     public AudioClip clip;
     [Range(0f, 1f)] public float volume = 1f;
+    [Tooltip("Seconds into the clip to start from, to skip silence at the front of a sourced file.")]
+    [Min(0f)] public float startTime;
+    [Tooltip("For looped sounds: seconds into the clip where the loop wraps back to Start Time (0 = the clip's end).")]
+    [Min(0f)] public float loopEnd;
+    [Tooltip("For one-shots: stop after this many seconds, fading out over Fade Out (0 = play the whole clip).")]
+    [Min(0f)] public float maxDuration;
+    [Min(0f)] public float fadeOut = 0.2f;
+    [Tooltip("Playback speed and pitch together; above 1 is quicker and snappier.")]
+    [Range(0.5f, 2f)] public float pitch = 1f;
 }
 
 // A looping ambient sound that plays while its conditions match. An empty condition list means "any".
@@ -113,6 +122,21 @@ public class AudioManager : MonoBehaviour
     [SerializeField] Sound milestone = new Sound();
     [Tooltip("Audio_System.md's sfx_drink: drinking at a water source or from carried water.")]
     [SerializeField] Sound drink = new Sound();
+    // Audio_System.md's Hunting / Fishing / Trapping SFX, played in the world by the tools that make them.
+    [Header("Hunting, fishing and trapping")]
+    [Tooltip("sfx_gunshot: the Bolt-Action Rifle fired.")]
+    [SerializeField] Sound gunshot = new Sound();
+    [Tooltip("sfx_bow_release: the Recurve Bow fired.")]
+    [SerializeField] Sound bowRelease = new Sound();
+    [Tooltip("sfx_fish_bite: the bobber dipping when a fish bites.")]
+    [SerializeField] Sound fishBite = new Sound();
+    [Tooltip("sfx_splash: the line landing, a shot duck dropping, a fish trap going in, stepping into water.")]
+    [SerializeField] Sound splash = new Sound();
+    [Tooltip("sfx_fishing_reel: looped while reeling in.")]
+    [SerializeField] Sound fishingReel = new Sound();
+    [Tooltip("sfx_trap_set: setting a Rabbit Snare or Box Trap.")]
+    [SerializeField] Sound trapSet = new Sound();
+
     [Tooltip("How many effects can play at once; the oldest is cut off when all are busy.")]
     [SerializeField, Min(1)] int sfxVoices = 12;
 
@@ -135,6 +159,7 @@ public class AudioManager : MonoBehaviour
     InventoryContainer watchedInventory;
     SoundCue consumeCue;
     int consumeFrame = -1;
+    bool consumeSilently;
 
     public AudioClip CurrentMusic => musicSources[activeMusic] != null ? musicSources[activeMusic].clip : null;
 
@@ -243,6 +268,8 @@ public class AudioManager : MonoBehaviour
     // Unscaled time so music keeps fading while the game is paused (timeScale 0).
     void Update()
     {
+        UpdateTrims();
+
         // Mixer parameters can only be set at runtime, so apply saved volumes on the first frame.
         if (!volumesApplied)
         {
@@ -304,6 +331,14 @@ public class AudioManager : MonoBehaviour
             default: return footstepsGrassTimes;
         }
     }
+
+    // The generated placeholders (SynthSounds) stand in for any of these left without a clip.
+    public Sound Gunshot => gunshot.clip != null ? gunshot : SynthSounds.Gunshot;
+    public Sound BowRelease => bowRelease.clip != null ? bowRelease : SynthSounds.BowRelease;
+    public Sound FishBite => fishBite.clip != null ? fishBite : SynthSounds.Plop;
+    public Sound Splash => splash.clip != null ? splash : SynthSounds.Splash;
+    public Sound FishingReel => fishingReel;
+    public Sound TrapSet => trapSet;
 
     public Sound SprintBreathing => sprintBreathing;
     public Sound EncumberedBreathing => encumberedBreathing;
@@ -386,13 +421,23 @@ public class AudioManager : MonoBehaviour
         // An item used up rather than put down (drinking carried water) plays its own sound instead of the drop.
         bool consumed = consumeFrame == Time.frameCount;
         consumeFrame = -1;
+        if (consumed && consumeSilently)
+            return; // the caller plays its own sound (e.g. setting a trap)
         Play(consumed ? consumeCue : SoundCue.ItemDrop);
+    }
+
+    // Call just before removing an item whose use plays its own sound elsewhere: the removal makes no drop sound.
+    public void SilenceNextRemoval()
+    {
+        consumeSilently = true;
+        consumeFrame = Time.frameCount;
     }
 
     // Call just before removing an item that's being consumed: the removal plays this cue instead of the drop sound.
     public void PlayOnConsume(SoundCue cue)
     {
         consumeCue = cue;
+        consumeSilently = false;
         consumeFrame = Time.frameCount;
     }
 
@@ -564,10 +609,47 @@ public class AudioManager : MonoBehaviour
         source.Stop();
         source.clip = sound.clip;
         source.volume = sound.volume;
-        source.pitch = 1f;
+        source.pitch = sound.pitch > 0f ? sound.pitch : 1f; // 0 would only come from data saved before the field existed
         source.spatialBlend = position.HasValue ? 1f : 0f;
         source.transform.position = position ?? transform.position;
+        source.time = Mathf.Clamp(sound.startTime, 0f, Mathf.Max(0f, sound.clip.length - 0.01f));
         source.Play();
+
+        // A trimmed one-shot fades out and stops early (UpdateTrims); reusing a source clears its old trim.
+        if (sound.maxDuration > 0f)
+            trims[source] = new Trim { start = Time.unscaledTime, duration = sound.maxDuration, fade = sound.fadeOut, volume = sound.volume };
+        else
+            trims.Remove(source);
+    }
+
+    struct Trim
+    {
+        public float start, duration, fade, volume;
+    }
+
+    readonly Dictionary<AudioSource, Trim> trims = new Dictionary<AudioSource, Trim>();
+    readonly List<AudioSource> finishedTrims = new List<AudioSource>();
+
+    void UpdateTrims()
+    {
+        foreach (KeyValuePair<AudioSource, Trim> entry in trims)
+        {
+            AudioSource source = entry.Key;
+            Trim trim = entry.Value;
+            float elapsed = Time.unscaledTime - trim.start;
+            if (source == null || !source.isPlaying || elapsed >= trim.duration)
+            {
+                if (source != null)
+                    source.Stop();
+                finishedTrims.Add(source);
+                continue;
+            }
+            float fadeFrom = trim.duration - trim.fade;
+            source.volume = elapsed <= fadeFrom || trim.fade <= 0f ? trim.volume : trim.volume * (trim.duration - elapsed) / trim.fade;
+        }
+        foreach (AudioSource source in finishedTrims)
+            trims.Remove(source);
+        finishedTrims.Clear();
     }
 
     AudioSource CreateSource(string sourceName, AudioChannel channel, bool loop)

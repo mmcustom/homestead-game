@@ -87,6 +87,20 @@ public class InventoryManager : MonoBehaviour, ISaveable
     // Picks up into the player's inventory. Returns how many fit; the rest should stay where they were.
     public int AddToPlayer(string itemId, int quantity) => AddTo(Player, itemId, quantity);
 
+    // As AddToPlayer, but dated as if acquired on another day — e.g. meat from a carcass that waited before
+    // field dressing, which has less shelf life left (Hunting_System.md: delayed dressing accelerates spoilage).
+    public int AddToPlayer(string itemId, int quantity, int acquiredDay)
+    {
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        if (item == null)
+        {
+            Debug.LogWarning($"[Inventory] Unknown item '{itemId}'.");
+            return 0;
+        }
+
+        return Player.Add(item, quantity, acquiredDay);
+    }
+
     public int RemoveFromPlayer(string itemId, int quantity) => Player.Remove(itemId, quantity);
 
     public int AddTo(InventoryContainer container, string itemId, int quantity)

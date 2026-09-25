@@ -18,10 +18,32 @@ public class DiscoverySite : MonoBehaviour
     [Tooltip("What discovering this site teaches the player, e.g. Water Quality = Excellent.")]
     [SerializeField] List<DiscoveryFact> facts = new List<DiscoveryFact>();
 
+    [Tooltip("Optional map icon within the category: berry, fruit, nut, greens or mushroom for Plants.")]
+    [SerializeField] string markerIcon = "";
+    [Tooltip("Discovered by walking into the trigger. Off for sites found by using them, like forage patches.")]
+    [SerializeField] bool discoverOnApproach = true;
+    [Tooltip("Discovered by looking at it from a distance.")]
+    [SerializeField] bool discoverBySight = true;
+
     public string SiteId => siteId;
     public string DisplayName => string.IsNullOrEmpty(displayName) ? name : displayName;
     public DiscoveryCategory Category => category;
     public IReadOnlyList<DiscoveryFact> Facts => facts;
+    public string MarkerIcon => markerIcon;
+    public bool DiscoverBySight => discoverBySight;
+
+    // For sites set up in code (placement tools).
+    public void Configure(string id, string siteName, DiscoveryCategory siteCategory, IEnumerable<DiscoveryFact> siteFacts,
+                          string icon, bool onApproach, bool bySight)
+    {
+        siteId = id;
+        displayName = siteName;
+        category = siteCategory;
+        facts = new List<DiscoveryFact>(siteFacts);
+        markerIcon = icon ?? "";
+        discoverOnApproach = onApproach;
+        discoverBySight = bySight;
+    }
 
     public bool IsDiscovered => DiscoveryManager.Instance != null && DiscoveryManager.Instance.IsDiscovered(siteId);
 
@@ -47,7 +69,7 @@ public class DiscoverySite : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag(PlayerTag))
+        if (discoverOnApproach && other.CompareTag(PlayerTag))
             Discover();
     }
 

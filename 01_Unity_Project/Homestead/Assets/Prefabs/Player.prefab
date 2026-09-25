@@ -12,6 +12,9 @@ GameObject:
   - component: {fileID: 6703116652829787784}
   - component: {fileID: 3632093308643300120}
   - component: {fileID: 8724833534092998637}
+  - component: {fileID: 1129377679309977728}
+  - component: {fileID: 6008461093435382815}
+  - component: {fileID: 3306076981603755259}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -119,13 +122,77 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  walkPitch: 1
-  sprintPitch: 1.35
-  crouchPitch: 0.8
+  walkStride: 1.1
+  sprintStride: 1.6
+  crouchStride: 0.65
   crouchVolume: 0.5
-  footstepFadeSeconds: 0.12
+  stepSeconds: 0.3
+  stepFadeSeconds: 0.05
+  stepPitchJitter: 0.05
   breathingFadeInSeconds: 0.5
   breathingFadeOutSeconds: 1.5
+--- !u!114 &1129377679309977728
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2249883017171622084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5cb5a32067fff164eaa49d84ca1f6af7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FishingRod
+  player: {fileID: 3632093308643300120}
+  bobberPrefab: {fileID: 4572301144609265713, guid: 2397bb26b10f3794aaf89ad4893e976e, type: 3}
+  rodRange: 18
+  caneRange: 9
+  maxLineLength: 26
+  biteWindow: 1.2
+  caneBiteWindow: 1
+  runInterval: 1.6
+  runSeconds: 0.6
+  snapStrain: 0.5
+--- !u!114 &6008461093435382815
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2249883017171622084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9568ca8972fccf43b78f005a8c73ef3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HuntingWeapon
+  player: {fileID: 3632093308643300120}
+  drawSeconds: 0.8
+  bowEffectiveRange: 30
+  bowMaxRange: 60
+  bowSpreadFull: 0.35
+  bowSpreadWeak: 2.5
+  boltSeconds: 1.3
+  rifleEffectiveRange: 150
+  rifleMaxRange: 250
+  rifleSpread: 0.12
+  gunshotEarshot: 250
+  movingSpread: 3
+--- !u!114 &3306076981603755259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2249883017171622084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 080cbab1be1ce9b48a687462eaacf374, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TrapSetter
+  player: {fileID: 3632093308643300120}
+  reach: 4
+  minSpacing: 2
+  maxSlope: 30
 --- !u!1001 &4215842906523750154
 PrefabInstance:
   m_ObjectHideFlags: 0

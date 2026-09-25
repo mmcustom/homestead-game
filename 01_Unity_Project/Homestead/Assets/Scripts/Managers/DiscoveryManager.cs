@@ -79,12 +79,12 @@ public class DiscoveryManager : MonoBehaviour, ISaveable
     public bool HasMilestone(string milestoneId) => milestones.Exists(m => m.id == milestoneId);
 
     public bool Discover(DiscoverySite site) =>
-        Discover(site.SiteId, site.DisplayName, site.Category, site.transform.position, site.Facts);
+        Discover(site.SiteId, site.DisplayName, site.Category, site.transform.position, site.Facts, site.MarkerIcon);
 
     // Records a new discovery. Returns false if it was already known, or if not currently in gameplay
     // (e.g. a trigger firing while the World scene loads).
     public bool Discover(string siteId, string displayName, DiscoveryCategory category, Vector3 position,
-                         IEnumerable<DiscoveryFact> facts = null)
+                         IEnumerable<DiscoveryFact> facts = null, string markerIcon = null)
     {
         if (string.IsNullOrEmpty(siteId) || IsDiscovered(siteId) || !InGame)
             return false;
@@ -96,6 +96,7 @@ public class DiscoveryManager : MonoBehaviour, ISaveable
             category = category,
             position = position,
             dayDiscovered = Today,
+            markerIcon = markerIcon ?? "",
         };
 
         if (facts != null)

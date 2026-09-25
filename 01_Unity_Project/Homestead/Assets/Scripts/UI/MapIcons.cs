@@ -13,7 +13,7 @@ public static class MapIcons
     static readonly Color Outline = new Color(0.09f, 0.12f, 0.09f, 1f);
     static readonly Color Glyph = new Color(0.95f, 0.92f, 0.82f, 1f);
 
-    static readonly Dictionary<DiscoveryCategory, Sprite> markers = new Dictionary<DiscoveryCategory, Sprite>();
+    static readonly Dictionary<string, Sprite> markers = new Dictionary<string, Sprite>();
     static Sprite circle, ring, arrow;
 
     public static Color CategoryColor(DiscoveryCategory category)
@@ -28,12 +28,15 @@ public static class MapIcons
         }
     }
 
-    public static Sprite Marker(DiscoveryCategory category)
+    // icon picks a variant within the category — Foraging_System.md's 🍎 fruit, 🌰 nut, greens and 🍄 mushroom
+    // for Plants; empty (or "berry") is the category's own glyph.
+    public static Sprite Marker(DiscoveryCategory category, string icon = null)
     {
-        if (markers.TryGetValue(category, out Sprite sprite) && sprite != null)
+        string key = category + "/" + (icon ?? "");
+        if (markers.TryGetValue(key, out Sprite sprite) && sprite != null)
             return sprite;
 
-        Func<float, float, bool> glyph = GlyphFor(category);
+        Func<float, float, bool> glyph = GlyphFor(icon) ?? GlyphFor(category);
         Color fill = CategoryColor(category);
         sprite = Draw($"Marker {category}", IconSize, (x, y) =>
         {
@@ -43,7 +46,7 @@ public static class MapIcons
             // The glyph sits inside the disc, scaled into its inner 60%.
             return glyph(x / 0.62f, y / 0.62f) ? Glyph : fill;
         });
-        markers[category] = sprite;
+        markers[key] = sprite;
         return sprite;
     }
 
@@ -69,6 +72,33 @@ public static class MapIcons
     static bool InArrow(float x, float y) =>
         InTriangle(x, y, new Vector2(0f, 1f), new Vector2(-0.75f, -0.8f), new Vector2(0f, -0.4f)) ||
         InTriangle(x, y, new Vector2(0f, 1f), new Vector2(0f, -0.4f), new Vector2(0.75f, -0.8f));
+
+    static Func<float, float, bool> GlyphFor(string icon)
+    {
+        switch (icon)
+        {
+            // Apple: round fruit with a stem and leaf.
+            case "fruit":
+                return (x, y) => InCircle(x, y, -0.2f, -0.12f, 0.42f) || InCircle(x, y, 0.2f, -0.12f, 0.42f) ||
+                                 (Mathf.Abs(x) < 0.06f && y > 0.2f && y < 0.62f) || InEllipse(x, y, 0.28f, 0.52f, 0.22f, 0.1f);
+            // Acorn/nut: a cap over a rounded body.
+            case "nut":
+                return (x, y) => InEllipse(x, y, 0f, -0.2f, 0.36f, 0.5f) || (InEllipse(x, y, 0f, 0.28f, 0.55f, 0.26f) && y > 0.2f) ||
+                                 (Mathf.Abs(x) < 0.06f && y > 0.45f && y < 0.75f);
+            // Leaf on a stem, for wild greens.
+            case "greens":
+                return (x, y) =>
+                {
+                    float u = (x + y) * 0.7071f, v = (y - x) * 0.7071f; // rotated 45°
+                    return InEllipse(u, v, 0.1f, 0f, 0.62f, 0.3f) || (Mathf.Abs(x + y + 0.9f) < 0.09f && x < -0.2f && y < -0.2f);
+                };
+            // Mushroom: a domed cap on a stem.
+            case "mushroom":
+                return (x, y) => (InEllipse(x, y, 0f, 0.08f, 0.72f, 0.5f) && y > 0.08f) || (Mathf.Abs(x) < 0.2f && y > -0.72f && y <= 0.1f);
+            default:
+                return null;
+        }
+    }
 
     static Func<float, float, bool> GlyphFor(DiscoveryCategory category)
     {

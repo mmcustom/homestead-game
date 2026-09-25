@@ -140,7 +140,7 @@ public class WorldMapScreen : GameScreen
             // Legend row: icon, name, category.
             RectTransform row = UiKit.Height(UiKit.Rect(record.displayName, siteList), 44f);
             Image icon = UiKit.Image(row, "Icon", Color.white);
-            icon.sprite = MapIcons.Marker(record.category);
+            icon.sprite = MapIcons.Marker(record.category, record.markerIcon);
             icon.rectTransform.anchorMin = icon.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             icon.rectTransform.pivot = new Vector2(0f, 0.5f);
             icon.rectTransform.sizeDelta = new Vector2(32f, 32f);
@@ -160,7 +160,7 @@ public class WorldMapScreen : GameScreen
         marker.sizeDelta = new Vector2(MarkerSize, MarkerSize);
 
         Image icon = UiKit.Image(marker, "Icon", Color.white);
-        icon.sprite = MapIcons.Marker(record.category);
+        icon.sprite = MapIcons.Marker(record.category, record.markerIcon);
         icon.rectTransform.Fill();
 
         Text label = UiKit.Text(marker, "Label", record.displayName, 17, UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);

@@ -90,7 +90,7 @@ public class MinimapHud : MonoBehaviour
             {
                 if (i == markers.Count)
                     markers.Add(CreateMarker());
-                markers[i].sprite = MapIcons.Marker(records[i].category);
+                markers[i].sprite = MapIcons.Marker(records[i].category, records[i].markerIcon);
                 markers[i].gameObject.name = records[i].displayName;
             }
             for (int i = 0; i < markers.Count; i++)

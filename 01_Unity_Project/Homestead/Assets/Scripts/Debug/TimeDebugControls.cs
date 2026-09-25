@@ -13,6 +13,8 @@ using UnityEngine.InputSystem;
 //   F9  refill Hydration, Hunger and Health (SurvivalManager)
 //   F10 drop Hydration and Hunger to 20, into the Severe tier, to check the warnings and Health loss
 //   F11 give a fire and water kit: Flint and Steel, a Bucket and 6 Firewood (for saves made before the starting kit)
+//   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
+//       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait
 public class TimeDebugControls : MonoBehaviour
 {
     static readonly float[] Speeds = { 1f, 10f, 60f, 360f };
@@ -85,6 +87,19 @@ public class TimeDebugControls : MonoBehaviour
                 inventory.AddToPlayer(WaterSource.BucketItemId, 1);
             int firewood = inventory.AddToPlayer(FireManager.FirewoodId, 6);
             Show($"Fire and water kit given ({firewood} Firewood fit)", time);
+        }
+        else if (keyboard.f12Key.wasPressedThisFrame && InventoryManager.Instance != null)
+        {
+            InventoryManager inventory = InventoryManager.Instance;
+            (string id, int count)[] kit =
+            {
+                ("fishing_rod", 1), ("cane_pole", 1), ("recurve_bow", 1), ("arrows", 20), ("bolt_action_rifle", 1),
+                ("rifle_rounds", 10), ("rabbit_snare", 2), ("box_trap", 1), ("fish_trap", 1), ("cordage", 3), ("wild_apples", 3),
+            };
+            int missed = 0;
+            foreach ((string id, int count) in kit)
+                missed += count - inventory.AddToPlayer(id, count);
+            Show(missed == 0 ? "Food-gathering kit given" : $"Food-gathering kit given ({missed} items didn't fit)", time);
         }
     }
 

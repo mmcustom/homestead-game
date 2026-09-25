@@ -32,6 +32,8 @@ public class DiscoveryRecord
     public DiscoveryCategory category;
     public Vector3 position;
     public int dayDiscovered;
+    // Optional map icon within the category, e.g. "nut" or "mushroom" for a Plant (Foraging_System.md's 🌰🍄).
+    public string markerIcon = "";
     public List<DiscoveryFact> facts = new List<DiscoveryFact>();
     public List<DiscoveryObservation> observations = new List<DiscoveryObservation>();
 }

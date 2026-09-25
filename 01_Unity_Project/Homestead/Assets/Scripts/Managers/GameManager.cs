@@ -73,6 +73,8 @@ public class GameManager : MonoBehaviour
             // way to light the fire that Core_Survival_System.md's loop puts right after water.
             InventoryManager.Instance.AddToPlayer(FireManager.IgnitionId, 1);
             InventoryManager.Instance.AddToPlayer(WaterSource.BucketItemId, 1);
+            // A little cord for a first snare (2026-09-25 proposal): nothing on the property produces Cordage yet.
+            InventoryManager.Instance.AddToPlayer("cordage", 3);
         }
         if (DiscoveryManager.Instance != null)
             DiscoveryManager.Instance.ResetDiscoveries();
@@ -84,6 +86,10 @@ public class GameManager : MonoBehaviour
             MapManager.Instance.ResetMap();
         if (FireManager.Instance != null)
             FireManager.Instance.ResetFires();
+        if (ForagingManager.Instance != null)
+            ForagingManager.Instance.ResetPatches();
+        if (TrapManager.Instance != null)
+            TrapManager.Instance.ResetTraps();
 
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing));
     }

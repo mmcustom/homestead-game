@@ -101,6 +101,9 @@ public class PlayerController : MonoBehaviour, ISaveable
     public bool IsSprinting => State == MovementState.Sprinting;
     public bool IsGrounded => controller != null && controller.isGrounded;
     public float HorizontalSpeed => horizontalVelocity.magnitude;
+    public Transform CameraTransform => cameraTransform;
+    // Equipped tools (rod, bow, rifle, traps) only work during gameplay, not in menus or while paused.
+    public bool CanUseTools => CanAct;
 
     // For Wildlife/Hunting: how noticeable the player currently is (First_Person_Controller.md, Design Rule 2).
     public float DetectionMultiplier
@@ -372,6 +375,27 @@ public class PlayerController : MonoBehaviour, ISaveable
         FocusChanged?.Invoke(focus);
     }
 
+    // Raycast along the camera's aim, ignoring the player's own colliders and triggers — for aimed tools (rod, bow,
+    // rifle, trap placement). direction defaults to straight ahead; tools with spread pass their own.
+    public bool AimRaycast(float range, out RaycastHit hit, Vector3? direction = null)
+    {
+        hit = default;
+        if (cameraTransform == null)
+            return false;
+
+        int count = Physics.RaycastNonAlloc(cameraTransform.position, direction ?? cameraTransform.forward, sightHits, range,
+                                            ~0, QueryTriggerInteraction.Ignore);
+        Array.Sort(sightHits, 0, count, RaycastHitDistanceComparer.Instance);
+        for (int i = 0; i < count; i++)
+        {
+            if (sightHits[i].collider.transform.IsChildOf(transform))
+                continue;
+            hit = sightHits[i];
+            return true;
+        }
+        return false;
+    }
+
     // Discovers a DiscoverySite the player looks at from a distance, as long as nothing solid is in the way.
     void CheckSight()
     {
@@ -389,7 +413,7 @@ public class PlayerController : MonoBehaviour, ISaveable
                 continue;
 
             DiscoverySite site = hitCollider.GetComponentInParent<DiscoverySite>();
-            if (site != null)
+            if (site != null && site.DiscoverBySight)
             {
                 site.Discover();
                 return;

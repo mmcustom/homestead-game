@@ -87,6 +87,9 @@ public class TimeManager : MonoBehaviour, ISaveable
     public float GameHoursPerRealSecond => 24f / (realMinutesPerDay * 60f);
 
     public int TotalDays => totalDays;
+
+    // Absolute in-game time in hours since the game began — for things that accumulate over time, like a set trap.
+    public double TotalHours => totalDays * 24.0 + minuteOfDay / 60.0;
     public float MinuteOfDay => minuteOfDay;
     public float HourOfDay => minuteOfDay / 60f;
     public int Hour => (int)HourOfDay;

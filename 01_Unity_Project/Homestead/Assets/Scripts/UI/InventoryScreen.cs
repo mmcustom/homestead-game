@@ -5,7 +5,7 @@ using UnityEngine.UI;
 // Inventory_System.md's Inventory Screen (confirmed 2026-09-25): what the player is carrying, their weight against the
 // Encumbered and maximum carry thresholds, and which Tool is equipped. Clicking a carried tool equips it, clicking the
 // equipped tool again unequips it; clicking collected water drinks a litre of it. A Build section builds a campfire
-// from carried Firewood (Fire System). Home Storage transfer is out of scope until a storage structure exists.
+// from carried Firewood (Fire System) and makes traps (Crafting's recipes). Home Storage transfer is out of scope until a storage structure exists.
 public class InventoryScreen : GameScreen
 {
     const float KgToLb = 2.20462f;
@@ -19,6 +19,7 @@ public class InventoryScreen : GameScreen
     Text equippedLabel;
     Button buildButton;
     Text buildLabel;
+    readonly Button[] craftButtons = new Button[Crafting.Recipes.Length];
     RectTransform barFill;
     Image barFillImage;
     RectTransform encumberedTick;
@@ -82,8 +83,15 @@ public class InventoryScreen : GameScreen
         Heading(right, "Build", 420f);
         buildButton = UiKit.Button(right, "Build Campfire", "", 21, BuildCampfire, TextAnchor.MiddleLeft);
         Top((RectTransform)buildButton.transform, 464f, 50f);
-        buildLabel = UiKit.Text(right, "Build Status", "", 19, UiKit.Muted);
-        Top(buildLabel.rectTransform, 520f, 56f);
+        buildLabel = UiKit.Text(right, "Build Status", "", 18, UiKit.Muted);
+        Top(buildLabel.rectTransform, 516f, 46f);
+
+        for (int i = 0; i < Crafting.Recipes.Length; i++)
+        {
+            Crafting.Recipe recipe = Crafting.Recipes[i];
+            craftButtons[i] = UiKit.Button(right, "Craft " + recipe.outputId, "", 20, () => Craft(recipe), TextAnchor.MiddleLeft);
+            Top((RectTransform)craftButtons[i].transform, 566f + i * 46f, 42f);
+        }
     }
 
     public override void OnShow()
@@ -180,6 +188,21 @@ public class InventoryScreen : GameScreen
         buildButton.interactable = can;
         buildButton.GetComponentInChildren<Text>().text = $"Campfire  <size=17><color=#EDE3C799>{fires.FirewoodToBuild} Firewood</color></size>";
         buildLabel.text = can ? "Builds just in front of you. Light it with Flint and Steel." : reason;
+
+        for (int i = 0; i < Crafting.Recipes.Length; i++)
+        {
+            Crafting.Recipe recipe = Crafting.Recipes[i];
+            bool canCraft = Crafting.CanCraft(recipe, out _);
+            craftButtons[i].interactable = canCraft;
+            string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
+            craftButtons[i].GetComponentInChildren<Text>().text = $"{name}  <size=17><color=#EDE3C799>{Crafting.Cost(recipe)}</color></size>";
+        }
+    }
+
+    void Craft(Crafting.Recipe recipe)
+    {
+        if (Crafting.Craft(recipe))
+            ToolStatus.Flash($"Made a {ItemDatabase.Get(recipe.outputId)?.DisplayName} — equip it to set it");
     }
 
     void BuildCampfire()

@@ -26,6 +26,9 @@ public class PlayerAudio : MonoBehaviour
     [Tooltip("Random pitch variation per step, so repeats don't sound identical.")]
     [SerializeField, Range(0f, 0.2f)] float stepPitchJitter = 0.05f;
 
+    [Tooltip("Water deeper than this at the player's feet counts as wading in (metres), for the splash going in.")]
+    [SerializeField, Min(0f)] float wadeDepth = 0.15f;
+
     [Header("Breathing")]
     [SerializeField, Min(0.01f)] float breathingFadeInSeconds = 0.5f;
     [Tooltip("Breathing trails off rather than cutting out when the effort stops.")]
@@ -43,6 +46,8 @@ public class PlayerAudio : MonoBehaviour
     float strideProgress = FirstStepProgress;
     float sprintLevel, encumberedLevel;
     float nextSurfaceCheck;
+    bool wading;
+    float nextWadeSplash;
 
     public SurfaceType CurrentSurface { get; private set; }
 
@@ -59,6 +64,19 @@ public class PlayerAudio : MonoBehaviour
         encumberedBreath = CreateSource("Encumbered Breathing");
     }
 
+    // sfx_splash when stepping from dry ground into water deep enough to wade (over the ankles).
+    void CheckWading(AudioManager audio, bool moving)
+    {
+        Vector3 feet = transform.position;
+        bool inWater = Animal.IsOverWater(feet, out float surface) && surface > feet.y + wadeDepth;
+        if (inWater && !wading && moving && Time.time >= nextWadeSplash)
+        {
+            audio.PlayAt(audio.Splash, feet);
+            nextWadeSplash = Time.time + 2f;
+        }
+        wading = inWater;
+    }
+
     void Update()
     {
         AudioManager audio = AudioManager.Instance;
@@ -72,6 +90,7 @@ public class PlayerAudio : MonoBehaviour
         {
             nextSurfaceCheck = Time.time + SurfaceCheckInterval;
             CurrentSurface = DetectSurface();
+            CheckWading(audio, moving);
         }
 
         // Footsteps: one per stride of distance covered.
