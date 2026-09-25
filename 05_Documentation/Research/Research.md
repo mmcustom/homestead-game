@@ -93,6 +93,20 @@ None of the above is a numeric proposal — catch rates, yield amounts, and any 
 
 ---
 
+# Maple Sap Tapping Grounding
+
+Supports: Maple_Sugaring.md, Season_System.md, Core_Survival_System.md's "Maple syrup production" Future Expansion item
+
+Real maple sap only flows during freeze-thaw cycles — nights reliably below 32°F followed by days that climb back above freezing — which builds the internal pressure that pushes sap out through a tap hole. In most temperate regions this window falls in late Winter into early Spring, roughly a 4–6 week season, not Fall as might be assumed from Fall being the property's other big harvest season. This directly informed Maple_Sugaring.md's timing, keyed to the same freeze-thaw temperature signal WeatherManager already tracks (and the same 32°F threshold the new Precipitation Type by Temperature rule in Weather_System.md uses) rather than a fixed calendar date.
+
+Only mature trees should be tapped — real guidance calls for at least 10–12 inches of trunk diameter (roughly 30–40 years old) before a tree can support a tap without harm, with larger trees able to support a second tap. Sugar maple has the highest sugar content and is the standard tapping species, but other maples (red, black, silver) and even birch can be tapped at a lower sugar content, meaning more sap is needed per unit of syrup.
+
+The real sap-to-syrup ratio is commonly cited around 40:1 by volume for sugar maple (lower-sugar species need more), which is why syrup production is slow and labor/fuel-intensive relative to the sap collected — boiling off that much water takes sustained heat over time, not a quick pass over a fire. Raw sap is also near-water in appearance and spoils quickly if left too long before boiling, unlike the syrup it becomes once properly reduced.
+
+This is real-world grounding for Maple_Sugaring.md's numbers; exact in-game accumulation rate, spoilage window, and sap-to-syrup ratio (a simplified version of 40:1 for playability) remain Claude Code's implementation call, same as every other numeric value in this document.
+
+---
+
 # Design Rules
 
 1. This document supports existing system claims with real-world sourcing. It does not introduce new mechanics, numbers, or species-specific stats — those belong in the system doc itself or in the still-unstarted per-species sheets (`05_Documentation/Livestock`, `Plants`, `Wildlife`, `Fishing`).
@@ -123,3 +137,6 @@ None of the above is a numeric proposal — catch rates, yield amounts, and any 
 - [Wild Edible and Medicinal Plant Harvest Calendar for Ohio — Element Bushcraft & Survival](https://elementbushcraft.com/wild-edibles-medicinal-plants-harvest-calendar-ohio/)
 - [Crappie vs. Bluegill: Key Differences and Fishing Tips — FishUSA](https://www.fishusa.com/learn/crappie-vs-bluegill/)
 - [Balancing Catfish and Bass in Your Pond for Optimal Fishing — Pond King](https://blog.pondking.com/catfish-and-bass-keeping-both-in-the-same-pond)
+- [How to Tap and Make Maple Syrup, What Trees Can Be Tapped — Minnesota DNR](https://files.dnr.state.mn.us/destinations/state_parks/maplesyrup_how.pdf)
+- [Bulletin #7036, How to Tap Maple Trees and Make Maple Syrup — University of Maine Cooperative Extension](https://extension.umaine.edu/publications/7036e/)
+- [Maple Syrup Season: When to Tap Trees, How It's Made & Health Benefits — The Old Farmer's Almanac](https://www.almanac.com/making-maple-syrup-answering-common-questions)

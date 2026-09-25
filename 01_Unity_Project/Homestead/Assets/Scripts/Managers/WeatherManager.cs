@@ -118,8 +118,15 @@ public class WeatherManager : MonoBehaviour, ISaveable
     public WeatherType Current => current;
     public int HoursRemaining => hoursRemaining;
 
-    public bool IsRaining => current == WeatherType.LightRain || current == WeatherType.HeavyRain || current == WeatherType.Thunderstorm;
-    public bool IsPrecipitating => IsRaining || current == WeatherType.Snow;
+    // What actually falls from the sky. Same as Current, except a Thunderstorm below freezing snows (thundersnow) —
+    // it stays a Thunderstorm for lightning and lighting, but rain visuals, sound and snow buildup should read this.
+    public WeatherType PrecipitationWeather =>
+        current == WeatherType.Thunderstorm && temperature <= 0f ? WeatherType.Snow : current;
+
+    public bool IsRaining => PrecipitationWeather == WeatherType.LightRain || PrecipitationWeather == WeatherType.HeavyRain ||
+                             PrecipitationWeather == WeatherType.Thunderstorm;
+    public bool IsSnowing => PrecipitationWeather == WeatherType.Snow;
+    public bool IsPrecipitating => IsRaining || IsSnowing;
 
     // Weather_System.md's Exposure Connection: these contribute to exposure risk without adequate shelter.
     public bool IsSevere => current == WeatherType.Thunderstorm || current == WeatherType.ColdFront || current == WeatherType.Snow;
@@ -223,6 +230,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
         dailyTemperatureOffset = RollTemperatureOffset(rng);
         RollNextWeather(rng, notify: false);
         temperature = TargetTemperatureC();
+        ResolvePrecipitationType(notify: false);
     }
 
     void OnHourChanged(int hour)
@@ -234,6 +242,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
             RollNextWeather(Rng(1), notify: true);
 
         temperature = Mathf.MoveTowards(temperature, TargetTemperatureC(), maxTemperatureChangePerHour);
+        ResolvePrecipitationType(notify: true);
     }
 
     void OnDayChanged()
@@ -261,11 +270,25 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
         WeatherTypeSettings settings = weatherTypes[(int)current];
         hoursRemaining = rng.Next(settings.minHours, settings.maxHours + 1);
+        ResolvePrecipitationType(notify: false);
 
         if (IsRaining)
             rainedToday = true;
 
         if (notify && current != previous)
+            WeatherChanged?.Invoke(current);
+    }
+
+    // Weather_System.md's Precipitation Type by Temperature: rain at or below freezing falls as Snow instead, in any
+    // season, and Snow's gameplay effects apply. Checked when weather is rolled, every hour as the temperature
+    // moves, and on load. One way only, as the doc specifies. A Thunderstorm keeps its type (see PrecipitationWeather).
+    void ResolvePrecipitationType(bool notify)
+    {
+        if ((current != WeatherType.LightRain && current != WeatherType.HeavyRain) || temperature > 0f)
+            return;
+
+        current = WeatherType.Snow;
+        if (notify)
             WeatherChanged?.Invoke(current);
     }
 
@@ -372,6 +395,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
         dryDays = Mathf.Max(0, data.dryDays);
         rainedToday = data.rainedToday;
         seed = data.seed;
+        ResolvePrecipitationType(notify: false); // saves from before this rule can hold rain below freezing
     }
 
     // Save_Data_Model.md's World Block: weather state.

@@ -432,7 +432,7 @@ public class AudioManager : MonoBehaviour
                 continue;
 
             bool matches = active && layer.Matches(time.CurrentSeason, time.Phase,
-                                                   weather != null ? weather.Current : WeatherType.Clear);
+                                                   weather != null ? weather.PrecipitationWeather : WeatherType.Clear);
             layer.level = Mathf.MoveTowards(layer.level, matches ? 1f : 0f, step);
 
             if (layer.level > 0f && !layer.started)

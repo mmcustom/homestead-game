@@ -209,11 +209,28 @@ Winter:
 
 ---
 
+# Visual Feedback
+
+Confirmed 2026-09-24 (Mike, from playtest): the property's hardwood forest should visibly change through Fall rather than staying uniformly green year-round — leaf color shifting and leaves falling. This is presentation of the season already defined above, not a new gameplay effect (same framing as Weather_System.md's own Visual Feedback section) — none of Fall's documented Primary Focus, Opportunities, or Challenges change based on how the trees look.
+
+- Canopies shift from green toward Fall color (yellow/orange/red) over the course of the season, progressing across Fall's 28 days rather than snapping instantly on the season boundary.
+- Leaves fall over the back half of Fall, thinning the canopy and leaving visible litter on the ground underneath. Existing wind (direction and strength, already tracked by WeatherManager per Weather_System.md) is a natural fit for drift on the way down, but that's an implementation detail, not a requirement.
+- By Winter, canopies read bare — consistent with Winter's already-stark character (reduced forage, Design Rule 4's "most demanding season") and with the tree-top snow accumulation already specced in Weather_System.md, which will read more naturally against bare branches than a full green canopy.
+- Canopies return to green over Spring, alongside Spring's already-documented "New plant growth" opportunity — the natural complement to Fall's color change and drop, not a separate ask.
+
+Applies to the mixed hardwood forest's canopy trees (the two hardwood prototypes `PropertyTerrainBuilder.cs` already places); whether the understory shrub also changes is a minor call left to Claude Code. Technique (seasonal material/texture variants, a shader blend driven by season progress, a leaf-litter decal or mesh pass, etc.), the exact color progression, and how much of the canopy thins per day are all Claude Code's call.
+
+---
+
 # Future System
 
 Homestead Region Selection
 
 Not Alpha 0.1. The full game may let players choose a real-world region or latitude for their homestead, shaping day-length swing and climate character. Alpha 0.1 uses one fixed, unspecified temperate location instead. Source: DayNightCycle.cs's open latitude question, confirmed with Mike 2026-09-23 — see 06_AI_Collaboration/Current_Task_List.md.
+
+Maple Sugaring
+
+Not Alpha 0.1 (per Core_Survival_System.md's Future Expansion list). Sap season sits right at the Winter/Spring boundary — the same freeze-thaw temperature signal Weather_System.md's precipitation rules use. Full spec is drafted and ready in `Game_Systems/Maple_Sugaring.md`, confirmed 2026-09-24.
 
 ---
 

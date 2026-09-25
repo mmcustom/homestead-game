@@ -223,11 +223,12 @@ public static class PropertyTerrainBuilder
         data.SetHeights(0, 0, heights);
         data.terrainLayers = layers;
         data.SetAlphamaps(0, 0, alphas);
+        Texture2D foliageMask = FoliageMask();
         data.treePrototypes = new[]
         {
-            new TreePrototype { prefab = TreePrefab("Hardwood Broad", 0) },
-            new TreePrototype { prefab = TreePrefab("Hardwood Tall", 1) },
-            new TreePrototype { prefab = TreePrefab("Understory Shrub", 2) },
+            new TreePrototype { prefab = TreePrefab("Hardwood Broad", 0, foliageMask) },
+            new TreePrototype { prefab = TreePrefab("Hardwood Tall", 1, foliageMask) },
+            new TreePrototype { prefab = TreePrefab("Understory Shrub", 2, foliageMask) },
         };
 
         // Trees.
@@ -575,26 +576,33 @@ public static class PropertyTerrainBuilder
 
     // --- Trees -------------------------------------------------------------------------------------------------
 
-    // Low-poly placeholder hardwoods (bark + leaves) and a leafy understory shrub. Hardwood trunks get a collider,
-    // which the terrain uses for its tree colliders; shrubs can be walked through.
-    static GameObject TreePrefab(string prefabName, int kind)
+    // Low-poly placeholder hardwoods and a leafy understory shrub. Hardwood trunks get a collider, which the terrain
+    // uses for its tree colliders; shrubs can be walked through. Material slots: 0 bark (trunk and branches), 1 leaves,
+    // 2 snow on the crown, 3 snow on the branches. Every leaf face and snow cap carries a random value in the foliage
+    // mask's alpha, which SeasonalTrees raises the alpha cutoff through to drop leaves and add snow a face at a time.
+    // Branches sit inside the crown and show once the leaves are down.
+    static GameObject TreePrefab(string prefabName, int kind, Texture2D foliageMask)
     {
         var random = new System.Random(Seed + 100 + kind);
-        var builder = new MeshBuilder(2);
+        var branchRandom = new System.Random(Seed + 300 + kind); // separate, so crown shapes don't change
+        var builder = new MeshBuilder(4, new System.Random(Seed + 200 + kind));
         switch (kind)
         {
             case 0:
                 builder.Trunk(6.5f, 0.3f, 0.2f);
+                builder.Branches(6, 4.2f, 6.3f, new Vector2(35f, 55f), new Vector2(2.6f, 3.4f), 0.12f, branchRandom);
                 builder.Blob(new Vector3(0f, 8.6f, 0f), 3.8f, new Vector3(1f, 0.8f, 1f), 0.35f, random);
                 builder.Blob(new Vector3(1.4f, 10f, 0.6f), 2.5f, new Vector3(1f, 0.85f, 1f), 0.3f, random);
                 builder.Blob(new Vector3(-1.2f, 9.6f, -1f), 2.3f, new Vector3(1f, 0.85f, 1f), 0.3f, random);
                 break;
             case 1:
                 builder.Trunk(9.5f, 0.27f, 0.16f);
+                builder.Branches(5, 6f, 9.2f, new Vector2(40f, 60f), new Vector2(1.6f, 2.4f), 0.1f, branchRandom);
                 builder.Blob(new Vector3(0f, 11.8f, 0f), 2.7f, new Vector3(1f, 1.7f, 1f), 0.3f, random);
                 builder.Blob(new Vector3(0.6f, 9.2f, 0.4f), 2.1f, new Vector3(1f, 1f, 1f), 0.3f, random);
                 break;
             default:
+                builder.Branches(6, 0f, 0.15f, new Vector2(50f, 70f), new Vector2(0.9f, 1.3f), 0.03f, branchRandom);
                 builder.Blob(new Vector3(0f, 0.8f, 0f), 1.3f, new Vector3(1f, 0.75f, 1f), 0.3f, random);
                 builder.Blob(new Vector3(0.9f, 0.6f, 0.3f), 0.9f, new Vector3(1f, 0.8f, 1f), 0.3f, random);
                 builder.Blob(new Vector3(-0.7f, 0.65f, -0.5f), 1f, new Vector3(1f, 0.8f, 1f), 0.3f, random);
@@ -602,15 +610,23 @@ public static class PropertyTerrainBuilder
         }
 
         Mesh mesh = SaveAsset(builder.ToMesh(prefabName), $"{ArtFolder}/{prefabName}.asset");
+        Color summer = kind == 2 ? new Color(0.2f, 0.28f, 0.11f) : new Color(0.19f, 0.33f, 0.12f);
         Material bark = LitMaterial("Bark", new Color(0.27f, 0.2f, 0.14f), 0.1f);
-        Material leaves = kind == 2
-            ? LitMaterial("Shrub Leaves", new Color(0.2f, 0.28f, 0.11f), 0.15f)
-            : LitMaterial("Leaves", new Color(0.19f, 0.33f, 0.12f), 0.15f);
+        Material leaves = LitMaterial(kind == 2 ? "Shrub Leaves" : "Leaves", summer, 0.15f, foliageMask, alphaCutoff: 0f);
+        Material snow = LitMaterial("Tree Snow", new Color(0.9f, 0.92f, 0.95f), 0.3f, foliageMask, alphaCutoff: 1f);
 
         var go = new GameObject(prefabName);
         go.AddComponent<MeshFilter>().sharedMesh = mesh;
         var renderer = go.AddComponent<MeshRenderer>();
-        renderer.sharedMaterials = new[] { bark, leaves };
+        renderer.sharedMaterials = new[] { bark, leaves, snow, snow };
+
+        // Season_System.md's Fall colours: red-orange broad hardwoods, golden tall ones, red understory.
+        var foliage = go.AddComponent<SeasonalFoliage>();
+        foliage.springColor = new Color(0.3f, 0.44f, 0.15f);
+        foliage.summerColor = summer;
+        foliage.fallColor = kind == 0 ? new Color(0.58f, 0.2f, 0.05f)
+                          : kind == 1 ? new Color(0.66f, 0.48f, 0.08f)
+                          : new Color(0.5f, 0.1f, 0.07f);
         // A LODGroup makes the terrain draw this as a plain mesh tree (no Soft Occlusion billboards).
         go.AddComponent<LODGroup>().SetLODs(new[] { new LOD(0.004f, new Renderer[] { renderer }) });
         if (kind != 2)
@@ -634,19 +650,32 @@ public static class PropertyTerrainBuilder
 
     sealed class MeshBuilder
     {
+        const int Bark = 0, Leaves = 1, CrownSnow = 2, BranchSnow = 3;
+        const float SnowLift = 0.05f; // snow caps sit just above the face they cover
+
         readonly List<Vector3> vertices = new List<Vector3>();
         readonly List<Vector3> normals = new List<Vector3>();
+        readonly List<Vector2> uvs = new List<Vector2>();
         readonly List<int>[] submeshes;
+        readonly System.Random faceRandom;
 
-        public MeshBuilder(int submeshCount)
+        public MeshBuilder(int submeshCount, System.Random faceRandom)
         {
+            this.faceRandom = faceRandom;
             submeshes = new List<int>[submeshCount];
             for (int i = 0; i < submeshCount; i++)
                 submeshes[i] = new List<int>();
         }
 
-        // Flat-shaded triangle, wound to face away from `inside`.
-        void Triangle(Vector3 a, Vector3 b, Vector3 c, Vector3 inside, int submesh)
+        // A random texel centre of the foliage mask: the whole face reads one value from it.
+        Vector2 FaceValue()
+        {
+            int x = faceRandom.Next(FoliageMaskSize), y = faceRandom.Next(FoliageMaskSize);
+            return new Vector2((x + 0.5f) / FoliageMaskSize, (y + 0.5f) / FoliageMaskSize);
+        }
+
+        // Flat-shaded triangle, wound to face away from `inside`. Returns its outward normal.
+        Vector3 Triangle(Vector3 a, Vector3 b, Vector3 c, Vector3 inside, int submesh, Vector2 uv)
         {
             Vector3 normal = Vector3.Cross(b - a, c - a).normalized;
             if (Vector3.Dot(normal, (a + b + c) / 3f - inside) < 0f)
@@ -659,6 +688,20 @@ public static class PropertyTerrainBuilder
                 submeshes[submesh].Add(vertices.Count);
                 vertices.Add(v);
                 normals.Add(normal);
+                uvs.Add(uv);
+            }
+            return normal;
+        }
+
+        // A face plus, if it faces up enough to hold snow, a snow cap just above it. Crown snow reuses its leaf's
+        // value, so it only ever covers leaves that are still on the tree.
+        void SnowableTriangle(Vector3 a, Vector3 b, Vector3 c, Vector3 inside, int submesh, int snowSubmesh, Vector2 uv)
+        {
+            Vector3 normal = Triangle(a, b, c, inside, submesh, uv);
+            if (normal.y > 0.25f)
+            {
+                Vector3 lift = normal * SnowLift;
+                Triangle(a + lift, b + lift, c + lift, inside, snowSubmesh, submesh == Leaves ? uv : FaceValue());
             }
         }
 
@@ -672,8 +715,40 @@ public static class PropertyTerrainBuilder
                 var b1 = new Vector3(d1.x * bottomRadius, -0.3f, d1.y * bottomRadius);
                 var t0 = new Vector3(d0.x * topRadius, height, d0.y * topRadius);
                 var t1 = new Vector3(d1.x * topRadius, height, d1.y * topRadius);
-                Triangle(b0, b1, t1, new Vector3(0f, height / 2f, 0f), 0);
-                Triangle(b0, t1, t0, new Vector3(0f, height / 2f, 0f), 0);
+                Triangle(b0, b1, t1, new Vector3(0f, height / 2f, 0f), Bark, Vector2.one * 0.5f);
+                Triangle(b0, t1, t0, new Vector3(0f, height / 2f, 0f), Bark, Vector2.one * 0.5f);
+            }
+        }
+
+        // Tapering limbs leaving the trunk between two heights, spiralling round it, angled up within `elevation`.
+        public void Branches(int count, float lowest, float highest, Vector2 elevation, Vector2 length, float radius,
+                             System.Random random)
+        {
+            const int Sides = 5;
+            for (int i = 0; i < count; i++)
+            {
+                float t = count > 1 ? i / (count - 1f) : 0f;
+                float azimuth = i * 137.5f + (float)random.NextDouble() * 20f;
+                float lift = Mathf.Lerp(elevation.x, elevation.y, (float)random.NextDouble());
+                float reach = Mathf.Lerp(length.x, length.y, (float)random.NextDouble());
+                var start = new Vector3(0f, Mathf.Lerp(lowest, highest, t), 0f);
+                Vector3 direction = Quaternion.Euler(-lift, azimuth, 0f) * Vector3.forward;
+                Vector3 end = start + direction * reach;
+
+                // Two axes across the limb.
+                Vector3 side = Vector3.Cross(direction, Vector3.up).normalized;
+                Vector3 up = Vector3.Cross(side, direction).normalized;
+                Vector3 inside = (start + end) / 2f;
+                for (int k = 0; k < Sides; k++)
+                {
+                    float a0 = k * Mathf.PI * 2f / Sides, a1 = (k + 1) * Mathf.PI * 2f / Sides;
+                    Vector3 o0 = side * Mathf.Cos(a0) + up * Mathf.Sin(a0);
+                    Vector3 o1 = side * Mathf.Cos(a1) + up * Mathf.Sin(a1);
+                    Vector3 b0 = start + o0 * radius, b1 = start + o1 * radius;
+                    Vector3 e0 = end + o0 * radius * 0.3f, e1 = end + o1 * radius * 0.3f;
+                    SnowableTriangle(b0, b1, e1, inside, Bark, BranchSnow, Vector2.one * 0.5f);
+                    SnowableTriangle(b0, e1, e0, inside, Bark, BranchSnow, Vector2.one * 0.5f);
+                }
             }
         }
 
@@ -687,7 +762,8 @@ public static class PropertyTerrainBuilder
                 points[i] = center + Vector3.Scale(points[i] * radius * lump, scale);
             }
             for (int i = 0; i < faces.Count; i += 3)
-                Triangle(points[faces[i]], points[faces[i + 1]], points[faces[i + 2]], center, submeshes.Length - 1);
+                SnowableTriangle(points[faces[i]], points[faces[i + 1]], points[faces[i + 2]], center, Leaves, CrownSnow,
+                                 FaceValue());
         }
 
         public Mesh ToMesh(string meshName)
@@ -695,6 +771,7 @@ public static class PropertyTerrainBuilder
             var mesh = new Mesh { name = meshName };
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
             mesh.subMeshCount = submeshes.Length;
             for (int i = 0; i < submeshes.Length; i++)
                 mesh.SetTriangles(submeshes[i], i);
@@ -796,6 +873,39 @@ public static class PropertyTerrainBuilder
         return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
     }
 
+    // One random value per texel: RGB a slight brightness variation per leaf face, alpha the face's drop/snow order
+    // (0.02-0.98, so an alpha cutoff of 0 shows every face and 1 hides them all). Point-filtered and uncompressed so
+    // each face reads its exact value.
+    const int FoliageMaskSize = 64;
+
+    static Texture2D FoliageMask()
+    {
+        var random = new System.Random(Seed + 50);
+        var texture = new Texture2D(FoliageMaskSize, FoliageMaskSize, TextureFormat.RGBA32, false);
+        for (int y = 0; y < FoliageMaskSize; y++)
+        for (int x = 0; x < FoliageMaskSize; x++)
+        {
+            float shade = 0.8f + 0.2f * (float)random.NextDouble();
+            float order = 0.02f + 0.96f * (float)random.NextDouble();
+            texture.SetPixel(x, y, new Color(shade, shade, shade, order));
+        }
+
+        string path = $"{ArtFolder}/Textures/Foliage Mask.png";
+        File.WriteAllBytes(path, texture.EncodeToPNG());
+        Object.DestroyImmediate(texture);
+        AssetDatabase.ImportAsset(path);
+
+        var importer = (TextureImporter)AssetImporter.GetAtPath(path);
+        importer.sRGBTexture = false;
+        importer.alphaIsTransparency = false;
+        importer.mipmapEnabled = false;
+        importer.filterMode = FilterMode.Point;
+        importer.wrapMode = TextureWrapMode.Clamp;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+        importer.SaveAndReimport();
+        return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+    }
+
     static TerrainLayer MakeLayer(string layerName, Texture2D texture, float tileSize)
     {
         string path = $"{ArtFolder}/{layerName}.terrainlayer";
@@ -826,7 +936,8 @@ public static class PropertyTerrainBuilder
         return material;
     }
 
-    static Material LitMaterial(string materialName, Color color, float smoothness)
+    static Material LitMaterial(string materialName, Color color, float smoothness, Texture2D baseMap = null,
+                                float alphaCutoff = -1f)
     {
         string path = $"{ArtFolder}/{materialName}.mat";
         var material = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -837,6 +948,10 @@ public static class PropertyTerrainBuilder
         }
         material.SetColor("_BaseColor", color);
         material.SetFloat("_Smoothness", smoothness);
+        material.SetTexture("_BaseColorMap", baseMap);
+        // Alpha clipping on means the variant is built even at a cutoff that shows everything.
+        material.SetFloat("_AlphaCutoffEnable", alphaCutoff >= 0f ? 1f : 0f);
+        material.SetFloat("_AlphaCutoff", Mathf.Max(0f, alphaCutoff));
         material.enableInstancing = true;
         HDMaterial.ValidateMaterial(material);
         EditorUtility.SetDirty(material);

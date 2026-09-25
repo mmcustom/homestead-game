@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3445313054331169277}
   - component: {fileID: 657584322892904757}
   - component: {fileID: 663216364000314398}
+  - component: {fileID: 7658611646058984037}
   - component: {fileID: 5833377520015831469}
   - component: {fileID: 7058283940340182722}
   m_Layer: 0
@@ -70,6 +71,8 @@ MeshRenderer:
   m_Materials:
   - {fileID: 2100000, guid: 918e9b29e54f3d24ea35dbe58fb5c8d4, type: 2}
   - {fileID: 2100000, guid: 524d631e12330794fb38b231e77eb020, type: 2}
+  - {fileID: 2100000, guid: e32345a59cbd4864388849c329d698e9, type: 2}
+  - {fileID: 2100000, guid: e32345a59cbd4864388849c329d698e9, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -93,6 +96,22 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
+--- !u!114 &7658611646058984037
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2627084005607699970}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 57895478dc03bf64ab496aa761ca1e66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SeasonalFoliage
+  springColor: {r: 0.3, g: 0.44, b: 0.15, a: 1}
+  summerColor: {r: 0.19, g: 0.33, b: 0.12, a: 1}
+  fallColor: {r: 0.58, g: 0.2, b: 0.05, a: 1}
+  deciduous: 1
 --- !u!205 &5833377520015831469
 LODGroup:
   m_ObjectHideFlags: 0
@@ -101,8 +120,8 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2627084005607699970}
   serializedVersion: 2
-  m_LocalReferencePoint: {x: 0.31949234, y: 6.183823, z: 0.10291338}
-  m_Size: 12.967647
+  m_LocalReferencePoint: {x: 0.326334, y: 6.2054787, z: 0.110327005}
+  m_Size: 13.010958
   m_FadeMode: 0
   m_AnimateCrossFading: 0
   m_LastLODIsBillboard: 0

@@ -103,7 +103,7 @@ public class Precipitation : MonoBehaviour
         transform.position = cameraTransform.position + Vector3.up * spawnHeight;
 
         WeatherManager weather = WeatherManager.Instance;
-        WeatherType current = weather != null ? weather.Current : WeatherType.Clear;
+        WeatherType current = weather != null ? weather.PrecipitationWeather : WeatherType.Clear;
 
         // Scaled time, so precipitation stops building or fading while the game is paused (as the particles do).
         float step = Time.deltaTime / fadeSeconds;

@@ -391,7 +391,7 @@ Not Alpha 0.1
 - Veterinary systems
 - Advanced temperature systems
 - Beekeeping
-- Maple syrup production
+- Maple syrup production — spec drafted and ready in `Game_Systems/Maple_Sugaring.md` (confirmed 2026-09-24), still deferred until moved into active scope
 
 These features are deferred until the core survival loop is proven fun.
 

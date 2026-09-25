@@ -15,8 +15,8 @@ public struct TerrainLayerSurface
 // Marks what a ground collider is made of, for footstep sounds. Put it on the collider's object or a parent.
 // Ground without one uses PlayerAudio's default surface. On a Terrain, each texture layer can be mapped to a
 // surface instead (Property_Layout.md: Grass by default, Dirt on trails, Gravel at creek and pond banks) — the
-// listed layer painted strongest at the player's feet wins. Unlisted layers (e.g. GroundSnow's) are ignored, so
-// snow over a trail still sounds like the trail.
+// listed layer painted strongest at the player's feet wins. Unlisted layers (SeasonalGround's snow and litter) are
+// ignored, so snow over a trail still sounds like the trail.
 public class GroundSurface : MonoBehaviour
 {
     [Tooltip("The surface for plain colliders, and for terrain layers not listed below.")]
@@ -24,7 +24,7 @@ public class GroundSurface : MonoBehaviour
     [Tooltip("On a Terrain: the surface each texture layer counts as.")]
     [SerializeField] List<TerrainLayerSurface> terrainLayers = new List<TerrainLayerSurface>();
 
-    // Terrain painting is read once. The only runtime repaint is GroundSnow's unlisted layer, which scales the
+    // Terrain painting is read once. The only runtime repaint is SeasonalGround's unlisted layers, which scale the
     // listed layers evenly, so the strongest listed layer stays the same.
     Terrain terrain;
     float[,,] alphamaps;
