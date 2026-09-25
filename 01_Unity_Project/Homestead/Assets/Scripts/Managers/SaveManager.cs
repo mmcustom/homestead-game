@@ -51,8 +51,7 @@ public class SaveManager : MonoBehaviour
     public bool IsSaving => isSaving;
 
     static bool InGame =>
-        GameManager.Instance != null &&
-        (GameManager.Instance.State == GameState.Playing || GameManager.Instance.State == GameState.Paused);
+        GameManager.Instance != null && GameManager.Instance.InGame;
 
     void Awake()
     {

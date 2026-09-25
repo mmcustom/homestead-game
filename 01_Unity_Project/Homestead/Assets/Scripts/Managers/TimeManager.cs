@@ -83,6 +83,9 @@ public class TimeManager : MonoBehaviour, ISaveable
     const float SpeedMultiplier = 1f;
 #endif
 
+    // In-game hours per real second at normal speed, ignoring the debug fast-forward.
+    public float GameHoursPerRealSecond => 24f / (realMinutesPerDay * 60f);
+
     public int TotalDays => totalDays;
     public float MinuteOfDay => minuteOfDay;
     public float HourOfDay => minuteOfDay / 60f;

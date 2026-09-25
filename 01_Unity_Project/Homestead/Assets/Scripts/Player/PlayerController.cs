@@ -76,7 +76,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     readonly RaycastHit[] sightHits = new RaycastHit[16];
 
     CharacterController controller;
-    InputAction moveAction, lookAction, sprintAction, crouchAction, interactAction, pauseAction;
+    InputAction moveAction, lookAction, sprintAction, crouchAction, interactAction, interactAltAction, pauseAction;
     Vector3 horizontalVelocity;
     float verticalVelocity;
     float yaw, pitch;
@@ -93,6 +93,10 @@ public class PlayerController : MonoBehaviour, ISaveable
     public MovementState State { get; private set; }
     public float Stamina => stamina;
     public float MaxStamina => maxStamina;
+
+    // Core_Survival_System.md: low Hydration and Hunger reduce stamina — both the ceiling and how fast it refills.
+    static float SurvivalStamina => SurvivalManager.Instance != null ? SurvivalManager.Instance.StaminaMultiplier : 1f;
+    public float EffectiveMaxStamina => maxStamina * SurvivalStamina;
     public bool IsCrouching => crouched;
     public bool IsSprinting => State == MovementState.Sprinting;
     public bool IsGrounded => controller != null && controller.isGrounded;
@@ -123,6 +127,11 @@ public class PlayerController : MonoBehaviour, ISaveable
     {
         controller = GetComponent<CharacterController>();
         stamina = maxStamina;
+
+        // Water surfaces carry a collider only so they can be looked at (WaterSource's Drink); the player wades through.
+        int waterLayer = LayerMask.NameToLayer("Water");
+        if (waterLayer >= 0)
+            controller.excludeLayers |= 1 << waterLayer;
         yaw = transform.eulerAngles.y;
         ApplyHeight(standingHeight, standingEyeHeight);
 
@@ -138,6 +147,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         sprintAction = actions.FindAction("Player/Sprint", true);
         crouchAction = actions.FindAction("Player/Crouch", true);
         interactAction = actions.FindAction("Player/Interact", true);
+        interactAltAction = actions.FindAction("Player/InteractAlt", false);
         pauseAction = actions.FindAction("UI/Cancel", true);
     }
 
@@ -175,7 +185,8 @@ public class PlayerController : MonoBehaviour, ISaveable
 
     void Update()
     {
-        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null)
+        // Esc while typing a journal note belongs to the text field, not the pause menu.
+        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping)
             GameManager.Instance.TogglePause();
 
         if (!CanAct || moveAction == null)
@@ -196,6 +207,9 @@ public class PlayerController : MonoBehaviour, ISaveable
 
         if (focus != null && interactAction.WasPressedThisFrame())
             focus.Interact(this);
+        else if (focus is ISecondaryInteractable secondary && interactAltAction != null &&
+                 interactAltAction.WasPressedThisFrame() && !string.IsNullOrEmpty(secondary.SecondaryPrompt))
+            secondary.SecondaryInteract(this);
 
         if (Time.time >= nextSightCheck)
         {
@@ -280,8 +294,11 @@ public class PlayerController : MonoBehaviour, ISaveable
         }
         else if (Time.time - lastSprintTime >= staminaRecoveryDelay)
         {
-            stamina = Mathf.Min(maxStamina, stamina + staminaRecoveryPerSecond * dt);
+            stamina = Mathf.Min(EffectiveMaxStamina, stamina + staminaRecoveryPerSecond * SurvivalStamina * dt);
         }
+
+        // Falling into a worse tier lowers the ceiling right away.
+        stamina = Mathf.Min(stamina, EffectiveMaxStamina);
     }
 
     void SetCrouched(bool value)
@@ -329,13 +346,23 @@ public class PlayerController : MonoBehaviour, ISaveable
     void UpdateFocus()
     {
         IInteractable found = null;
-        if (cameraTransform != null &&
-            Physics.Raycast(cameraTransform.position, cameraTransform.forward, out RaycastHit hit,
-                            interactRange, interactionMask, QueryTriggerInteraction.Ignore))
+        if (cameraTransform != null)
         {
-            IInteractable candidate = hit.collider.GetComponentInParent<IInteractable>();
-            if (candidate != null && candidate.CanInteract(this))
-                found = candidate;
+            // Looking steeply down, the ray can report the player's own capsule first, so skip it.
+            int count = Physics.RaycastNonAlloc(cameraTransform.position, cameraTransform.forward, sightHits,
+                                                interactRange, interactionMask, QueryTriggerInteraction.Ignore);
+            Array.Sort(sightHits, 0, count, RaycastHitDistanceComparer.Instance);
+
+            for (int i = 0; i < count; i++)
+            {
+                if (sightHits[i].collider.transform.IsChildOf(transform))
+                    continue;
+
+                IInteractable candidate = sightHits[i].collider.GetComponentInParent<IInteractable>();
+                if (candidate != null && candidate.CanInteract(this))
+                    found = candidate;
+                break; // only the nearest solid thing counts
+            }
         }
 
         if (found == focus)
@@ -415,7 +442,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         return position;
     }
 
-    // Save_Data_Model.md's Player Block: position (survival stats will join this file when implemented).
+    // Save_Data_Model.md's Player Block: position (SurvivalManager writes the survival stats to the same file).
     string ISaveable.SaveFile => "player";
     string ISaveable.SaveKey => "controller";
     object ISaveable.CaptureState() => CaptureState();

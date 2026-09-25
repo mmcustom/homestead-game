@@ -136,6 +136,9 @@ GameObject:
   - component: {fileID: 199833589}
   - component: {fileID: 199833590}
   - component: {fileID: 199833591}
+  - component: {fileID: 199833592}
+  - component: {fileID: 199833593}
+  - component: {fileID: 199833594}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -536,7 +539,77 @@ MonoBehaviour:
   milestone:
     clip: {fileID: 8300000, guid: 28e81fb6402fb344ba312fb4b69014d3, type: 3}
     volume: 0.94
+  drink:
+    clip: {fileID: 8300000, guid: 0532e40d99c3f934199c13293f568eb6, type: 3}
+    volume: 0.24
   sfxVoices: 12
+--- !u!114 &199833592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a907e279bdd22204c90af9a8b4ab3c6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SurvivalManager
+  hydrationPerHour: 2.8
+  hungerPerHour: 1.4
+  walkingHydration: 1.2
+  sprintingHydration: 2
+  walkingHunger: 1.15
+  sprintingHunger: 1.6
+  warmF: 80
+  hotF: 95
+  hotHydrationMultiplier: 1.5
+  coolF: 40
+  frigidF: 10
+  coldHungerMultiplier: 1.3
+  dehydrationSevereLoss: 1.5
+  dehydrationEmptyLoss: 8
+  starvationSevereLoss: 1
+  starvationEmptyLoss: 4
+  recoveryThreshold: 75
+  recoveryPerHour: 2
+--- !u!114 &199833593
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea4dd46b1611d85458a699f2efef264d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MapManager
+  worldMin: {x: -240, y: -240}
+  worldSize: 480
+  resolution: 240
+  revealRadius: 30
+  revealFalloff: 10
+  revealStep: 2
+--- !u!114 &199833594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b6a4ed3f95a295343861ff0762a2c915, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FireManager
+  campfirePrefab: {fileID: 7474108885875764593, guid: 8b0fb1d8498b2e24faea96fa2658158b, type: 3}
+  firewoodToBuild: 3
+  hoursPerFirewood: 2
+  maxFuelHours: 12
+  buildDistance: 1.8
+  minSpacing: 3
+  maxSlope: 25
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

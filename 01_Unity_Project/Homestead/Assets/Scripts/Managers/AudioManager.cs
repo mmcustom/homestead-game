@@ -6,7 +6,7 @@ using UnityEngine.Audio;
 public enum AudioChannel { Master, Music, Ambient, Sfx, Ui }
 
 // Audio_System.md's one-shot sounds.
-public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop }
+public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop, Drink }
 
 // A clip and the level it plays at within its mixer group. Levels start from each file's measured loudness,
 // so sounds sourced from different libraries sit sensibly together; adjust by ear in the Inspector.
@@ -111,6 +111,8 @@ public class AudioManager : MonoBehaviour
     [SerializeField] Sound discoveryChime = new Sound();
     [SerializeField] Sound journalUpdated = new Sound();
     [SerializeField] Sound milestone = new Sound();
+    [Tooltip("Audio_System.md's sfx_drink: drinking at a water source or from carried water.")]
+    [SerializeField] Sound drink = new Sound();
     [Tooltip("How many effects can play at once; the oldest is cut off when all are busy.")]
     [SerializeField, Min(1)] int sfxVoices = 12;
 
@@ -131,12 +133,13 @@ public class AudioManager : MonoBehaviour
     bool volumesApplied;
     float coverVolume = 1f, coverVolumeTarget = 1f, nextCoverCheck;
     InventoryContainer watchedInventory;
+    SoundCue consumeCue;
+    int consumeFrame = -1;
 
     public AudioClip CurrentMusic => musicSources[activeMusic] != null ? musicSources[activeMusic].clip : null;
 
     static bool InGame =>
-        GameManager.Instance != null &&
-        (GameManager.Instance.State == GameState.Playing || GameManager.Instance.State == GameState.Paused);
+        GameManager.Instance != null && GameManager.Instance.InGame;
 
     void Awake()
     {
@@ -311,7 +314,7 @@ public class AudioManager : MonoBehaviour
         if (sound == null || sound.clip == null)
             return;
 
-        if (cue == SoundCue.ItemPickup || cue == SoundCue.ItemDrop)
+        if (cue == SoundCue.ItemPickup || cue == SoundCue.ItemDrop || cue == SoundCue.Drink)
             PlayOn(NextSfxSource(), sound, null);
         else
             uiSource.PlayOneShot(sound.clip, sound.volume); // UI group; still heard while paused
@@ -352,6 +355,7 @@ public class AudioManager : MonoBehaviour
             case SoundCue.Milestone: return milestone;
             case SoundCue.ItemPickup: return itemPickup;
             case SoundCue.ItemDrop: return itemDrop;
+            case SoundCue.Drink: return drink;
             default: return null;
         }
     }
@@ -376,8 +380,20 @@ public class AudioManager : MonoBehaviour
 
     void OnItemsRemoved(string itemId, int quantity)
     {
-        if (InGame)
-            Play(SoundCue.ItemDrop);
+        if (!InGame)
+            return;
+
+        // An item used up rather than put down (drinking carried water) plays its own sound instead of the drop.
+        bool consumed = consumeFrame == Time.frameCount;
+        consumeFrame = -1;
+        Play(consumed ? consumeCue : SoundCue.ItemDrop);
+    }
+
+    // Call just before removing an item that's being consumed: the removal plays this cue instead of the drop sound.
+    public void PlayOnConsume(SoundCue cue)
+    {
+        consumeCue = cue;
+        consumeFrame = Time.frameCount;
     }
 
     void ApplyVolumes()

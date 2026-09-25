@@ -32,8 +32,7 @@ public class DiscoveryManager : MonoBehaviour, ISaveable
     static int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
 
     static bool InGame =>
-        GameManager.Instance == null ||
-        GameManager.Instance.State == GameState.Playing || GameManager.Instance.State == GameState.Paused;
+        GameManager.Instance == null || GameManager.Instance.InGame;
 
     void Awake()
     {

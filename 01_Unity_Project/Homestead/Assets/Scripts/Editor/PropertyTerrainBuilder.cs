@@ -322,8 +322,16 @@ public static class PropertyTerrainBuilder
 
         var water = new GameObject("Water (Placeholder)");
         water.transform.SetParent(root.transform);
-        water.AddComponent<MeshFilter>().sharedMesh = WaterMesh(creek, creekLevel, creekHalf, springLevel, pondLevel);
+        Mesh waterMesh = WaterMesh(creek, creekLevel, creekHalf, springLevel, pondLevel);
+        water.AddComponent<MeshFilter>().sharedMesh = waterMesh;
         water.AddComponent<MeshRenderer>().sharedMaterial = LitMaterial("Water", new Color(0.08f, 0.16f, 0.18f), 0.95f);
+        // Drinkable (Core_Survival_System.md Hydration). The collider is only for looking at the water; the Water layer
+        // is excluded from the player's CharacterController, so the player still wades in.
+        water.layer = LayerMask.NameToLayer("Water");
+        water.AddComponent<MeshCollider>().sharedMesh = waterMesh;
+        // Water_System.md's quality levels along the one water system: the spring itself Excellent, the running creek
+        // Good (the default), and the creek-fed pond Questionable — slow, warm water, but not stagnant enough for Unsafe.
+        water.AddComponent<WaterSource>().Configure(WaterQuality.Good, WaterQualityZones());
         GameObjectUtility.SetStaticEditorFlags(water, (StaticEditorFlags)~0);
 
         var boundary = new GameObject("Property Boundary");
@@ -511,6 +519,24 @@ public static class PropertyTerrainBuilder
     // --- Water -------------------------------------------------------------------------------------------------
 
     // Flat surfaces for the spring pool, creek and pond, each overlapping its banks so the edges hide under ground.
+    // Also used by Homestead > Apply Water Quality to update the water in the open scene without a full rebuild.
+    public static WaterSource.QualityZone[] WaterQualityZones() => new[]
+    {
+        new WaterSource.QualityZone { name = "Spring Hollow", center = new Vector3(SpringCenter.x, 0f, SpringCenter.y), radius = 14f, quality = WaterQuality.Excellent },
+        new WaterSource.QualityZone { name = "Bass Hole pond", center = new Vector3(PondCenter.x, 0f, PondCenter.y), radius = PondRadius + 8f, quality = WaterQuality.Questionable },
+    };
+
+    [MenuItem("Homestead/Apply Water Quality")]
+    static void ApplyWaterQuality()
+    {
+        foreach (WaterSource source in Object.FindObjectsByType<WaterSource>(FindObjectsSortMode.None))
+        {
+            Undo.RecordObject(source, "Apply Water Quality");
+            source.Configure(WaterQuality.Good, WaterQualityZones());
+            EditorUtility.SetDirty(source);
+        }
+    }
+
     static Mesh WaterMesh(List<Vector2> creek, float[] level, float[] half, float springLevel, float pondLevel)
     {
         var vertices = new List<Vector3>();

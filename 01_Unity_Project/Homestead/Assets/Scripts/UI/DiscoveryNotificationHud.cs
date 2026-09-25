@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Discovery_System.md's Discovery Process, steps 1 and 2: a "Discovery Unlocked" popup naming the site and its
-// headline fact, followed by a "Journal Updated" confirmation. The map steps (3 and 4) wait for a map system.
+// Discovery_System.md's Discovery Process, steps 1-3: a "Discovery Unlocked" popup naming the site and its headline
+// fact, followed by a "Journal Updated · Map Updated" confirmation (the minimap marker appears at the same moment,
+// via MinimapHud). Step 4, the World Map, waits for that system.
 // Discoveries made in quick succession queue up and show one at a time. Runs on scaled time, so it holds while paused.
 public class DiscoveryNotificationHud : MonoBehaviour
 {
