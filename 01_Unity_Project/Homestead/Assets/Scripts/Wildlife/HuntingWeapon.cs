@@ -9,6 +9,11 @@ using UnityEngine.InputSystem;
 // Aim is the centre of the screen. A hit in an animal's vitals is a clean kill with a chance that falls off beyond
 // the weapon's effective range; anywhere else on larger game is a wounding hit (Animal decides the rest). A miss
 // by an arrow startles only what's near where it landed.
+//
+// Aiming (Hunting_System.md's Aiming section, 2026-09-25): the bow shows a reticle whose size is the arrow's actual
+// spread right now — wide on a partial draw or on the move, tight at full draw. The rifle shoots loose from the hip
+// and raises a scope with Aim (right mouse): 6x zoom, slower look, and a precise shot. Both sights read the shot
+// line against Shot Placement: amber on an animal's body, green through its heart and lungs, with the range.
 public class HuntingWeapon : MonoBehaviour
 {
     const string BowId = "recurve_bow";
@@ -29,22 +34,41 @@ public class HuntingWeapon : MonoBehaviour
     [SerializeField, Min(0f)] float boltSeconds = 1.3f;
     [SerializeField, Min(1f)] float rifleEffectiveRange = 150f;
     [SerializeField, Min(1f)] float rifleMaxRange = 250f;
-    [SerializeField] float rifleSpread = 0.12f;
+    [Tooltip("Spread in degrees from the hip and through the scope.")]
+    [SerializeField] float rifleHipSpread = 0.9f, rifleScopedSpread = 0.08f;
+    [SerializeField, Min(1f)] float scopeZoom = 6f;
+    [Tooltip("Seconds to raise or lower the scope.")]
+    [SerializeField, Min(0.01f)] float scopeRaiseSeconds = 0.2f;
+    [Tooltip("Look sensitivity with the scope fully raised, as a share of normal.")]
+    [SerializeField, Range(0.05f, 1f)] float scopedLookScale = 0.35f;
     [Tooltip("Animals within this distance flee at a rifle shot (metres).")]
     [SerializeField, Min(0f)] float gunshotEarshot = 250f;
 
     [Tooltip("Spread multiplier while moving.")]
     [SerializeField, Min(1f)] float movingSpread = 3f;
 
-    InputAction attack;
+    InputAction attack, aim;
     float draw;
     float readyAt;
+    float scope;          // 0-1, how far the rifle's scope is raised
+    Camera view;
+    float baseFov;
 
     void Awake()
     {
         if (player == null)
             player = GetComponent<PlayerController>();
         attack = InputSystem.actions != null ? InputSystem.actions.FindAction("Player/Attack") : null;
+        aim = InputSystem.actions != null ? InputSystem.actions.FindAction("Player/Aim") : null;
+        view = player.CameraTransform != null ? player.CameraTransform.GetComponent<Camera>() : null;
+        if (view != null)
+            baseFov = view.fieldOfView;
+    }
+
+    void OnDisable()
+    {
+        scope = 0f;
+        ApplyScope();
     }
 
     void Update()
@@ -54,10 +78,20 @@ public class HuntingWeapon : MonoBehaviour
         if (equipped != BowId && equipped != RifleId)
         {
             draw = 0f;
+            if (scope > 0f)
+            {
+                scope = 0f;
+                ApplyScope();
+            }
             return;
         }
         if (!player.CanUseTools || attack == null)
             return;
+
+        // The scope comes up while Aim is held with the rifle out, and drops for anything else.
+        bool wantScope = equipped == RifleId && aim != null && aim.IsPressed();
+        scope = Mathf.MoveTowards(scope, wantScope ? 1f : 0f, Time.deltaTime / scopeRaiseSeconds);
+        ApplyScope();
 
         if (equipped == BowId)
             UpdateBow(inventory);
@@ -65,9 +99,40 @@ public class HuntingWeapon : MonoBehaviour
             UpdateRifle(inventory);
     }
 
+    // Zoom and look sensitivity follow how far the scope is raised.
+    void ApplyScope()
+    {
+        if (view != null && baseFov > 0f)
+            view.fieldOfView = Mathf.Lerp(baseFov, baseFov / scopeZoom, scope);
+        if (player != null)
+            player.LookScale = Mathf.Lerp(1f, scopedLookScale, scope);
+    }
+
+    float BowSpread => Mathf.Lerp(bowSpreadWeak, bowSpreadFull, draw) * (Moving ? movingSpread : 1f);
+    float RifleSpread => Mathf.Lerp(rifleHipSpread, rifleScopedSpread, scope) * (Moving ? movingSpread : 1f);
+
+    // What the sight is on right now, for the reticle: nothing, an animal's body, or its vitals — and how far.
+    void ReportSight(ReticleKind kind, float spread, float effectiveRange, float maxRange)
+    {
+        AimTarget target = AimTarget.None;
+        float distance = 0f;
+        Transform cam = player.CameraTransform;
+        if (player.AimRaycast(maxRange, out RaycastHit hit))
+        {
+            Animal animal = hit.collider.GetComponentInParent<Animal>();
+            if (animal != null && !animal.IsDead)
+            {
+                target = animal.IsVitalsHit(cam.position, cam.forward) ? AimTarget.Vitals : AimTarget.Body;
+                distance = hit.distance;
+            }
+        }
+        ToolStatus.ReportAim(kind, spread, target, distance, distance <= effectiveRange, scope);
+    }
+
     void UpdateBow(InventoryManager inventory)
     {
         int arrows = inventory.Player.Count(ArrowId);
+        ReportSight(ReticleKind.Spread, BowSpread, bowEffectiveRange, bowMaxRange);
         if (arrows <= 0)
         {
             draw = 0f;
@@ -94,7 +159,7 @@ public class HuntingWeapon : MonoBehaviour
 
             SilenceAmmoRemoval();
             inventory.RemoveFromPlayer(ArrowId, 1);
-            float spread = Mathf.Lerp(bowSpreadWeak, bowSpreadFull, power) * (Moving ? movingSpread : 1f);
+            float spread = Mathf.Lerp(bowSpreadWeak, bowSpreadFull, power) * (Moving ? movingSpread : 1f); // as the reticle showed
             PlaySound(a => a.BowRelease, player.transform.position);
             Fire(spread, bowEffectiveRange, Mathf.Lerp(bowMaxRange * 0.5f, bowMaxRange, power), arrow: true);
             return;
@@ -106,6 +171,7 @@ public class HuntingWeapon : MonoBehaviour
     void UpdateRifle(InventoryManager inventory)
     {
         int rounds = inventory.Player.Count(RoundId);
+        ReportSight(scope > 0.5f ? ReticleKind.Scope : ReticleKind.Spread, RifleSpread, rifleEffectiveRange, rifleMaxRange);
         if (Time.time < readyAt)
         {
             ToolStatus.Report($"Working the bolt…   Rounds: {rounds}", 1f - (readyAt - Time.time) / boltSeconds);
@@ -117,7 +183,7 @@ public class HuntingWeapon : MonoBehaviour
             return;
         }
 
-        ToolStatus.Report($"Bolt-Action Rifle — click to fire   Rounds: {rounds}");
+        ToolStatus.Report(scope > 0.5f ? $"Rounds: {rounds}" : $"Bolt-Action Rifle — right-click to aim, click to fire   Rounds: {rounds}");
         if (!attack.WasPressedThisFrame())
             return;
 
@@ -125,7 +191,7 @@ public class HuntingWeapon : MonoBehaviour
         inventory.RemoveFromPlayer(RoundId, 1);
         readyAt = Time.time + boltSeconds;
         PlaySound(a => a.Gunshot, player.transform.position);
-        Fire(rifleSpread * (Moving ? movingSpread : 1f), rifleEffectiveRange, rifleMaxRange, arrow: false);
+        Fire(RifleSpread, rifleEffectiveRange, rifleMaxRange, arrow: false);
 
         // Hunting_System.md: loud, may disperse nearby wildlife.
         if (WildlifeManager.Instance != null)

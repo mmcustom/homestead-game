@@ -102,6 +102,9 @@ public class PlayerController : MonoBehaviour, ISaveable
     public bool IsGrounded => controller != null && controller.isGrounded;
     public float HorizontalSpeed => horizontalVelocity.magnitude;
     public Transform CameraTransform => cameraTransform;
+
+    // Scales mouse and stick look — lowered while a scope is zoomed in, so aiming stays steady.
+    public float LookScale { get; set; } = 1f;
     // Equipped tools (rod, bow, rifle, traps) only work during gameplay, not in menus or while paused.
     public bool CanUseTools => CanAct;
 
@@ -247,7 +250,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     {
         Vector2 look = lookAction.ReadValue<Vector2>();
         bool fromPointer = lookAction.activeControl != null && lookAction.activeControl.device is Pointer;
-        Vector2 delta = fromPointer ? look * mouseSensitivity : look * (stickSensitivity * dt);
+        Vector2 delta = (fromPointer ? look * mouseSensitivity : look * (stickSensitivity * dt)) * LookScale;
 
         yaw += delta.x;
         pitch = Mathf.Clamp(pitch - delta.y, -maxPitch, maxPitch);

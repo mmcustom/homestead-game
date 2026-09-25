@@ -30,8 +30,12 @@ public class FishingRod : MonoBehaviour
     [Tooltip("A fish makes a run about this often while being reeled in; reeling through it builds strain.")]
     [SerializeField, Min(0.3f)] float runInterval = 1.6f;
     [SerializeField, Min(0.1f)] float runSeconds = 0.6f;
-    [Tooltip("Seconds of reeling during runs before the line snaps.")]
-    [SerializeField, Min(0.1f)] float snapStrain = 0.5f;
+    [Tooltip("Seconds of reeling against runs (after the grace below) before the line snaps.")]
+    [SerializeField, Min(0.1f)] float snapStrain = 0.8f;
+    [Tooltip("The start of each run costs nothing — time to notice it and ease off.")]
+    [SerializeField, Min(0f)] float runGrace = 0.2f;
+    [Tooltip("Tension shed per second while reeling between runs, and while not reeling at all.")]
+    [SerializeField, Min(0f)] float strainReliefReeling = 0.1f, strainReliefResting = 1.2f;
 
     InputAction attack;
     State state;
@@ -217,16 +221,20 @@ public class FishingRod : MonoBehaviour
         }
 
         SetReeling(held && !running);
-        if (held)
+        bool pastGrace = running && Time.time >= runUntil - runSeconds + runGrace;
+        if (held && running)
         {
-            if (running)
-                strain += Time.deltaTime;
-            else
-                reelProgress += Time.deltaTime / hooked.reelSeconds;
+            if (pastGrace)
+                strain += Time.deltaTime; // pulling against the fish
+        }
+        else if (held)
+        {
+            reelProgress += Time.deltaTime / hooked.reelSeconds;
+            strain = Mathf.Max(0f, strain - Time.deltaTime * strainReliefReeling);
         }
         else
         {
-            strain = Mathf.Max(0f, strain - Time.deltaTime * 0.5f);
+            strain = Mathf.Max(0f, strain - Time.deltaTime * strainReliefResting);
         }
 
         if (strain >= snapStrain)
@@ -243,7 +251,9 @@ public class FishingRod : MonoBehaviour
             bobber.transform.position = toward + (running ? Random.insideUnitSphere * 0.08f : Vector3.zero);
         }
 
-        ToolStatus.Report(running ? "It's running — ease off!" : "Hold to reel in", reelProgress, true);
+        int tension = Mathf.RoundToInt(strain / snapStrain * 100f);
+        string tensionNote = tension > 0 ? $"   Line tension {tension}%" : "";
+        ToolStatus.Report((running ? "It's running — ease off!" : "Hold to reel in") + tensionNote, reelProgress, true);
         if (reelProgress >= 1f)
             Land();
     }
@@ -326,8 +336,13 @@ public class FishingRod : MonoBehaviour
             reelSource.spatialBlend = 0f; // the player's own reel
             reelSource.outputAudioMixerGroup = AudioManager.Instance.GetGroup(AudioChannel.Sfx);
         }
-        if (reelSource == null)
+        // No AudioManager (World played on its own, or shutting down): just make sure the reel is quiet.
+        if (reelSource == null || AudioManager.Instance == null)
+        {
+            if (reelSource != null && reelSource.isPlaying)
+                reelSource.Stop();
             return;
+        }
 
         Sound sound = AudioManager.Instance.FishingReel;
         if (on && !reelSource.isPlaying)

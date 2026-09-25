@@ -129,6 +129,7 @@ MonoBehaviour:
   stepSeconds: 0.3
   stepFadeSeconds: 0.05
   stepPitchJitter: 0.05
+  wadeDepth: 0.15
   breathingFadeInSeconds: 0.5
   breathingFadeOutSeconds: 1.5
 --- !u!114 &1129377679309977728
@@ -152,7 +153,10 @@ MonoBehaviour:
   caneBiteWindow: 1
   runInterval: 1.6
   runSeconds: 0.6
-  snapStrain: 0.5
+  snapStrain: 0.8
+  runGrace: 0.2
+  strainReliefReeling: 0.1
+  strainReliefResting: 1.2
 --- !u!114 &6008461093435382815
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -174,7 +178,11 @@ MonoBehaviour:
   boltSeconds: 1.3
   rifleEffectiveRange: 150
   rifleMaxRange: 250
-  rifleSpread: 0.12
+  rifleHipSpread: 0.9
+  rifleScopedSpread: 0.08
+  scopeZoom: 6
+  scopeRaiseSeconds: 0.2
+  scopedLookScale: 0.35
   gunshotEarshot: 250
   movingSpread: 3
 --- !u!114 &3306076981603755259
