@@ -71,6 +71,8 @@ Requirements:
 - Bow
 - Arrows
 
+**Sourcing Arrows (confirmed 2026-09-25, Mike):** craftable from Sticks, Stones, Cordage, and Feathers — an ad-hoc recipe like Fire Building's Campfire, not part of a generalized crafting system (see Decisions_Log.md's 2026-09-25 crafting-deferral entry). Feathers are already a Medium Game byproduct (see Huntable Species below). Not yet built — in-game right now, Arrows only come from the F12 debug kit (see Item_Data.md's Materials table). Cordage sourcing is specced in Trapping_System.md.
+
 Advantages:
 
 - Silent
@@ -105,6 +107,8 @@ Disadvantages:
 - Loud, may disperse nearby wildlife
 - Ammunition is a limited, purchasable resource
 
+**Sourcing Rifle Rounds (confirmed 2026-09-25, Mike):** purchased for money from a supply store, once Economy_System.md's shops exist — not built yet, so in-game right now Rifle Rounds only come from the F12 debug kit (see Item_Data.md's Materials table). Later in the game, once a player has a forge and the other tools that implies, rounds become craftable at home — that crafting chain isn't specced yet and is Future System scope, tied to whatever forge/tool-crafting system eventually gets built.
+
 ---
 
 # Future Weapons
@@ -117,6 +121,8 @@ Examples:
 - Shotgun (Turkey, Waterfowl)
 - Compound Bow
 - Black Powder Muzzleloader
+
+**Confirmed 2026-09-25 (Mike):** the Black Powder Muzzleloader isn't just an arbitrary future addition — it should be one of the very first firearms a player gets, ahead of the Bolt-Action Rifle in the weapon-progression order, not added after it. Exact stats and how it fits alongside the Recurve Bow and Bolt-Action Rifle aren't specced yet.
 
 ---
 
@@ -209,6 +215,12 @@ Prompt field dressing:
 - Extends time before spoilage begins
 
 Field dressing connects directly to the Spoilage System defined in Core Survival System documentation.
+
+---
+
+# Carcasses
+
+**Confirmed 2026-09-25 (Mike):** a carcass left behind (not field dressed / not collected) attracts other predators over time. A carcass can also be collected and added to a future Compost system, producing fertilizer for crops. Neither behavior is built yet — Claude Code's Phase 2 report notes carcasses currently aren't persisted at all; wildlife just respawns. Both halves are Future System scope: predator-attraction needs wildlife AI that reacts to a carcass, and the compost/fertilizer loop needs a Farming/Crops system that doesn't exist yet. Recording the design here so it isn't lost, same pattern as this doc set's other Future System notes.
 
 ---
 

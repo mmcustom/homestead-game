@@ -58,6 +58,8 @@ Requirements:
 - Cordage
 - Suitable location
 
+**Sourcing Cordage (confirmed 2026-09-25, Mike):** early game, craftable from animal sinew/tendons, tall grasses, or cattail stalks — an ad-hoc recipe like Fire Building's Campfire, not part of a generalized crafting system (see Decisions_Log.md's 2026-09-25 crafting-deferral entry). Cattails are already a Foraging resource (Item_Data.md). Later in the game, Cordage also becomes craftable at a Spinning Wheel from Cotton. Neither path is built yet — in-game right now, Cordage only comes from the F12 debug kit and the New Game starting kit's 3 units (see Item_Data.md's Materials table). Hunting_System.md's Recurve Bow arrows also use Cordage, so this recipe covers both.
+
 Best Placement:
 
 - Rabbit trails

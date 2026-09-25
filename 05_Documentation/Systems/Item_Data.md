@@ -78,8 +78,10 @@ Milk gets the shortest shelf life in the game (dairy spoils fast); eggs get one 
 | stone | (general building material) | 5.0 | — |
 | cordage | Trapping_System.md | 0.3 | — |
 | firewood | Core_Survival_System.md (Fire System) | 1.5 | — |
+| arrows | Hunting_System.md (Recurve Bow ammunition) | 0.05 | — |
+| rifle_rounds | Hunting_System.md (Bolt-Action Rifle ammunition) | 0.02 | — |
 
-Stone's 5 kg matches the exact test value Claude Code already used when verifying the 45 kg hard cap ("nine 5 kg stones fit, the tenth was refused") — carried over here rather than picking a different number. Firewood added 2026-09-25, matching Claude Code's Fire Building implementation: 40 deadfall piles give 2-3 Firewood each, one Firewood burns for 2 in-game hours. Weight is a first proposal, same status as everything else in this doc.
+Stone's 5 kg matches the exact test value Claude Code already used when verifying the 45 kg hard cap ("nine 5 kg stones fit, the tenth was refused") — carried over here rather than picking a different number. Firewood added 2026-09-25, matching Claude Code's Fire Building implementation: 40 deadfall piles give 2-3 Firewood each, one Firewood burns for 2 in-game hours. Weight is a first proposal, same status as everything else in this doc. Arrows and Rifle Rounds added 2026-09-25 with Phase 2's Hunting implementation — grouped here with the other stackable, non-perishable materials rather than Tools, since they're consumed by use (shot) rather than equipped. Claude Code's own note: nothing on the property currently produces either — per Hunting_System.md, ammunition is meant to be purchased later (ties into Economy_System.md once that's built) — so for now they only come from the F12 debug test kit. Weights are rough first proposals (a wood arrow, a rifle cartridge), same unlocked status as everything else here.
 
 ---
 

@@ -67,6 +67,23 @@ Three tracks is deliberately minimal for Alpha 0.1 — season-variant or tension
 | sfx_drink | Drinking — the "[Hold E] Drink" interaction at a water source, and clicking a water row in the Inventory screen (both added 2026-09-25 with Water Collection) | Not part of the original 22 — Water Collection didn't exist when this doc was written, and this action had no sound at all until now. **Implemented 2026-09-25 (Claude Code):** `drink.mp3` is wired as a new `SoundCue.Drink` on AudioManager, at volume 0.24 to match the measured loudness of the pickup/drop sounds. Plays for both drink paths, since they're the same action mechanically (+20 Hydration either way). Two bugs fixed along the way: drinking carried water from the Inventory was also triggering the generic item-drop sound (any item leaving Inventory played it) — consuming an item now plays only its own sound, a fix that'll also suit sfx_eating below; and building a campfire was playing the item-drop sound twice — now plays once. |
 | sfx_eating | Eating — the Eat/Use action on Consumable-category items in the Inventory screen | Not part of the original 22. Ties to the still-Not-Started Eating entry on Current_Task_List.md — no manager to hook into yet, sourced ahead of the feature so it's ready when Claude Code builds it. |
 
+## Hunting / Fishing / Trapping SFX
+
+Not part of the original 22 — added 2026-09-25 once Hunting and Fishing (including Fish Traps) actually shipped (see Current_Task_List.md). **Implemented 2026-09-25 (Claude Code):** all six moved into `Assets/Audio/SFX/` and wired, verified in Play Mode. Volumes set from each file's measured loudness to sit alongside the pickup/drop sounds; the gunshot is deliberately the loudest. The five heard from a spot in the world are imported mono so they position correctly in 3D; the reel stays as-is since it's the player's own sound, not positional. Two clips had dead air Claude Code trimmed with a new adjustable start-time/loop-end on AudioManager's sound config rather than re-editing the files: `arrow-strike.mp3` has ~0.25s of silence before the sound, and `fishing reel.wav` has ~0.8s at the start and ~1s at the end (it now loops without gaps). Fixed along the way: firing an arrow/rifle round and setting a snare/box trap also remove an item from the pack, which was playing the generic item-dropped sound on top of the new ones — those slots now play only their own sound (same fix pattern as sfx_drink). The old synthesized placeholders are kept as a fallback, only playing if one of these six clips is ever removed.
+
+| id | Trigger | Notes |
+|---|---|---|
+| sfx_gunshot | Bolt-Action Rifle fired | `Rifle.wav`, volume 0.30. |
+| sfx_bow_release | Recurve Bow fired | `arrow-strike.mp3`, volume 0.06. **Worth knowing (Claude Code):** this clip reads more like an arrow hitting a target than being released — a separate release-specific recording might suit better later. |
+| sfx_fish_bite | The bobber dipping ("plop") when a fish bites during active fishing | `fish-jumping-splash.wav`, volume 0.12. **Update 2026-09-25 (Mike, playtest):** confirmed the other five sounds all sound good as-is. This one should be sped up/shortened — matches Claude Code's own note that the full 5-second clip reads as long, a shorter/snappier hit would feel better. Exact mechanism (trim and fade out earlier vs. actually speeding up playback) is Claude Code's call. |
+| sfx_splash | Casting a line, a shot duck hitting the water, a fish trap going in, or the player stepping from dry ground into water | `water-splash.wav`, volume 0.09. Trigger scope was Claude Code's call, chosen as above. The wading splash plays once on stepping in, then not again for 2 seconds — not on every step. |
+| sfx_fishing_reel | Reeling in during active fishing | `fishing reel.wav`, volume 0.20. Loops while winding in; pauses when the fish runs or the line is let go; stops when the fish is landed or lost. |
+| sfx_trap_set | Setting a Rabbit Snare or Box Trap on the ground | `snaretrap sound.wav`, volume 0.07. |
+
+**Not yet re-tested (Claude Code):** the arrow/rifle-round item-drop-sound fix went in after this batch's Play Mode test run — it uses the same mechanism already confirmed working on the snare, but wasn't re-run for those two specifically.
+
+All six Hunting/Fishing/Trapping sounds are now sourced and implemented — nothing left outstanding from the original placeholder-sound list.
+
 ## UI / System SFX
 
 | id | Trigger | Notes |
@@ -84,7 +101,7 @@ These need real content eventually but don't have anything in the Unity project 
 
 - **Wildlife SFX** — per-species calls (Turkey gobble, Waterfowl calls; Deer and rabbits are mostly silent/skittish per their own docs), triggered near a discovered Wildlife site or on a Hunting_System.md encounter.
 - **Livestock SFX** — Goat bleat, Chicken cluck/egg-lay chirp, Rabbit (quiet, occasional thump), looping near pens once Livestock husbandry gameplay actually exists in Unity, not just in the Livestock docs.
-- **Tool-specific SFX** — bow draw/release, rifle shot, fishing cast/reel, snare/trap set — these need Hunting_System.md, Fishing_System.md, and Trapping_System.md's mechanics actually implemented first.
+- **Tool-specific SFX** — all sourced now (2026-09-25) — see the Hunting / Fishing / Trapping SFX table above; nothing left on this bullet.
 - **Indoor/Cabin ambient** — once building/interiors exist (Stage 2+ per Development_Roadmap.md).
 
 ---
@@ -138,6 +155,8 @@ Not part of the 22-file spec: `SFX/footsteps rain.wav`. Mike kept this on purpos
 **Resolved 2026-09-25 (Claude Code):** `campfire.wav` moved from the repo root's `Xtra Sound files/` folder into `Assets/Audio/Ambient/Campfire.wav`, on the Campfire prefab's AudioSource — see the ambient_campfire_crackle row above for the import/volume detail. The original 108 MB source stays in LFS.
 
 **Resolved 2026-09-25 (Claude Code):** `drink.mp3` moved from `Xtra Sound files/` into `Assets/Audio/SFX/drink.mp3`, wired as sfx_drink — see the Player SFX table above. `eating.mp3` is still sitting in `Xtra Sound files/`, sourced ahead of its feature — nothing to wire it to until the Eating entry itself gets built (flagged there as a pointer back to this doc).
+
+**Resolved 2026-09-25 (Claude Code):** all six Hunting/Fishing/Trapping files — `Rifle.wav`, `arrow-strike.mp3`, `fish-jumping-splash.wav`, `water-splash.wav`, `fishing reel.wav`, `snaretrap sound.wav` — moved from `Xtra Sound files/` into `Assets/Audio/SFX/` and wired to their triggers. See the Hunting / Fishing / Trapping SFX table above for the id/volume/detail on each.
 
 **Decided (2026-09-23):** `menu button click.wav` and `menu cancel click.wav` turned out to be byte-for-byte identical. Rather than sourcing a distinct file, Mike confirmed reusing the same sound for both sfx_ui_click and sfx_ui_back — they don't play at the same time, so there's no doubling issue like the Day.wav/Gameplay Day.wav pair below. No replacement needed for this pair; `menu cancel click.wav` can stay as-is (redundant but harmless) or be dropped in favor of pointing both ids at `menu button click.wav` — implementation detail, Claude Code's call.
 
