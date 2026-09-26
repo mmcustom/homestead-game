@@ -71,6 +71,8 @@ Disadvantages:
 - Minimal insulation
 - Poor winter protection
 
+**Note added 2026-09-26 (Claude, design):** Wood_Gathering_System.md (Design Draft, requested 2026-09-26, not yet built) gives "local materials" a real, specific source — Branches chopped from trees with the Axe. Future use, tied to this system actually getting a Unity implementation.
+
 ---
 
 # Early Homestead
@@ -87,6 +89,8 @@ Requirements:
 - Lumber
 - Stone
 - Labor
+
+**Note added 2026-09-26 (Claude, design):** Wood_Gathering_System.md (Design Draft, requested 2026-09-26, not yet built) gives "Logs" a real source — chopped from trees with the Axe. Future use, tied to this system actually getting a Unity implementation.
 
 Benefits:
 
@@ -227,6 +231,8 @@ Examples:
 - Root Cellar
 - Storage Shed
 - Barn
+
+**Note added 2026-09-26 (Mike, design), scope confirmed 2026-09-26 (Mike):** wants a primitive tier below these — an informal wood pile and rock pile the player can drop excess Logs/Firewood/Sticks/Branches/Stone onto to offload inventory weight before any real storage building exists. Originally scoped as Future/sequenced after Building itself, Mike has since confirmed he wants the primitive versions built now, with real storage buildings (Storage Shed etc.) layered in as an upgrade once Building/Housing gets its first Unity implementation (still Design-Draft-only, no code yet). Full spec — build method, what each pile holds, capacity, persistence — is in Wood_Gathering_System.md's new "Primitive Storage (Wood Pile / Rock Pile)" section, and on Current_Task_List.md as a Needs Claude Code entry. Wood Gathering already established the working precedent this reuses — a felled tree drops its yield into a wood pile that persists in the world and can be drawn from over multiple trips.
 
 ---
 

@@ -65,7 +65,30 @@ Three tracks is deliberately minimal for Alpha 0.1 — season-variant or tension
 | sfx_encumbered_breathing | InventoryManager: at/above 30 kg | Distinct from sprint breathing — heavier, slower. |
 | sfx_item_pickup / sfx_item_drop | InventoryManager: item added/removed | |
 | sfx_drink | Drinking — the "[Hold E] Drink" interaction at a water source, and clicking a water row in the Inventory screen (both added 2026-09-25 with Water Collection) | Not part of the original 22 — Water Collection didn't exist when this doc was written, and this action had no sound at all until now. **Implemented 2026-09-25 (Claude Code):** `drink.mp3` is wired as a new `SoundCue.Drink` on AudioManager, at volume 0.24 to match the measured loudness of the pickup/drop sounds. Plays for both drink paths, since they're the same action mechanically (+20 Hydration either way). Two bugs fixed along the way: drinking carried water from the Inventory was also triggering the generic item-drop sound (any item leaving Inventory played it) — consuming an item now plays only its own sound, a fix that'll also suit sfx_eating below; and building a campfire was playing the item-drop sound twice — now plays once. |
-| sfx_eating | Eating — the Eat/Use action on Consumable-category items in the Inventory screen | Not part of the original 22. Ties to the still-Not-Started Eating entry on Current_Task_List.md — no manager to hook into yet, sourced ahead of the feature so it's ready when Claude Code builds it. |
+| sfx_eating | Eating — clicking a food row in the Inventory screen | Not part of the original 22. **Implemented 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** `eating.mp3` moved into `Assets/Audio/SFX/`. Plays the first 2.4s of the chewing with a fade-out, at a level matched to the other effects. Only sfx_eating plays on an eat action — it replaces rather than stacks with the item-drop sound, same fix pattern as sfx_drink. |
+
+## Cooking / Water Purification / Sickness SFX
+
+Not part of the original 22 — added 2026-09-25 once Cooking, Water Purification, and the new Sickness mechanic shipped in Phase 3 (see Current_Task_List.md). **Implemented 2026-09-26 (Claude Code, Phase 3 — built and tested, not yet committed):** sfx_cooking and sfx_boiling are both wired in now, sourced from the fire itself and crossfading based on what's in the cook queue — sizzle plays while meat/fish cooks, boiling plays while water boils, and if both are queued together the sizzle fades out as the meat finishes while the boiling loop fades in for the water. `cooking.mp3` is the sizzle. Boiling uses a separate new file, `boiling_water.wav` — a 59-second recording that starts as a quiet simmer, builds to a rolling boil around 20s, then dies away; only the steady rolling-boil stretch (roughly 17.5–31s) is looped, so it doesn't drift back through a simmer every cycle. Both volumes matched to the other sound effects. Tested in Play Mode: queued 1 venison and 2 litres of water — the sizzle played while the venison cooked, switched to the boiling loop for the water, and the fire went quiet once the queue finished; save restored and hash-checked after, project settings file unchanged. `water-pouring-a.wav`, the file originally guessed as the Boiling candidate, wasn't the one used — `boiling_water.wav` is a separate file Mike sourced specifically for this, so `water-pouring-a.wav` is still unaccounted for (not confirmed sourced-for-anything). sfx_sickness is still unresolved — see below.
+
+| id | Trigger | Sourced file |
+|---|---|---|
+| sfx_cooking | Cooking a raw meat/fish item at a lit campfire | `cooking.mp3` — **implemented 2026-09-26** |
+| sfx_boiling | Boiling raw water into Purified Water at a lit campfire | `boiling_water.wav` — **implemented 2026-09-26** |
+| sfx_sickness | The Sickness mechanic triggering (getting sick from raw meat/fish or unpurified water) | `Upset stomach.wav` — confirmed by Mike as the intended sound (2026-09-25), but **not confirmed wired in**. A 2026-09-26 screenshot's git-diff panel showed `upset stomach.wav` and a not-otherwise-mentioned `vomiting.wav` already sitting as untracked files under `Assets/Audio/SFX/`, with no accompanying text saying either is actually hooked to the Sickness trigger — flagged on Current_Task_List.md to ask Claude Code directly rather than assume. |
+
+## Chopping / Foraging SFX
+
+**Implemented 2026-09-26 (Claude Code, Wood Gathering — built and tested, not yet committed):** both sfx_foraging and the two chopping sounds are wired in. `chopping-wood.wav` is 34s of separate chops; rather than looping or pitch-shifting one clip, it's sliced into 11 clean single chops and each swing plays one at random, never repeating the last one played back-to-back — covers both sfx_chop_tree (felling) and sfx_chop_firewood (splitting Logs/Branches), one file for both as anticipated. Volume matched to the other sound effects. `foraging.wav` is sfx_foraging — harvesting a forage patch now plays it instead of the generic item-pickup sound, confirmed in Play Mode along with the next normal pickup correctly reverting to the usual sound.
+
+**Sourced 2026-09-26 (Mike) — not yet sent to Claude Code.** A third file, `tree-fall.wav`, added to `Xtra Sound files/` for the moment a tree actually falls — Mike's own description covers two triggers: a tree coming down from being chopped, and a tree coming down on its own "naturally from the wind or storms." The chopped-down half is a straightforward follow-up now that felling is built and tested — the crash at the end of felling, distinct from `chopping-wood.wav`'s per-hit chop sound — worth passing the filename to Claude Code as a small follow-up. The wind/storm half describes a mechanic that doesn't exist anywhere yet: Weather_System.md's Thunderstorm section only has an unspecced "Risk of storm damage to structures" line, nothing about trees themselves coming down, and nothing ties tree state to Wind at all currently. Held off on deciding whether this is a real ask (standing trees can be knocked down by weather, presumably dropping Logs/Branches on their own like a natural, chop-free version of Wood Gathering) or just sourcing ahead of a feature Mike may want designed later — flagging for him directly rather than assuming either way.
+
+| id | Trigger | Sourced file |
+|---|---|---|
+| sfx_foraging | Foraging — harvesting from a growing resource | `foraging.wav` — **implemented 2026-09-26** |
+| sfx_chop_tree | Chopping down a tree with the Axe (Wood_Gathering_System.md) | `chopping-wood.wav` — **implemented 2026-09-26** (11 sliced single-chop clips, random no-repeat) |
+| sfx_chop_firewood | Chopping a carried/dropped Log or Branch into Firewood with the Axe (Wood_Gathering_System.md) | `chopping-wood.wav` (same file, same 11 clips) — **implemented 2026-09-26** |
+| sfx_tree_fall | The crash/impact when a tree actually comes down — whether from being chopped (Wood_Gathering_System.md, built) or, if built, a future wind/storm windthrow mechanic | `tree-fall.wav` — not yet sent to Claude Code |
 
 ## Hunting / Fishing / Trapping SFX
 
@@ -83,6 +106,10 @@ Not part of the original 22 — added 2026-09-25 once Hunting and Fishing (inclu
 **Not yet re-tested (Claude Code):** the arrow/rifle-round item-drop-sound fix went in after this batch's Play Mode test run — it uses the same mechanism already confirmed working on the snare, but wasn't re-run for those two specifically.
 
 All six Hunting/Fishing/Trapping sounds are now sourced and implemented — nothing left outstanding from the original placeholder-sound list.
+
+## Wildlife Call SFX
+
+**Sourced 2026-09-26 (Mike) — "for whenever we're ready to add them," filenames not yet given.** A few files added to `Xtra Sound files/` for wild turkey and duck calls. Both species already exist and are huntable (Hunting_System.md's Medium Game tier — turkey by dawn, ducks on the pond once Bass Hole is discovered), but neither currently has a sound of its own; this doc's own Core Philosophy already calls for exactly this ("learn to recognize an animal by its call the way they'd learn a real deer trail"), so the natural fit is an ambient/proximity call — heard when a turkey or duck is nearby, whether or not the player has spotted it, the same way ambient_water_proximity rewards a discovered water source with its own sound. Nothing built or requested yet; logging the sourcing only. Will ask Mike for filenames and confirm the intended trigger (ambient proximity call vs. something else, e.g. a flush/spook sound) before this goes to Claude Code.
 
 ## UI / System SFX
 
@@ -154,7 +181,13 @@ Not part of the 22-file spec: `SFX/footsteps rain.wav`. Mike kept this on purpos
 
 **Resolved 2026-09-25 (Claude Code):** `campfire.wav` moved from the repo root's `Xtra Sound files/` folder into `Assets/Audio/Ambient/Campfire.wav`, on the Campfire prefab's AudioSource — see the ambient_campfire_crackle row above for the import/volume detail. The original 108 MB source stays in LFS.
 
-**Resolved 2026-09-25 (Claude Code):** `drink.mp3` moved from `Xtra Sound files/` into `Assets/Audio/SFX/drink.mp3`, wired as sfx_drink — see the Player SFX table above. `eating.mp3` is still sitting in `Xtra Sound files/`, sourced ahead of its feature — nothing to wire it to until the Eating entry itself gets built (flagged there as a pointer back to this doc).
+**Resolved 2026-09-25 (Claude Code):** `drink.mp3` moved from `Xtra Sound files/` into `Assets/Audio/SFX/drink.mp3`, wired as sfx_drink — see the Player SFX table above.
+
+**Resolved 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** `eating.mp3` moved from `Xtra Sound files/` into `Assets/Audio/SFX/`, wired as sfx_eating — see the Player SFX table above.
+
+**Resolved 2026-09-26 (Claude Code, Phase 3 — built and tested, not yet committed):** `cooking.mp3` moved from `Xtra Sound files/` into `Assets/Audio/SFX/`, wired as sfx_cooking. Mike separately sourced a new file, `boiling_water.wav`, straight into `Xtra Sound files/` for this batch — also moved into `Assets/Audio/SFX/` and wired as sfx_boiling. See the Cooking / Water Purification / Sickness SFX section above for the crossfade detail.
+
+**Still sourced but not confirmed wired (as of 2026-09-26):** `Upset stomach.wav` — Mike confirmed this is meant for the Sickness trigger, but no report has confirmed it's actually hooked up; a git-diff panel showed it already sitting under `Assets/Audio/SFX/` alongside a new, unexplained `vomiting.wav`, but neither is described as wired anywhere in what's been relayed. `water-pouring-a.wav` is still sitting in `Xtra Sound files/`, unclear if it's meant for anything now that `boiling_water.wav` covers Boiling — worth asking Claude Code directly rather than guessing at either.
 
 **Resolved 2026-09-25 (Claude Code):** all six Hunting/Fishing/Trapping files — `Rifle.wav`, `arrow-strike.mp3`, `fish-jumping-splash.wav`, `water-splash.wav`, `fishing reel.wav`, `snaretrap sound.wav` — moved from `Xtra Sound files/` into `Assets/Audio/SFX/` and wired to their triggers. See the Hunting / Fishing / Trapping SFX table above for the id/volume/detail on each.
 

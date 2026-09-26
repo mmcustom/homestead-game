@@ -158,6 +158,8 @@ Illness Risk:
 
 Very Low
 
+**Confirmed 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** implemented as 0% illness risk per litre, whether drinking straight from the source or from carried water.
+
 ---
 
 ## Good
@@ -170,6 +172,8 @@ Examples:
 Illness Risk:
 
 Low
+
+**Confirmed 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** implemented as 5% illness risk per litre. Empirically verified in Play Mode: 400 drinks from a Good-quality creek produced sickness 15 times, about 4%, close to the 5% target.
 
 ---
 
@@ -185,6 +189,8 @@ Moderate
 
 Purification recommended.
 
+**Confirmed 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** implemented as 20% illness risk per litre.
+
 ---
 
 ## Unsafe
@@ -199,6 +205,8 @@ Illness Risk:
 High
 
 Purification strongly recommended.
+
+**Confirmed 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** implemented as 45% illness risk per litre.
 
 ---
 
@@ -216,6 +224,8 @@ Requirements:
 
 - Fire
 - Container
+
+**Confirmed 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** implemented at a lit campfire — raw water rows in the Inventory screen get a Boil button, gated on carrying the Bucket (see Item_Data.md's Tools table). Boiling turns raw water into a Purified Water item at 0% illness risk, reusing the old, previously-unused generic `water` item id from Item_Data.md's Consumables table rather than adding a new one; it still counts toward the Bucket's capacity. The drink prompt on any non-Excellent water now warns the player before they drink, e.g. "Drink (Good water, slight risk of sickness)." Getting sick from unpurified water runs through the new Sickness mechanic on Health_System.md's Illness System section. Tested: boiling Good water into Purified Water worked via both the dedicated Boil button and a click on the water row in Inventory.
 
 ---
 

@@ -80,8 +80,13 @@ Milk gets the shortest shelf life in the game (dairy spoils fast); eggs get one 
 | firewood | Core_Survival_System.md (Fire System) | 1.5 | — |
 | arrows | Hunting_System.md (Recurve Bow ammunition) | 0.05 | — |
 | rifle_rounds | Hunting_System.md (Bolt-Action Rifle ammunition) | 0.02 | — |
+| sticks | Wood_Gathering_System.md (chopping trees) | 0.1 | — |
+| branches | Wood_Gathering_System.md (chopping trees) | 1.0 | — |
+| logs | Wood_Gathering_System.md (chopping trees) | 8.0 | — |
 
 Stone's 5 kg matches the exact test value Claude Code already used when verifying the 45 kg hard cap ("nine 5 kg stones fit, the tenth was refused") — carried over here rather than picking a different number. Firewood added 2026-09-25, matching Claude Code's Fire Building implementation: 40 deadfall piles give 2-3 Firewood each, one Firewood burns for 2 in-game hours. Weight is a first proposal, same status as everything else in this doc. Arrows and Rifle Rounds added 2026-09-25 with Phase 2's Hunting implementation — grouped here with the other stackable, non-perishable materials rather than Tools, since they're consumed by use (shot) rather than equipped. Claude Code's own note: nothing on the property currently produces either — per Hunting_System.md, ammunition is meant to be purchased later (ties into Economy_System.md once that's built) — so for now they only come from the F12 debug test kit. Weights are rough first proposals (a wood arrow, a rifle cartridge), same unlocked status as everything else here.
+
+Sticks/Branches/Logs added 2026-09-26 with Wood_Gathering_System.md (Design Draft, requested 2026-09-26, not yet built) — the three yields from chopping down a tree with the Axe. All non-perishable, same as the other Materials here. Weights are first-pass proposals (a stick vs. a branch vs. a full log), scaled relative to each other and to Firewood/Lumber; Claude Code can adjust by feel once the feature is actually built.
 
 ---
 
@@ -120,6 +125,30 @@ Deliberately thin for now.
 
 The four quality-tagged water items added 2026-09-25, matching Claude Code's Water Collection implementation: carried water keeps its source's quality as a separate item rather than one generic `water` id, so purification (boiling, not yet built) has something concrete to act on. All non-perishable, no illness risk modeled yet — that's the Water Purification entry's job. The original generic `water` item is untouched for now; Claude Code's own note suggests it could become Purified Water's id once that system lands, but that's a call for whoever builds it, not decided here.
 
+**Confirmed 2026-09-25 (Claude Code, Phase 3 — built and tested, not yet committed):** Water Purification landed, and the original generic `water` id is exactly what became Purified Water, at 0% illness risk — no new id needed. `water_excellent/good/questionable/unsafe` each now carry a real per-litre illness risk on drink/eat: Excellent 0%, Good 5%, Questionable 20%, Unsafe 45% (see Water_System.md's Water Quality Levels for the confirmed numbers). Eating also landed, giving every Consumable and Resource food item a real Food/Water restore value and, where relevant, that same illness-risk shape — the raw items below are Claude Code's first-pass proposal, for Mike to judge by feel in Play Mode:
+
+| id | Food value | Water value | Sickness risk |
+|---|---|---|---|
+| blackberries / raspberries | 6 | 3 | none |
+| wild_apples | 8 | 5 | none |
+| pawpaw | 8 | 3 | none |
+| chestnuts | 12 | 0 | none |
+| hickory_nuts / walnuts | 15 | 0 | none |
+| dandelion / wild_onion / cattail / morel / dryads_saddle / oyster_mushroom | 3–6 | 1 | none |
+| goat_milk | 6 | 15 | none |
+| chicken_eggs | 6 | 1 | none |
+| venison | 30 | 0 | 30% |
+| turkey_meat | 22 | 0 | 30% |
+| waterfowl_meat | 19 | 0 | 30% |
+| chicken_meat | 15 | 0 | 30% |
+| small_game_meat | 9 | 0 | 30% |
+| bluegill | 6 | 0 | 20% |
+| crappie | 9 | 0 | 20% |
+| bass | 11 | 0 | 20% |
+| catfish | 15 | 0 | 20% |
+
+Nine new Cooked Consumable items were also added — a Cooked version of each of the raw meats and fish above (venison, turkey, waterfowl, chicken, small game, bluegill, crappie, bass, catfish) — each with no sickness risk, a bit lighter than its raw counterpart, roughly 4/3 the raw Food value (e.g. cooked venison is 40), and a longer shelf life: cooked meat keeps 5 days versus 3 raw, cooked fish 4 days versus 2 raw. Cooking (see Current_Task_List.md) produces these at a lit campfire; exact ids and weights weren't fully visible in what was relayed and should be confirmed against the actual `cooked_*.asset` files next time Claude Code touches this table. Design Rule 4 below, which scoped cooked variants out of this file until Preservation was defined, is superseded now that Cooking is actually built — see the note there.
+
 Cooked, smoked, and dried food variants (Cooked Meat, Dried Berries, and similar) aren't included here — they're Core_Survival_System.md's Spoilage/Preservation mechanics to define, not something to invent as a side effect of this pass. Raw Resources above are enough to get InventoryManager populated and testable; Consumables can grow once that system gets its own numbers worked out.
 
 ---
@@ -132,4 +161,4 @@ Cooked, smoked, and dried food variants (Cooked Meat, Dried Berries, and similar
 
 3. Shared items (small_game_meat, small_furs, feathers) stay shared across every species that produces them — don't split them into per-species duplicates without updating this table and the source docs together.
 
-4. Cooked/preserved Consumable variants belong to Core_Survival_System.md's Preservation System, not this file — don't add them here ahead of that system being scoped.
+4. Cooked/preserved Consumable variants belong to Core_Survival_System.md's Preservation System, not this file — don't add them here ahead of that system being scoped. **Superseded 2026-09-25 (Claude Code, Phase 3):** Cooking is now actually built (see Current_Task_List.md), producing nine real cooked_* Consumable items — this rule no longer holds as a blanket exclusion. Spoilage/aging itself still isn't built (the longer cooked shelf life is set on the items but nothing ages food yet), so full Preservation mechanics (smoking, drying) still belong to Core_Survival_System.md, not here.

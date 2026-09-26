@@ -135,6 +135,8 @@ Fire requires:
 - Ignition source
 - Maintenance
 
+**Confirmed 2026-09-26 (Mike):** wants a Warmth meter on the HUD, and confirmed the full scope — real ambient exposure, not just fire proximity. This moves "Advanced temperature systems" out of Future Expansion at the bottom of this doc into current scope; see that section's note. Full attribute definition, decay factors, and effect tiers are now specced in Health_System.md's Exposure System section, which this used to just gesture at with no numbers.
+
 ---
 
 # Hunger
@@ -389,7 +391,7 @@ Not Alpha 0.1
 - Animal population management
 - Detailed diseases
 - Veterinary systems
-- Advanced temperature systems
+- ~~Advanced temperature systems~~ — moved into current scope 2026-09-26 (Mike) as the new Warmth attribute; see the Fire System section above and Health_System.md's Exposure System. Clothing as an actual Warmth factor stays Future — no clothing/apparel system exists yet.
 - Beekeeping
 - Maple syrup production — spec drafted and ready in `Game_Systems/Maple_Sugaring.md` (confirmed 2026-09-24), still deferred until moved into active scope
 
