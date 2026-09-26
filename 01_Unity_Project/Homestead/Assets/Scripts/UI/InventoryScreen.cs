@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // Inventory_System.md's Inventory Screen (confirmed 2026-09-25): what the player is carrying, their weight against the
@@ -8,9 +9,10 @@ using UnityEngine.UI;
 // raw meat and fish rows get a Cook button and raw water a Boil button (Cooking) — Shift-click does the whole stack.
 // Each piece takes a few seconds (CampfireCooking); the button shows the progress, and clicking it again stops.
 // Carrying the Axe, Logs and Branches get a Split button the same way, making Firewood (AxeTool).
-// A Build section builds a campfire from carried Firewood (Fire System), a Wood Pile or Rock Pile for storage
-// (WoodManager), and makes traps (Crafting's recipes). Home Storage transfer is out of scope until a storage structure
-// exists; the piles are stored into and taken from in the World.
+// A Build section builds a campfire from carried Firewood (Fire System) or storage — Wood Pile, Rock Pile, Water
+// Barrel, Food Cache, Storage Bin (WoodManager) — and crafts traps and tools (Crafting's recipes), two rows of three
+// each; hovering a button says what it needs or why it can't be built there. Storage is filled and emptied in the
+// World, not from this screen.
 public class InventoryScreen : GameScreen
 {
     const float KgToLb = 2.20462f;
@@ -23,8 +25,11 @@ public class InventoryScreen : GameScreen
     Text statusLabel;
     Text equippedLabel;
     Text hintLabel;
-    Button buildButton, woodPileButton, rockPileButton;
+    Button buildButton;
+    readonly Button[] pileButtons = new Button[WoodManager.Buildable.Length];
     Text buildLabel;
+    int hovered = -1; // build buttons 0 (campfire) up, then craft buttons from CraftHover
+    const int CraftHover = 100;
     readonly Button[] craftButtons = new Button[Crafting.Recipes.Length];
     RectTransform barFill;
     Image barFillImage;
@@ -77,41 +82,70 @@ public class InventoryScreen : GameScreen
         encumberedTickLabel.rectTransform.anchoredPosition = new Vector2(0f, -2f);
 
         statusLabel = UiKit.Text(right, "Status", "", 21, UiKit.Cream);
-        Top(statusLabel.rectTransform, 160f, 60f);
+        Top(statusLabel.rectTransform, 148f, 52f);
 
-        Heading(right, "Equipped Tool", 250f);
+        Heading(right, "Equipped Tool", 204f);
         equippedLabel = UiKit.Text(right, "Equipped", "", 26, UiKit.Cream);
-        Top(equippedLabel.rectTransform, 294f, 40f);
+        Top(equippedLabel.rectTransform, 242f, 34f);
 
-        hintLabel = UiKit.Text(right, "Hint", "", 18, UiKit.Muted);
-        Top(hintLabel.rectTransform, 336f, 80f);
+        hintLabel = UiKit.Text(right, "Hint", "", 16, UiKit.Muted);
+        Top(hintLabel.rectTransform, 278f, 64f);
 
         // Building (Fire System).
-        Heading(right, "Build", 434f);
-        // Campfire, Wood Pile and Rock Pile side by side.
-        buildButton = UiKit.Button(right, "Build Campfire", "", 18, BuildCampfire);
-        woodPileButton = UiKit.Button(right, "Build Wood Pile", "", 18, () => BuildPile(PileKind.WoodStorage));
-        rockPileButton = UiKit.Button(right, "Build Rock Pile", "", 18, () => BuildPile(PileKind.RockStorage));
-        Button[] row = { buildButton, woodPileButton, rockPileButton };
-        for (int i = 0; i < row.Length; i++)
+        Heading(right, "Build", 344f);
+        // Campfire and the storage kinds, three to a row.
+        buildButton = UiKit.Button(right, "Build Campfire", "", 17, BuildCampfire);
+        Grid(buildButton, 0, 382f, 42f);
+        for (int i = 0; i < pileButtons.Length; i++)
         {
-            var rt = (RectTransform)row[i].transform;
-            Top(rt, 478f, 50f);
-            rt.anchorMin = new Vector2(i / 3f, 1f);
-            rt.anchorMax = new Vector2((i + 1) / 3f, 1f);
-            rt.offsetMin = new Vector2(i == 0 ? 0f : 3f, rt.offsetMin.y);
-            rt.offsetMax = new Vector2(i == 2 ? 0f : -3f, rt.offsetMax.y);
-            rt.GetComponentInChildren<Text>().rectTransform.Fill(4f, 0f, 4f, 0f);
+            PileKind kind = WoodManager.Buildable[i];
+            pileButtons[i] = UiKit.Button(right, "Build " + kind, "", 17, () => BuildPile(kind));
+            Grid(pileButtons[i], i + 1, 382f, 42f);
         }
-        buildLabel = UiKit.Text(right, "Build Status", "", 18, UiKit.Muted);
-        Top(buildLabel.rectTransform, 530f, 46f);
+        buildLabel = UiKit.Text(right, "Build Status", "", 15, UiKit.Muted);
+        Top(buildLabel.rectTransform, 516f, 38f);
 
+        // Traps and tools, three to a row.
         for (int i = 0; i < Crafting.Recipes.Length; i++)
         {
             Crafting.Recipe recipe = Crafting.Recipes[i];
-            craftButtons[i] = UiKit.Button(right, "Craft " + recipe.outputId, "", 20, () => Craft(recipe), TextAnchor.MiddleLeft);
-            Top((RectTransform)craftButtons[i].transform, 580f + i * 46f, 42f);
+            craftButtons[i] = UiKit.Button(right, "Craft " + recipe.outputId, "", 16, () => Craft(recipe));
+            Grid(craftButtons[i], i, 556f, 40f);
         }
+
+        // Hovering a button explains it in the status line.
+        Hover(buildButton, 0);
+        for (int i = 0; i < pileButtons.Length; i++)
+            Hover(pileButtons[i], i + 1);
+        for (int i = 0; i < craftButtons.Length; i++)
+            Hover(craftButtons[i], CraftHover + i);
+    }
+
+    // Places a button in a three-wide grid starting at top.
+    static void Grid(Button button, int index, float top, float height)
+    {
+        int column = index % 3, row = index / 3;
+        var rt = (RectTransform)button.transform;
+        Top(rt, top + row * (height + 2f), height);
+        rt.anchorMin = new Vector2(column / 3f, 1f);
+        rt.anchorMax = new Vector2((column + 1) / 3f, 1f);
+        rt.offsetMin = new Vector2(column == 0 ? 0f : 2f, rt.offsetMin.y);
+        rt.offsetMax = new Vector2(column == 2 ? 0f : -2f, rt.offsetMax.y);
+        Text label = rt.GetComponentInChildren<Text>();
+        label.rectTransform.Fill(4f, 0f, 4f, 0f);
+        label.horizontalOverflow = HorizontalWrapMode.Wrap;
+        label.lineSpacing = 0.9f;
+    }
+
+    void Hover(Button button, int index)
+    {
+        var trigger = button.gameObject.AddComponent<EventTrigger>();
+        var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
+        enter.callback.AddListener(_ => { hovered = index; RefreshBuild(); });
+        var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
+        exit.callback.AddListener(_ => { if (hovered == index) { hovered = -1; RefreshBuild(); } });
+        trigger.triggers.Add(enter);
+        trigger.triggers.Add(exit);
     }
 
     public override void OnShow()
@@ -200,8 +234,8 @@ public class InventoryScreen : GameScreen
         foreach ((ItemDefinition item, int quantity) in stacks)
             AddRow(item, quantity, item == equipped, atFire, player);
 
-        hintLabel.text = "Click a tool to equip or put it away, food or water to eat or drink one. " +
-                         (atFire ? "<color=#C7D68C>At the campfire: Cook meat and fish, Boil water (needs the Bucket). Shift: whole stack.</color>"
+        hintLabel.text = "Click a tool to equip or put it away, food or water to eat or drink one, the Sleeping Bag to sleep. " +
+                         (atFire ? "<color=#C7D68C>At the campfire: Cook meat and fish, Boil water (needs the Cooking Pot). Shift: whole stack.</color>"
                                  : "Cook and boil at a burning campfire. With the Axe, Split Logs and Branches into Firewood.");
 
         // Weight against the thresholds.
@@ -238,41 +272,73 @@ public class InventoryScreen : GameScreen
         PlayerController player = FindAnyObjectByType<PlayerController>();
         bool can = fires.CanBuild(player, out _, out string reason);
         buildButton.interactable = can;
-        buildButton.GetComponentInChildren<Text>().text = $"Campfire\n<size=15><color=#EDE3C799>{fires.FirewoodToBuild} Firewood</color></size>";
+        buildButton.GetComponentInChildren<Text>().text = $"Campfire\n<size=13><color=#EDE3C799>{fires.FirewoodToBuild} Firewood</color></size>";
+        string status = hovered == 0 ? (can ? "Campfire: builds just in front of you. Light it with Flint and Steel." : $"Campfire: {reason}") : null;
 
-        // Storage piles: a reason shows only if nothing can be built, so the campfire's own line isn't crowded out.
         WoodManager wood = WoodManager.Instance;
-        string pileReason = null;
-        foreach ((Button button, PileKind kind) in new[] { (woodPileButton, PileKind.WoodStorage), (rockPileButton, PileKind.RockStorage) })
+        for (int i = 0; i < pileButtons.Length; i++)
         {
+            Button button = pileButtons[i];
             button.gameObject.SetActive(wood != null);
             if (wood == null)
                 continue;
+            PileKind kind = WoodManager.Buildable[i];
             bool canPile = wood.CanBuildPile(kind, player, out _, out string why);
             button.interactable = canPile;
-            int cost = wood.CostOf(kind);
             button.GetComponentInChildren<Text>().text =
-                $"{wood.PileName(kind)}\n<size=15><color=#EDE3C799>{(cost > 0 ? $"{cost} Sticks" : "free")}</color></size>";
-            if (!canPile && pileReason == null && kind == PileKind.WoodStorage)
-                pileReason = why;
+                $"{WoodManager.PileName(kind)}\n<size={CostSize(wood.CostText(kind), 13)}><color=#EDE3C799>{wood.CostText(kind)}</color></size>";
+            if (hovered == i + 1)
+                status = $"{WoodManager.PileName(kind)}: " + (canPile ? PileHelp(kind) : why);
         }
-        buildLabel.text = can ? "Builds just in front of you. Light it with Flint and Steel."
-                        : pileReason != null && reason != pileReason ? $"Campfire: {reason}" : reason;
 
         for (int i = 0; i < Crafting.Recipes.Length; i++)
         {
             Crafting.Recipe recipe = Crafting.Recipes[i];
-            bool canCraft = Crafting.CanCraft(recipe, out _);
+            bool canCraft = Crafting.CanCraft(recipe, out string why);
             craftButtons[i].interactable = canCraft;
             string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
-            craftButtons[i].GetComponentInChildren<Text>().text = $"{name}  <size=17><color=#EDE3C799>{Crafting.Cost(recipe)}</color></size>";
+            string cost = Crafting.Cost(recipe);
+            craftButtons[i].GetComponentInChildren<Text>().text = $"{name}\n<size={CostSize(cost, 12)}><color=#EDE3C799>{cost}</color></size>";
+            if (hovered == CraftHover + i)
+                status = $"{name}: " + (canCraft ? CraftHelp(recipe.outputId) : why);
+        }
+
+        buildLabel.text = status ?? "Hover a button to see what it needs. Things you build go just in front of you.";
+    }
+
+    // Long costs (the Lean-To's, Cordage's alternatives) in smaller type so they fit their button on one line.
+    static int CostSize(string cost, int normal) => cost.Length > 30 ? 10 : cost.Length > 24 ? 11 : normal;
+
+    static string PileHelp(PileKind kind)
+    {
+        switch (kind)
+        {
+            case PileKind.RockStorage: return "store Stone (R), take it back (E).";
+            case PileKind.WaterBarrel: return "pour water in from the Bucket (R), fill the Bucket from it (E). Holds 40 L.";
+            case PileKind.FoodCache: return "store food (R), take it back (E).";
+            case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
+            case PileKind.Tent: return "sleep in it (E), pack it up again (R). Keeps off rain, wind and much of the cold.";
+            case PileKind.LeanTo: return "sleep in it (E), take it down (R). Keeps off most rain and wind, and some cold.";
+            default: return "store wood (R), take it back (E).";
+        }
+    }
+
+    static string CraftHelp(string itemId)
+    {
+        switch (itemId)
+        {
+            case "stone_pick_axe": return "mines Stone from the rock outcrop on South Ridge.";
+            case "shovel": return "digs out stumps.";
+            case "pouch": return "carried, it lets you carry 10 kg more.";
+            case "cordage": return "twisted from whichever fibre you have.";
+            default: return "equip it to set it.";
         }
     }
 
     void Craft(Crafting.Recipe recipe)
     {
         if (Crafting.Craft(recipe))
-            ToolStatus.Flash($"Made a {ItemDatabase.Get(recipe.outputId)?.DisplayName} — equip it to set it");
+            ToolStatus.Flash($"Made a {ItemDatabase.Get(recipe.outputId)?.DisplayName} — {CraftHelp(recipe.outputId)}");
     }
 
     void BuildPile(PileKind kind)
@@ -280,8 +346,7 @@ public class InventoryScreen : GameScreen
         WoodManager wood = WoodManager.Instance;
         if (wood == null || !wood.BuildPile(kind, FindAnyObjectByType<PlayerController>()))
             return;
-        ToolStatus.Flash(kind == PileKind.RockStorage ? "Rock Pile built — R to store Stone, E to take it"
-                                                      : "Wood Pile built — R to store wood, E to take it");
+        ToolStatus.Flash($"{WoodManager.PileName(kind)} built — {PileHelp(kind)}");
         GameScreens screens = GetComponentInParent<GameScreens>();
         if (screens != null)
             screens.Close();
@@ -303,7 +368,9 @@ public class InventoryScreen : GameScreen
     void AddRow(ItemDefinition item, int quantity, bool equipped, bool atFire, PlayerController player)
     {
         bool isTool = item.Category == ItemCategory.Tool;
-        UnityEngine.Events.UnityAction click = isTool ? () => ToggleEquip(item)
+        UnityEngine.Events.UnityAction click = item.Id == SleepManager.SleepingBagId ? SleepHere
+                                             : item.Id == WoodManager.TentId ? null
+                                             : isTool ? () => ToggleEquip(item)
                                              : item.IsFood ? () => Food.Consume(item)
                                              : (UnityEngine.Events.UnityAction)null;
         Button row = UiKit.Button(list, item.Id, "", 20, click);
@@ -375,6 +442,24 @@ public class InventoryScreen : GameScreen
             cooking.Enqueue(item, ShiftHeld ? int.MaxValue : 1);
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
+    }
+
+    // The Sleeping Bag: sleep right here (SleepManager), back to the world first.
+    void SleepHere()
+    {
+        SleepManager sleep = SleepManager.Instance;
+        if (sleep == null)
+            return;
+        string reason = sleep.CantSleepReason(null);
+        if (reason != null)
+        {
+            ToolStatus.Flash(reason);
+            return;
+        }
+        GameScreens screens = GetComponentInParent<GameScreens>();
+        if (screens != null)
+            screens.Close();
+        sleep.Sleep(null);
     }
 
     // Queues one Log or lot of Branches (Shift: all of them) to split into Firewood, or stops it.

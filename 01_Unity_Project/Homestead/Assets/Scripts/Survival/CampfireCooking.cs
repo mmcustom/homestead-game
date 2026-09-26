@@ -4,6 +4,7 @@ using UnityEngine;
 // Cooking and boiling take a little while (Mike, 2026-09-26: not too long, but not instant and nowhere near real
 // time). Clicking Cook or Boil in the Inventory queues the item here; each piece then takes a few seconds at the fire
 // — a fish about 4, a haunch of venison 8, a litre of water 6 — standing in for the minutes it would really take.
+// Boiling pours the water from the Bucket into the Cooking Pot first (sfx_pour_water), a potful at a time.
 // It keeps going while the Inventory is open, so the player can watch the row count down, and shows on the HUD with a
 // progress bar once they close it. The raw item is only used up as each piece finishes, so walking away from the fire
 // (or it going out) just pauses the queue and nothing is lost. Runs after the tools so its HUD line wins.
@@ -24,6 +25,8 @@ public class CampfireCooking : MonoBehaviour
     [SerializeField, Min(0.1f)] float birdSeconds = 6f;        // turkey, waterfowl
     [SerializeField, Min(0.1f)] float venisonSeconds = 8f;
     [SerializeField, Min(0.1f)] float boilSeconds = 6f;        // per litre
+    [Tooltip("Litres the Cooking Pot holds: water is poured in this much at a time.")]
+    [SerializeField, Min(1)] int potLitres = 4;
 
     [Header("Sound")]
     [Tooltip("Seconds to fade the sizzle or boiling in or out.")]
@@ -31,6 +34,7 @@ public class CampfireCooking : MonoBehaviour
 
     readonly List<Job> queue = new List<Job>();
     float progress;
+    int litresInPot; // poured in and waiting to boil
     PlayerController player;
     AudioSource sizzle;
     float sizzleLevel;   // 0-1 fade
@@ -67,9 +71,9 @@ public class CampfireCooking : MonoBehaviour
     {
         if (item == null || count <= 0 || !(Cooking.IsCookable(item.Id) || Cooking.IsBoilable(item.Id)))
             return false;
-        if (Cooking.IsBoilable(item.Id) && !Cooking.HasContainer)
+        if (Cooking.IsBoilable(item.Id) && !Cooking.HasPot)
         {
-            ToolStatus.Flash("Boiling water needs a Bucket to boil it in");
+            ToolStatus.Flash("Boiling water needs a Cooking Pot — the wooden Bucket would burn");
             return false;
         }
 
@@ -157,6 +161,14 @@ public class CampfireCooking : MonoBehaviour
         }
         sizzleAt = fire.position;
 
+        // Pour the next potful in before boiling it.
+        if (boiling && litresInPot <= 0 && progress <= 0f)
+        {
+            litresInPot = Mathf.Min(potLitres, left);
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.Play(SoundCue.Pour);
+        }
+
         // Unscaled, so it carries on behind the Inventory screen (which stops the clock).
         progress += Time.unscaledDeltaTime;
         float seconds = SecondsFor(current.item);
@@ -171,8 +183,13 @@ public class CampfireCooking : MonoBehaviour
             return playing;
 
         progress = 0f;
-        if (Cooking.Cook(current.item, 1, player) > 0 && current.remaining != int.MaxValue)
-            current.remaining--;
+        if (Cooking.Cook(current.item, 1, player) > 0)
+        {
+            if (current.remaining != int.MaxValue)
+                current.remaining--;
+            if (boiling)
+                litresInPot--;
+        }
         return playing;
     }
 

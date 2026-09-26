@@ -12,10 +12,16 @@ using UnityEngine.InputSystem;
 // Branches split from the Inventory screen instead (a Split button while the Axe is carried) — a few seconds each,
 // with the chopping sound, carrying on while the screen is open. One Log makes 5 Firewood (10 hours of fire), two
 // Branches make 1. All numbers are Claude Code's first proposal, pending Mike's playtest.
+//
+// The other swung tools work the same way (2026-09-26): the Stone Pick Axe on South Ridge's rock outcrop, a Stone every
+// 4 blows (Stone_Gathering_System.md, sfx_pickaxe), and the Primitive Shovel on a stump, dug out in 6 blows
+// (Wood_Gathering_System.md, sfx_digging).
 [DefaultExecutionOrder(90)]
 public class AxeTool : MonoBehaviour
 {
     public const string AxeId = "axe";
+    public const string PickAxeId = "stone_pick_axe";
+    public const string ShovelId = "shovel";
 
     [SerializeField] PlayerController player;
 
@@ -28,6 +34,10 @@ public class AxeTool : MonoBehaviour
     [SerializeField, Min(1f)] float broadHardwoodBlows = 10f;
     [SerializeField, Min(1f)] float tallHardwoodBlows = 13f;
     [SerializeField, Min(1f)] float shrubBlows = 3f;
+
+    [Header("Pick Axe and Shovel")]
+    [SerializeField, Min(1)] int blowsPerStone = 4;
+    [SerializeField, Min(1)] int blowsPerStump = 6;
 
     [Header("Firewood")]
     [SerializeField, Min(1)] int firewoodPerLog = 5;
@@ -44,6 +54,7 @@ public class AxeTool : MonoBehaviour
     // The tree or pile being worked, and how far along.
     int treeIndex = -1;
     WoodPile pileTarget;
+    Object otherTarget; // the outcrop or stump the Pick Axe or Shovel is working
     float blows;
     float lastBlowTime;
 
@@ -72,12 +83,12 @@ public class AxeTool : MonoBehaviour
             Instance = null;
     }
 
-    static bool AxeEquipped
+    static string Equipped
     {
         get
         {
             InventoryManager inventory = InventoryManager.Instance;
-            return inventory != null && inventory.EquippedTool != null && inventory.EquippedTool.Id == AxeId;
+            return inventory != null && inventory.EquippedTool != null ? inventory.EquippedTool.Id : null;
         }
     }
 
@@ -86,7 +97,15 @@ public class AxeTool : MonoBehaviour
     void Update()
     {
         UpdateSplitting();
-        if (!AxeEquipped || attack == null || !player.CanUseTools)
+        string equipped = Equipped;
+        if (attack == null || !player.CanUseTools)
+            return;
+        if (equipped == PickAxeId || equipped == ShovelId)
+        {
+            UpdateDigging(equipped == PickAxeId);
+            return;
+        }
+        if (equipped != AxeId)
             return;
 
         // What the axe would hit: a wood pile, or the trunk of a standing tree.
@@ -125,6 +144,91 @@ public class AxeTool : MonoBehaviour
             WorkTree(wood, tree, point);
         else
             ToolStatus.Report("Axe — hold click on a tree trunk to chop it down, or on a wood pile to split Firewood");
+    }
+
+    // The Pick Axe on the rock outcrop, or the Shovel on a stump.
+    void UpdateDigging(bool pick)
+    {
+        Object target = null;
+        Vector3 point = Vector3.zero;
+        if (player.AimRaycast(reach, out RaycastHit hit))
+        {
+            point = hit.point;
+            target = pick ? (Object)hit.collider.GetComponentInParent<RockDeposit>() : hit.collider.GetComponentInParent<Stump>();
+            // A felled tree's wood pile sits right beside its stump and can be in the way: take a stump just behind it.
+            if (!pick && target == null)
+                foreach (Collider nearby in Physics.OverlapSphere(hit.point, 0.8f, ~0, QueryTriggerInteraction.Ignore))
+                    if (nearby.TryGetComponent(out Stump stump))
+                    {
+                        target = stump;
+                        break;
+                    }
+        }
+        if (target != otherTarget && (target != null || Time.time - lastBlowTime > 4f))
+        {
+            otherTarget = target;
+            blows = 0f;
+        }
+
+        if (target == null)
+        {
+            ToolStatus.Report(pick ? "Stone Pick Axe — hold click on the rock outcrop on South Ridge to mine Stone"
+                                   : "Shovel — hold click on a stump to dig it out");
+            return;
+        }
+
+        if (pick)
+            MineStone(point);
+        else
+            DigStump((Stump)target, point);
+    }
+
+    void MineStone(Vector3 point)
+    {
+        StoneManager stone = StoneManager.Instance;
+        InventoryManager inventory = InventoryManager.Instance;
+        if (stone == null || stone.DepositRemaining <= 0)
+        {
+            ToolStatus.Report("The outcrop is worked out — no more loose rock to break off");
+            return;
+        }
+        ItemDefinition item = ItemDatabase.Get(WoodManager.StoneId);
+        if (inventory == null || item == null || inventory.Player.SpaceFor(item) <= 0)
+        {
+            ToolStatus.Report("Rock Outcrop — no room to carry more Stone");
+            return;
+        }
+
+        ToolStatus.Report(blows > 0f ? "Breaking off Stone" : $"Rock Outcrop — hold click to mine Stone  ({stone.DepositRemaining} left)",
+                          blows > 0f ? blows / blowsPerStone : -1f);
+        if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayPickaxe : null))
+            return;
+        blows += Efficiency;
+        if (blows < blowsPerStone)
+            return;
+
+        blows = 0f;
+        if (stone.TakeFromDeposit())
+        {
+            inventory.AddToPlayer(WoodManager.StoneId, 1);
+            ToolStatus.Flash($"Broke off a Stone  ({stone.DepositRemaining} left in the outcrop)");
+        }
+    }
+
+    void DigStump(Stump stump, Vector3 point)
+    {
+        ToolStatus.Report(blows > 0f ? "Digging out the stump" : "Stump — hold click to dig it out", blows > 0f ? blows / blowsPerStump : -1f);
+        if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
+            return;
+        blows += Efficiency;
+        if (blows < blowsPerStump)
+            return;
+
+        blows = 0f;
+        otherTarget = null;
+        if (WoodManager.Instance != null)
+            WoodManager.Instance.RemoveStump(stump.TreeIndex);
+        ToolStatus.Flash("Dug the stump out — its roots make a Firewood");
     }
 
     float BlowsToFell(WoodManager wood, int tree)
@@ -194,8 +298,9 @@ public class AxeTool : MonoBehaviour
 
     static float Efficiency => SurvivalManager.Instance != null ? SurvivalManager.Instance.WorkEfficiency : 1f;
 
-    // Swings if Attack is held and the axe is ready. Returns whether a blow landed.
-    bool Swing(Vector3 point)
+    // Swings if Attack is held and the tool is ready. Returns whether a blow landed. sound: the blow's sound (the chop
+    // unless given).
+    bool Swing(Vector3 point, System.Action<Vector3> sound = null)
     {
         if (!attack.IsPressed() || Time.time < nextSwing)
             return false;
@@ -208,7 +313,9 @@ public class AxeTool : MonoBehaviour
 
         nextSwing = Time.time + swingSeconds;
         lastBlowTime = Time.time;
-        if (AudioManager.Instance != null)
+        if (sound != null)
+            sound(point);
+        else if (AudioManager.Instance != null)
             AudioManager.Instance.PlayChop(point);
         return true;
     }

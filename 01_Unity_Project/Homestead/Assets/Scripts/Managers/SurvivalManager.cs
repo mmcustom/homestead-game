@@ -167,6 +167,14 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     // Severe cold slows movement.
     public float MovementMultiplier => WarmthMovement[(int)WarmthTier];
     public bool IsSick => illnessHours > 0f;
+
+    // Set by SleepManager while the player sleeps (Building_Housing_System.md's Sleep System): how much of the cold the
+    // bedding and shelter keep off (0-1, cutting Warmth loss), how much rain and wind the shelter blocks, and how much
+    // faster Health recovers at rest. Back to nothing when they wake.
+    public float SleepInsulation { get; set; }
+    public float SleepRainShelter { get; set; }
+    public float SleepWindShelter { get; set; }
+    public float SleepRecovery { get; set; } = 1f;
     public Sickness SicknessLevel => illnessHours <= 0f ? Sickness.None
                                    : illnessHours > illnessHoursPerBout ? Sickness.Severe : Sickness.Mild;
     public float IllnessHoursLeft => illnessHours;
@@ -302,7 +310,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         if (healthLoss > 0f)
             SetHealth(health - healthLoss * hours);
         else if (!IsSick && hydration > 0f && hunger > 0f)
-            SetHealth(health + (hydration >= halfFed && hunger >= halfFed ? recoveryPerHour : lowRecoveryPerHour) * hours);
+            SetHealth(health + (hydration >= halfFed && hunger >= halfFed ? recoveryPerHour : lowRecoveryPerHour) * SleepRecovery * hours);
     }
 
     float ColdLoss(Tier tier) =>
@@ -316,8 +324,8 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         Vector3 position = placed ? player.transform.position : Vector3.zero;
 
         // Under trees: most rain and some wind are kept off.
-        float rainShelter = placed ? OverheadCover.At(position + Vector3.up, 0.8f) : 0f;
-        float windShelter = placed ? OverheadCover.At(position + Vector3.up, 0.4f) : 0f;
+        float rainShelter = Mathf.Max(SleepRainShelter, placed ? OverheadCover.At(position + Vector3.up, 0.8f) : 0f);
+        float windShelter = Mathf.Max(SleepWindShelter, placed ? OverheadCover.At(position + Vector3.up, 0.4f) : 0f);
 
         fireHeat = placed ? FireHeat(position) : 0f;
 
@@ -335,7 +343,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         float feelsF = tempF - windChillF * wind * (1f - windShelter) - wetChillF * wetness;
         float rate = (feelsF - neutralF) * warmthPerDegree;
         if (rate < 0f)
-            rate = Mathf.Max(-maxWarmthLossPerHour, rate * (1f + wetness));
+            rate = Mathf.Max(-maxWarmthLossPerHour, rate * (1f + wetness)) * (1f - SleepInsulation);
         else
             rate = Mathf.Min(maxWarmthGainPerHour, rate);
         rate += fireWarmthPerHour * fireHeat;

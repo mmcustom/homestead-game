@@ -25,6 +25,10 @@ public class InventoryManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0f)] float encumberedWeightKg = 30f;
     [Tooltip("Nothing more can be picked up past this weight.")]
     [SerializeField, Min(0f)] float maxCarryWeightKg = 45f;
+    [Tooltip("Carrying a Pouch (Primitive_Storage_System.md) raises both limits by this much: room for more to bring home.")]
+    [SerializeField, Min(0f)] float pouchBonusKg = 10f;
+
+    public const string PouchId = "pouch";
 
     readonly Dictionary<string, InventoryContainer> storage = new Dictionary<string, InventoryContainer>();
     ItemDefinition equippedTool;
@@ -36,13 +40,14 @@ public class InventoryManager : MonoBehaviour, ISaveable
     public ItemDefinition EquippedTool => equippedTool;
 
     public float CarriedWeightKg => Player.WeightKg;
-    public float EncumberedWeightKg => encumberedWeightKg;
-    public float MaxCarryWeightKg => maxCarryWeightKg;
-    public bool IsEncumbered => CarriedWeightKg > encumberedWeightKg;
+    float CarryBonusKg => Player != null && Player.Has(PouchId) ? pouchBonusKg : 0f;
+    public float EncumberedWeightKg => encumberedWeightKg + CarryBonusKg;
+    public float MaxCarryWeightKg => maxCarryWeightKg + CarryBonusKg;
+    public bool IsEncumbered => CarriedWeightKg > EncumberedWeightKg;
 
     // 0 at or below the encumbered weight, rising to 1 at max carry weight — for the movement speed penalty.
     public float Encumbrance =>
-        Mathf.Clamp01(Mathf.InverseLerp(encumberedWeightKg, maxCarryWeightKg, CarriedWeightKg));
+        Mathf.Clamp01(Mathf.InverseLerp(EncumberedWeightKg, MaxCarryWeightKg, CarriedWeightKg));
 
     static int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
 
@@ -81,7 +86,7 @@ public class InventoryManager : MonoBehaviour, ISaveable
     {
         maxCarryWeightKg = Mathf.Max(maxCarryWeightKg, encumberedWeightKg);
         if (Player != null)
-            Player.MaxWeightKg = maxCarryWeightKg;
+            Player.MaxWeightKg = MaxCarryWeightKg;
     }
 
     // Picks up into the player's inventory. Returns how many fit; the rest should stay where they were.
@@ -165,6 +170,9 @@ public class InventoryManager : MonoBehaviour, ISaveable
 
     void OnPlayerInventoryChanged()
     {
+        // The Pouch's extra room comes and goes with it.
+        Player.MaxWeightKg = MaxCarryWeightKg;
+
         // A tool that's been dropped, sold or stored can't stay equipped.
         if (equippedTool != null && !Player.Has(equippedTool.Id))
             SetEquipped(null);
@@ -201,6 +209,7 @@ public class InventoryManager : MonoBehaviour, ISaveable
             Player.LoadData(data.player);
         else
             Player.Clear();
+        Player.MaxWeightKg = MaxCarryWeightKg; // the limit is the game's, not whatever the save recorded
 
         storage.Clear();
         if (data.storage != null)

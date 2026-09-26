@@ -12,7 +12,8 @@ using UnityEngine.InputSystem;
 //   F8  skip to the start of Winter
 //   F9  refill Hydration, Hunger, Health and Warmth, dry off and cure sickness (SurvivalManager)
 //   F10 drop Hydration, Hunger and Warmth to 20, into the Severe tier, to check the warnings and Health loss
-//   F11 give a fire, water and wood kit: Flint and Steel, a Bucket, the Axe and 6 Firewood (for older saves)
+//   F11 give the starting kit to older saves: Flint and Steel, a Bucket, the Axe, a Cooking Pot, a Sleeping Bag, a Tent
+//       and 6 Firewood
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait
 public class TimeDebugControls : MonoBehaviour
@@ -90,6 +91,12 @@ public class TimeDebugControls : MonoBehaviour
                 inventory.AddToPlayer(WaterSource.BucketItemId, 1);
             if (!inventory.Player.Has(AxeTool.AxeId))
                 inventory.AddToPlayer(AxeTool.AxeId, 1);
+            if (!inventory.Player.Has(Cooking.PotId))
+                inventory.AddToPlayer(Cooking.PotId, 1);
+            if (!inventory.Player.Has(SleepManager.SleepingBagId))
+                inventory.AddToPlayer(SleepManager.SleepingBagId, 1);
+            if (!inventory.Player.Has(WoodManager.TentId))
+                inventory.AddToPlayer(WoodManager.TentId, 1);
             int firewood = inventory.AddToPlayer(FireManager.FirewoodId, 6);
             Show($"Fire, water and wood kit given ({firewood} Firewood fit)", time);
         }

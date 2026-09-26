@@ -3,13 +3,14 @@ using UnityEngine;
 // Cooking and boiling at a lit campfire (the Cooking and Water Purification entries, 2026-09-25). Standing within
 // reach of a burning campfire, the Inventory screen offers Cook on raw meat and fish — each becomes its cooked
 // Consumable, safe to eat, more filling and keeping longer — and Boil on collected raw water, which becomes Purified
-// Water. Boiling needs a container: the Bucket (Water_System.md: Boiling requires Fire and a Container).
+// Water. Boiling needs a pot to boil it in: the metal Cooking Pot (Water_System.md's Boiling correction, 2026-09-26 —
+// the wooden Bucket only carries water; it would burn over the fire).
 // Each piece takes a few seconds (CampfireCooking runs the queue and calls Cook as each one finishes); it doesn't burn
 // extra fuel.
 public static class Cooking
 {
     public const string PurifiedWaterId = "water";
-    const string ContainerId = "bucket";
+    public const string PotId = "cooking_pot";
 
     // How close to a lit campfire the player must be to cook (metres).
     public const float Range = 3f;
@@ -48,8 +49,8 @@ public static class Cooking
         return FireManager.Instance.NearestLit(player.transform.position, Range);
     }
 
-    public static bool HasContainer =>
-        InventoryManager.Instance != null && InventoryManager.Instance.Player.Count(ContainerId) > 0;
+    public static bool HasPot =>
+        InventoryManager.Instance != null && InventoryManager.Instance.Player.Count(PotId) > 0;
 
     // Turns up to count of an item into its cooked (or boiled) version straight away. Returns how many were done.
     public static int Cook(ItemDefinition raw, int count, PlayerController player)
@@ -63,9 +64,9 @@ public static class Cooking
         ItemDefinition output = outputId != null ? ItemDatabase.Get(outputId) : null;
         if (output == null)
             return 0;
-        if (boil && !HasContainer)
+        if (boil && !HasPot)
         {
-            ToolStatus.Flash("Boiling water needs a Bucket to boil it in");
+            ToolStatus.Flash("Boiling water needs a Cooking Pot — the wooden Bucket would burn");
             return 0;
         }
 

@@ -13,6 +13,8 @@ using UnityEngine;
 public class WaterSource : MonoBehaviour, IInteractable
 {
     public const string BucketItemId = "bucket";
+    // Litres one Bucket holds (Water_System.md's Hand Carrying), for anything that fills Buckets.
+    public const int LitresPerBucket = 10;
 
     [Serializable]
     public struct QualityZone
@@ -26,7 +28,7 @@ public class WaterSource : MonoBehaviour, IInteractable
     [Tooltip("Hydration restored per drink.")]
     [SerializeField, Min(0f)] float hydrationPerDrink = 20f;
     [Tooltip("Litres one Bucket holds (1 L of water = 1 kg).")]
-    [SerializeField, Min(1)] int bucketLitres = 10;
+    [SerializeField, Min(1)] int bucketLitres = LitresPerBucket;
     [Tooltip("Quality anywhere not covered by a zone (Water_System.md: fast-moving creeks are Good).")]
     [SerializeField] WaterQuality defaultQuality = WaterQuality.Good;
     [SerializeField] QualityZone[] zones = Array.Empty<QualityZone>();

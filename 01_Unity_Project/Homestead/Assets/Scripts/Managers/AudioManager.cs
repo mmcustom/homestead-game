@@ -6,7 +6,7 @@ using UnityEngine.Audio;
 public enum AudioChannel { Master, Music, Ambient, Sfx, Ui }
 
 // Audio_System.md's one-shot sounds.
-public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop, Drink, Eat, UpsetStomach, Vomit, Forage }
+public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop, Drink, Eat, UpsetStomach, Vomit, Forage, Pour }
 
 // A clip and the level it plays at within its mixer group. Levels start from each file's measured loudness,
 // so sounds sourced from different libraries sit sensibly together; adjust by ear in the Inspector.
@@ -131,6 +131,14 @@ public class AudioManager : MonoBehaviour
     [SerializeField] Sound chop = new Sound();
     [Tooltip("Where each single, clean chop starts in the chopping recording, in seconds.")]
     [SerializeField] List<float> chopTimes = new List<float>();
+    [Tooltip("sfx_pickaxe: one blow of the Stone Pick Axe on the rock outcrop (pick-axe.wav), sliced like the chops.")]
+    [SerializeField] Sound pickaxe = new Sound();
+    [SerializeField] List<float> pickaxeTimes = new List<float>();
+    [Tooltip("sfx_digging: one push of the Primitive Shovel (digging.wav), sliced like the chops.")]
+    [SerializeField] Sound digging = new Sound();
+    [SerializeField] List<float> diggingTimes = new List<float>();
+    [Tooltip("sfx_pour_water: pouring water from the Bucket into the cooking pot or a water barrel (water-pouring-a.wav).")]
+    [SerializeField] Sound pour = new Sound();
     [Tooltip("sfx_tree_fall: a felled tree creaking over and crashing down (tree-fall.wav).")]
     [SerializeField] Sound treeFall = new Sound();
     [Tooltip("Seconds into the tree-fall recording where the crash hits, so it can be cued to land with the tree.")]
@@ -180,7 +188,7 @@ public class AudioManager : MonoBehaviour
     InventoryContainer watchedInventory;
     SoundCue addCue;
     int addFrame = -1;
-    int lastChop = -1;
+    readonly Dictionary<Sound, int> lastSlice = new Dictionary<Sound, int>();
     SoundCue consumeCue;
     int consumeFrame = -1;
     bool consumeSilently;
@@ -397,7 +405,8 @@ public class AudioManager : MonoBehaviour
             return;
 
         if (cue == SoundCue.ItemPickup || cue == SoundCue.ItemDrop || cue == SoundCue.Drink || cue == SoundCue.Eat ||
-            cue == SoundCue.UpsetStomach || cue == SoundCue.Vomit || cue == SoundCue.Forage)
+            cue == SoundCue.UpsetStomach || cue == SoundCue.Vomit || cue == SoundCue.Forage ||
+            cue == SoundCue.Pour)
             PlayOn(NextSfxSource(), sound, null);
         else
             uiSource.PlayOneShot(sound.clip, sound.volume); // UI group; still heard while paused
@@ -443,6 +452,7 @@ public class AudioManager : MonoBehaviour
             case SoundCue.UpsetStomach: return upsetStomach;
             case SoundCue.Vomit: return vomit;
             case SoundCue.Forage: return foraging;
+            case SoundCue.Pour: return pour;
             default: return null;
         }
     }
@@ -490,20 +500,28 @@ public class AudioManager : MonoBehaviour
     }
 
     // One axe blow at a point in the world: a different single chop from the recording each time.
-    public void PlayChop(Vector3 at)
+    public void PlayChop(Vector3 at) => PlaySlice(chop, chopTimes, at);
+
+    // One blow of the Stone Pick Axe, and one push of the Shovel, the same way.
+    public void PlayPickaxe(Vector3 at) => PlaySlice(pickaxe, pickaxeTimes, at);
+    public void PlayDig(Vector3 at) => PlaySlice(digging, diggingTimes, at);
+
+    // Plays one slice of a recording of repeated blows — starting at one of the given times, never the same one twice
+    // running — for the Sound's Max Duration.
+    void PlaySlice(Sound sound, List<float> times, Vector3 at)
     {
-        if (chop == null || chop.clip == null)
+        if (sound == null || sound.clip == null)
             return;
-        float start = chop.startTime;
-        if (chopTimes.Count > 0)
+        float start = sound.startTime;
+        if (times.Count > 0)
         {
-            int pick = UnityEngine.Random.Range(0, chopTimes.Count);
-            if (chopTimes.Count > 1 && pick == lastChop)
-                pick = (pick + 1) % chopTimes.Count;
-            lastChop = pick;
-            start = chopTimes[pick];
+            int pick = UnityEngine.Random.Range(0, times.Count);
+            if (times.Count > 1 && lastSlice.TryGetValue(sound, out int last) && pick == last)
+                pick = (pick + 1) % times.Count;
+            lastSlice[sound] = pick;
+            start = times[pick];
         }
-        PlayOn(NextSfxSource(), chop, at, start);
+        PlayOn(NextSfxSource(), sound, at, start);
     }
 
     void OnItemsRemoved(string itemId, int quantity)

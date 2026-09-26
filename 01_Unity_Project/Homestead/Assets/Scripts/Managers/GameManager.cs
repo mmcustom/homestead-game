@@ -77,6 +77,13 @@ public class GameManager : MonoBehaviour
             InventoryManager.Instance.AddToPlayer("cordage", 3);
             // An axe for firewood and logs (Wood_Gathering_System.md, 2026-09-26 proposal): nothing else supplies one.
             InventoryManager.Instance.AddToPlayer(AxeTool.AxeId, 1);
+            // A metal Cooking Pot for boiling (Water_System.md's Boiling correction): metalwork is beyond anything
+            // the player can make on the property, so the homestead starts with one, like the Bucket.
+            InventoryManager.Instance.AddToPlayer(Cooking.PotId, 1);
+            // Somewhere to sleep (Building_Housing_System.md's Sleep System): a Sleeping Bag and a Tent, neither of which
+            // can be made on the property.
+            InventoryManager.Instance.AddToPlayer(SleepManager.SleepingBagId, 1);
+            InventoryManager.Instance.AddToPlayer(WoodManager.TentId, 1);
         }
         if (DiscoveryManager.Instance != null)
             DiscoveryManager.Instance.ResetDiscoveries();
@@ -94,6 +101,10 @@ public class GameManager : MonoBehaviour
             TrapManager.Instance.ResetTraps();
         if (WoodManager.Instance != null)
             WoodManager.Instance.ResetWood();
+        if (StoneManager.Instance != null)
+            StoneManager.Instance.ResetStone();
+        if (GrassManager.Instance != null)
+            GrassManager.Instance.ResetGrass();
 
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing));
     }
@@ -133,6 +144,8 @@ public class GameManager : MonoBehaviour
 
     public void TogglePause()
     {
+        if (SleepManager.Instance != null && SleepManager.Instance.IsSleeping)
+            return; // asleep: nothing to pause or back out of
         if (state == GameState.Paused)
             ResumeGame();
         else if (state == GameState.Menu)

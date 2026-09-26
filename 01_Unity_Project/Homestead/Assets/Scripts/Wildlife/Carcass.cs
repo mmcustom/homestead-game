@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // A downed animal, ready for field dressing (Hunting_System.md): hold E to dress it and take the meat and whatever
-// else it yields — hide and antlers from deer, feathers from birds, fur from small game (the species sheets in
-// 05_Documentation/Wildlife). Meat quality depends on how soon it's dressed, on the in-game clock:
+// else it yields — hide, antlers and sinew from deer, feathers and sinew from turkeys, feathers from ducks, fur from
+// small game (the species sheets in 05_Documentation/Wildlife). Meat quality depends on how soon it's dressed, on the
+// in-game clock:
 //   within 1 hour — full meat;  within 3 — three quarters, and a day's less shelf life;
 //   within 8 — half, two days less;  later — the meat's spoiled, only hide, antlers, feathers or fur are left.
 // A wounding hit that still brought the animal down halves the meat. A killing arrow is recovered. Anything that
@@ -150,6 +151,12 @@ public class Carcass : MonoBehaviour, IInteractable
         {
             remaining.Add((yield.extraItem, yield.extraCount));
         }
+
+        // Sinew for Cordage (Trapping_System.md, 2026-09-26): the back and leg tendons of a deer, the legs of a turkey.
+        if (animal.SpeciesId == "deer")
+            remaining.Add(("sinew", 2));
+        else if (animal.SpeciesId == "turkey")
+            remaining.Add(("sinew", 1));
 
         if (KilledByArrow)
             remaining.Add(("arrows", 1));

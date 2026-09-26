@@ -144,6 +144,9 @@ GameObject:
   - component: {fileID: 199833596}
   - component: {fileID: 199833595}
   - component: {fileID: 199833599}
+  - component: {fileID: 199833600}
+  - component: {fileID: 199833602}
+  - component: {fileID: 199833601}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -326,6 +329,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::InventoryManager
   encumberedWeightKg: 30
   maxCarryWeightKg: 45
+  pouchBonusKg: 10
 --- !u!114 &199833589
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -703,6 +707,54 @@ MonoBehaviour:
   - 22.705
   - 24.24
   - 25.585
+  pickaxe:
+    clip: {fileID: 8300000, guid: fa5c3f54541a20f45b8efd6e4de0bd39, type: 3}
+    volume: 0.16
+    startTime: 0.58
+    loopEnd: 0
+    maxDuration: 0.55
+    fadeOut: 0.15
+    pitch: 1
+  pickaxeTimes:
+  - 0.58
+  - 2.19
+  - 5.44
+  - 7.5
+  - 9.45
+  - 11.16
+  digging:
+    clip: {fileID: 8300000, guid: 0d98d50cc789c0d4a9dcc2d05526051d, type: 3}
+    volume: 0.075
+    startTime: 0.05
+    loopEnd: 0
+    maxDuration: 0.7
+    fadeOut: 0.2
+    pitch: 1
+  diggingTimes:
+  - 0.05
+  - 3.89
+  - 7.36
+  - 10.33
+  - 12.45
+  - 15.69
+  - 18.59
+  - 21.24
+  - 36.32
+  - 38.82
+  - 40.69
+  - 44.43
+  - 46.37
+  - 48.67
+  - 50.48
+  - 54.05
+  pour:
+    clip: {fileID: 8300000, guid: 32b997daafc67134b8928858ac0347f7, type: 3}
+    volume: 0.1
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.2
+    pitch: 1
   treeFall:
     clip: {fileID: 8300000, guid: e043ce45f06678949a2871661fdb991c, type: 3}
     volume: 0.15
@@ -1070,9 +1122,62 @@ MonoBehaviour:
   fallSeconds: 1.8
   lieSeconds: 3
   woodPileSticks: 4
+  barrelLitres: 40
   buildDistance: 1.8
   minSpacing: 2
   maxSlope: 30
+  windthrowBase: 0.0013888889
+  windthrowStorm: 0.12
+  windthrowAfterStorm: 0.03
+  afterStormHours: 12
+  windthrowSnowLoad: 0.03
+  fullSnowLoadHours: 120
+  windthrowClearance: 6
+--- !u!114 &199833600
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6fc35d0d7a9c154ea67cd45e0e31a37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StoneManager
+  depositStone: 40
+--- !u!114 &199833601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 22c115a9397fcb24db4e0b275619acbe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GrassManager
+  regrowDays: 4
+--- !u!114 &199833602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdb434d6b1c165340b74a774937b2dd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SleepManager
+  morningHour: 6
+  nightFromHour: 19
+  restHours: 3
+  fadeSeconds: 0.8
+  holdSeconds: 1.4
+  wakeBelowWarmth: 20
+  wakeBelowHealth: 15
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

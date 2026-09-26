@@ -104,6 +104,8 @@ public class GameScreens : MonoBehaviour
 
     void Open(Kind kind)
     {
+        if (SleepManager.Instance != null && SleepManager.Instance.IsSleeping)
+            return;
         // Only from gameplay: not over the pause menu, in menus or while loading.
         if (current == Kind.None && GameManager.Instance != null && !GameManager.Instance.OpenMenu())
             return;

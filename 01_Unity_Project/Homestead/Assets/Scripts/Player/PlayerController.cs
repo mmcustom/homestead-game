@@ -129,6 +129,9 @@ public class PlayerController : MonoBehaviour, ISaveable
     // Equipped tools (rod, bow, rifle, traps) only work during gameplay, not in menus or while paused.
     public bool CanUseTools => CanAct;
 
+    // A night's sleep: stamina back to as full as Hydration, Hunger and the rest allow.
+    public void Rest() => stamina = EffectiveMaxStamina;
+
     // Work that costs stamina (an axe blow). False, spending nothing, when there isn't enough. Recovery waits after it
     // as it does after sprinting.
     public bool TrySpendStamina(float amount)

@@ -8,6 +8,8 @@ public class WoodStack
 {
     public string itemId;
     public int count;
+    // The in-game day a perishable batch was acquired, kept while it's stored so the Spoilage System can still age it.
+    public int day;
 }
 
 [Serializable]
@@ -17,9 +19,11 @@ public class FelledTree
     public bool stump;        // hardwoods leave a stump; a cut shrub leaves nothing
 }
 
-// Felled: what a felled tree left, gone once emptied. The other two are player-built storage (Wood_Gathering_System.md's
-// Primitive Storage) that stay put, empty or not.
-public enum PileKind { Felled, WoodStorage, RockStorage }
+// Felled: what a felled tree left, gone once emptied. The rest are player-built storage that stay put, empty or not:
+// Wood_Gathering_System.md's Wood Pile and Rock Pile, and Primitive_Storage_System.md's Water Barrel, Food Cache and
+// Storage Bin. Tent and LeanTo aren't storage but shelters to sleep in (Building_Housing_System.md's Sleep System),
+// placed and saved the same way. (Saved as numbers, so new kinds go on the end.)
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo }
 
 [Serializable]
 public class WoodPileState
@@ -32,45 +36,85 @@ public class WoodPileState
 
     public int Count(string itemId)
     {
+        int total = 0;
         foreach (WoodStack stack in contents)
             if (stack.itemId == itemId)
-                return stack.count;
-        return 0;
+                total += stack.count;
+        return total;
     }
 
-    public void Add(string itemId, int count)
+    public int Total
+    {
+        get
+        {
+            int total = 0;
+            foreach (WoodStack stack in contents)
+                total += stack.count;
+            return total;
+        }
+    }
+
+    // Adds to the batch from the same day (perishables stay apart by day; everything else is day 0).
+    public void Add(string itemId, int count, int day = 0)
     {
         if (count <= 0)
             return;
         foreach (WoodStack stack in contents)
         {
-            if (stack.itemId == itemId)
+            if (stack.itemId == itemId && stack.day == day)
             {
                 stack.count += count;
                 return;
             }
         }
-        contents.Add(new WoodStack { itemId = itemId, count = count });
+        contents.Add(new WoodStack { itemId = itemId, count = count, day = day });
     }
 
-    public void Remove(string itemId, int count)
+    public void Remove(string itemId, int count) => Take(itemId, count);
+
+    // Takes up to count, oldest batches first, and returns what was taken as (day, count) batches.
+    public List<WoodStack> Take(string itemId, int count)
     {
-        for (int i = contents.Count - 1; i >= 0; i--)
+        var taken = new List<WoodStack>();
+        while (count > 0)
         {
-            if (contents[i].itemId != itemId)
-                continue;
-            contents[i].count -= count;
-            if (contents[i].count <= 0)
-                contents.RemoveAt(i);
+            int index = -1;
+            for (int i = 0; i < contents.Count; i++)
+                if (contents[i].itemId == itemId && (index < 0 || contents[i].day < contents[index].day))
+                    index = i;
+            if (index < 0)
+                break;
+            WoodStack stack = contents[index];
+            int n = Mathf.Min(count, stack.count);
+            stack.count -= n;
+            count -= n;
+            taken.Add(new WoodStack { itemId = itemId, count = n, day = stack.day });
+            if (stack.count <= 0)
+                contents.RemoveAt(index);
         }
+        return taken;
     }
 
     public bool IsEmpty => contents.Count == 0;
     public bool IsRock => kind == PileKind.RockStorage;
+    public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo;
+    public bool IsWoodPile => kind == PileKind.Felled || kind == PileKind.WoodStorage;
     public bool IsBuilt => kind != PileKind.Felled;
 
-    // What this pile will take in.
-    public bool Accepts(string itemId) => IsRock ? itemId == WoodManager.StoneId : WoodManager.IsWood(itemId);
+    // What this pile will take in: each kind of storage takes only its own category (Primitive_Storage_System.md).
+    public bool Accepts(string itemId)
+    {
+        switch (kind)
+        {
+            case PileKind.RockStorage: return itemId == WoodManager.StoneId;
+            case PileKind.WaterBarrel: return WoodManager.IsWater(itemId);
+            case PileKind.FoodCache: return WoodManager.IsStorableFood(itemId);
+            case PileKind.StorageBin: return WoodManager.IsDryGoods(itemId);
+            case PileKind.Tent:
+            case PileKind.LeanTo: return false;
+            default: return WoodManager.IsWood(itemId);
+        }
+    }
 }
 
 [Serializable]
@@ -79,6 +123,8 @@ public struct WoodSaveData
     public List<FelledTree> felled;
     public List<WoodPileState> piles;
     public int nextPileId;
+    public float snowLoadHours;
+    public float stormAfterglow;
 }
 
 // Wood_Gathering_System.md (2026-09-26): trees felled with the Axe, and the wood they leave. The World's trees are
@@ -88,10 +134,23 @@ public struct WoodSaveData
 // Logs, Branches and Sticks, which the player carries off as they can (Logs are heavy) and can split into Firewood
 // right there. Piles last until emptied.
 //
-// Primitive Storage (2026-09-26): the player can also build a Wood Pile (4 Sticks for a ground frame) or a Rock Pile
-// (free) just in front of them from the Inventory, then store wood or Stone in it and take it back out — the same pile
-// as a felled tree's, made deliberate. Built piles stay even when empty and have no capacity limit for now; they're
-// the stopgap until Building's storage sheds exist.
+// Primitive Storage (2026-09-26): the player can also build storage just in front of them from the Inventory and
+// store things in it (R) and take them back (E) — the same pile as a felled tree's, made deliberate:
+//   Wood Pile — 4 Sticks for a ground frame; wood.        Rock Pile — free; Stone.
+//   Water Barrel — 3 Logs; up to 40 L of water, poured in from the Bucket and drawn off into it.
+//   Food Cache — 2 Logs, 4 Branches; food, keeping each batch's age.   Storage Bin — 6 Branches, 6 Sticks; the rest.
+// Only the barrel has a limit; they're the stopgap until Building's storage buildings exist. No spoilage bonus.
+//
+// Shelters (Sleep System, 2026-09-26) are placed the same way: a Tent, from the one the player carries (not craftable —
+// a starting-kit item), or a Lean-To from 8 Branches, 4 Sticks and 1 Cordage. Sleeping in one is Shelter's job; a Tent
+// packs back up, a Lean-To comes down for some of its Branches.
+//
+// Stumps come out with the Primitive Shovel (AxeTool), leaving a Firewood's worth of root wood.
+//
+// Windthrow (Natural Tree Fall, 2026-09-26): standing hardwoods also come down on their own, anywhere on the property,
+// exactly as if felled — pile, stump and crash — falling with the wind. The chance is rolled each in-game hour: rare
+// on an ordinary day (about one a month), much likelier in a Thunderstorm (about one every eight storm hours) and for
+// half a day after, and in late Winter and early Spring in proportion to how much snow fell that Winter.
 //
 // Yields scale with the tree's size and are Claude Code's first proposal, pending Mike's playtest:
 //   broad hardwood (6.5 m) — about 2 Logs, 4 Branches, 5 Sticks; tall hardwood (9.5 m) — about 3 Logs, 3 Branches,
@@ -105,6 +164,23 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     public static readonly string[] WoodIds = { LogsId, BranchesId, SticksId, FireManager.FirewoodId };
     public static bool IsWood(string itemId) => Array.IndexOf(WoodIds, itemId) >= 0;
+
+    public static bool IsWater(string itemId) => WaterQualities.IsRawWater(itemId) || itemId == Cooking.PurifiedWaterId;
+
+    // Food for the Food Cache: anything with a food value that isn't water.
+    public static bool IsStorableFood(string itemId)
+    {
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        return item != null && item.IsFood && !IsWater(itemId);
+    }
+
+    // Everything else that isn't a tool: Cordage, hides, furs, feathers, arrows, rounds...
+    public static bool IsDryGoods(string itemId)
+    {
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        return item != null && item.Category != ItemCategory.Tool && !IsWood(itemId) && itemId != StoneId &&
+               !IsWater(itemId) && !IsStorableFood(itemId);
+    }
 
     // Terrain tree prototypes (PropertyTerrainBuilder): 0 broad hardwood, 1 tall hardwood, 2 understory shrub.
     public const int BroadHardwood = 0, TallHardwood = 1, Shrub = 2;
@@ -120,6 +196,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     [Header("Building storage piles")]
     [Tooltip("Sticks it takes to lay out a Wood Pile's frame. A Rock Pile is free.")]
     [SerializeField, Min(0)] int woodPileSticks = 4;
+    [SerializeField, Min(1)] int barrelLitres = 40;
     [SerializeField, Min(0.5f)] float buildDistance = 1.8f;
     [Tooltip("Piles and campfires can't be built closer together than this (metres).")]
     [SerializeField, Min(0f)] float minSpacing = 2f;
@@ -128,7 +205,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     readonly List<FelledTree> felled = new List<FelledTree>();
     readonly HashSet<int> felledSet = new HashSet<int>();
     readonly List<WoodPileState> piles = new List<WoodPileState>();
-    readonly Dictionary<int, WoodPile> pileViews = new Dictionary<int, WoodPile>();
+    readonly Dictionary<int, GameObject> pileViews = new Dictionary<int, GameObject>();
     readonly List<GameObject> stumps = new List<GameObject>();
     int nextPileId = 1;
 
@@ -143,6 +220,24 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     public IReadOnlyList<WoodPileState> Piles => piles;
     public int WoodPileSticks => woodPileSticks;
+    public int BarrelLitres => barrelLitres;
+
+    [Header("Windthrow (chance per in-game hour)")]
+    [SerializeField, Min(0f)] float windthrowBase = 1f / 720f;
+    [SerializeField, Min(0f)] float windthrowStorm = 0.12f;
+    [SerializeField, Min(0f)] float windthrowAfterStorm = 0.03f;
+    [Tooltip("Hours after a Thunderstorm that trees stay likelier to fall.")]
+    [SerializeField, Min(0f)] float afterStormHours = 12f;
+    [Tooltip("Extra chance at a full Winter's snow load, and the snow hours that count as full.")]
+    [SerializeField, Min(0f)] float windthrowSnowLoad = 0.03f;
+    [SerializeField, Min(1f)] float fullSnowLoadHours = 120f;
+    [Tooltip("Trees closer than this to the player don't blow down (metres).")]
+    [SerializeField, Min(0f)] float windthrowClearance = 6f;
+
+    float snowLoadHours;   // snow that fell this Winter, melting off through Spring
+    float stormAfterglow;  // hours left of the after-storm risk
+    int windthrowCount;
+    public int WindthrowCount => windthrowCount;
     public int FelledCount => felled.Count;
 
     void Awake()
@@ -200,9 +295,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             if (stump != null)
                 Destroy(stump);
         stumps.Clear();
-        foreach (WoodPile view in pileViews.Values)
+        foreach (GameObject view in pileViews.Values)
             if (view != null)
-                Destroy(view.gameObject);
+                Destroy(view);
         pileViews.Clear();
 
         if (!WorldLoaded)
@@ -348,7 +443,8 @@ public class WoodManager : MonoBehaviour, ISaveable
 
         // The pile lands just beside the trunk on the side it fell toward.
         Vector3 side = Vector3.Cross(Vector3.up, away);
-        Vector3 pilePosition = basePosition + away * (TrunkRadius(index) + 0.9f) + side * 0.5f;
+        // Far enough along that its heap doesn't cover the stump.
+        Vector3 pilePosition = basePosition + away * (TrunkRadius(index) + 1.8f) + side * 0.5f;
         pilePosition.y = terrain.SampleHeight(pilePosition) + terrain.transform.position.y;
         var pile = new WoodPileState
         {
@@ -361,28 +457,141 @@ public class WoodManager : MonoBehaviour, ISaveable
         SpawnPile(pile);
     }
 
+    // --- Windthrow ---
+
+    void Update()
+    {
+        TimeManager time = TimeManager.Instance;
+        bool playing = GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
+        if (time == null || !time.IsRunning || !playing || !WorldLoaded)
+            return;
+        PassHours(Time.deltaTime * time.GameHoursPerRealSecond);
+    }
+
+    // The weather's chance of bringing a tree down over some in-game time (also for hours slept, once Sleep exists).
+    public void PassHours(float hours)
+    {
+        if (hours <= 0f || !WorldLoaded)
+            return;
+
+        WeatherManager weather = WeatherManager.Instance;
+        TimeManager time = TimeManager.Instance;
+        bool storm = weather != null && weather.Current == WeatherType.Thunderstorm;
+        if (storm)
+            stormAfterglow = afterStormHours;
+        else
+            stormAfterglow = Mathf.Max(0f, stormAfterglow - hours);
+
+        bool winter = time != null && time.CurrentSeason == Season.Winter;
+        if (winter && weather != null && weather.IsSnowing)
+            snowLoadHours += hours;
+        else if (!winter)
+            snowLoadHours = Mathf.Max(0f, snowLoadHours - hours); // melts off through the first days of Spring
+
+        float rate = windthrowBase
+                   + (storm ? windthrowStorm : stormAfterglow > 0f ? windthrowAfterStorm : 0f)
+                   + windthrowSnowLoad * Mathf.Clamp01(snowLoadHours / fullSnowLoadHours);
+        if (UnityEngine.Random.value < 1f - Mathf.Exp(-rate * hours))
+            Windthrow();
+    }
+
+    // Brings down a random standing hardwood somewhere on the property, falling with the wind.
+    public bool Windthrow()
+    {
+        if (!WorldLoaded)
+            return false;
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        for (int attempt = 0; attempt < 30; attempt++)
+        {
+            int index = UnityEngine.Random.Range(0, originalTrees.Length);
+            if (!IsStanding(index) || Prototype(index) == Shrub)
+                continue;
+            Vector3 position = WorldPosition(index);
+            if (player != null && Vector3.Distance(player.transform.position, position) < windthrowClearance)
+                continue;
+
+            float windYaw = (WeatherManager.Instance != null ? WeatherManager.Instance.WindDirection : 0f) +
+                            UnityEngine.Random.Range(-35f, 35f);
+            Vector3 downwind = Quaternion.Euler(0f, windYaw, 0f) * Vector3.forward;
+            Fell(index, position - downwind);
+            windthrowCount++;
+            return true;
+        }
+        return false;
+    }
+
     // --- Piles ---
 
     public void NotifyChanged(WoodPileState pile)
     {
         if (pile.IsEmpty && !pile.IsBuilt)
         {
-            piles.Remove(pile);
-            if (pileViews.TryGetValue(pile.id, out WoodPile view) && view != null)
-                Destroy(view.gameObject);
-            pileViews.Remove(pile.id);
+            RemovePile(pile);
+            return;
         }
-        else if (pileViews.TryGetValue(pile.id, out WoodPile view) && view != null)
-        {
-            view.Rebuild();
-        }
+        if (pileViews.TryGetValue(pile.id, out GameObject view) && view != null && view.TryGetComponent(out WoodPile woodPile))
+            woodPile.Rebuild();
+        PileChanged?.Invoke(pile);
+    }
+
+    // Takes a pile or shelter out of the world for good (emptied, packed up, taken down).
+    public void RemovePile(WoodPileState pile)
+    {
+        piles.Remove(pile);
+        if (pileViews.TryGetValue(pile.id, out GameObject view) && view != null)
+            Destroy(view);
+        pileViews.Remove(pile.id);
         PileChanged?.Invoke(pile);
     }
 
     // --- Building storage piles ---
 
-    public string PileName(PileKind kind) => kind == PileKind.RockStorage ? "Rock Pile" : "Wood Pile";
-    public int CostOf(PileKind kind) => kind == PileKind.WoodStorage ? woodPileSticks : 0;
+    public static readonly PileKind[] Buildable =
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.Tent, PileKind.LeanTo };
+
+    public const string TentId = "tent";
+
+    public static string PileName(PileKind kind)
+    {
+        switch (kind)
+        {
+            case PileKind.RockStorage: return "Rock Pile";
+            case PileKind.WaterBarrel: return "Water Barrel";
+            case PileKind.FoodCache: return "Food Cache";
+            case PileKind.StorageBin: return "Storage Bin";
+            case PileKind.Tent: return "Tent";
+            case PileKind.LeanTo: return "Lean-To";
+            default: return "Wood Pile";
+        }
+    }
+
+    // What building one takes.
+    public WoodStack[] CostOf(PileKind kind)
+    {
+        switch (kind)
+        {
+            case PileKind.WoodStorage: return new[] { new WoodStack { itemId = SticksId, count = woodPileSticks } };
+            case PileKind.WaterBarrel: return new[] { new WoodStack { itemId = LogsId, count = 3 } };
+            case PileKind.FoodCache: return new[] { new WoodStack { itemId = LogsId, count = 2 }, new WoodStack { itemId = BranchesId, count = 4 } };
+            case PileKind.StorageBin: return new[] { new WoodStack { itemId = BranchesId, count = 6 }, new WoodStack { itemId = SticksId, count = 6 } };
+            case PileKind.Tent: return new[] { new WoodStack { itemId = TentId, count = 1 } };
+            case PileKind.LeanTo: return new[] { new WoodStack { itemId = BranchesId, count = 8 }, new WoodStack { itemId = SticksId, count = 4 },
+                                                 new WoodStack { itemId = "cordage", count = 1 } };
+            default: return new WoodStack[0];
+        }
+    }
+
+    // e.g. "3 Logs" or "free".
+    public string CostText(PileKind kind)
+    {
+        WoodStack[] cost = CostOf(kind);
+        if (cost.Length == 0)
+            return "free";
+        var parts = new List<string>();
+        foreach (WoodStack c in cost)
+            parts.Add($"{c.count} {ItemDatabase.Get(c.itemId)?.DisplayName ?? c.itemId}");
+        return string.Join(", ", parts);
+    }
 
     // Where a storage pile would go if built now in front of the player, or why it can't be built there.
     public bool CanBuildPile(PileKind kind, PlayerController player, out Vector3 position, out string reason)
@@ -395,11 +604,14 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
         }
 
-        int cost = CostOf(kind);
-        if (cost > 0 && inventory.Player.Count(SticksId) < cost)
+        foreach (WoodStack c in CostOf(kind))
         {
-            reason = $"Needs {cost} Sticks (carrying {inventory.Player.Count(SticksId)}).";
-            return false;
+            int have = inventory.Player.Count(c.itemId);
+            if (have < c.count)
+            {
+                reason = $"Needs {c.count} {ItemDatabase.Get(c.itemId)?.DisplayName ?? c.itemId} (carrying {have}).";
+                return false;
+            }
         }
 
         Vector3 forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
@@ -444,9 +656,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (kind == PileKind.Felled || !CanBuildPile(kind, player, out Vector3 position, out _))
             return false;
 
-        int cost = CostOf(kind);
-        if (cost > 0)
-            InventoryManager.Instance.RemoveFromPlayer(SticksId, cost);
+        foreach (WoodStack c in CostOf(kind))
+            InventoryManager.Instance.RemoveFromPlayer(c.itemId, c.count);
         var pile = new WoodPileState
         {
             id = nextPileId++,
@@ -462,11 +673,43 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     void SpawnPile(WoodPileState pile)
     {
-        var go = new GameObject($"Wood Pile {pile.id}");
+        var go = new GameObject($"{PileName(pile.kind)} {pile.id}");
         go.transform.SetPositionAndRotation(pile.position, Quaternion.Euler(0f, pile.yaw, 0f));
-        var view = go.AddComponent<WoodPile>();
-        view.Bind(pile, BarkMaterial());
-        pileViews[pile.id] = view;
+        if (pile.IsShelter)
+            go.AddComponent<Shelter>().Bind(pile, BarkMaterial());
+        else
+            go.AddComponent<WoodPile>().Bind(pile, BarkMaterial());
+        pileViews[pile.id] = go;
+    }
+
+    // The Primitive Shovel digging a stump out: it's gone for good, and its roots make a Firewood.
+    public void RemoveStump(int index)
+    {
+        FelledTree tree = felled.Find(t => t.index == index);
+        if (tree == null || !tree.stump)
+            return;
+        tree.stump = false;
+        for (int i = stumps.Count - 1; i >= 0; i--)
+        {
+            if (stumps[i] != null && stumps[i].TryGetComponent(out Stump marker) && marker.TreeIndex == index)
+            {
+                Destroy(stumps[i]);
+                stumps.RemoveAt(i);
+            }
+        }
+
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null || inventory.AddToPlayer(FireManager.FirewoodId, 1) < 1)
+            DropPile(WorldPosition(index), FireManager.FirewoodId, 1);
+    }
+
+    // Leaves a small felled-type pile on the ground (what didn't fit in the player's arms).
+    public void DropPile(Vector3 at, string itemId, int count)
+    {
+        var pile = new WoodPileState { id = nextPileId++, kind = PileKind.Felled, position = at };
+        pile.Add(itemId, count);
+        piles.Add(pile);
+        SpawnPile(pile);
     }
 
     void SpawnStump(int index)
@@ -474,6 +717,13 @@ public class WoodManager : MonoBehaviour, ISaveable
         float radius = TrunkRadius(index);
         var stump = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         stump.name = "Stump";
+        stump.AddComponent<Stump>().TreeIndex = index;
+        // A true cylinder to look at and dig: the primitive's capsule is nearly a ball at this height and misses its rim.
+        Mesh cylinder = stump.GetComponent<MeshFilter>().sharedMesh;
+        Destroy(stump.GetComponent<Collider>());
+        var stumpCollider = stump.AddComponent<MeshCollider>();
+        stumpCollider.sharedMesh = cylinder;
+        stumpCollider.convex = true;
         const float height = 0.45f;
         stump.transform.position = WorldPosition(index) + Vector3.up * (height / 2f - 0.05f);
         stump.transform.localScale = new Vector3(radius * 2.1f, height / 2f, radius * 2.1f);
@@ -504,6 +754,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         felledSet.Clear();
         piles.Clear();
         nextPileId = 1;
+        snowLoadHours = stormAfterglow = 0f;
         bark = null;
         if (WorldLoaded)
             Apply();
@@ -514,6 +765,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         felled = new List<FelledTree>(felled),
         piles = new List<WoodPileState>(piles),
         nextPileId = nextPileId,
+        snowLoadHours = snowLoadHours,
+        stormAfterglow = stormAfterglow,
     };
 
     // Runs after the World has loaded (GameManager.ContinueGame), so the terrain is updated straight away.
@@ -533,6 +786,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (saved.piles != null)
             piles.AddRange(saved.piles);
         nextPileId = Mathf.Max(1, saved.nextPileId);
+        snowLoadHours = saved.snowLoadHours;
+        stormAfterglow = saved.stormAfterglow;
         Apply();
     }
 
