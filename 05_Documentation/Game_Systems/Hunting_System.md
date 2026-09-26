@@ -115,6 +115,8 @@ Disadvantages:
 
 **Update 2026-09-25 (Mike, playtest):** neither weapon has any aiming aid right now — Mike found it hard to tell where a shot would actually land at a deer. Wants a scope or sights added for shooting/aiming. Not specced anywhere before this; both weapons currently fire from wherever the camera points with no on-screen reference. Exact treatment per weapon is Claude Code's call — a simple crosshair/reticle would suit the Recurve Bow's instinctive, close-range feel, while the Bolt-Action Rifle could reasonably get real aim-down-sights (iron sights or a scope with a slight zoom), consistent with the doc's existing "longer effective range" framing for the rifle versus the bow's "rewards close-range stalking skill." Whichever reticle/sight picture is shown should read clearly against Shot Placement & Outcomes below, since the whole point is helping the player judge heart/lung placement rather than guessing.
 
+**Resolved 2026-09-25 (Claude Code) — committed and pushed, not yet playtested.** Implemented per the split suggested above: the Recurve Bow gets a spread reticle, the Bolt-Action Rifle gets real aim-down-sights (a scope), both behind a new dedicated Aim action (right mouse button / left trigger on gamepad). Shot-placement feedback uses an amber/green color cue on the reticle/sight picture to signal shot quality against the targeted spot, addressing the doc's own requirement above that it read clearly against Shot Placement & Outcomes. Bundled into the same commit as the fishing line-tension retune (`96ea709`), with the doc edits in a separate commit (`5f68600`); both are pushed to `master` on GitHub. Mike has only confirmed the fishing half in Play Mode so far — this half is still awaiting his own test.
+
 ---
 
 # Future Weapons
