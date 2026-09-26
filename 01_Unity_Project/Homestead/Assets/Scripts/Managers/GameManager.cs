@@ -75,6 +75,8 @@ public class GameManager : MonoBehaviour
             InventoryManager.Instance.AddToPlayer(WaterSource.BucketItemId, 1);
             // A little cord for a first snare (2026-09-25 proposal): nothing on the property produces Cordage yet.
             InventoryManager.Instance.AddToPlayer("cordage", 3);
+            // An axe for firewood and logs (Wood_Gathering_System.md, 2026-09-26 proposal): nothing else supplies one.
+            InventoryManager.Instance.AddToPlayer(AxeTool.AxeId, 1);
         }
         if (DiscoveryManager.Instance != null)
             DiscoveryManager.Instance.ResetDiscoveries();
@@ -90,6 +92,8 @@ public class GameManager : MonoBehaviour
             ForagingManager.Instance.ResetPatches();
         if (TrapManager.Instance != null)
             TrapManager.Instance.ResetTraps();
+        if (WoodManager.Instance != null)
+            WoodManager.Instance.ResetWood();
 
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing));
     }

@@ -143,6 +143,7 @@ GameObject:
   - component: {fileID: 199833597}
   - component: {fileID: 199833596}
   - component: {fileID: 199833595}
+  - component: {fileID: 199833599}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -666,6 +667,83 @@ MonoBehaviour:
     maxDuration: 0
     fadeOut: 0.2
     pitch: 1
+  eating:
+    clip: {fileID: 8300000, guid: c89ef1f3ad4cef246970dfbbb48116b5, type: 3}
+    volume: 0.25
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 2.4
+    fadeOut: 0.4
+    pitch: 1
+  foraging:
+    clip: {fileID: 8300000, guid: 4ce81fd51dd345a489a53c7e7b166edd, type: 3}
+    volume: 0.8
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.1
+    pitch: 1
+  chop:
+    clip: {fileID: 8300000, guid: 862ffc3c167c8714aaa31b592c2f4385, type: 3}
+    volume: 0.2
+    startTime: 0.5
+    loopEnd: 0
+    maxDuration: 0.45
+    fadeOut: 0.15
+    pitch: 1
+  chopTimes:
+  - 0.49
+  - 1.635
+  - 2.735
+  - 11.22
+  - 12.19
+  - 13.19
+  - 18.855
+  - 20.225
+  - 22.705
+  - 24.24
+  - 25.585
+  treeFall:
+    clip: {fileID: 8300000, guid: e043ce45f06678949a2871661fdb991c, type: 3}
+    volume: 0.15
+    startTime: 0
+    loopEnd: 0
+    maxDuration: 0
+    fadeOut: 0.3
+    pitch: 1
+  treeFallImpact: 4.6
+  cooking:
+    clip: {fileID: 8300000, guid: 9e199a1808fe0cf439865ae68270ca7c, type: 3}
+    volume: 0.25
+    startTime: 0.3
+    loopEnd: 20.6
+    maxDuration: 0
+    fadeOut: 0.4
+    pitch: 1
+  boiling:
+    clip: {fileID: 8300000, guid: ff2d7d2a628bd6046a0c43806a7f83d0, type: 3}
+    volume: 0.1
+    startTime: 17.5
+    loopEnd: 31
+    maxDuration: 0
+    fadeOut: 0.4
+    pitch: 1
+  upsetStomach:
+    clip: {fileID: 8300000, guid: a32cb30a0a599334b89e90bc5cdb333c, type: 3}
+    volume: 0.08
+    startTime: 0.55
+    loopEnd: 0
+    maxDuration: 3
+    fadeOut: 0.6
+    pitch: 1
+  vomit:
+    clip: {fileID: 8300000, guid: c6c289d357df2494f8e32d119d8fb99c, type: 3}
+    volume: 0.09
+    startTime: 0.3
+    loopEnd: 0
+    maxDuration: 6.1
+    fadeOut: 0.3
+    pitch: 1
   gunshot:
     clip: {fileID: 8300000, guid: 29dacd7aa99738e48bab1c075c4e43ff, type: 3}
     volume: 0.3
@@ -743,8 +821,36 @@ MonoBehaviour:
   dehydrationEmptyLoss: 8
   starvationSevereLoss: 1
   starvationEmptyLoss: 4
-  recoveryThreshold: 75
-  recoveryPerHour: 2
+  recoveryPerHour: 3
+  lowRecoveryPerHour: 1.5
+  halfFed: 50
+  neutralF: 50
+  warmthPerDegree: 0.3
+  maxWarmthLossPerHour: 12
+  maxWarmthGainPerHour: 5
+  windChillF: 15
+  wetChillF: 12
+  soakPerHour: 1.5
+  dryPerHour: 0.4
+  fireWarmthPerHour: 30
+  fireDryPerHour: 3
+  fireInnerRadius: 1.5
+  fireOuterRadius: 6
+  coldModerateLoss: 1
+  coldSevereLoss: 4
+  coldEmptyLoss: 8
+  illnessHoursPerBout: 8
+  maxIllnessHours: 16
+  mildStamina: 0.8
+  severeStamina: 0.5
+  mildHydration: 1.25
+  severeHydration: 2
+  mildHealthLoss: 0.5
+  severeHealthLoss: 2
+  grumbleEveryHours: 2
+  vomitEveryHours: 1.5
+  vomitHydrationLoss: 8
+  vomitHungerLoss: 8
 --- !u!114 &199833593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -945,6 +1051,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d261f557f94510b44990847943a8c25c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ForagingManager
+--- !u!114 &199833599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7cfced0aece364348aac58d2a8f92448, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WoodManager
+  trunkRadius:
+  - 0.3
+  - 0.27
+  - 0.5
+  fallSeconds: 1.8
+  lieSeconds: 3
+  woodPileSticks: 4
+  buildDistance: 1.8
+  minSpacing: 2
+  maxSlope: 30
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

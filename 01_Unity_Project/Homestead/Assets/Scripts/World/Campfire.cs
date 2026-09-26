@@ -173,11 +173,27 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
             string fuel = $"{state.fuelHours:0.0} h of fuel";
             if (!state.lit && state.fuelHours > 0f)
                 return FireManager.HasIgnition ? $"Light Fire  ({fuel})" : "Light Fire  — needs Flint and Steel";
+            string cook = state.lit && CarryingCookables ? "  · Cook or boil from Inventory (I)" : "";
             if (fires.CanAddFuel(state))
-                return state.lit ? $"Add Firewood  (burning, {fuel})" : "Add Firewood";
+                return state.lit ? $"Add Firewood  (burning, {fuel}){cook}" : "Add Firewood";
             if (state.lit)
-                return FireManager.FirewoodCarried > 0 ? $"Burning  ({fuel}, full)" : $"Burning  ({fuel})";
+                return (FireManager.FirewoodCarried > 0 ? $"Burning  ({fuel}, full)" : $"Burning  ({fuel})") + cook;
             return "Burnt out  — add Firewood to rebuild it";
+        }
+    }
+
+    // Raw meat, fish or water that could be cooked or boiled here.
+    static bool CarryingCookables
+    {
+        get
+        {
+            InventoryManager inventory = InventoryManager.Instance;
+            if (inventory == null)
+                return false;
+            foreach (ItemStack stack in inventory.Player.Stacks)
+                if (Cooking.IsCookable(stack.itemId) || Cooking.IsBoilable(stack.itemId))
+                    return true;
+            return false;
         }
     }
 

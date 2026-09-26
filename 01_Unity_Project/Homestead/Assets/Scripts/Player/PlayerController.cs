@@ -129,6 +129,18 @@ public class PlayerController : MonoBehaviour, ISaveable
     // Equipped tools (rod, bow, rifle, traps) only work during gameplay, not in menus or while paused.
     public bool CanUseTools => CanAct;
 
+    // Work that costs stamina (an axe blow). False, spending nothing, when there isn't enough. Recovery waits after it
+    // as it does after sprinting.
+    public bool TrySpendStamina(float amount)
+    {
+        if (stamina < amount)
+            return false;
+        stamina -= amount;
+        lastSprintTime = Time.time;
+        sprintExertion += amount / Mathf.Max(0.01f, sprintStaminaPerSecond);
+        return true;
+    }
+
     // For Wildlife/Hunting: how noticeable the player currently is (First_Person_Controller.md, Design Rule 2).
     public float DetectionMultiplier
     {
@@ -312,6 +324,8 @@ public class PlayerController : MonoBehaviour, ISaveable
 
         float speed = crouched ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
         speed *= Mathf.Lerp(1f, fullyEncumberedSpeedMultiplier, encumbrance);
+        if (SurvivalManager.Instance != null)
+            speed *= SurvivalManager.Instance.MovementMultiplier; // severe cold (Warmth)
 
         // In the air the take-off momentum carries on; steering is only slight.
         Vector3 desired = (transform.right * input.x + transform.forward * input.y) * speed;

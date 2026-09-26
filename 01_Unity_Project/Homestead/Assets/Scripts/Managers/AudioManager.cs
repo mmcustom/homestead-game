@@ -6,7 +6,7 @@ using UnityEngine.Audio;
 public enum AudioChannel { Master, Music, Ambient, Sfx, Ui }
 
 // Audio_System.md's one-shot sounds.
-public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop, Drink }
+public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop, Drink, Eat, UpsetStomach, Vomit, Forage }
 
 // A clip and the level it plays at within its mixer group. Levels start from each file's measured loudness,
 // so sounds sourced from different libraries sit sensibly together; adjust by ear in the Inspector.
@@ -122,6 +122,27 @@ public class AudioManager : MonoBehaviour
     [SerializeField] Sound milestone = new Sound();
     [Tooltip("Audio_System.md's sfx_drink: drinking at a water source or from carried water.")]
     [SerializeField] Sound drink = new Sound();
+    [Tooltip("Audio_System.md's sfx_eating: eating food from the Inventory screen.")]
+    [SerializeField] Sound eating = new Sound();
+    [Tooltip("Audio_System.md's sfx_foraging: harvesting a forage patch (foraging.wav), in place of the pickup sound.")]
+    [SerializeField] Sound foraging = new Sound();
+    [Tooltip("sfx_chop_tree / sfx_chop_firewood: one axe blow (chopping-wood.wav). Each blow plays one chop from the " +
+             "recording, starting at one of Chop Times and lasting Max Duration.")]
+    [SerializeField] Sound chop = new Sound();
+    [Tooltip("Where each single, clean chop starts in the chopping recording, in seconds.")]
+    [SerializeField] List<float> chopTimes = new List<float>();
+    [Tooltip("sfx_tree_fall: a felled tree creaking over and crashing down (tree-fall.wav).")]
+    [SerializeField] Sound treeFall = new Sound();
+    [Tooltip("Seconds into the tree-fall recording where the crash hits, so it can be cued to land with the tree.")]
+    [SerializeField, Min(0f)] float treeFallImpact = 4.6f;
+    [Tooltip("Meat or fish sizzling at the campfire, looped from the fire while it cooks (cooking.mp3).")]
+    [SerializeField] Sound cooking = new Sound();
+    [Tooltip("Water boiling in the bucket at the campfire, looped from the fire while it boils (boiling_water.wav).")]
+    [SerializeField] Sound boiling = new Sound();
+    [Tooltip("Sickness while Mild: the stomach turning on falling ill, and grumbling now and then (Upset stomach.wav).")]
+    [SerializeField] Sound upsetStomach = new Sound();
+    [Tooltip("Sickness while Very Sick: vomiting (vomiting.wav).")]
+    [SerializeField] Sound vomit = new Sound();
     // Audio_System.md's Hunting / Fishing / Trapping SFX, played in the world by the tools that make them.
     [Header("Hunting, fishing and trapping")]
     [Tooltip("sfx_gunshot: the Bolt-Action Rifle fired.")]
@@ -157,6 +178,9 @@ public class AudioManager : MonoBehaviour
     bool volumesApplied;
     float coverVolume = 1f, coverVolumeTarget = 1f, nextCoverCheck;
     InventoryContainer watchedInventory;
+    SoundCue addCue;
+    int addFrame = -1;
+    int lastChop = -1;
     SoundCue consumeCue;
     int consumeFrame = -1;
     bool consumeSilently;
@@ -232,6 +256,12 @@ public class AudioManager : MonoBehaviour
             DiscoveryManager.Instance.MilestoneReached += OnMilestoneReached;
         }
 
+        if (SurvivalManager.Instance != null)
+        {
+            SurvivalManager.Instance.StomachUpset += OnStomachUpset;
+            SurvivalManager.Instance.Vomited += OnVomited;
+        }
+
         if (InventoryManager.Instance != null)
         {
             watchedInventory = InventoryManager.Instance.Player;
@@ -254,6 +284,11 @@ public class AudioManager : MonoBehaviour
         {
             DiscoveryManager.Instance.Discovered -= OnDiscovered;
             DiscoveryManager.Instance.MilestoneReached -= OnMilestoneReached;
+        }
+        if (SurvivalManager.Instance != null)
+        {
+            SurvivalManager.Instance.StomachUpset -= OnStomachUpset;
+            SurvivalManager.Instance.Vomited -= OnVomited;
         }
         if (watchedInventory != null)
         {
@@ -339,6 +374,18 @@ public class AudioManager : MonoBehaviour
     public Sound Splash => splash.clip != null ? splash : SynthSounds.Splash;
     public Sound FishingReel => fishingReel;
     public Sound TrapSet => trapSet;
+    public Sound CookingSizzle => cooking;
+    public Sound TreeFall => treeFall;
+
+    // A tree starting to fall that hits the ground in fallSeconds: plays the recording from the point that puts its
+    // crash on the impact (the creaking before it covers the fall).
+    public void PlayTreeFall(Vector3 at, float fallSeconds)
+    {
+        if (treeFall == null || treeFall.clip == null)
+            return;
+        PlayOn(NextSfxSource(), treeFall, at, Mathf.Max(0f, treeFallImpact - fallSeconds));
+    }
+    public Sound Boiling => boiling;
 
     public Sound SprintBreathing => sprintBreathing;
     public Sound EncumberedBreathing => encumberedBreathing;
@@ -349,7 +396,8 @@ public class AudioManager : MonoBehaviour
         if (sound == null || sound.clip == null)
             return;
 
-        if (cue == SoundCue.ItemPickup || cue == SoundCue.ItemDrop || cue == SoundCue.Drink)
+        if (cue == SoundCue.ItemPickup || cue == SoundCue.ItemDrop || cue == SoundCue.Drink || cue == SoundCue.Eat ||
+            cue == SoundCue.UpsetStomach || cue == SoundCue.Vomit || cue == SoundCue.Forage)
             PlayOn(NextSfxSource(), sound, null);
         else
             uiSource.PlayOneShot(sound.clip, sound.volume); // UI group; still heard while paused
@@ -391,6 +439,10 @@ public class AudioManager : MonoBehaviour
             case SoundCue.ItemPickup: return itemPickup;
             case SoundCue.ItemDrop: return itemDrop;
             case SoundCue.Drink: return drink;
+            case SoundCue.Eat: return eating;
+            case SoundCue.UpsetStomach: return upsetStomach;
+            case SoundCue.Vomit: return vomit;
+            case SoundCue.Forage: return foraging;
             default: return null;
         }
     }
@@ -407,10 +459,51 @@ public class AudioManager : MonoBehaviour
     void OnDiscovered(DiscoveryRecord record) => pendingDiscoveryChime = true;
     void OnMilestoneReached(DiscoveryMilestone reached) => pendingMilestone = true;
 
-    void OnItemsAdded(string itemId, int quantity)
+    void OnStomachUpset()
     {
         if (InGame)
-            Play(SoundCue.ItemPickup);
+            Play(SoundCue.UpsetStomach);
+    }
+
+    void OnVomited()
+    {
+        if (InGame)
+            Play(SoundCue.Vomit);
+    }
+
+    void OnItemsAdded(string itemId, int quantity)
+    {
+        if (!InGame)
+            return;
+        // An item gathered in its own way (foraging) plays that sound instead of the pickup.
+        bool special = addFrame == Time.frameCount;
+        addFrame = -1;
+        Play(special ? addCue : SoundCue.ItemPickup);
+    }
+
+    // Call just before adding items gathered in a way with its own sound: the addition plays this cue instead of the
+    // pickup sound.
+    public void PlayOnNextAdd(SoundCue cue)
+    {
+        addCue = cue;
+        addFrame = Time.frameCount;
+    }
+
+    // One axe blow at a point in the world: a different single chop from the recording each time.
+    public void PlayChop(Vector3 at)
+    {
+        if (chop == null || chop.clip == null)
+            return;
+        float start = chop.startTime;
+        if (chopTimes.Count > 0)
+        {
+            int pick = UnityEngine.Random.Range(0, chopTimes.Count);
+            if (chopTimes.Count > 1 && pick == lastChop)
+                pick = (pick + 1) % chopTimes.Count;
+            lastChop = pick;
+            start = chopTimes[pick];
+        }
+        PlayOn(NextSfxSource(), chop, at, start);
     }
 
     void OnItemsRemoved(string itemId, int quantity)
@@ -604,7 +697,7 @@ public class AudioManager : MonoBehaviour
         return oldest;
     }
 
-    void PlayOn(AudioSource source, Sound sound, Vector3? position)
+    void PlayOn(AudioSource source, Sound sound, Vector3? position, float? startAt = null)
     {
         source.Stop();
         source.clip = sound.clip;
@@ -612,7 +705,7 @@ public class AudioManager : MonoBehaviour
         source.pitch = sound.pitch > 0f ? sound.pitch : 1f; // 0 would only come from data saved before the field existed
         source.spatialBlend = position.HasValue ? 1f : 0f;
         source.transform.position = position ?? transform.position;
-        source.time = Mathf.Clamp(sound.startTime, 0f, Mathf.Max(0f, sound.clip.length - 0.01f));
+        source.time = Mathf.Clamp(startAt ?? sound.startTime, 0f, Mathf.Max(0f, sound.clip.length - 0.01f));
         source.Play();
 
         // A trimmed one-shot fades out and stops early (UpdateTrims); reusing a source clears its old trim.

@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: water
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   id: water
-  displayName: Water
+  displayName: Purified Water
   category: 2
   weightKg: 1
   shelfLifeDays: 0
+  hungerRestored: 0
+  hydrationRestored: 20
+  illnessChance: 0

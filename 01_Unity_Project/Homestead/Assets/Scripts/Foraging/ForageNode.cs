@@ -99,6 +99,8 @@ public class ForageNode : MonoBehaviour, IInteractable
         if (taken <= 0)
             return;
 
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayOnNextAdd(SoundCue.Forage); // sfx_foraging instead of the pickup sound
         inventory.AddToPlayer(species.itemId, taken);
         if (site != null)
             site.Discover(); // first harvest finds the patch: notification, journal and map marker

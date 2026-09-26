@@ -17,3 +17,6 @@ MonoBehaviour:
   category: 2
   weightKg: 1
   shelfLifeDays: 0
+  hungerRestored: 0
+  hydrationRestored: 20
+  illnessChance: 0.05

@@ -4,8 +4,13 @@ using UnityEngine.UI;
 
 // Inventory_System.md's Inventory Screen (confirmed 2026-09-25): what the player is carrying, their weight against the
 // Encumbered and maximum carry thresholds, and which Tool is equipped. Clicking a carried tool equips it, clicking the
-// equipped tool again unequips it; clicking collected water drinks a litre of it. A Build section builds a campfire
-// from carried Firewood (Fire System) and makes traps (Crafting's recipes). Home Storage transfer is out of scope until a storage structure exists.
+// equipped tool again unequips it; clicking food or water eats or drinks one (Food). Standing by a burning campfire,
+// raw meat and fish rows get a Cook button and raw water a Boil button (Cooking) — Shift-click does the whole stack.
+// Each piece takes a few seconds (CampfireCooking); the button shows the progress, and clicking it again stops.
+// Carrying the Axe, Logs and Branches get a Split button the same way, making Firewood (AxeTool).
+// A Build section builds a campfire from carried Firewood (Fire System), a Wood Pile or Rock Pile for storage
+// (WoodManager), and makes traps (Crafting's recipes). Home Storage transfer is out of scope until a storage structure
+// exists; the piles are stored into and taken from in the World.
 public class InventoryScreen : GameScreen
 {
     const float KgToLb = 2.20462f;
@@ -17,7 +22,8 @@ public class InventoryScreen : GameScreen
     Text weightLabel;
     Text statusLabel;
     Text equippedLabel;
-    Button buildButton;
+    Text hintLabel;
+    Button buildButton, woodPileButton, rockPileButton;
     Text buildLabel;
     readonly Button[] craftButtons = new Button[Crafting.Recipes.Length];
     RectTransform barFill;
@@ -25,6 +31,7 @@ public class InventoryScreen : GameScreen
     RectTransform encumberedTick;
     Text encumberedTickLabel;
     InventoryManager watched;
+    readonly Dictionary<ItemDefinition, Text> cookLabels = new Dictionary<ItemDefinition, Text>();
 
     public override string Title => "Inventory";
 
@@ -76,21 +83,34 @@ public class InventoryScreen : GameScreen
         equippedLabel = UiKit.Text(right, "Equipped", "", 26, UiKit.Cream);
         Top(equippedLabel.rectTransform, 294f, 40f);
 
-        Text hint = UiKit.Text(right, "Hint", "Click a tool to equip it, click it again to put it away. Click water to drink a litre.", 19, UiKit.Muted);
-        Top(hint.rectTransform, 340f, 56f);
+        hintLabel = UiKit.Text(right, "Hint", "", 18, UiKit.Muted);
+        Top(hintLabel.rectTransform, 336f, 80f);
 
         // Building (Fire System).
-        Heading(right, "Build", 420f);
-        buildButton = UiKit.Button(right, "Build Campfire", "", 21, BuildCampfire, TextAnchor.MiddleLeft);
-        Top((RectTransform)buildButton.transform, 464f, 50f);
+        Heading(right, "Build", 434f);
+        // Campfire, Wood Pile and Rock Pile side by side.
+        buildButton = UiKit.Button(right, "Build Campfire", "", 18, BuildCampfire);
+        woodPileButton = UiKit.Button(right, "Build Wood Pile", "", 18, () => BuildPile(PileKind.WoodStorage));
+        rockPileButton = UiKit.Button(right, "Build Rock Pile", "", 18, () => BuildPile(PileKind.RockStorage));
+        Button[] row = { buildButton, woodPileButton, rockPileButton };
+        for (int i = 0; i < row.Length; i++)
+        {
+            var rt = (RectTransform)row[i].transform;
+            Top(rt, 478f, 50f);
+            rt.anchorMin = new Vector2(i / 3f, 1f);
+            rt.anchorMax = new Vector2((i + 1) / 3f, 1f);
+            rt.offsetMin = new Vector2(i == 0 ? 0f : 3f, rt.offsetMin.y);
+            rt.offsetMax = new Vector2(i == 2 ? 0f : -3f, rt.offsetMax.y);
+            rt.GetComponentInChildren<Text>().rectTransform.Fill(4f, 0f, 4f, 0f);
+        }
         buildLabel = UiKit.Text(right, "Build Status", "", 18, UiKit.Muted);
-        Top(buildLabel.rectTransform, 516f, 46f);
+        Top(buildLabel.rectTransform, 530f, 46f);
 
         for (int i = 0; i < Crafting.Recipes.Length; i++)
         {
             Crafting.Recipe recipe = Crafting.Recipes[i];
             craftButtons[i] = UiKit.Button(right, "Craft " + recipe.outputId, "", 20, () => Craft(recipe), TextAnchor.MiddleLeft);
-            Top((RectTransform)craftButtons[i].transform, 566f + i * 46f, 42f);
+            Top((RectTransform)craftButtons[i].transform, 580f + i * 46f, 42f);
         }
     }
 
@@ -121,9 +141,34 @@ public class InventoryScreen : GameScreen
 
     void OnEquippedChanged(ItemDefinition tool) => Refresh();
 
+    // The Cook / Boil buttons count down while their item is cooking.
+    void Update()
+    {
+        CampfireCooking cooking = CampfireCooking.Instance;
+        AxeTool axe = AxeTool.Instance;
+        foreach (KeyValuePair<ItemDefinition, Text> pair in cookLabels)
+        {
+            if (pair.Value == null)
+                continue;
+            ItemDefinition item = pair.Key;
+            bool split = AxeTool.IsSplittable(item.Id);
+            string idle = split ? "Split" : Cooking.IsBoilable(item.Id) ? "Boil" : "Cook";
+            bool queued = split ? axe != null && axe.IsSplitQueued(item) : cooking != null && cooking.IsQueued(item);
+            if (!queued)
+            {
+                pair.Value.text = idle;
+                continue;
+            }
+            float p = split ? axe.SplitProgressOf(item) : cooking.ProgressOf(item);
+            int left = split ? axe.SplitsLeft(item) : cooking.RemainingOf(item);
+            pair.Value.text = p >= 0f ? $"{p * 100f:0}%  ({left})" : $"Queued ({left})";
+        }
+    }
+
     void Refresh()
     {
         UiKit.Clear(list);
+        cookLabels.Clear();
         InventoryManager inventory = InventoryManager.Instance;
         if (inventory == null)
         {
@@ -150,8 +195,14 @@ public class InventoryScreen : GameScreen
             UiKit.Height(UiKit.Text(list, "Empty", "You're not carrying anything.", 21, UiKit.Muted), 50f);
 
         ItemDefinition equipped = inventory.EquippedTool;
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        bool atFire = Cooking.FireInReach(player) != null;
         foreach ((ItemDefinition item, int quantity) in stacks)
-            AddRow(item, quantity, item == equipped);
+            AddRow(item, quantity, item == equipped, atFire, player);
+
+        hintLabel.text = "Click a tool to equip or put it away, food or water to eat or drink one. " +
+                         (atFire ? "<color=#C7D68C>At the campfire: Cook meat and fish, Boil water (needs the Bucket). Shift: whole stack.</color>"
+                                 : "Cook and boil at a burning campfire. With the Axe, Split Logs and Branches into Firewood.");
 
         // Weight against the thresholds.
         float carried = inventory.CarriedWeightKg, max = inventory.MaxCarryWeightKg, limit = inventory.EncumberedWeightKg;
@@ -184,10 +235,29 @@ public class InventoryScreen : GameScreen
             return;
         }
 
-        bool can = fires.CanBuild(FindAnyObjectByType<PlayerController>(), out _, out string reason);
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        bool can = fires.CanBuild(player, out _, out string reason);
         buildButton.interactable = can;
-        buildButton.GetComponentInChildren<Text>().text = $"Campfire  <size=17><color=#EDE3C799>{fires.FirewoodToBuild} Firewood</color></size>";
-        buildLabel.text = can ? "Builds just in front of you. Light it with Flint and Steel." : reason;
+        buildButton.GetComponentInChildren<Text>().text = $"Campfire\n<size=15><color=#EDE3C799>{fires.FirewoodToBuild} Firewood</color></size>";
+
+        // Storage piles: a reason shows only if nothing can be built, so the campfire's own line isn't crowded out.
+        WoodManager wood = WoodManager.Instance;
+        string pileReason = null;
+        foreach ((Button button, PileKind kind) in new[] { (woodPileButton, PileKind.WoodStorage), (rockPileButton, PileKind.RockStorage) })
+        {
+            button.gameObject.SetActive(wood != null);
+            if (wood == null)
+                continue;
+            bool canPile = wood.CanBuildPile(kind, player, out _, out string why);
+            button.interactable = canPile;
+            int cost = wood.CostOf(kind);
+            button.GetComponentInChildren<Text>().text =
+                $"{wood.PileName(kind)}\n<size=15><color=#EDE3C799>{(cost > 0 ? $"{cost} Sticks" : "free")}</color></size>";
+            if (!canPile && pileReason == null && kind == PileKind.WoodStorage)
+                pileReason = why;
+        }
+        buildLabel.text = can ? "Builds just in front of you. Light it with Flint and Steel."
+                        : pileReason != null && reason != pileReason ? $"Campfire: {reason}" : reason;
 
         for (int i = 0; i < Crafting.Recipes.Length; i++)
         {
@@ -205,6 +275,18 @@ public class InventoryScreen : GameScreen
             ToolStatus.Flash($"Made a {ItemDatabase.Get(recipe.outputId)?.DisplayName} — equip it to set it");
     }
 
+    void BuildPile(PileKind kind)
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null || !wood.BuildPile(kind, FindAnyObjectByType<PlayerController>()))
+            return;
+        ToolStatus.Flash(kind == PileKind.RockStorage ? "Rock Pile built — R to store Stone, E to take it"
+                                                      : "Wood Pile built — R to store wood, E to take it");
+        GameScreens screens = GetComponentInParent<GameScreens>();
+        if (screens != null)
+            screens.Close();
+    }
+
     void BuildCampfire()
     {
         FireManager fires = FireManager.Instance;
@@ -218,12 +300,11 @@ public class InventoryScreen : GameScreen
             screens.Close();
     }
 
-    void AddRow(ItemDefinition item, int quantity, bool equipped)
+    void AddRow(ItemDefinition item, int quantity, bool equipped, bool atFire, PlayerController player)
     {
         bool isTool = item.Category == ItemCategory.Tool;
-        bool isWater = WaterQualities.IsRawWater(item.Id);
         UnityEngine.Events.UnityAction click = isTool ? () => ToggleEquip(item)
-                                             : isWater ? () => DrinkWater(item)
+                                             : item.IsFood ? () => Food.Consume(item)
                                              : (UnityEngine.Events.UnityAction)null;
         Button row = UiKit.Button(list, item.Id, "", 20, click);
         UiKit.Height(row, 46f);
@@ -235,9 +316,33 @@ public class InventoryScreen : GameScreen
 
         var rt = (RectTransform)row.transform;
         Destroy(row.GetComponentInChildren<Text>().gameObject);
-        string category = CategoryName(item.Category);
+        string detail = item.IsFood ? FoodDetail(item) : CategoryName(item.Category);
         string tag = equipped ? "  <color=#C7D68C>• Equipped</color>" : "";
-        Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{category}</color></size>{tag}", 0f, 0.62f,
+        string risk = Food.RiskTag(item);
+        if (risk != null)
+            tag += $"  <size=16><color=#E6A050>{risk}</color></size>";
+
+        // Cook / Boil, beside the name, while standing at a lit campfire.
+        bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
+        bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried;
+        float nameRight = 0.62f;
+        if ((atFire && (cookable || boilable)) || splittable)
+        {
+            nameRight = 0.5f;
+            Button cook = UiKit.Button(rt, "Cook", splittable ? "Split" : boilable ? "Boil" : "Cook", 18,
+                                       splittable ? (UnityEngine.Events.UnityAction)(() => ToggleSplit(item)) : () => ToggleCooking(item));
+            cookLabels[item] = cook.GetComponentInChildren<Text>();
+            var cookRt = (RectTransform)cook.transform;
+            cookRt.anchorMin = new Vector2(0.5f, 0f);
+            cookRt.anchorMax = new Vector2(0.61f, 1f);
+            cookRt.offsetMin = new Vector2(0f, 7f);
+            cookRt.offsetMax = new Vector2(0f, -7f);
+            ColorBlock cookColors = cook.colors;
+            cookColors.normalColor = new Color(0.36f, 0.25f, 0.13f, 1f);
+            cookColors.highlightedColor = new Color(0.5f, 0.34f, 0.16f, 1f);
+            cook.colors = cookColors;
+        }
+        Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, nameRight,
                TextAnchor.MiddleLeft, UiKit.Cream, 21, 12f);
         Column(rt, $"×{quantity}", 0.62f, 0.78f, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f);
         Column(rt, $"{item.WeightKg * quantity:0.0} kg", 0.78f, 1f, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 12f);
@@ -258,18 +363,43 @@ public class InventoryScreen : GameScreen
             AudioManager.Instance.Play(SoundCue.UiClick);
     }
 
-    // Drinks one litre of collected water. Illness risk from lower qualities comes with Water Purification.
-    static void DrinkWater(ItemDefinition water)
+    // Queues one (Shift: the whole stack) at the fire, or stops it if it's already cooking.
+    static void ToggleCooking(ItemDefinition item)
     {
-        SurvivalManager survival = SurvivalManager.Instance;
-        InventoryManager inventory = InventoryManager.Instance;
-        if (survival == null || inventory == null || survival.Hydration >= SurvivalManager.MaxValue)
-            return; // not thirsty — don't waste it
-
+        CampfireCooking cooking = CampfireCooking.Instance;
+        if (cooking == null)
+            return;
+        if (cooking.IsQueued(item))
+            cooking.Cancel(item);
+        else
+            cooking.Enqueue(item, ShiftHeld ? int.MaxValue : 1);
         if (AudioManager.Instance != null)
-            AudioManager.Instance.PlayOnConsume(SoundCue.Drink); // the drink sound replaces the item-drop sound
-        if (inventory.RemoveFromPlayer(water.Id, 1) == 1)
-            survival.Drink(WaterQualities.HydrationPerLitre);
+            AudioManager.Instance.Play(SoundCue.UiClick);
+    }
+
+    // Queues one Log or lot of Branches (Shift: all of them) to split into Firewood, or stops it.
+    static void ToggleSplit(ItemDefinition item)
+    {
+        AxeTool axe = AxeTool.Instance;
+        if (axe == null)
+            return;
+        if (axe.IsSplitQueued(item))
+            axe.CancelSplit(item);
+        else
+            axe.EnqueueSplit(item, ShiftHeld ? int.MaxValue : 1);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+    }
+
+    static bool ShiftHeld =>
+        UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.shiftKey.isPressed;
+
+    // What eating or drinking one restores, e.g. "+30 food · +5 water".
+    static string FoodDetail(ItemDefinition item)
+    {
+        string food = item.HungerRestored > 0f ? $"+{item.HungerRestored:0} food" : null;
+        string water = item.HydrationRestored > 0f ? $"+{item.HydrationRestored:0} water" : null;
+        return food != null && water != null ? $"{food} · {water}" : food ?? water;
     }
 
     static string CategoryName(ItemCategory category)

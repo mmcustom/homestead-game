@@ -18,6 +18,9 @@ public static class OverheadCover
     };
 
     static Terrain indexedTerrain;
+
+    // Call after trees are added or removed (a tree felled) so the crowns are indexed again.
+    public static void Refresh() => indexedTerrain = null;
     static TreePrototype[] indexedPrototypes;
     static readonly Dictionary<Vector2Int, List<Vector3>> canopies = new Dictionary<Vector2Int, List<Vector3>>();
 

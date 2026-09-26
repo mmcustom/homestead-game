@@ -8,8 +8,8 @@ using UnityEngine;
 // on it.
 //
 // One water surface covers the whole spring → creek → pond system, so quality is by zone: the nearest zone containing
-// the player wins, otherwise the default. Illness risk from quality isn't modelled yet (the Water Purification step) —
-// drinking is safe everywhere for now, but collected water keeps its quality.
+// the player wins, otherwise the default. Drinking here carries the quality's illness risk, scaled to the amount drunk
+// (Water Purification); collected water keeps its quality until it's boiled.
 public class WaterSource : MonoBehaviour, IInteractable
 {
     public const string BucketItemId = "bucket";
@@ -43,7 +43,18 @@ public class WaterSource : MonoBehaviour, IInteractable
             int fill = FillableLitres();
             if (fill > 0)
                 return $"Fill Bucket  ({quality} water, {fill} L)";
-            return $"Drink  ({quality} water)";
+            return $"Drink  ({quality} water{RiskNote(quality)})";
+        }
+    }
+
+    static string RiskNote(WaterQuality quality)
+    {
+        switch (quality)
+        {
+            case WaterQuality.Excellent: return "";
+            case WaterQuality.Good: return ", slight risk of sickness";
+            case WaterQuality.Questionable: return ", risk of sickness";
+            default: return ", high risk of sickness";
         }
     }
 
@@ -106,9 +117,18 @@ public class WaterSource : MonoBehaviour, IInteractable
 
         if (SurvivalManager.Instance != null && SurvivalManager.Instance.Hydration < SurvivalManager.MaxValue)
         {
-            SurvivalManager.Instance.Drink(hydrationPerDrink);
+            SurvivalManager survival = SurvivalManager.Instance;
+            survival.Drink(hydrationPerDrink);
             if (AudioManager.Instance != null)
                 AudioManager.Instance.Play(SoundCue.Drink);
+
+            // The item's chance is per litre (HydrationPerLitre); a drink of a different size scales it.
+            WaterQuality quality = QualityAt(player.transform.position);
+            float perLitre = WaterQualities.IllnessChance(quality);
+            float chance = 1f - Mathf.Pow(1f - perLitre, hydrationPerDrink / WaterQualities.HydrationPerLitre);
+            SurvivalManager.Sickness before = survival.SicknessLevel;
+            if (survival.RollIllness(chance))
+                ToolStatus.Flash($"The {quality.ToString().ToLower()} water — {Food.SickMessage(before, survival.SicknessLevel)}", 5f);
         }
     }
 

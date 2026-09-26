@@ -15,6 +15,8 @@ GameObject:
   - component: {fileID: 1129377679309977728}
   - component: {fileID: 6008461093435382815}
   - component: {fileID: 3306076981603755259}
+  - component: {fileID: 1312374287781938883}
+  - component: {fileID: 4467909384113049144}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -93,6 +95,11 @@ MonoBehaviour:
   staminaRecoveryPerSecond: 25
   staminaRecoveryDelay: 1
   minStaminaToSprint: 15
+  jumpHeight: 0.5
+  airControl: 0.2
+  jumpStaminaCost: 10
+  encumberedJumpScale: 0.6
+  jumpGrace: 0.1
   mouseSensitivity: 0.1
   stickSensitivity: 120
   maxPitch: 85
@@ -100,6 +107,7 @@ MonoBehaviour:
   walkDetection: 1
   sprintDetection: 2
   crouchDetection: 0.4
+  jumpDetection: 1.5
   interactRange: 2.5
   interactionMask:
     serializedVersion: 2
@@ -201,6 +209,49 @@ MonoBehaviour:
   reach: 4
   minSpacing: 2
   maxSlope: 30
+--- !u!114 &1312374287781938883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2249883017171622084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26ca6a25031d64f4b8edb3e5aa2775e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CampfireCooking
+  fishSeconds: 4
+  smallMeatSeconds: 5
+  birdSeconds: 6
+  venisonSeconds: 8
+  boilSeconds: 6
+  sizzleFade: 0.4
+--- !u!114 &4467909384113049144
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2249883017171622084}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 840bccfd08203e240b39a4a05fa9486c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AxeTool
+  player: {fileID: 0}
+  reach: 2.3
+  swingSeconds: 0.9
+  staminaPerSwing: 4
+  broadHardwoodBlows: 10
+  tallHardwoodBlows: 13
+  shrubBlows: 3
+  firewoodPerLog: 5
+  branchesPerFirewood: 2
+  blowsPerLog: 4
+  blowsPerBranches: 2
+  splitLogSeconds: 4
+  splitBranchesSeconds: 2
 --- !u!1001 &4215842906523750154
 PrefabInstance:
   m_ObjectHideFlags: 0

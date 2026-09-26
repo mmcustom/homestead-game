@@ -10,9 +10,9 @@ using UnityEngine.InputSystem;
 //   F6  skip to the start of the next season
 //   F7  cycle fast-forward: x1, x10, x60 (a day in 30s), x360 (a day in 5s) — calendar only, not movement
 //   F8  skip to the start of Winter
-//   F9  refill Hydration, Hunger and Health (SurvivalManager)
-//   F10 drop Hydration and Hunger to 20, into the Severe tier, to check the warnings and Health loss
-//   F11 give a fire and water kit: Flint and Steel, a Bucket and 6 Firewood (for saves made before the starting kit)
+//   F9  refill Hydration, Hunger, Health and Warmth, dry off and cure sickness (SurvivalManager)
+//   F10 drop Hydration, Hunger and Warmth to 20, into the Severe tier, to check the warnings and Health loss
+//   F11 give a fire, water and wood kit: Flint and Steel, a Bucket, the Axe and 6 Firewood (for older saves)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait
 public class TimeDebugControls : MonoBehaviour
@@ -71,12 +71,15 @@ public class TimeDebugControls : MonoBehaviour
         else if (keyboard.f9Key.wasPressedThisFrame && SurvivalManager.Instance != null)
         {
             SurvivalManager.Instance.DebugSet(100f, 100f, 100f);
-            Show("Survival stats refilled", time);
+            SurvivalManager.Instance.Cure();
+            SurvivalManager.Instance.DebugSetWarmth(100f, 0f);
+            Show("Survival stats refilled, warmed and dried, sickness cured", time);
         }
         else if (keyboard.f10Key.wasPressedThisFrame && SurvivalManager.Instance != null)
         {
             SurvivalManager.Instance.DebugSet(20f, 20f, SurvivalManager.Instance.Health);
-            Show("Hydration and Hunger set to 20", time);
+            SurvivalManager.Instance.DebugSetWarmth(20f, SurvivalManager.Instance.Wetness);
+            Show("Hydration, Hunger and Warmth set to 20", time);
         }
         else if (keyboard.f11Key.wasPressedThisFrame && InventoryManager.Instance != null)
         {
@@ -85,8 +88,10 @@ public class TimeDebugControls : MonoBehaviour
                 inventory.AddToPlayer(FireManager.IgnitionId, 1);
             if (!inventory.Player.Has(WaterSource.BucketItemId))
                 inventory.AddToPlayer(WaterSource.BucketItemId, 1);
+            if (!inventory.Player.Has(AxeTool.AxeId))
+                inventory.AddToPlayer(AxeTool.AxeId, 1);
             int firewood = inventory.AddToPlayer(FireManager.FirewoodId, 6);
-            Show($"Fire and water kit given ({firewood} Firewood fit)", time);
+            Show($"Fire, water and wood kit given ({firewood} Firewood fit)", time);
         }
         else if (keyboard.f12Key.wasPressedThisFrame && InventoryManager.Instance != null)
         {

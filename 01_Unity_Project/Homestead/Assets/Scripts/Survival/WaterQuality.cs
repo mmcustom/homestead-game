@@ -1,5 +1,6 @@
-// Water_System.md's Water Quality Levels. Collected water keeps its source's quality as a separate item per level,
-// so the Water Purification step can tell them apart (illness risk and boiling aren't modelled yet).
+// Water_System.md's Water Quality Levels. Collected water keeps its source's quality as a separate item per level.
+// Each level's illness chance per litre lives on its water item (ItemDefinition.IllnessChance) and applies to drinking
+// straight from the source too; boiling at a campfire turns any of them into Purified Water (Cooking).
 public enum WaterQuality { Excellent, Good, Questionable, Unsafe }
 
 public static class WaterQualities
@@ -23,10 +24,17 @@ public static class WaterQualities
 
     public static bool IsRawWater(string itemId) => System.Array.IndexOf(AllItemIds, itemId) >= 0;
 
-    // Litres of raw water the player is carrying, across every quality.
+    // Chance of falling ill from drinking one litre of this quality.
+    public static float IllnessChance(WaterQuality quality)
+    {
+        ItemDefinition water = ItemDatabase.Get(ItemId(quality));
+        return water != null ? water.IllnessChance : 0f;
+    }
+
+    // Litres of water the player is carrying in their buckets, across every quality and purified.
     public static int LitresCarried(InventoryContainer container)
     {
-        int total = 0;
+        int total = container.Count(Cooking.PurifiedWaterId);
         foreach (string id in AllItemIds)
             total += container.Count(id);
         return total;
