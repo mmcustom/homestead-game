@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public enum MovementState { Idle, Walking, Sprinting, Crouching }
+public enum MovementState { Idle, Walking, Sprinting, Crouching, Jumping }
 
 [Serializable]
 public struct PlayerSaveData
@@ -15,8 +15,13 @@ public struct PlayerSaveData
 }
 
 // First_Person_Controller.md: walk, sprint (stamina + fatigue cost, less stealthy), crouch (slower, less visible),
-// context-sensitive interaction, encumbrance slowdown, first-person camera only, and discovery by proximity
-// (DiscoverySite triggers) and line of sight. Swimming and jumping aren't in Alpha 0.1 scope.
+// jump (a small grounded hop), context-sensitive interaction, encumbrance slowdown, first-person camera only, and
+// discovery by proximity (DiscoverySite triggers) and line of sight. Swimming isn't in Alpha 0.1 scope.
+//
+// Jump (confirmed 2026-09-25): a functional hop for clearing logs, rocks, low fences and creek edges — never a
+// platforming jump. About half a metre, a short snappy arc under the controller's strong gravity, and the take-off
+// momentum is kept with only slight steering in the air. Costs stamina like a burst of sprinting; not while crouched,
+// lower when heavily loaded, and impossible at the carry limit.
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour, ISaveable
 {
@@ -53,6 +58,17 @@ public class PlayerController : MonoBehaviour, ISaveable
     [Tooltip("Stamina needed to start a sprint, so an empty bar can't be tapped back into a sprint.")]
     [SerializeField, Min(0f)] float minStaminaToSprint = 15f;
 
+    [Header("Jump")]
+    [Tooltip("Height of the hop in metres — enough for logs, rocks and creek banks.")]
+    [SerializeField, Min(0f)] float jumpHeight = 0.5f;
+    [Tooltip("Share of normal steering while in the air; the take-off momentum does most of the work.")]
+    [SerializeField, Range(0f, 1f)] float airControl = 0.2f;
+    [SerializeField, Min(0f)] float jumpStaminaCost = 10f;
+    [Tooltip("Jump height at the encumbered limit, as a share of normal (no jump at all at the carry limit).")]
+    [SerializeField, Range(0f, 1f)] float encumberedJumpScale = 0.6f;
+    [Tooltip("Grace for a jump pressed just after stepping off an edge or just before landing (seconds).")]
+    [SerializeField, Min(0f)] float jumpGrace = 0.1f;
+
     [Header("Look")]
     [Tooltip("Degrees per pixel of mouse movement.")]
     [SerializeField, Min(0f)] float mouseSensitivity = 0.1f;
@@ -65,6 +81,8 @@ public class PlayerController : MonoBehaviour, ISaveable
     [SerializeField, Min(0f)] float walkDetection = 1f;
     [SerializeField, Min(0f)] float sprintDetection = 2f;
     [SerializeField, Min(0f)] float crouchDetection = 0.4f;
+    [Tooltip("A jump and its landing are louder than walking.")]
+    [SerializeField, Min(0f)] float jumpDetection = 1.5f;
 
     [Header("Interaction and Discovery")]
     [SerializeField, Min(0f)] float interactRange = 2.5f;
@@ -76,7 +94,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     readonly RaycastHit[] sightHits = new RaycastHit[16];
 
     CharacterController controller;
-    InputAction moveAction, lookAction, sprintAction, crouchAction, interactAction, interactAltAction, pauseAction;
+    InputAction moveAction, lookAction, sprintAction, crouchAction, jumpAction, interactAction, interactAltAction, pauseAction;
     Vector3 horizontalVelocity;
     float verticalVelocity;
     float yaw, pitch;
@@ -85,6 +103,9 @@ public class PlayerController : MonoBehaviour, ISaveable
     float sprintExertion;
     float nextSightCheck;
     bool crouched;
+    bool jumping;
+    float lastGroundedTime = float.NegativeInfinity;
+    float jumpPressedTime = float.NegativeInfinity;
     bool subscribed;
     IInteractable focus;
 
@@ -115,6 +136,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         {
             switch (State)
             {
+                case MovementState.Jumping: return jumpDetection;
                 case MovementState.Crouching: return crouchDetection;
                 case MovementState.Sprinting: return sprintDetection;
                 case MovementState.Walking: return walkDetection;
@@ -151,6 +173,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         moveAction = actions.FindAction("Player/Move", true);
         lookAction = actions.FindAction("Player/Look", true);
         sprintAction = actions.FindAction("Player/Sprint", true);
+        jumpAction = actions.FindAction("Player/Jump", false);
         crouchAction = actions.FindAction("Player/Crouch", true);
         interactAction = actions.FindAction("Player/Interact", true);
         interactAltAction = actions.FindAction("Player/InteractAlt", false);
@@ -266,13 +289,23 @@ public class PlayerController : MonoBehaviour, ISaveable
         bool moving = input.sqrMagnitude > 0.01f;
 
         float encumbrance = InventoryManager.Instance != null ? InventoryManager.Instance.Encumbrance : 0f;
+        bool grounded = controller.isGrounded;
+        if (grounded && verticalVelocity <= 0f)
+            jumping = false; // landed
+        // The controller's grounded flag flickers off for a frame or two on uneven terrain; a short probe underneath
+        // backs it up so a jump pressed at that moment isn't lost.
+        if (grounded || (!jumping && verticalVelocity <= 0f && GroundJustBelow()))
+            lastGroundedTime = Time.time;
+
         bool wantsSprint = sprintAction.IsPressed() && moving && input.y > 0.1f && !crouched && encumbrance < 1f;
-        bool sprinting = wantsSprint && stamina > 0f &&
+        bool sprinting = !jumping && wantsSprint && stamina > 0f &&
                          (State == MovementState.Sprinting || stamina >= minStaminaToSprint);
 
         UpdateStamina(sprinting, dt);
+        TryJump(encumbrance);
 
-        State = !moving ? MovementState.Idle
+        State = jumping ? MovementState.Jumping
+              : !moving ? MovementState.Idle
               : crouched ? MovementState.Crouching
               : sprinting ? MovementState.Sprinting
               : MovementState.Walking;
@@ -280,14 +313,47 @@ public class PlayerController : MonoBehaviour, ISaveable
         float speed = crouched ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
         speed *= Mathf.Lerp(1f, fullyEncumberedSpeedMultiplier, encumbrance);
 
+        // In the air the take-off momentum carries on; steering is only slight.
         Vector3 desired = (transform.right * input.x + transform.forward * input.y) * speed;
-        horizontalVelocity = Vector3.MoveTowards(horizontalVelocity, desired, acceleration * dt);
+        float control = jumping || !grounded ? airControl : 1f;
+        if (!jumping || moving)
+            horizontalVelocity = Vector3.MoveTowards(horizontalVelocity, desired, acceleration * control * dt);
 
-        if (controller.isGrounded && verticalVelocity < 0f)
+        if (grounded && verticalVelocity < 0f)
             verticalVelocity = -2f; // keep a slight downward push so the controller stays grounded on slopes
         verticalVelocity -= gravity * dt;
 
         controller.Move((horizontalVelocity + Vector3.up * verticalVelocity) * dt);
+    }
+
+    bool GroundJustBelow()
+    {
+        float radius = controller.radius * 0.9f;
+        Vector3 origin = transform.position + Vector3.up * (radius + 0.05f);
+        int mask = ~(1 << LayerMask.NameToLayer("Water"));
+        return Physics.SphereCast(origin, radius, Vector3.down, out RaycastHit hit, 0.25f, mask, QueryTriggerInteraction.Ignore) &&
+               !hit.collider.transform.IsChildOf(transform);
+    }
+
+    // A small hop. Pressing just before landing, or just after walking off an edge, still counts (jumpGrace).
+    void TryJump(float encumbrance)
+    {
+        if (jumpAction != null && jumpAction.WasPressedThisFrame())
+            jumpPressedTime = Time.time;
+
+        bool buffered = Time.time - jumpPressedTime <= jumpGrace;
+        bool canLeaveGround = !jumping && Time.time - lastGroundedTime <= jumpGrace;
+        if (!buffered || !canLeaveGround || crouched || encumbrance >= 1f || stamina < jumpStaminaCost)
+            return;
+
+        float height = jumpHeight * Mathf.Lerp(1f, encumberedJumpScale, encumbrance);
+        verticalVelocity = Mathf.Sqrt(2f * gravity * height);
+        jumping = true;
+        jumpPressedTime = float.NegativeInfinity;
+
+        stamina = Mathf.Max(0f, stamina - jumpStaminaCost);
+        lastSprintTime = Time.time; // recovery waits after a jump as it does after sprinting
+        sprintExertion += jumpStaminaCost / Mathf.Max(0.01f, sprintStaminaPerSecond); // the same effort as that much sprinting
     }
 
     void UpdateStamina(bool sprinting, float dt)
