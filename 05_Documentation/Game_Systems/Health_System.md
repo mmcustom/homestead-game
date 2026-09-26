@@ -161,6 +161,10 @@ Examples:
 
 ---
 
+**Built and tested 2026-09-26 (Claude Code) — committed and pushed (`0563b9e`).** A "feels-like" temperature drives Warmth: outdoor air temperature, minus up to 15°F for wind chill, minus up to another 12°F when the player is soaked. Above 50°F feels-like, Warmth recovers up to 5/hour; below that it falls at up to 12/hour at its worst, at a rate of 0.3/hour per degree under 50°F, faster still while wet. At a steady 25°F feels-like standing exposed, it takes about 10 real minutes to drop from full to the Moderate tier. A wet/soaked status line shows on the HUD alongside the meter. A lit campfire at full heat adds Warmth at 30/hour within 1.5 m, fading to nothing by 6 m away, and also warms and dries the player as a side effect — still the only warmth source in the game. The F9 debug key now also warms/dries the player; a new F10 debug key drops Warmth to 20 for testing the low tiers. The tiers below carry the real numbers Claude Code implemented, replacing the earlier vague bullets.
+
+---
+
 ## 75-100 (No penalties)
 
 Comfortable. No effects.
@@ -171,7 +175,7 @@ Comfortable. No effects.
 
 Effects:
 
-- Increased fatigue
+- Stamina ×0.9
 
 ---
 
@@ -179,8 +183,8 @@ Effects:
 
 Effects:
 
-- Reduced stamina
-- Health loss begins
+- Stamina ×0.7
+- 1 Health/hour lost
 
 ---
 
@@ -188,14 +192,15 @@ Effects:
 
 Effects:
 
-- Rapid health decline
-- Severe movement penalties
+- Stamina ×0.5
+- 4 Health/hour lost
+- Movement ×0.75
 
 ---
 
 ## 0
 
-Same collapse risk as Health reaching 0 — Warmth bottoming out is a path to collapse, not a separate death condition.
+8 Health/hour lost, Movement ×0.6. Same collapse risk as Health reaching 0 — Warmth bottoming out is a path to collapse, not a separate death condition.
 
 ---
 
@@ -211,6 +216,10 @@ Health recovers through:
 Recovery should be gradual.
 
 **Confirmed 2026-09-26 (Mike, playtest):** Health correctly drops from starvation (Hunger reaching empty), but currently never regenerates even once Hunger and Hydration are refilled — Recovery above was never actually built. Mike's rule: Health should slowly rebuild on its own as long as neither Hunger nor Hydration is empty (0). This stacks with the existing Sickness rule that Health doesn't recover at all while sick (see Illness System above) — sick overrides everything else, and otherwise Health regens whenever both meters are above zero. Exact regen rate, and whether food/sleep/shelter quality should scale it up (per the "Clean water, Quality food, Adequate sleep, Shelter" list above) versus a single flat rate for now, are Claude Code's call — see Current_Task_List.md.
+
+**Built and tested 2026-09-26 (Claude Code) — committed and pushed (`0563b9e`).** Health regens at 3/hour when both Hunger and Hydration are at 50 or higher ("well-fed"), and 1.5/hour when either is lower but still above 0. Claude Code additionally made regen pause completely whenever anything else is actively costing Health — Severe Hunger, Severe Hydration (Core_Survival_System.md's tiers), or the Warmth Severe tier below — rather than letting regen and drain net out simultaneously at the same time. **This "anything actively draining Health also blocks regen" rule was Claude Code's own call, not specified by Mike, and is flagged in Current_Task_List.md as awaiting his confirmation.** Along the way, Claude Code found the pre-existing Recovery code only ever healed when *both* Hunger and Hydration were at 75+ — effectively dead code in practice — and fixed it to match Mike's actual spec above.
+
+**Confirmed 2026-09-26 (Mike):** agrees with Claude Code's rule that regen pauses under Severe Hunger or Severe Hydration, and wants it to also pause while Sick — which it already does, independently, via the existing Illness System rule above ("Health doesn't recover at all while sick"), predating this batch. So the full pause list is: Severe Hunger, Severe Hydration, Severe Warmth (Exposure System below), or Sick. On how long the pause lasts for sickness specifically: it isn't a separate number — regen simply resumes automatically once the Sickness state itself clears, per the Illness System's existing 8-hour bout / 16-hour stacked cap. Mike still wants to playtest the full Hunger/Hydration/Sickness regen behavior in Play Mode before this is fully locked.
 
 ---
 

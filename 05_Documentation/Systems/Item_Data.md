@@ -29,6 +29,7 @@ Weight and shelf life are new numbers, proposed here for the first time, grounde
 | dandelion | Edible_Plants.md | 0.2 | 2 |
 | wild_onion | Edible_Plants.md | 0.2 | 5 |
 | cattail | Edible_Plants.md | 0.3 | 3 |
+| tall_grass | Trapping_System.md (Sourcing Cordage) | 0.1 | — |
 | morel | Mushrooms.md | 0.2 | 5 |
 | dryads_saddle | Mushrooms.md | 0.3 | 4 |
 | oyster_mushroom | Mushrooms.md | 0.3 | 4 |
@@ -49,6 +50,7 @@ Shelf life follows each species' own confirmed preservation notes: Wild Apples' 
 | venison | Large_Game.md | 2.5 | 3 | A full 8-unit Deer harvest is 20 kg — deliberately close to the 30 kg encumbrance line, so hauling a whole deer home in one trip is a real decision, not a given. |
 | deer_hide | Large_Game.md | 3.0 | — | |
 | deer_antlers | Large_Game.md | 1.0 | — | |
+| sinew | Large_Game.md / Medium_Game.md (field dressing byproduct) | 0.05 | — | Trapping_System.md's Sourcing Cordage — 2 per deer, 1 per turkey; day-to-day Cordage source alongside Tall Grass. |
 | bluegill | Bluegill.md | 0.3 | 2 | |
 | crappie | Crappie.md | 0.5 | 2 | |
 | bass | Bass.md | 0.6 | 2 | |
@@ -75,8 +77,8 @@ Milk gets the shortest shelf life in the game (dairy spoils fast); eggs get one 
 | id | Source | Weight (kg) | Shelf life |
 |---|---|---|---|
 | lumber | Building_Housing_System.md | 5.0 | — |
-| stone | (general building material) | 5.0 | — |
-| cordage | Trapping_System.md | 0.3 | — |
+| stone | Stone_Gathering_System.md (picked up by hand, scattered property-wide, denser near water/cliffs) | 5.0 | — |
+| cordage | Trapping_System.md (crafted: 3 Tall Grass, 2 Cattail, or 1 Sinew) | 0.3 | — |
 | firewood | Core_Survival_System.md (Fire System) | 1.5 | — |
 | arrows | Hunting_System.md (Recurve Bow ammunition) | 0.05 | — |
 | rifle_rounds | Hunting_System.md (Bolt-Action Rifle ammunition) | 0.02 | — |
@@ -84,7 +86,7 @@ Milk gets the shortest shelf life in the game (dairy spoils fast); eggs get one 
 | branches | Wood_Gathering_System.md (chopping trees) | 1.0 | — |
 | logs | Wood_Gathering_System.md (chopping trees) | 8.0 | — |
 
-Stone's 5 kg matches the exact test value Claude Code already used when verifying the 45 kg hard cap ("nine 5 kg stones fit, the tenth was refused") — carried over here rather than picking a different number. Firewood added 2026-09-25, matching Claude Code's Fire Building implementation: 40 deadfall piles give 2-3 Firewood each, one Firewood burns for 2 in-game hours. Weight is a first proposal, same status as everything else in this doc. Arrows and Rifle Rounds added 2026-09-25 with Phase 2's Hunting implementation — grouped here with the other stackable, non-perishable materials rather than Tools, since they're consumed by use (shot) rather than equipped. Claude Code's own note: nothing on the property currently produces either — per Hunting_System.md, ammunition is meant to be purchased later (ties into Economy_System.md once that's built) — so for now they only come from the F12 debug test kit. Weights are rough first proposals (a wood arrow, a rifle cartridge), same unlocked status as everything else here.
+Stone's 5 kg matches the exact test value Claude Code already used when verifying the 45 kg hard cap ("nine 5 kg stones fit, the tenth was refused") — carried over here rather than picking a different number. Source updated 2026-09-26 once Mike requested a real gathering method (Stone_Gathering_System.md, Design Draft, not yet built) — previously just a placeholder "(general building material)" with no way to actually obtain it. Firewood added 2026-09-25, matching Claude Code's Fire Building implementation: 40 deadfall piles give 2-3 Firewood each, one Firewood burns for 2 in-game hours. Weight is a first proposal, same status as everything else in this doc. Arrows and Rifle Rounds added 2026-09-25 with Phase 2's Hunting implementation — grouped here with the other stackable, non-perishable materials rather than Tools, since they're consumed by use (shot) rather than equipped. Claude Code's own note: nothing on the property currently produces either — per Hunting_System.md, ammunition is meant to be purchased later (ties into Economy_System.md once that's built) — so for now they only come from the F12 debug test kit. Weights are rough first proposals (a wood arrow, a rifle cartridge), same unlocked status as everything else here.
 
 Sticks/Branches/Logs added 2026-09-26 with Wood_Gathering_System.md (Design Draft, requested 2026-09-26, not yet built) — the three yields from chopping down a tree with the Axe. All non-perishable, same as the other Materials here. Weights are first-pass proposals (a stick vs. a branch vs. a full log), scaled relative to each other and to Firewood/Lumber; Claude Code can adjust by feel once the feature is actually built.
 
@@ -104,10 +106,20 @@ Only one can be equipped at a time per InventoryManager.cs; don't spoil. Correct
 | rabbit_snare | Trapping_System.md | 0.3 |
 | box_trap | Trapping_System.md | 2.0 |
 | fish_trap | Fishing_System.md | 3.0 |
-| bucket | Water_System.md (hand carrying) | 1.5 |
+| bucket | Water_System.md (hand carrying — water/liquid transport only, not boiling) | 1.5 |
 | flint_and_steel | Core_Survival_System.md (Fire System) | 0.2 |
+| stone_pickaxe | Stone_Gathering_System.md (crafted: 2 Sticks + 1 Cordage + 1 Stone) | 2.5 |
+| primitive_shovel | Wood_Gathering_System.md (crafted: 3 Sticks + 1 Cordage + 1 Stone) | 2.0 |
+| metal_cooking_pot | Water_System.md (Boiling vessel, replaces the Bucket — new-game starting kit, NOT craftable; F11 grants one to existing saves) | 1.0 |
+| pouch_bag | Primitive_Storage_System.md (crafted: 1 Deer Hide + 1 Cordage) | 0.4 |
+| tent | Building_Housing_System.md "First Build: Sleep System" (new-game starting kit / Trading Post item, NOT craftable) | 4.0 |
+| sleeping_bag | Building_Housing_System.md "First Build: Sleep System" (new-game starting kit, NOT craftable) | 1.5 |
 
-Flint and Steel added 2026-09-25, matching Claude Code's Fire Building implementation — the ignition source the doc's Fire System requires, carried (not equipped) to light a built campfire.
+Flint and Steel added 2026-09-25, matching Claude Code's Fire Building implementation — the ignition source the doc's Fire System requires, carried (not equipped) to light a built campfire. Stone Pick Axe and Primitive Shovel added 2026-09-26 (Mike requested both) — the Pick Axe's materials are Mike's own (Sticks, Cordage, Stone), the Shovel's a first-pass proposal using the same three (not confirmed by Mike). **Built and tested 2026-09-26 (Claude Code, commit/push in progress, not yet confirmed):** both crafted from a new Craft row in Inventory — Pick Axe 2 Sticks/1 Cordage/1 Stone, Shovel 3 Sticks/1 Cordage/1 Stone. Weights are still first-pass proposals.
+
+Metal Cooking Pot and Pouch/Bag added 2026-09-26 (Mike). The cooking pot reverses the Bucket's role in Water_System.md's already-shipped Boiling mechanic — Mike pointed out a wooden Bucket would burn over a campfire, so Boiling should require this new pot instead, narrowing the Bucket to water/liquid transport only; this is a real correction to committed code, not just a doc update. The Pouch/Bag is a new carrying Tool parallel to the Bucket but for non-liquid resources, feeding the new primitive storage types in Primitive_Storage_System.md; Mike didn't specify materials, so Deer Hide + Cordage was proposed as a first pass. **Built and tested 2026-09-26 (Claude Code, commit/push in progress, not yet confirmed):** the Pouch crafts from exactly the proposed 1 Deer Hide + 1 Cordage. **Claude Code's own call, flagged for Mike to confirm:** the cooking pot is NOT craftable — nothing on the property can produce metal, so it's in the new-game starting kit alongside the Bucket (F11 grants one to existing saves); a craftable clay-pot alternative was offered as a quick change if Mike would rather it be earnable. Both weights are still first-pass proposals.
+
+Tent and Sleeping Bag added 2026-09-26 — Building_Housing_System.md's "First Build: Sleep System." **Built and tested 2026-09-26 (Claude Code, commit/push in progress, not yet confirmed):** both are new-game starting-kit items, not craftable, same status as the metal cooking pot; F11 grants both to existing saves, including Mike's own. Weights (4.0 kg Tent, 1.5 kg Sleeping Bag) are Claude's own first-pass proposals — Claude Code's report didn't specify a weight for either, so these aren't yet confirmed by testing.
 
 ---
 

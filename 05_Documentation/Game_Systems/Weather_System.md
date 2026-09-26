@@ -103,6 +103,8 @@ Effects:
 
 Players should seek shelter rather than work through a thunderstorm.
 
+**Added 2026-09-26 (Mike):** Thunderstorms are now one of the two main triggers for natural tree fall (windthrow) — a standing tree coming down on its own, independent of the player chopping it. See Wood_Gathering_System.md's new Natural Tree Fall section for the full spec; exact odds are Claude Code's call.
+
 ---
 
 ## Cold Front
@@ -127,6 +129,8 @@ Effects:
 - Increased firewood consumption
 
 Winter's primary weather condition.
+
+**Added 2026-09-26 (Mike):** a long winter's worth of accumulated Snow is the other main trigger for natural tree fall (windthrow) — read as snow load bearing down on branches and trunks over the season, not any single snowfall. See Wood_Gathering_System.md's new Natural Tree Fall section.
 
 ---
 

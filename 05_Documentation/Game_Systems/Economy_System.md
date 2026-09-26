@@ -3,6 +3,8 @@
 
 Status: Design Draft
 
+**Extended 2026-09-26 (Mike, via the new Difficulty_System.md):** the Revenue Sources, Economic Sinks, and Barter sections below are about to get their first real mechanic — a two-way **Trading Post** where players sell resources for money and spend it on things they can't yet craft or produce (metal tools, ammunition, and similar). It's proposed as a new-game difficulty feature (harder tiers start with less or no cash, forcing the sell-to-buy loop from day one) rather than a standalone build — see Difficulty_System.md for the full shape and its open questions (physical location vs. menu, what's actually for sale, exact prices). Nothing below is being replaced, just finally given a mechanic.
+
 ---
 
 # Purpose

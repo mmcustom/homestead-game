@@ -35,6 +35,8 @@ Vegetation: mixed hardwood forest over roughly half to two-thirds of the propert
 
 Ground surface tagging: Claude Code's `GroundSurface` component (Grass/Dirt/Gravel) already drives footstep audio — this terrain pass should texture to match rather than needing a second pass later. Grass as the default majority cover; Dirt along the Old Fence Line Trail and any worn paths between sites; Gravel at the creek and pond banks near Spring Hollow and Bass Hole.
 
+**Added 2026-09-26 (Mike) — new terrain feature.** A cliff-side rock deposit: an outcrop of exposed rock, tied to South Ridge since that's the property's one high point and the natural place for stone to actually outcrop. Added specifically to give Stone_Gathering_System.md's higher-density rock zones a real place to be, alongside the creek and pond banks already described above. Exact size, exact placement on South Ridge, and whether it reads as a small cliff face or just a boulder-strewn stretch of ground are Claude Code's call, same as the rest of this doc's terrain specifics.
+
 ---
 
 # Site Placement

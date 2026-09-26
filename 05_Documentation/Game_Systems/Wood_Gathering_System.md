@@ -1,7 +1,7 @@
 # Homestead
 ## Wood Gathering System v1.0
 
-Status: Built and tested 2026-09-26 (Claude Code) — NOT YET committed. Sits on top of the still-uncommitted Phase 3 work.
+Status: Built and tested 2026-09-26 (Claude Code) — committed and pushed as part of commit `0563b9e` (with doc updates in `08b2926`). Phase 3 (Eating/Cooking/Water Purification/Sickness) is committed and pushed alongside it; nothing from this doc's scope is left uncommitted.
 
 ---
 
@@ -85,22 +85,54 @@ A Rock Pile is the same idea for Stone (already an existing Material, Item_Data.
 
 Exact build cost (if any — could be free to place, or cost a small amount of Cordage/materials, Claude Code's call), capacity (unlimited vs. a soft cap), and the deposit interaction (an Inventory "Store" button mirroring Cook/Split, or a direct drop-into-pile interaction) are Claude Code's call, same propose-then-confirm pattern as the rest of this doc set. Both pile types persist across saves the same way felled-tree wood piles already do.
 
+**Built and tested 2026-09-26 (Claude Code) — committed and pushed (`0563b9e`).** A Wood Pile costs 4 Sticks to build; a Rock Pile is free to place. R stores an item into a pile, E takes from it — the same interaction shape as the felled-tree piles. Neither pile has a capacity limit. Unlike the felled-tree piles, both of these persist across saves even when completely emptied, staying visible in the world as an empty frame (Wood Pile) or a small ring of base stones (Rock Pile) rather than disappearing. Stone itself still has no source anywhere in the game — the Rock Pile exists and works, but nothing currently produces Stone to put in it; that's a known gap for a future rock-gathering mechanic, not something this entry was asked to fix.
+
 **Future, once Building_Housing_System.md ships:** these primitive piles get replaced or supplemented by real storage buildings — larger capacity, weather protection, and (per that doc's own Storage category) a proper Storage Shed as the built upgrade path. The primitive piles aren't meant to be the permanent answer, just the buildable-now one.
+
+---
+
+# Natural Tree Fall (Windthrow)
+
+**Added 2026-09-26 (Mike) — confirmed as a real ask, not yet built.** Resolves the open question Audio_System.md raised when `tree-fall.wav` was sourced: besides a tree coming down from being chopped (built above), standing trees should also be able to fall on their own from weather, independent of the player. Mike's own framing: "random throughout the year, primarily after or during heavy thunderstorms or long winters with a lot of snow buildup."
+
+So this is a low, year-round background chance on any standing tree, weighted heavily upward by two conditions already tracked elsewhere in the game: during or shortly after a Thunderstorm (Weather_System.md), and after a long winter's worth of accumulated Snow (Weather_System.md's Snow effects, which already include surface water freezing and reduced foraging as season-long buildup effects) — read as heavy snow load bearing down on branches and trunks over a Winter, not a single snowfall. Outside those two triggers, a windthrow should be rare enough that a player could easily go a full season without seeing one.
+
+A tree that falls this way should behave like a felled tree for everything downstream — it yields the same Sticks/Branches/Logs mix (Yields above) into a wood pile at its base, plays sfx_tree_fall (`tree-fall.wav`, Audio_System.md) for hardwoods same as a chopped fall, and leaves a stump the same way. It just skips the chopping interaction entirely — the tree simply comes down while the player isn't swinging an Axe at it, whether they're nearby to see it or not.
+
+Exact odds (a per-tree-per-day roll vs. a check tied specifically to Thunderstorm/Winter-snow events), how much the two trigger conditions weight the chance versus the year-round baseline, and whether it can happen to trees near the player only or anywhere on the property, are all Claude Code's call, same propose-then-confirm pattern as the rest of this doc set. Worth flagging: this compounds the existing "trees don't regrow" risk already noted in Chopping Down a Tree above — a long enough game with both chopping and windthrow active will thin the property's tree count with no regrowth to offset it, same caveat, not a new one.
+
+**Built and tested 2026-09-26 (Claude Code):** windthrow can hit any standing hardwood anywhere on the property, falling roughly in the wind's current direction; shrubs are never blown down, and nothing falls within 6 m of the player. First-pass odds: about one tree a month on an ordinary day; about one every 8 storm-hours during a Thunderstorm; raised for the 12 hours following a storm; and in late Winter/early Spring, scaling with how much snow fell that Winter, up to about one every day and a half after a very snowy one. Storm and snow state save with the game. Tested in Play Mode: forced a windthrow directly, and let the ordinary-day odds simulate out to about 1 per 30 days.
+
+---
+
+# Tools: Primitive Shovel
+
+**Added 2026-09-26 (Mike) — new craftable Tool, two purposes.** A primitive Shovel, requested for (1) removing tree stumps that hardwood felling leaves behind (Chopping Down a Tree above — right now a stump is permanent, with no way to clear it) and (2) clearing and leveling ground to build on, tying into Building_Housing_System.md.
+
+**Materials:** Mike specified the Stone Pick Axe's materials (Sticks, Cordage, Stone — see Stone_Gathering_System.md) but not the Shovel's. Proposing the same three — Sticks, Cordage, Stone — as a first-pass recipe, on the same "stone tool head bound to a wood handle" logic as the Pick Axe, since a flat stone blade lashed to a stick handle is a reasonable primitive digging tool. **This is a proposal, not confirmed by Mike** — flag it for him to correct if he had different materials in mind, same as any other open first-pass detail in this doc set.
+
+**Stump removal** is buildable now, since felled trees and their stumps already exist in the game: equip the Shovel, interact with a stump, and it's removed. Whether it yields anything (a small amount of Firewood-grade wood scrap, or nothing at all) and how long the interaction takes are Claude Code's call. `digging.wav` (sfx_digging, Audio_System.md) is the sound for using the Shovel — covers stump removal now and ground clearing/leveling once that half is built.
+
+**Built and tested 2026-09-26 (Claude Code):** recipe is 3 Sticks, 1 Cordage, 1 Stone. Equip the Shovel and hold click on a stump; after 6 digs the stump is gone for good and the roots yield 1 Firewood. `digging.wav` plays one of 16 clean scrapes per push. Ground clearing/leveling stays Future as scoped. Two bugs found and fixed during testing: stumps had a nearly spherical collider that let aim slide off the rim, now a proper cylinder; and newly felled wood piles were landing close enough to a stump to cover its collision box entirely (this affects Mike's own save specifically, where a pile sits right over a stump) — the Shovel now finds the stump just behind the pile instead. Tested in Play Mode: crafted the Shovel, dug out a stump, confirmed both fixes.
+
+**Clearing and leveling ground to build on** is the Shovel's other half, but Building_Housing_System.md itself is still Design-Draft-only with no Unity implementation at all — there's no actual "place a building" flow yet for a cleared/leveled site to matter to. This half is documented here and cross-referenced into Building_Housing_System.md below as forward-looking spec, not a build-now request: it becomes relevant once Building gets its first real implementation, the same "buildable-now vs. sequenced-after-Building" split already used for Primitive Storage above.
 
 ---
 
 # Cross-References
 
-- **Building_Housing_System.md** — Small Cabin's "Logs" Requirement and the Lean-To's "local materials" both get a real source here, once Building itself is built. Not a dependency the other way — this system doesn't need Building to exist to be useful, since Logs/Branches can already be burned as Firewood. Storage category also cross-references the Primitive Storage section above.
+- **Building_Housing_System.md** — Small Cabin's "Logs" Requirement and the Lean-To's "local materials" both get a real source here, once Building itself is built. Not a dependency the other way — this system doesn't need Building to exist to be useful, since Logs/Branches can already be burned as Firewood. Storage category also cross-references the Primitive Storage section above. The new Primitive Shovel's ground-clearing/leveling half is cross-referenced there too, for whenever Building gets its first implementation.
 - **Core_Survival_System.md (Fire System)** — Firewood produced here is the same Firewood item Fire Building already uses; no change needed to the Fire System itself.
-- **Item_Data.md** — needs three new Materials: sticks, branches, logs (non-perishable, weight a first-pass proposal like everything else in that doc).
+- **Item_Data.md** — needs three new Materials: sticks, branches, logs (non-perishable, weight a first-pass proposal like everything else in that doc). Also needs a new Tools row for the Primitive Shovel (Sticks/Cordage/Stone, proposed).
+- **Stone_Gathering_System.md** — the Rock Pile in Primitive Storage above is Stone's first real destination; that doc covers where Stone itself comes from, and its own new Stone Pick Axe uses the same three materials as the Shovel's proposed recipe.
+- **Weather_System.md** — the Natural Tree Fall section above ties windthrow to Thunderstorm and Snow, both already-confirmed weather effects.
 
 
 ---
 
 # Design Rules
 
-1. This system covers chopping trees and Logs/Branches into Firewood only — it does not include building a primitive shelter or crafting hand tools. Those stay Future, noted here and in Building_Housing_System.md, until their host systems (Building/Housing, a real reason to craft a specific hand tool) actually exist to receive them.
+1. This system covers chopping trees, Logs/Branches into Firewood, the Wood Pile/Rock Pile primitive storage, windthrow (natural tree fall from weather), and the Primitive Shovel's stump-removal half — it does not include building a primitive shelter or crafting other hand tools beyond the Shovel and (Stone_Gathering_System.md's) Pick Axe. Those stay Future, noted here and in Building_Housing_System.md, until their host systems (Building/Housing, a real reason to craft a specific hand tool) actually exist to receive them.
 
 2. Exact chop timing, yield counts, and Firewood-per-Log/Branch conversion are all Claude Code's call — propose a first pass, Mike confirms by feel in Play Mode, same pattern as the rest of this doc set.
 
