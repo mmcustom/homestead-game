@@ -8,7 +8,8 @@ using UnityEngine;
 //   within 1 hour — full meat;  within 3 — three quarters, and a day's less shelf life;
 //   within 8 — half, two days less;  later — the meat's spoiled, only hide, antlers, feathers or fur are left.
 // A wounding hit that still brought the animal down halves the meat. A killing arrow is recovered. Anything that
-// doesn't fit in the pack stays on the carcass for another trip. Carcasses rot away after a day (and aren't saved).
+// doesn't fit in the pack stays on the carcass for another trip. Dressing takes a Knife in the pack (Knife); without
+// one the carcass waits, and the clock on its meat keeps running. Carcasses rot away after a day (and aren't saved).
 public class Carcass : MonoBehaviour, IInteractable
 {
     const float RotHours = 24f;
@@ -95,7 +96,8 @@ public class Carcass : MonoBehaviour, IInteractable
             if (animal == null)
                 return "";
             if (!dressed)
-                return $"Field Dress {animal.DisplayName}  ({Freshness})";
+                return Knife.Carried ? $"Field Dress {animal.DisplayName}  ({Freshness})"
+                                     : $"{animal.DisplayName}  ({Freshness}) — needs a Knife to field dress";
             if (remaining.Count == 0)
                 return "";
             (string item, int count) next = remaining[0];
@@ -112,6 +114,11 @@ public class Carcass : MonoBehaviour, IInteractable
 
         if (!dressed)
         {
+            if (!Knife.Carried)
+            {
+                ToolStatus.Flash($"You need a Knife to field dress the {animal.DisplayName}");
+                return;
+            }
             dressed = true;
             BuildYield();
         }

@@ -6,6 +6,7 @@ using System;
 // 2026-09-26: the primitive hand tools — the Stone Pick Axe (Stone_Gathering_System.md) and Primitive Shovel
 // (Wood_Gathering_System.md) are a stone head lashed to a stick handle; the Pouch (Primitive_Storage_System.md) is a
 // hide sewn with cordage. Each takes one Cordage, which the player starts with three of.
+// The Primitive Axe (Wood_Gathering_System.md) and the Knife (Hunting_System.md) are the same stone-on-a-stick make.
 // Cordage itself (Trapping_System.md's sourcing, 2026-09-26) twists from whichever natural fibre the player has: 3 Tall
 // Grass, 2 Cattail stalks, or 1 Sinew from a deer or turkey — one recipe with alternative ingredients.
 public static class Crafting
@@ -31,6 +32,8 @@ public static class Crafting
         Make("fish_trap", ("firewood", 3), ("cordage", 1)),
         Make("stone_pick_axe", ("sticks", 2), ("cordage", 1), ("stone", 1)),
         Make("shovel", ("sticks", 3), ("cordage", 1), ("stone", 1)),
+        Make("primitive_axe", ("sticks", 2), ("cordage", 1), ("stone", 1)),
+        Make("knife", ("sticks", 1), ("cordage", 1), ("stone", 1)),
         Make("pouch", ("deer_hide", 1), ("cordage", 1)),
         Either("cordage", new[] { ("tall_grass", 3) }, new[] { ("cattail", 2) }, new[] { ("sinew", 1) }),
     };

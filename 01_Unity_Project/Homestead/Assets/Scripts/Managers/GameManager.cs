@@ -84,6 +84,8 @@ public class GameManager : MonoBehaviour
             // can be made on the property.
             InventoryManager.Instance.AddToPlayer(SleepManager.SleepingBagId, 1);
             InventoryManager.Instance.AddToPlayer(WoodManager.TentId, 1);
+            // A Knife, so the first kill can be field dressed (Hunting_System.md, Mike 2026-09-26).
+            InventoryManager.Instance.AddToPlayer(Knife.Id, 1);
         }
         if (DiscoveryManager.Instance != null)
             DiscoveryManager.Instance.ResetDiscoveries();

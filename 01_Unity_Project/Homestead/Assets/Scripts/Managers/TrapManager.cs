@@ -387,6 +387,9 @@ public class TrapManager : MonoBehaviour, ISaveable
             {
                 bool full = trap.result == TrapResult.SuccessfulCatch;
                 string animal = trap.catchItem == "squirrel" ? "Squirrel" : "Rabbit";
+                // Dressing the catch takes a Knife, as with any kill (Knife); it stays in the trap until then.
+                if (!Knife.Carried)
+                    return $"A {animal} in the trap — you need a Knife to dress it";
                 int meat = inventory != null ? inventory.AddToPlayer("small_game_meat", 1) : 0;
                 int fur = full && inventory != null ? inventory.AddToPlayer("small_furs", 1) : 0;
                 if (meat == 0 && fur == 0)

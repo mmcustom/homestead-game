@@ -329,6 +329,8 @@ public class InventoryScreen : GameScreen
         {
             case "stone_pick_axe": return "mines Stone from the rock outcrop on South Ridge.";
             case "shovel": return "digs out stumps.";
+            case "primitive_axe": return "fells trees and splits wood like the Axe, just slower.";
+            case "knife": return "carried, it lets you field dress kills and take game from traps.";
             case "pouch": return "carried, it lets you carry 10 kg more.";
             case "cordage": return "twisted from whichever fibre you have.";
             default: return "equip it to set it.";

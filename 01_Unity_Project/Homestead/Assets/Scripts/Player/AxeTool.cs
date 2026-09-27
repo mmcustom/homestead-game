@@ -16,10 +16,15 @@ using UnityEngine.InputSystem;
 // The other swung tools work the same way (2026-09-26): the Stone Pick Axe on South Ridge's rock outcrop, a Stone every
 // 4 blows (Stone_Gathering_System.md, sfx_pickaxe), and the Primitive Shovel on a stump, dug out in 6 blows
 // (Wood_Gathering_System.md, sfx_digging).
+//
+// The Primitive Axe (2026-09-26) is a stone head on a stick handle, a tier below the Axe: it does everything the Axe
+// does, taking half as many blows again (a broad hardwood about 15 instead of 10) and splitting carried wood half as
+// slowly again. Either one carried lets the Inventory split wood; the metal Axe is used when both are.
 [DefaultExecutionOrder(90)]
 public class AxeTool : MonoBehaviour
 {
     public const string AxeId = "axe";
+    public const string PrimitiveAxeId = "primitive_axe";
     public const string PickAxeId = "stone_pick_axe";
     public const string ShovelId = "shovel";
 
@@ -34,6 +39,9 @@ public class AxeTool : MonoBehaviour
     [SerializeField, Min(1f)] float broadHardwoodBlows = 10f;
     [SerializeField, Min(1f)] float tallHardwoodBlows = 13f;
     [SerializeField, Min(1f)] float shrubBlows = 3f;
+
+    [Tooltip("How many times the blows (and splitting time) the Primitive Axe needs, compared with the Axe.")]
+    [SerializeField, Min(1f)] float primitiveAxeFactor = 1.5f;
 
     [Header("Pick Axe and Shovel")]
     [SerializeField, Min(1)] int blowsPerStone = 4;
@@ -92,7 +100,14 @@ public class AxeTool : MonoBehaviour
         }
     }
 
-    public static bool AxeCarried => InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(AxeId);
+    public static bool AxeCarried => InventoryManager.Instance != null &&
+                                     (InventoryManager.Instance.Player.Has(AxeId) || InventoryManager.Instance.Player.Has(PrimitiveAxeId));
+
+    // Only the Primitive Axe to split with: slower.
+    bool OnlyPrimitiveCarried => InventoryManager.Instance != null && !InventoryManager.Instance.Player.Has(AxeId);
+
+    // The equipped axe's blows multiplier: 1 for the Axe, more for the Primitive Axe.
+    float AxeFactor => Equipped == PrimitiveAxeId ? primitiveAxeFactor : 1f;
 
     void Update()
     {
@@ -105,7 +120,7 @@ public class AxeTool : MonoBehaviour
             UpdateDigging(equipped == PickAxeId);
             return;
         }
-        if (equipped != AxeId)
+        if (equipped != AxeId && equipped != PrimitiveAxeId)
             return;
 
         // What the axe would hit: a wood pile, or the trunk of a standing tree.
@@ -143,7 +158,7 @@ public class AxeTool : MonoBehaviour
         else if (tree >= 0)
             WorkTree(wood, tree, point);
         else
-            ToolStatus.Report("Axe — hold click on a tree trunk to chop it down, or on a wood pile to split Firewood");
+            ToolStatus.Report($"{InventoryManager.Instance.EquippedTool.DisplayName} — hold click on a tree trunk to chop it down, or on a wood pile to split Firewood");
     }
 
     // The Pick Axe on the rock outcrop, or the Shovel on a stump.
@@ -237,7 +252,7 @@ public class AxeTool : MonoBehaviour
         float size = wood.HeightScale(tree) * Mathf.Sqrt(wood.WidthScale(tree));
         float blowsAtSize1 = prototype == WoodManager.Shrub ? shrubBlows
                            : prototype == WoodManager.TallHardwood ? tallHardwoodBlows : broadHardwoodBlows;
-        return Mathf.Max(1f, Mathf.Round(blowsAtSize1 * size));
+        return Mathf.Max(1f, Mathf.Round(blowsAtSize1 * size * AxeFactor));
     }
 
     void WorkTree(WoodManager wood, int tree, Vector3 point)
@@ -270,7 +285,7 @@ public class AxeTool : MonoBehaviour
             return;
         }
 
-        int needed = logs ? blowsPerLog : blowsPerBranches;
+        int needed = Mathf.RoundToInt((logs ? blowsPerLog : blowsPerBranches) * AxeFactor);
         string what = logs ? "a Log" : $"{branchesPerFirewood} Branches";
         ToolStatus.Report(blows > 0f ? $"Splitting {what} into Firewood" : $"Wood pile — hold click to split {what} into Firewood",
                           blows > 0f ? blows / needed : -1f);
@@ -384,7 +399,8 @@ public class AxeTool : MonoBehaviour
         return null;
     }
 
-    float SplitSeconds(ItemDefinition item) => item.Id == WoodManager.LogsId ? splitLogSeconds : splitBranchesSeconds;
+    float SplitSeconds(ItemDefinition item) =>
+        (item.Id == WoodManager.LogsId ? splitLogSeconds : splitBranchesSeconds) * (OnlyPrimitiveCarried ? primitiveAxeFactor : 1f);
 
     static int Carried(ItemDefinition item) =>
         InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(item.Id) : 0;
