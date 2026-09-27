@@ -2,10 +2,10 @@ using System;
 using UnityEngine;
 
 // Open water the player can use by looking at it within reach (First_Person_Controller.md's "Draw Water"
-// interaction). With the Bucket equipped it fills the bucket (Water_System.md's Hand Carrying), otherwise it drinks on
-// the spot. Needs a collider the interaction raycast can hit; on the property's water surface that collider sits on the
-// Water layer, which doesn't collide with the player, so the player still wades through the creek rather than standing
-// on it.
+// interaction). With the Bucket or a Canteen equipped it fills them (Water_System.md's Hand Carrying), otherwise it
+// drinks on the spot. Needs a collider the interaction raycast can hit; on the property's water surface that collider
+// sits on the Water layer, which doesn't collide with the player, so the player still wades through the creek rather
+// than standing on it.
 //
 // One water surface covers the whole spring → creek → pond system, so quality is by zone: the nearest zone containing
 // the player wins, otherwise the default. Drinking here carries the quality's illness risk, scaled to the amount drunk
@@ -13,7 +13,7 @@ using UnityEngine;
 public class WaterSource : MonoBehaviour, IInteractable
 {
     public const string BucketItemId = "bucket";
-    // Litres one Bucket holds (Water_System.md's Hand Carrying), for anything that fills Buckets.
+    // Litres one Bucket holds (Water_System.md's Hand Carrying; 1 L of water = 1 kg), for anything that fills Buckets.
     public const int LitresPerBucket = 10;
 
     [Serializable]
@@ -27,15 +27,11 @@ public class WaterSource : MonoBehaviour, IInteractable
 
     [Tooltip("Hydration restored per drink.")]
     [SerializeField, Min(0f)] float hydrationPerDrink = 20f;
-    [Tooltip("Litres one Bucket holds (1 L of water = 1 kg).")]
-    [SerializeField, Min(1)] int bucketLitres = LitresPerBucket;
     [Tooltip("Quality anywhere not covered by a zone (Water_System.md: fast-moving creeks are Good).")]
     [SerializeField] WaterQuality defaultQuality = WaterQuality.Good;
     [SerializeField] QualityZone[] zones = Array.Empty<QualityZone>();
 
     PlayerController lastPlayer;
-
-    public int BucketLitres => bucketLitres;
 
     public string InteractionPrompt
     {
@@ -44,7 +40,7 @@ public class WaterSource : MonoBehaviour, IInteractable
             WaterQuality quality = QualityAt(lastPlayer != null ? lastPlayer.transform.position : transform.position);
             int fill = FillableLitres();
             if (fill > 0)
-                return $"Fill Bucket  ({quality} water, {fill} L)";
+                return $"Fill {InventoryManager.Instance.EquippedTool.DisplayName}  ({quality} water, {fill} L)";
             return $"Drink  ({quality} water{RiskNote(quality)})";
         }
     }
@@ -134,15 +130,16 @@ public class WaterSource : MonoBehaviour, IInteractable
         }
     }
 
-    // With the Bucket equipped: how many litres would go in — every carried bucket holds bucketLitres between them,
-    // limited by what the player can still carry. 0 when no bucket is equipped or they're all full.
+    // With the Bucket or a Canteen equipped: how many litres would go in — every carried bucket and canteen fills
+    // between them, limited by what the player can still carry. 0 when neither is equipped or they're all full.
     int FillableLitres()
     {
         InventoryManager inventory = InventoryManager.Instance;
-        if (inventory == null || inventory.EquippedTool == null || inventory.EquippedTool.Id != BucketItemId)
+        string equipped = inventory != null && inventory.EquippedTool != null ? inventory.EquippedTool.Id : null;
+        if (equipped != BucketItemId && equipped != WaterQualities.CanteenId)
             return 0;
 
-        int room = inventory.Player.Count(BucketItemId) * bucketLitres - WaterQualities.LitresCarried(inventory.Player);
+        int room = WaterQualities.Capacity(inventory.Player) - WaterQualities.LitresCarried(inventory.Player);
         if (room <= 0)
             return 0;
 

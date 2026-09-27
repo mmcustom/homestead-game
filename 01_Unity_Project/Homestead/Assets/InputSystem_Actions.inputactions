@@ -123,6 +123,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "TradingPost",
+                    "type": "Button",
+                    "id": "2e1f5f74-fda5-4d1b-9b45-e3ffd7498d5b",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Aim",
                     "type": "Button",
                     "id": "217d54f1-c956-4e96-8494-c13ef7d4423e",
@@ -559,6 +568,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Journal",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "6d76c23a-7f6f-42b7-84fc-d79da4bf2254",
+                    "path": "<Keyboard>/t",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "TradingPost",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -31,7 +31,15 @@ public static class WaterQualities
         return water != null ? water.IllnessChance : 0f;
     }
 
-    // Litres of water the player is carrying in their buckets, across every quality and purified.
+    // The Canteen (Difficulty_System.md's kit): a small carried water container, lighter than the Bucket.
+    public const string CanteenId = "canteen";
+    public const int LitresPerCanteen = 2;
+
+    // Litres the player's water containers hold between them: every Bucket and Canteen carried.
+    public static int Capacity(InventoryContainer container) =>
+        container.Count(WaterSource.BucketItemId) * WaterSource.LitresPerBucket + container.Count(CanteenId) * LitresPerCanteen;
+
+    // Litres of water the player is carrying in their buckets and canteens, across every quality and purified.
     public static int LitresCarried(InventoryContainer container)
     {
         int total = container.Count(Cooking.PurifiedWaterId);

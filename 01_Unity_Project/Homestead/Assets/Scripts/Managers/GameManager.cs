@@ -57,10 +57,16 @@ public class GameManager : MonoBehaviour
             GoToMainMenu();
     }
 
-    public void StartNewGame()
+    // New Game on a difficulty (Difficulty_System.md): the tier's starting kit and cash, locked in for this save.
+    public void StartNewGame(Difficulty difficulty = Difficulty.Settler, StartingWeapon weapon = StartingWeapon.Bow)
     {
         if (IsLoading)
             return;
+
+        if (DifficultyManager.Instance != null)
+            DifficultyManager.Instance.Begin(difficulty);
+        if (TradingPost.Instance != null)
+            TradingPost.Instance.ResetMoney(DifficultyManager.StartingCash);
 
         if (TimeManager.Instance != null)
             TimeManager.Instance.ResetClock();
@@ -69,23 +75,8 @@ public class GameManager : MonoBehaviour
         if (InventoryManager.Instance != null)
         {
             InventoryManager.Instance.ResetInventory();
-            // Day-one kit (a first proposal, 2026-09-25): Water_System.md's Buckets are "available from Day One", and a
-            // way to light the fire that Core_Survival_System.md's loop puts right after water.
-            InventoryManager.Instance.AddToPlayer(FireManager.IgnitionId, 1);
-            InventoryManager.Instance.AddToPlayer(WaterSource.BucketItemId, 1);
-            // A little cord for a first snare (2026-09-25 proposal): nothing on the property produces Cordage yet.
-            InventoryManager.Instance.AddToPlayer("cordage", 3);
-            // An axe for firewood and logs (Wood_Gathering_System.md, 2026-09-26 proposal): nothing else supplies one.
-            InventoryManager.Instance.AddToPlayer(AxeTool.AxeId, 1);
-            // A metal Cooking Pot for boiling (Water_System.md's Boiling correction): metalwork is beyond anything
-            // the player can make on the property, so the homestead starts with one, like the Bucket.
-            InventoryManager.Instance.AddToPlayer(Cooking.PotId, 1);
-            // Somewhere to sleep (Building_Housing_System.md's Sleep System): a Sleeping Bag and a Tent, neither of which
-            // can be made on the property.
-            InventoryManager.Instance.AddToPlayer(SleepManager.SleepingBagId, 1);
-            InventoryManager.Instance.AddToPlayer(WoodManager.TentId, 1);
-            // A Knife, so the first kill can be field dressed (Hunting_System.md, Mike 2026-09-26).
-            InventoryManager.Instance.AddToPlayer(Knife.Id, 1);
+            foreach ((string item, int count) in DifficultyManager.Kit(difficulty, weapon))
+                InventoryManager.Instance.AddToPlayer(item, count);
         }
         if (DiscoveryManager.Instance != null)
             DiscoveryManager.Instance.ResetDiscoveries();
@@ -117,6 +108,11 @@ public class GameManager : MonoBehaviour
         if (IsLoading || !HasSaveGame)
             return;
 
+        // Saves from before difficulty and money existed have nothing to restore for them: Settler, no cash.
+        if (DifficultyManager.Instance != null)
+            DifficultyManager.Instance.ResetForLoad();
+        if (TradingPost.Instance != null)
+            TradingPost.Instance.ResetMoney(0);
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing, () => SaveManager.Instance.LoadGame()));
     }
 

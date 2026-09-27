@@ -277,9 +277,11 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     {
         float tempF = WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureF : 60f;
 
-        float hydrationRate = hydrationPerHour * IllnessHydrationMultiplier *
+        // Difficulty's survival severity scales every drain (DifficultyManager).
+        float severity = DifficultyManager.DrainMultiplier;
+        float hydrationRate = hydrationPerHour * severity * IllnessHydrationMultiplier *
                               Mathf.Lerp(1f, hotHydrationMultiplier, Mathf.InverseLerp(warmF, hotF, tempF));
-        float hungerRate = hungerPerHour * Mathf.Lerp(1f, coldHungerMultiplier, Mathf.InverseLerp(coolF, frigidF, tempF));
+        float hungerRate = hungerPerHour * severity * Mathf.Lerp(1f, coldHungerMultiplier, Mathf.InverseLerp(coolF, frigidF, tempF));
 
         if (activity == MovementState.Sprinting)
         {
@@ -336,14 +338,14 @@ public class SurvivalManager : MonoBehaviour, ISaveable
                             : weather.PrecipitationWeather == WeatherType.LightRain ? 1f : 2f;
             soak = soakPerHour * intensity * (1f - rainShelter);
         }
-        float dry = soak > 0f ? 0f : dryPerHour;
-        wetness = Mathf.Clamp01(wetness + (soak - dry - fireDryPerHour * fireHeat) * hours);
+        // Drying never stops, so a trickle past a tarp or canopy doesn't soak through; open rain outpaces it.
+        wetness = Mathf.Clamp01(wetness + (soak - dryPerHour - fireDryPerHour * fireHeat) * hours);
 
         float wind = weather != null ? weather.WindStrength : 0f;
         float feelsF = tempF - windChillF * wind * (1f - windShelter) - wetChillF * wetness;
         float rate = (feelsF - neutralF) * warmthPerDegree;
         if (rate < 0f)
-            rate = Mathf.Max(-maxWarmthLossPerHour, rate * (1f + wetness)) * (1f - SleepInsulation);
+            rate = Mathf.Max(-maxWarmthLossPerHour, rate * (1f + wetness)) * (1f - SleepInsulation) * DifficultyManager.DrainMultiplier;
         else
             rate = Mathf.Min(maxWarmthGainPerHour, rate);
         rate += fireWarmthPerHour * fireHeat;

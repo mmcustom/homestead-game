@@ -147,6 +147,8 @@ GameObject:
   - component: {fileID: 199833600}
   - component: {fileID: 199833602}
   - component: {fileID: 199833601}
+  - component: {fileID: 199833604}
+  - component: {fileID: 199833603}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -1178,6 +1180,30 @@ MonoBehaviour:
   holdSeconds: 1.4
   wakeBelowWarmth: 20
   wakeBelowHealth: 15
+--- !u!114 &199833603
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 423091a9f1791c64d9455a5d7edb58c6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TradingPost
+--- !u!114 &199833604
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47f0744ec1cb10848b073a3a8bc90560, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DifficultyManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

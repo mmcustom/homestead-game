@@ -16,21 +16,21 @@ public abstract class GameScreen : MonoBehaviour
     public virtual void OnHide() { }
 }
 
-// The full-screen game screens: World Map (M), Inventory (I) and Journal (J) — Discovery_System.md's World Map and
-// Journal Screen sections and Inventory_System.md's Inventory Screen. They share one window with a tab per screen.
+// The full-screen game screens: World Map (M), Inventory (I), Journal (J) and Trading Post (T) — Discovery_System.md's
+// World Map and Journal Screen sections, Inventory_System.md's Inventory Screen and Difficulty_System.md's Trading Post. They share one window with a tab per screen.
 // A screen's key opens it, switches to it from another screen, or closes it if it's already showing; Esc also closes.
 // While a screen is open GameManager is in the Menu state: the clock, survival drain and player stop, the cursor is
 // free, and world audio keeps playing. Everything is built in code in the HUD's look, so the prefab only holds this.
 public class GameScreens : MonoBehaviour
 {
-    enum Kind { None = -1, Map, Inventory, Journal }
+    enum Kind { None = -1, Map, Inventory, Journal, TradingPost }
 
-    static readonly string[] ActionNames = { "Player/Map", "Player/Inventory", "Player/Journal" };
-    static readonly string[] KeyHints = { "M", "I", "J" };
+    static readonly string[] ActionNames = { "Player/Map", "Player/Inventory", "Player/Journal", "Player/TradingPost" };
+    static readonly string[] KeyHints = { "M", "I", "J", "T" };
 
-    readonly GameScreen[] screens = new GameScreen[3];
-    readonly Button[] tabs = new Button[3];
-    readonly InputAction[] actions = new InputAction[3];
+    readonly GameScreen[] screens = new GameScreen[4];
+    readonly Button[] tabs = new Button[4];
+    readonly InputAction[] actions = new InputAction[4];
 
     [Tooltip("The HUD canvas, hidden while a screen is open so the minimap and compass don't sit over the window.")]
     [SerializeField] Canvas hud;
@@ -187,15 +187,18 @@ public class GameScreens : MonoBehaviour
         titleLabel.rectTransform.offsetMin = new Vector2(32f, -70f);
         titleLabel.rectTransform.offsetMax = new Vector2(0f, -14f);
 
-        string[] names = { "Map", "Inventory", "Journal" };
+        string[] names = { "Map", "Inventory", "Journal", "Trading Post" };
         for (int i = 0; i < names.Length; i++)
         {
             var kind = (Kind)i;
-            Button tab = UiKit.Button(p, names[i] + " Tab", $"{names[i]}  [{KeyHints[i]}]", 22, () => Open(kind));
+            Button tab = UiKit.Button(p, names[i] + " Tab", $"{names[i]}  [{KeyHints[i]}]", 20, () => Open(kind));
             RectTransform rt = (RectTransform)tab.transform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);
-            rt.sizeDelta = new Vector2(190f, 46f);
-            rt.anchoredPosition = new Vector2(-32f - (names.Length - 1 - i) * 200f - 60f, -18f);
+            rt.sizeDelta = new Vector2(i == 3 ? 200f : 170f, 46f);
+            float right = 0f;
+            for (int j = names.Length - 1; j > i; j--)
+                right += (j == 3 ? 200f : 170f) + 10f;
+            rt.anchoredPosition = new Vector2(-32f - right - 60f, -18f);
             tabs[i] = tab;
         }
 
@@ -220,6 +223,7 @@ public class GameScreens : MonoBehaviour
         screens[(int)Kind.Map] = CreateScreen<WorldMapScreen>(p, "World Map");
         screens[(int)Kind.Inventory] = CreateScreen<InventoryScreen>(p, "Inventory");
         screens[(int)Kind.Journal] = CreateScreen<JournalScreen>(p, "Journal");
+        screens[(int)Kind.TradingPost] = CreateScreen<TradingPostScreen>(p, "Trading Post");
     }
 
     static T CreateScreen<T>(RectTransform panel, string name) where T : GameScreen

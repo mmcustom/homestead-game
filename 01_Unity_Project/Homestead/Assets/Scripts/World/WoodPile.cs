@@ -45,8 +45,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             {
                 int room = BucketRoom();
                 return room > 0 ? $"Fill Bucket  ({contents})"
-                     : Inventory != null && Inventory.Player.Has(WaterSource.BucketItemId) ? $"{Name}  ({contents}) — your Bucket is full"
-                     : $"{Name}  ({contents}) — needs a Bucket to carry water";
+                     : Inventory != null && WaterQualities.Capacity(Inventory.Player) > 0 ? $"{Name}  ({contents}) — your water containers are full"
+                     : $"{Name}  ({contents}) — needs a Bucket or Canteen to carry water";
             }
             string verb = state.kind == PileKind.RockStorage ? "Take Stone"
                         : state.kind == PileKind.FoodCache ? "Take Food"
@@ -124,13 +124,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         return drawn;
     }
 
-    // Litres the player's Buckets can still take.
+    // Litres the player's Buckets and Canteens can still take.
     static int BucketRoom()
     {
         if (Inventory == null)
             return 0;
-        int buckets = Inventory.Player.Count(WaterSource.BucketItemId);
-        return Mathf.Max(0, buckets * WaterSource.LitresPerBucket - WaterQualities.LitresCarried(Inventory.Player));
+        return Mathf.Max(0, WaterQualities.Capacity(Inventory.Player) - WaterQualities.LitresCarried(Inventory.Player));
     }
 
     static float WeightOf(string itemId) => ItemDatabase.Get(itemId)?.WeightKg ?? 0f;

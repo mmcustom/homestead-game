@@ -13,9 +13,9 @@ using UnityEngine.InputSystem;
 //   F9  refill Hydration, Hunger, Health and Warmth, dry off and cure sickness (SurvivalManager)
 //   F10 drop Hydration, Hunger and Warmth to 20, into the Severe tier, to check the warnings and Health loss
 //   F11 give the starting kit to older saves: Flint and Steel, a Bucket, the Axe, a Cooking Pot, a Sleeping Bag, a Tent,
-//       a Knife and 6 Firewood
+//       a Knife, a Canteen and 6 Firewood
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
-//       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait
+//       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
 {
     static readonly float[] Speeds = { 1f, 10f, 60f, 360f };
@@ -99,6 +99,8 @@ public class TimeDebugControls : MonoBehaviour
                 inventory.AddToPlayer(WoodManager.TentId, 1);
             if (!inventory.Player.Has(Knife.Id))
                 inventory.AddToPlayer(Knife.Id, 1);
+            if (!inventory.Player.Has(WaterQualities.CanteenId))
+                inventory.AddToPlayer(WaterQualities.CanteenId, 1);
             int firewood = inventory.AddToPlayer(FireManager.FirewoodId, 6);
             Show($"Fire, water and wood kit given ({firewood} Firewood fit)", time);
         }
@@ -113,7 +115,9 @@ public class TimeDebugControls : MonoBehaviour
             int missed = 0;
             foreach ((string id, int count) in kit)
                 missed += count - inventory.AddToPlayer(id, count);
-            Show(missed == 0 ? "Food-gathering kit given" : $"Food-gathering kit given ({missed} items didn't fit)", time);
+            if (TradingPost.Instance != null)
+                TradingPost.Instance.DebugAddMoney(50);
+            Show(missed == 0 ? "Food-gathering kit and $50 given" : $"Food-gathering kit and $50 given ({missed} items didn't fit)", time);
         }
     }
 

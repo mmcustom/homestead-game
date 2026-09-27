@@ -106,7 +106,8 @@ public class Animal : MonoBehaviour
             return;
 
         float distance = Vector3.Distance(player.transform.position, transform.position);
-        float reach = hearing * player.DetectionMultiplier * WindFactor(player.transform.position);
+        float reach = hearing * player.DetectionMultiplier * WindFactor(player.transform.position) *
+                      DifficultyManager.WildlifeAlertness; // warier game on harder difficulties
         WeatherManager weather = WeatherManager.Instance;
         if (weather != null && weather.IsRaining)
             reach *= 0.8f; // rain dampens sound, aiding stalking

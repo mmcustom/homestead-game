@@ -329,7 +329,12 @@ public class WeatherManager : MonoBehaviour, ISaveable
     float RollWeight(float[] weights, int type)
     {
         WeatherTypeSettings settings = weatherTypes[type];
-        return Mathf.Max(0f, weights[type]) / ((settings.minHours + settings.maxHours) * 0.5f);
+        float weight = Mathf.Max(0f, weights[type]) / ((settings.minHours + settings.maxHours) * 0.5f);
+        // Difficulty's weather severity: the rough weather comes more or less often (DifficultyManager).
+        var kind = (WeatherType)type;
+        if (kind == WeatherType.HeavyRain || kind == WeatherType.Thunderstorm || kind == WeatherType.ColdFront || kind == WeatherType.Snow)
+            weight *= DifficultyManager.StormMultiplier;
+        return weight;
     }
 
     float RollTemperatureOffset(System.Random rng) =>
@@ -354,7 +359,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
         float dayCurve = (Mathf.Cos((time.HourOfDay - PeakTemperatureHour) / 24f * 2f * Mathf.PI) + 1f) * 0.5f;
         float temperature = Mathf.Lerp(low, high, dayCurve)
                             + dailyTemperatureOffset
-                            + weatherTypes[(int)current].temperatureOffsetC;
+                            + weatherTypes[(int)current].temperatureOffsetC
+                            + DifficultyManager.TemperatureOffsetC; // milder or harsher by difficulty
 
         // Snow pulls the temperature to freezing or below (reached over the next few hours).
         if (current == WeatherType.Snow)

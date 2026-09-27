@@ -13,11 +13,13 @@ using UnityEngine.UI;
 //   Sleeping Bag alone — cuts Warmth loss by a quarter; no cover from rain or wind. Health recovers 1.5x while asleep.
 //   Lean-To — cuts Warmth loss by half, keeps off most rain (80%) and wind (60%). Health 2x.
 //   Tent — cuts Warmth loss by 60%, keeps off all rain and most wind (90%). Health 2x.
-// A Sleeping Bag inside a shelter adds its own quarter on top. A campfire close by still warms as usual. The cold,
+// A Sleeping Bag inside a shelter adds its own quarter on top. Sleeping out, a carried Tarp strung overhead keeps off
+// most rain (90%) and some wind (30%) (Difficulty_System.md's kit). A campfire close by still warms as usual. The cold,
 // thirst or hunger can wake the player early rather than let them sleep into real harm.
 public class SleepManager : MonoBehaviour
 {
     public const string SleepingBagId = "sleeping_bag";
+    public const string TarpId = "tarp";
 
     public static SleepManager Instance { get; private set; }
 
@@ -141,6 +143,11 @@ public class SleepManager : MonoBehaviour
         {
             insulation = 1f - (1f - insulation) * 0.75f;
             recovery = Mathf.Max(recovery, 1.5f);
+        }
+        if (shelter == null && InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(TarpId))
+        {
+            rain = Mathf.Max(rain, 0.9f);
+            wind = Mathf.Max(wind, 0.3f);
         }
         if (survival != null)
         {
