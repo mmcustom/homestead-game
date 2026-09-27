@@ -1,7 +1,7 @@
 # Homestead
 ## Primitive Storage System v1.0
 
-Status: Design Draft, requested 2026-09-26 (Mike). Built and tested 2026-09-26 (Claude Code) — commit/push in progress, not yet confirmed — see Current_Task_List.md
+Status: Design Draft, requested 2026-09-26 (Mike). Built, tested, committed and pushed 2026-09-26 (Claude Code) — commit `4145888` (`8b3ea6e` carries the doc updates); `master` matches GitHub — see Current_Task_List.md
 
 ---
 

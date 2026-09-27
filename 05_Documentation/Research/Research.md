@@ -107,6 +107,22 @@ This is real-world grounding for Maple_Sugaring.md's numbers; exact in-game accu
 
 ---
 
+# Metallurgy & Mining Grounding
+
+Supports: Mining_Metalworking_System.md (new), Wood_Gathering_System.md and Stone_Gathering_System.md's Iron/Steel tool tiers
+
+Real pre-industrial (bloomery-era) ironworking runs through five stages, and Mining_Metalworking_System.md's proposed chain matches all five rather than shortcutting to "ore becomes tool":
+
+- **Ore.** Iron oxide ore is the raw input; real bog iron (nodules forming in wetlands/slow water) was the ore many early American ironworks started from, including Southern Ohio's own historic charcoal furnaces (the Hanging Rock Iron Region — Lawrence, Scioto, and Jackson counties, a real 19th-century charcoal-iron industry with furnaces like Buckeye Furnace still standing as historic sites), which later moved to mined hematite deposits as demand grew. This directly supports the new doc's two-source proposal (bog iron near water, a mined vein at the existing South Ridge outcrop) — both are real, sequential real-world patterns, not invented ones.
+- **Charcoal.** Real bloomery smelting uses roughly a 1:1 ratio of charcoal to ore by weight, and the charcoal is doing real chemical work (its carbon monoxide reduces the ore), not just providing heat — confirming the new doc's note that ordinary Firewood can't substitute for it.
+- **Smelting.** A bloomery furnace does not melt ore into liquid metal; it chemically reduces it into a solid, porous, slag-filled "bloom" using charcoal and a forced-air draft (bellows or natural draft through tuyeres). This matches the new doc's Stage 3 exactly.
+- **Consolidating.** A real bloom has to be reheated and beaten with heavy hammers, in multiple passes, to compress it and drive out the trapped slag before it's usable iron — this is real, physical, repeated hammer-and-anvil work, supporting the new doc's Stage 4 tying this step to the Hammer tool specifically.
+- **Smithing and hardening.** Real blacksmithing needs a forge (to reheat), an anvil (to strike against), and a hammer (to shape) at minimum; turning iron into steel means adding carbon (carburizing) via repeated heating with charcoal, and steel — unlike plain iron, which can only be work-hardened by hammering — responds to heat-treatment: heated to roughly 1,450-1,550°F (a bright cherry-red glow) and quenched fast in water or oil for hardness, then tempered with a shorter, cooler reheat (roughly 300-600°F, judged historically by the oxide color running from pale straw to blue) to trade back a little hardness for toughness. Skipping the temper leaves a blade hard but dangerously brittle. This confirms the new doc's Stage 5 and 6 in full, including the real reason Steel is a genuinely different, longer process rather than just a bigger number than Iron.
+
+Nothing here proposes new numbers (ore/charcoal ratios beyond the general 1:1, craft times, structure costs) — those stay Claude Code's call once this system is actually built, same as every other numeric value in this document. One thing worth flagging: none of the sources used in this pass gave a precise real-world time for how long a bloomery smelt or a bloom consolidation actually takes in practice (accounts vary widely by furnace size and fuel), so if Mining_Metalworking_System.md ever needs a displayed "smelt time," that specific figure should get its own look rather than being assumed from this pass.
+
+---
+
 # Design Rules
 
 1. This document supports existing system claims with real-world sourcing. It does not introduce new mechanics, numbers, or species-specific stats — those belong in the system doc itself or in the still-unstarted per-species sheets (`05_Documentation/Livestock`, `Plants`, `Wildlife`, `Fishing`).
@@ -140,3 +156,9 @@ This is real-world grounding for Maple_Sugaring.md's numbers; exact in-game accu
 - [How to Tap and Make Maple Syrup, What Trees Can Be Tapped — Minnesota DNR](https://files.dnr.state.mn.us/destinations/state_parks/maplesyrup_how.pdf)
 - [Bulletin #7036, How to Tap Maple Trees and Make Maple Syrup — University of Maine Cooperative Extension](https://extension.umaine.edu/publications/7036e/)
 - [Maple Syrup Season: When to Tap Trees, How It's Made & Health Benefits — The Old Farmer's Almanac](https://www.almanac.com/making-maple-syrup-answering-common-questions)
+- [Bloomery — Wikipedia](https://en.wikipedia.org/wiki/Bloomery)
+- [Collections: Iron, How Did They Make It, Part IVb: Work Hardening, or Hardly Working? — A Collection of Unmitigated Pedantry](https://acoup.blog/2020/10/16/collections-iron-how-did-they-make-it-part-ivb-work-hardening-or-hardly-working/)
+- [Understanding the Metallurgy of Quenching Steel — Orchard Blacksmith](https://www.orchardblacksmith.com/blog/understanding-the-metallurgy-of-quenching-steel)
+- [Buckeye Furnace — Wikipedia](https://en.wikipedia.org/wiki/Buckeye_Furnace)
+- [The Hanging Rock Iron Region Historical Marker](https://www.hmdb.org/m.asp?m=26472)
+- [Hanging Rock Iron Region (Ohio) — Ohio History Connection](https://aspace.ohiohistory.org/subjects/4596)

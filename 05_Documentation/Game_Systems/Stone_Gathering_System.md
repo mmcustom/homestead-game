@@ -1,7 +1,7 @@
 # Homestead
 ## Stone Gathering System v1.0
 
-Status: Design Draft, requested 2026-09-26 (Mike). Built and tested 2026-09-26 (Claude Code) — commit/push in progress, not yet confirmed — see Current_Task_List.md
+Status: Design Draft, requested 2026-09-26 (Mike). Built, tested, committed and pushed 2026-09-26 (Claude Code) — commit `4145888` (`8b3ea6e` carries the doc updates); `master` matches GitHub — see Current_Task_List.md
 
 ---
 
@@ -55,6 +55,8 @@ Since this is a genuinely new craftable Tool and not just an ingredient list, it
 
 **Built and tested 2026-09-26 (Claude Code):** recipe is 2 Sticks, 1 Cordage, 1 Stone, crafted from a new Craft row in the Inventory. Tested in Play Mode on a copy of Mike's save: picked up a stone, crafted the Pick Axe, mined the outcrop, and confirmed the save round trip (both gathered stone and the outcrop's remaining count persisted). **Flagged (Claude Code):** Cordage has no production source anywhere in the game — the Pick Axe, the new Primitive Shovel, and the new Pouch (Primitive_Storage_System.md) each need one, using up exactly the 3 Cordage a new game starts with, leaving none for snares or the Fish Trap. Worth deciding soon.
 
+**Tiering — confirmed direction, not yet buildable, added 2026-09-26 (Mike).** This Stone Pick Axe is confirmed as the Pick Axe's Primitive tier; Mike wants Iron and Steel tiers above it (same progression as the new Primitive Axe and the Shovel, Wood_Gathering_System.md). **Gap now designed, still not buildable, 2026-09-26:** the new Mining_Metalworking_System.md lays out the full chain (mining Iron Ore — this outcrop is one of its two proposed sources — through Charcoal, a Bloomery, and Forge/Anvil/Workbench blacksmithing) needed to produce Iron and Steel; nothing in that chain is buildable yet, same "waits on Building's first implementation" status as the rest of that doc. Difficulty_System.md's earlier "metal Pick Axe" gap is superseded by this — it's really two tiers (Iron, Steel), not one generic "metal" tier.
+
 ---
 
 # Design Rules
@@ -73,3 +75,4 @@ Since this is a genuinely new craftable Tool and not just an ingredient list, it
 - **Wood_Gathering_System.md** — the Rock Pile in its Primitive Storage section is Stone's first real destination/use.
 - **Property_Layout.md** — the creek/Bass Hole water features and the new cliff-side rock deposit (added to Terrain Character) are this system's dense zones.
 - **Foraging_System.md** — a useful contrast, not a template: Foraging uses discrete named habitat patches, while Stone uses a continuous scatter with density zones instead.
+- **Mining_Metalworking_System.md (new, 2026-09-26)** — proposes the South Ridge outcrop as a secondary Iron Ore source (a rare drop alongside Stone on the same mining interaction), feeding the Pick Axe's Iron/Steel tiers.
