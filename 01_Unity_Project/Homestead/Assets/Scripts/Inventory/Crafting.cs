@@ -35,6 +35,7 @@ public static class Crafting
         Make("primitive_axe", ("sticks", 2), ("cordage", 1), ("stone", 1)),
         Make("knife", ("sticks", 1), ("cordage", 1), ("stone", 1)),
         Make("pouch", ("deer_hide", 1), ("cordage", 1)),
+        Make("hammer", ("sticks", 2), ("cordage", 1), ("logs", 1)),
         Either("cordage", new[] { ("tall_grass", 3) }, new[] { ("cattail", 2) }, new[] { ("sinew", 1) }),
     };
 

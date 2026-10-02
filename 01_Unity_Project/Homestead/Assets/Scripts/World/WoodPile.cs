@@ -3,7 +3,7 @@ using UnityEngine;
 
 // A pile or container in the World (WoodManager owns the state): what a felled tree left at its base, or storage the
 // player built — Wood_Gathering_System.md's Wood Pile and Rock Pile, Primitive_Storage_System.md's Water Barrel, Food
-// Cache and Storage Bin. Looking at it shows what's in it. The main interaction takes back whatever fits, lightest
+// Cache, Storage Bin and Tool Rack. Looking at it shows what's in it. The main interaction takes back whatever fits, lightest
 // things first (Logs last — they're 8 kg each), so a big load can take a few trips; the Water Barrel instead fills the
 // carried Buckets. The second (R) stores everything this kind of storage takes that the player is carrying — pouring
 // water into the barrel from the Bucket. Perishable food keeps the day it was acquired while stored. With the Axe,
@@ -50,7 +50,9 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             }
             string verb = state.kind == PileKind.RockStorage ? "Take Stone"
                         : state.kind == PileKind.FoodCache ? "Take Food"
-                        : state.kind == PileKind.StorageBin ? "Take Things" : "Take Wood";
+                        : state.kind == PileKind.StorageBin ? "Take Things"
+                        : state.kind == PileKind.ToolRack ? "Take Tools"
+                        : state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
             return AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more";
         }
     }
@@ -159,6 +161,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (state == null || Inventory == null)
             return;
 
+        // The barrel's litres are one shared budget across every water type; a CabinSite's cap is per material
+        // instead (each stops accepting more once it's got what Small Cabin needs — see WoodPileState.Accepts), so it
+        // doesn't share a running total the way the barrel's room does.
+        bool isCabinSite = state.kind == PileKind.CabinSite;
         int room = IsBarrel && WoodManager.Instance != null ? WoodManager.Instance.BarrelLitres - state.Total : int.MaxValue;
         int stored = 0;
         var ids = new List<string>();
@@ -174,6 +180,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (Inventory.EquippedTool != null && Inventory.EquippedTool.Id == itemId)
                 continue;
 
+            int cap = isCabinSite && WoodManager.Instance != null
+                ? Mathf.Max(0, WoodManager.Instance.CabinRequired(itemId) - state.Count(itemId))
+                : room;
+            if (cap <= 0)
+                continue;
+
             // Note each batch's day before it leaves the inventory, oldest first as Remove takes them.
             var batches = new List<ItemStack>();
             foreach (ItemStack stack in Inventory.Player.Stacks)
@@ -182,7 +194,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             batches.Sort((a, b) => a.acquiredDay.CompareTo(b.acquiredDay));
 
             ItemDefinition item = ItemDatabase.Get(itemId);
-            int want = Mathf.Min(room, Inventory.Player.Count(itemId));
+            int want = Mathf.Min(cap, Inventory.Player.Count(itemId));
             // Storing isn't dropping: the barrel plays one pour, everything else stays quiet.
             if (AudioManager.Instance != null)
             {
@@ -203,7 +215,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                 left -= n;
             }
             stored += removed;
-            room -= removed;
+            if (!isCabinSite)
+                room -= removed;
         }
         if (stored <= 0)
             return;
@@ -299,6 +312,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.WaterBarrel: BuildBarrel(); return;
             case PileKind.FoodCache: BuildBox(new Vector3(1f, 0.6f, 0.7f), 0.8f, true); return;
             case PileKind.StorageBin: BuildBox(new Vector3(1.1f, 0.55f, 0.75f), 1.15f, false); return;
+            case PileKind.ToolRack: BuildRack(); return;
+            case PileKind.CabinSite: BuildCabinSite(random); return;
         }
 
         int logs = Mathf.Min(state.Count(WoodManager.LogsId), 6);
@@ -351,6 +366,47 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         box.size = new Vector3(1.4f, stones > 8 ? 0.6f : 0.35f, 1.4f);
     }
 
+    // A Small Cabin build site: four corner stakes mark the plot even empty, then each of the five materials stacks
+    // up in its own corner as it's deposited — visibly growing over however many trips it takes, same as any other
+    // pile (Building_Housing_System.md's staged-deposit build).
+    void BuildCabinSite(System.Random random)
+    {
+        var clayColor = new Color(0.45f, 0.3f, 0.2f);
+        var grassColor = new Color(0.62f, 0.55f, 0.28f);
+
+        foreach (Vector2 corner in new[] { new Vector2(-1.5f, -1.5f), new Vector2(1.5f, -1.5f), new Vector2(-1.5f, 1.5f), new Vector2(1.5f, 1.5f) })
+            Piece(PrimitiveType.Cylinder, new Vector3(corner.x, 0.25f, corner.y), Vector3.zero, new Vector3(0.04f, 0.25f, 0.04f), bark);
+
+        int logs = Mathf.Min(state.Count(WoodManager.LogsId), 20);
+        int branches = Mathf.Min(state.Count(WoodManager.BranchesId), 14);
+        int grass = Mathf.Min(state.Count(WoodManager.TallGrassId), 15);
+        int stone = Mathf.Min(state.Count(WoodManager.StoneId), 16);
+        int clay = Mathf.Min(state.Count(WoodManager.ClayId), 10);
+
+        for (int i = 0; i < logs; i++)
+        {
+            float x = -1.3f + (i % 5) * 0.3f, y = 0.17f + (i / 5) * 0.3f;
+            Piece(PrimitiveType.Cylinder, new Vector3(x, y, -1.1f), new Vector3(90f, 0f, 0f), new Vector3(0.32f, 0.85f, 0.32f), bark);
+        }
+        for (int i = 0; i < branches; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(1.1f + (float)random.NextDouble() * 0.5f, 0.05f + i * 0.035f, -1.3f + (float)random.NextDouble() * 0.7f),
+                  new Vector3(90f, (float)random.NextDouble() * 40f - 20f, 0f), new Vector3(0.09f, 0.75f, 0.09f), bark);
+        for (int i = 0; i < stone; i++)
+        {
+            float a = (float)random.NextDouble() * Mathf.PI * 2f, r = (float)random.NextDouble() * 0.4f;
+            Stone(new Vector3(-1.2f + Mathf.Cos(a) * r, 0.1f + i * 0.02f, 1.2f + Mathf.Sin(a) * r), 0.24f, random);
+        }
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(PrimitiveType.Sphere, new Vector3(-0.4f + (i % 3) * 0.3f, 0.08f, 1.3f + (i / 3) * 0.25f), Vector3.zero,
+                        new Vector3(0.22f, 0.13f, 0.22f), null), clayColor);
+        for (int i = 0; i < grass; i++)
+            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0.9f + (float)random.NextDouble() * 0.5f, 0.02f + i * 0.015f, 0.9f + (float)random.NextDouble() * 0.5f),
+                        new Vector3((float)random.NextDouble() * 20f, (float)random.NextDouble() * 360f, 80f), new Vector3(0.02f, 0.35f, 0.02f), null), grassColor);
+
+        box.center = new Vector3(0f, 0.35f, 0f);
+        box.size = new Vector3(3.4f, 0.9f, 3.4f);
+    }
+
     // A hollowed-log barrel with the water showing at its level.
     void BuildBarrel()
     {
@@ -362,6 +418,29 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                    new Color(0.22f, 0.3f, 0.34f));
         box.center = new Vector3(0f, height / 2f, 0f);
         box.size = new Vector3(0.75f, height, 0.75f);
+    }
+
+    // A standing frame with a peg for each kind of Tool stored (up to 6), filling left to right, top to bottom.
+    void BuildRack()
+    {
+        const float height = 1.1f, width = 0.9f;
+        Piece(PrimitiveType.Cube, new Vector3(0f, height / 2f, 0f), Vector3.zero, new Vector3(width, height, 0.06f), bark);
+        foreach (Vector3 post in new[] { new Vector3(-width / 2f, 0f, 0f), new Vector3(width / 2f, 0f, 0f) })
+            Piece(PrimitiveType.Cylinder, post + new Vector3(0f, 0.02f, 0.03f), Vector3.zero, new Vector3(0.05f, 0.02f, 0.05f), bark);
+
+        int kinds = 0;
+        foreach (WoodStack stack in state.contents)
+            if (stack.count > 0)
+                kinds++;
+        kinds = Mathf.Min(kinds, 6);
+        for (int i = 0; i < kinds; i++)
+        {
+            float x = -width / 2f + 0.18f + (i % 3) * (width - 0.36f) / 2f;
+            float y = height - 0.22f - (i / 3) * 0.4f;
+            Piece(PrimitiveType.Cylinder, new Vector3(x, y, 0.09f), new Vector3(90f, 0f, 0f), new Vector3(0.035f, 0.16f, 0.035f), bark);
+        }
+        box.center = new Vector3(0f, height / 2f, 0f);
+        box.size = new Vector3(width + 0.3f, height + 0.1f, 0.5f);
     }
 
     // A lidded box of split wood (the Food Cache) or an open, lighter-coloured bin (the Storage Bin).

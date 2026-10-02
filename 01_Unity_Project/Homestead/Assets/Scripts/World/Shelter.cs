@@ -1,16 +1,22 @@
 using UnityEngine;
 
-// A placed Tent or Lean-To (Building_Housing_System.md's Sleep System; WoodManager owns the state). The main interaction
-// sleeps in it (SleepManager) — till morning at night, a short rest by day — with the shelter keeping off rain, wind
-// and some of the cold. The second (R) packs a Tent back up into the Inventory, or takes a Lean-To down for half its
-// Branches back. Drawn from simple shapes: a canvas A-frame tent, a lean-to of branches on a ridge pole.
+// A placed Tent, Lean-To or Small Cabin (Building_Housing_System.md's Sleep System and Small Cabin; WoodManager owns
+// the state). The main interaction sleeps in it (SleepManager) — till morning at night, a short rest by day — with the
+// shelter keeping off rain, wind and some of the cold. The second (R) packs a Tent back up into the Inventory, or takes
+// a Lean-To down for half its Branches back; a Small Cabin is permanent, so it has no second interaction at all.
+// Drawn from simple shapes: a canvas A-frame tent, a lean-to of branches on a ridge pole, a small stacked-log cabin
+// with a thatched roof (its hearth is a separate, ordinary Campfire — see WoodManager.BuildPile).
 public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
 {
+    // The cabin's footprint (its own local space), so WoodManager can place the hearth just clear of its walls.
+    public const float CabinWidth = 4f, CabinDepth = 5f;
+
     WoodPileState state;
     Material bark;
 
     public WoodPileState State => state;
     bool IsTent => state.kind == PileKind.Tent;
+    bool IsCabin => state.kind == PileKind.Cabin;
     string Name => WoodManager.PileName(state.kind);
 
     public void Bind(WoodPileState shelterState, Material barkMaterial)
@@ -19,6 +25,8 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
         bark = barkMaterial;
         if (IsTent)
             BuildTent();
+        else if (IsCabin)
+            BuildCabin();
         else
             BuildLeanTo();
     }
@@ -42,13 +50,13 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
             SleepManager.Instance.Sleep(state);
     }
 
-    public string SecondaryPrompt => state == null ? "" : IsTent ? "Pack Up Tent" : "Take Down Lean-To  (keeps 4 Branches)";
+    public string SecondaryPrompt => state == null || IsCabin ? "" : IsTent ? "Pack Up Tent" : "Take Down Lean-To  (keeps 4 Branches)";
 
     public void SecondaryInteract(PlayerController player)
     {
         InventoryManager inventory = InventoryManager.Instance;
         WoodManager wood = WoodManager.Instance;
-        if (state == null || inventory == null || wood == null)
+        if (state == null || inventory == null || wood == null || IsCabin)
             return;
 
         if (IsTent)
@@ -125,6 +133,53 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
         var box = gameObject.AddComponent<BoxCollider>();
         box.center = new Vector3(0f, height / 2f, 0f);
         box.size = new Vector3(width + 0.2f, height, depth + 0.2f);
+    }
+
+    // A small one-room log cabin: a stone-and-clay foundation, stacked horizontal logs, and a grass-thatched, peaked
+    // roof — the first permanent residence, so unlike the Tent and Lean-To it's one solid shell (no take-down).
+    void BuildCabin()
+    {
+        var stoneColor = new Color(0.58f, 0.55f, 0.5f);
+        var thatch = new Color(0.62f, 0.55f, 0.28f);
+        var doorway = new Color(0.16f, 0.12f, 0.08f);
+        const float width = CabinWidth, depth = CabinDepth, wallHeight = 2.2f, ridgeHeight = 3.4f, logRadius = 0.14f;
+
+        GameObject foundation = Piece(PrimitiveType.Cube, new Vector3(0f, 0.15f, 0f), Vector3.zero, new Vector3(width + 0.2f, 0.3f, depth + 0.2f), null);
+        Tint(foundation, stoneColor);
+
+        // Stacked horizontal logs for each of the four walls.
+        int courses = Mathf.Max(4, Mathf.RoundToInt(wallHeight / (logRadius * 2f)));
+        for (int i = 0; i < courses; i++)
+        {
+            float y = 0.3f + logRadius + i * logRadius * 2f;
+            foreach (float side in new[] { -1f, 1f })
+                Piece(PrimitiveType.Cylinder, new Vector3(side * width / 2f, y, 0f), new Vector3(0f, 0f, 90f),
+                      new Vector3(logRadius, depth / 2f, logRadius), bark);
+            foreach (float side in new[] { -1f, 1f })
+                Piece(PrimitiveType.Cylinder, new Vector3(0f, y, side * depth / 2f), new Vector3(90f, 90f, 0f),
+                      new Vector3(logRadius, width / 2f, logRadius), bark);
+        }
+
+        // A peaked, thatched roof over a ridge pole.
+        float roofY = 0.3f + courses * logRadius * 2f;
+        float rise = ridgeHeight - roofY;
+        float slope = Mathf.Atan2(rise, width / 2f) * Mathf.Rad2Deg;
+        float roofSide = Mathf.Sqrt(rise * rise + width * width / 4f);
+        foreach (float dir in new[] { -1f, 1f })
+        {
+            GameObject panel = Piece(PrimitiveType.Cube, new Vector3(dir * width / 4f, roofY + rise / 2f, 0f),
+                                     new Vector3(0f, 0f, dir * (90f - slope)), new Vector3(0.08f, roofSide + 0.3f, depth + 0.4f), null);
+            Tint(panel, thatch);
+        }
+        Piece(PrimitiveType.Cylinder, new Vector3(0f, ridgeHeight, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.06f, depth / 2f + 0.15f, 0.06f), bark);
+
+        // A plain dark doorway on the front wall.
+        GameObject door = Piece(PrimitiveType.Cube, new Vector3(0f, 0.3f + 0.9f, depth / 2f - 0.02f), Vector3.zero, new Vector3(0.9f, 1.8f, 0.05f), null);
+        Tint(door, doorway);
+
+        var box = gameObject.AddComponent<BoxCollider>();
+        box.center = new Vector3(0f, roofY / 2f, 0f);
+        box.size = new Vector3(width + 0.3f, roofY, depth + 0.3f);
     }
 
     // A flat triangle, base on the ground and apex up, faced both ways.

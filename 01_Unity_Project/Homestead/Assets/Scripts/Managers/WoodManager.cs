@@ -20,10 +20,12 @@ public class FelledTree
 }
 
 // Felled: what a felled tree left, gone once emptied. The rest are player-built storage that stay put, empty or not:
-// Wood_Gathering_System.md's Wood Pile and Rock Pile, and Primitive_Storage_System.md's Water Barrel, Food Cache and
-// Storage Bin. Tent and LeanTo aren't storage but shelters to sleep in (Building_Housing_System.md's Sleep System),
-// placed and saved the same way. (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo }
+// Wood_Gathering_System.md's Wood Pile and Rock Pile, and Primitive_Storage_System.md's Water Barrel, Food Cache,
+// Storage Bin and Tool Rack. Tent, LeanTo and Cabin aren't storage but shelters to sleep in (Building_Housing_System.md's
+// Sleep System and Small Cabin), placed and saved the same way. CabinSite is a Wood-Pile-style accumulator — deposited
+// into over multiple trips, then converted in place into a real Cabin once fully stocked (WoodManager.CompleteCabin).
+// (Saved as numbers, so new kinds go on the end.)
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack }
 
 [Serializable]
 public class WoodPileState
@@ -97,11 +99,14 @@ public class WoodPileState
 
     public bool IsEmpty => contents.Count == 0;
     public bool IsRock => kind == PileKind.RockStorage;
-    public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo;
+    public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo || kind == PileKind.Cabin;
     public bool IsWoodPile => kind == PileKind.Felled || kind == PileKind.WoodStorage;
     public bool IsBuilt => kind != PileKind.Felled;
 
     // What this pile will take in: each kind of storage takes only its own category (Primitive_Storage_System.md).
+    // A CabinSite only takes what Small Cabin still needs — once a material reaches its required amount, it stops
+    // accepting more of that one (same idea as the Water Barrel's litre cap, just tracked per material instead of
+    // one shared total).
     public bool Accepts(string itemId)
     {
         switch (kind)
@@ -110,8 +115,13 @@ public class WoodPileState
             case PileKind.WaterBarrel: return WoodManager.IsWater(itemId);
             case PileKind.FoodCache: return WoodManager.IsStorableFood(itemId);
             case PileKind.StorageBin: return WoodManager.IsDryGoods(itemId);
+            case PileKind.ToolRack: return WoodManager.IsTool(itemId);
+            case PileKind.CabinSite:
+                return WoodManager.Instance != null && Array.IndexOf(WoodManager.CabinMaterialIds, itemId) >= 0 &&
+                       Count(itemId) < WoodManager.Instance.CabinRequired(itemId);
             case PileKind.Tent:
-            case PileKind.LeanTo: return false;
+            case PileKind.LeanTo:
+            case PileKind.Cabin: return false;
             default: return WoodManager.IsWood(itemId);
         }
     }
@@ -139,11 +149,26 @@ public struct WoodSaveData
 //   Wood Pile — 4 Sticks for a ground frame; wood.        Rock Pile — free; Stone.
 //   Water Barrel — 3 Logs; up to 40 L of water, poured in from the Bucket and drawn off into it.
 //   Food Cache — 2 Logs, 4 Branches; food, keeping each batch's age.   Storage Bin — 6 Branches, 6 Sticks; the rest.
+    //   Tool Rack — 4 Branches, 4 Sticks; any Tool.
 // Only the barrel has a limit; they're the stopgap until Building's storage buildings exist. No spoilage bonus.
 //
 // Shelters (Sleep System, 2026-09-26) are placed the same way: a Tent, from the one the player carries (not craftable —
 // a starting-kit item), or a Lean-To from 8 Branches, 4 Sticks and 1 Cordage. Sleeping in one is Shelter's job; a Tent
 // packs back up, a Lean-To comes down for some of its Branches.
+//
+// Small Cabin (Building_Housing_System.md's first permanent residence, 2026-09-26): a two-phase build, not a one-trip
+// BuildPile like everything above — Mike's call, so a first permanent residence costs real time and multiple trips
+// rather than fitting in a single carry. Phase one places an empty CabinSite (free, no Hammer needed, but the same
+// bigger clear site as the finished building — cabinFootprint, checked against both other piles and standing trees or
+// un-dug stumps, the "automatic check the spot's clear" half of Site Preparation — and a bigger build distance so its
+// footprint doesn't land on the player). Phase two is ordinary Wood-Pile storing (WoodPile/R and E), capped per
+// material at what Small Cabin still needs (WoodPileState.Accepts, CabinRequired) — visibly growing as it fills, and
+// freely takeable back out, nothing locked in early. Once every material's at its required amount, CompleteCabin (only
+// with the Hammer equipped — the tool finally gates something, same "equip the tool for the job" pattern as the
+// Axe/Pick Axe/Shovel) swaps the site in place for the real thing: permanent, no take-down unlike Tent/Lean-To, and
+// furnished with a hearth — FireManager.BuildFurnished drops an unlit, unfuelled campfire just outside it, so
+// Warmth-by-proximity and Cooking work exactly as they do at any other campfire, no new mechanic needed. Sleeping in
+// it (Shelter) is the best tier yet, above the Tent.
 //
 // Stumps come out with the Primitive Shovel (AxeTool), leaving a Firewood's worth of root wood.
 //
@@ -161,6 +186,11 @@ public class WoodManager : MonoBehaviour, ISaveable
     public const string BranchesId = "branches";
     public const string SticksId = "sticks";
     public const string StoneId = "stone";
+    public const string TallGrassId = "tall_grass";
+    public const string ClayId = "clay";
+    public const string HammerId = "hammer";
+
+    public static readonly string[] CabinMaterialIds = { LogsId, BranchesId, TallGrassId, StoneId, ClayId };
 
     public static readonly string[] WoodIds = { LogsId, BranchesId, SticksId, FireManager.FirewoodId };
     public static bool IsWood(string itemId) => Array.IndexOf(WoodIds, itemId) >= 0;
@@ -182,6 +212,9 @@ public class WoodManager : MonoBehaviour, ISaveable
                !IsWater(itemId) && !IsStorableFood(itemId);
     }
 
+    // Tools for the Tool Rack: Axe, Rifle, Bow, Fishing Rod, Bucket, Fish Trap, Pouch, and so on.
+    public static bool IsTool(string itemId) => ItemDatabase.Get(itemId)?.Category == ItemCategory.Tool;
+
     // Terrain tree prototypes (PropertyTerrainBuilder): 0 broad hardwood, 1 tall hardwood, 2 understory shrub.
     public const int BroadHardwood = 0, TallHardwood = 1, Shrub = 2;
 
@@ -201,6 +234,25 @@ public class WoodManager : MonoBehaviour, ISaveable
     [Tooltip("Piles and campfires can't be built closer together than this (metres).")]
     [SerializeField, Min(0f)] float minSpacing = 2f;
     [SerializeField, Range(0f, 60f)] float maxSlope = 30f;
+
+    // Quantities went back to the original, more substantial first pass once building moved to a staged CabinSite
+    // (Mike's call, 2026-09-27): a single-trip 35 kg recipe made a first permanent residence cost less than a Lean-To.
+    // Nothing here needs to fit in one carry any more, so it's sized for what a real log cabin's worth of materials
+    // should feel like, not what 45 kg allows.
+    [Header("Small Cabin")]
+    [SerializeField, Min(1)] int cabinLogs = 20;
+    [SerializeField, Min(1)] int cabinBranches = 10;
+    [SerializeField, Min(1)] int cabinTallGrass = 15;
+    [Tooltip("Stone for the whole cabin — its own foundation plus the stove's extra hearth stone.")]
+    [SerializeField, Min(1)] int cabinStone = 12;
+    [Tooltip("Clay for the stove's hearth, mortaring the stone under the indoor fire.")]
+    [SerializeField, Min(1)] int cabinClay = 6;
+    [Tooltip("How far in front of the player a Small Cabin site goes — further than other piles so its footprint clears them.")]
+    [SerializeField, Min(1f)] float cabinBuildDistance = 3.5f;
+    [Tooltip("A Small Cabin's clearance: kept clear of other piles and standing trees, checked automatically as its Site Preparation.")]
+    [SerializeField, Min(1f)] float cabinFootprint = 3.2f;
+    [Tooltip("How close the player needs to be to a CabinSite to complete it from the Inventory screen (metres).")]
+    [SerializeField, Min(1f)] float cabinCompleteReach = 6f;
 
     readonly List<FelledTree> felled = new List<FelledTree>();
     readonly HashSet<int> felledSet = new HashSet<int>();
@@ -546,8 +598,10 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     // --- Building storage piles ---
 
+    // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
+    // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
-        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.Tent, PileKind.LeanTo };
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.ToolRack, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite };
 
     public const string TentId = "tent";
 
@@ -559,13 +613,17 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WaterBarrel: return "Water Barrel";
             case PileKind.FoodCache: return "Food Cache";
             case PileKind.StorageBin: return "Storage Bin";
+            case PileKind.ToolRack: return "Tool Rack";
             case PileKind.Tent: return "Tent";
             case PileKind.LeanTo: return "Lean-To";
+            case PileKind.Cabin: return "Small Cabin";
+            case PileKind.CabinSite: return "Small Cabin Site";
             default: return "Wood Pile";
         }
     }
 
-    // What building one takes.
+    // What building one takes. A CabinSite is free to place — what Small Cabin needs is deposited into it afterwards,
+    // over as many trips as it takes (WoodPileState.Accepts caps each material at CabinRequired).
     public WoodStack[] CostOf(PileKind kind)
     {
         switch (kind)
@@ -574,11 +632,26 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WaterBarrel: return new[] { new WoodStack { itemId = LogsId, count = 3 } };
             case PileKind.FoodCache: return new[] { new WoodStack { itemId = LogsId, count = 2 }, new WoodStack { itemId = BranchesId, count = 4 } };
             case PileKind.StorageBin: return new[] { new WoodStack { itemId = BranchesId, count = 6 }, new WoodStack { itemId = SticksId, count = 6 } };
+            case PileKind.ToolRack: return new[] { new WoodStack { itemId = BranchesId, count = 4 }, new WoodStack { itemId = SticksId, count = 4 } };
             case PileKind.Tent: return new[] { new WoodStack { itemId = TentId, count = 1 } };
             case PileKind.LeanTo: return new[] { new WoodStack { itemId = BranchesId, count = 8 }, new WoodStack { itemId = SticksId, count = 4 },
                                                  new WoodStack { itemId = "cordage", count = 1 } };
+            // Not what a CabinSite costs to place (free) — what Small Cabin needs deposited into one before it can be
+            // completed. Kept under PileKind.Cabin as the single source of truth CabinRequired reads from.
+            case PileKind.Cabin: return new[] { new WoodStack { itemId = LogsId, count = cabinLogs }, new WoodStack { itemId = BranchesId, count = cabinBranches },
+                                                new WoodStack { itemId = TallGrassId, count = cabinTallGrass }, new WoodStack { itemId = StoneId, count = cabinStone },
+                                                new WoodStack { itemId = ClayId, count = cabinClay } };
             default: return new WoodStack[0];
         }
+    }
+
+    // How much of a material a Small Cabin needs in total, for CabinSite's per-material cap and CompleteCabin.
+    public int CabinRequired(string itemId)
+    {
+        foreach (WoodStack c in CostOf(PileKind.Cabin))
+            if (c.itemId == itemId)
+                return c.count;
+        return 0;
     }
 
     // e.g. "3 Logs" or "free".
@@ -604,6 +677,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
         }
 
+        // Placing a CabinSite is free and needs no tool — the Hammer only gates CompleteCabin, once it's fully stocked.
+        bool cabin = kind == PileKind.CabinSite;
+
         foreach (WoodStack c in CostOf(kind))
         {
             int have = inventory.Player.Count(c.itemId);
@@ -614,8 +690,10 @@ public class WoodManager : MonoBehaviour, ISaveable
             }
         }
 
+        float distance = cabin ? cabinBuildDistance : buildDistance;
+        float spacing = cabin ? cabinFootprint : minSpacing;
         Vector3 forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
-        Vector3 probe = player.transform.position + forward * buildDistance + Vector3.up * 3f;
+        Vector3 probe = player.transform.position + forward * distance + Vector3.up * 3f;
         if (!Physics.Raycast(probe, Vector3.down, out RaycastHit hit, 8f, ~0, QueryTriggerInteraction.Ignore) ||
             hit.collider.transform.IsChildOf(player.transform) || !(hit.collider is TerrainCollider))
         {
@@ -632,15 +710,32 @@ public class WoodManager : MonoBehaviour, ISaveable
             reason = "The ground in front of you is too steep.";
             return false;
         }
-        foreach (WoodPileState other in piles)
+        if (cabin && FindTree(hit.point, cabinFootprint) >= 0)
         {
-            if (Vector3.Distance(other.position, hit.point) < minSpacing)
+            reason = "Clear the trees off the building site first.";
+            return false;
+        }
+        if (cabin)
+        {
+            foreach (Collider nearby in Physics.OverlapSphere(hit.point, cabinFootprint, ~0, QueryTriggerInteraction.Ignore))
             {
-                reason = "Too close to another pile.";
+                if (nearby.GetComponent<Stump>() == null)
+                    continue;
+                reason = "Dig out the stumps on the building site first (Primitive Shovel).";
                 return false;
             }
         }
-        if (FireManager.Instance != null && FireManager.Instance.NearestLit(hit.point, minSpacing) != null)
+        foreach (WoodPileState other in piles)
+        {
+            bool otherIsCabin = other.kind == PileKind.Cabin || other.kind == PileKind.CabinSite;
+            float clearance = Mathf.Max(spacing, otherIsCabin ? cabinFootprint : minSpacing);
+            if (Vector3.Distance(other.position, hit.point) < clearance)
+            {
+                reason = cabin ? "Too close to another pile or building." : "Too close to another pile.";
+                return false;
+            }
+        }
+        if (FireManager.Instance != null && FireManager.Instance.NearestLit(hit.point, spacing) != null)
         {
             reason = "Too close to the fire.";
             return false;
@@ -653,7 +748,7 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     public bool BuildPile(PileKind kind, PlayerController player)
     {
-        if (kind == PileKind.Felled || !CanBuildPile(kind, player, out Vector3 position, out _))
+        if (kind == PileKind.Felled || kind == PileKind.Cabin || !CanBuildPile(kind, player, out Vector3 position, out _))
             return false;
 
         foreach (WoodStack c in CostOf(kind))
@@ -668,6 +763,87 @@ public class WoodManager : MonoBehaviour, ISaveable
         piles.Add(pile);
         SpawnPile(pile);
         PileChanged?.Invoke(pile);
+        return true;
+    }
+
+    // --- Completing a Small Cabin ---
+
+    // The nearest CabinSite within reach that's fully stocked, the Hammer equipped and ready to complete — or why not.
+    public bool CanCompleteCabin(PlayerController player, out WoodPileState site, out string reason)
+    {
+        site = null;
+        if (player == null || !WorldLoaded)
+        {
+            reason = "Not available here.";
+            return false;
+        }
+
+        WoodPileState nearest = null;
+        float bestDistance = cabinCompleteReach;
+        foreach (WoodPileState p in piles)
+        {
+            if (p.kind != PileKind.CabinSite)
+                continue;
+            float d = Vector3.Distance(p.position, player.transform.position);
+            if (d <= bestDistance)
+            {
+                nearest = p;
+                bestDistance = d;
+            }
+        }
+        if (nearest == null)
+        {
+            reason = "No Small Cabin site nearby — build one first.";
+            return false;
+        }
+
+        foreach (string itemId in CabinMaterialIds)
+        {
+            int need = CabinRequired(itemId) - nearest.Count(itemId);
+            if (need > 0)
+            {
+                reason = $"Needs {need} more {ItemDatabase.Get(itemId)?.DisplayName ?? itemId} at the site.";
+                return false;
+            }
+        }
+
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null || inventory.EquippedTool == null || inventory.EquippedTool.Id != HammerId)
+        {
+            reason = "Fully stocked — equip the Hammer to build it.";
+            return false;
+        }
+
+        site = nearest;
+        reason = "";
+        return true;
+    }
+
+    // Converts a fully-stocked CabinSite into the real thing, in place: consumes the deposited materials, swaps its
+    // WoodPile view for a Shelter (Small Cabin) view, and furnishes it with a hearth.
+    public bool CompleteCabin(PlayerController player)
+    {
+        if (!CanCompleteCabin(player, out WoodPileState site, out _))
+            return false;
+
+        foreach (string itemId in CabinMaterialIds)
+            site.Remove(itemId, CabinRequired(itemId));
+        site.contents.Clear(); // nothing else should be left — Accepts() caps every material at what's required
+        site.kind = PileKind.Cabin;
+
+        if (pileViews.TryGetValue(site.id, out GameObject oldView) && oldView != null)
+            Destroy(oldView);
+        pileViews.Remove(site.id);
+        SpawnPile(site);
+        PileChanged?.Invoke(site);
+
+        // Furnished with a hearth — a real campfire, unlit and unfuelled until the player tends it, so
+        // Warmth-by-proximity and Cooking work there exactly as at any other campfire.
+        if (FireManager.Instance != null)
+        {
+            Vector3 hearthOffset = Quaternion.Euler(0f, site.yaw, 0f) * new Vector3(Shelter.CabinWidth / 2f + 1.1f, 0f, 0f);
+            FireManager.Instance.BuildFurnished(site.position + hearthOffset, site.yaw);
+        }
         return true;
     }
 

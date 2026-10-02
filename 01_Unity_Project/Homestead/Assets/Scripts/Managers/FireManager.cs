@@ -205,6 +205,17 @@ public class FireManager : MonoBehaviour, ISaveable
         return true;
     }
 
+    // A fire that comes already built with a structure (Building_Housing_System.md's Small Cabin hearth) rather than
+    // paid for in Firewood — unlit and out of fuel until the player tends it themselves, same as any other campfire
+    // from there on.
+    public CampfireState BuildFurnished(Vector3 position, float yaw)
+    {
+        var fire = new CampfireState { id = nextId++, position = position, yaw = yaw, fuelHours = 0f, lit = false };
+        fires.Add(fire);
+        SpawnView(fire);
+        return fire;
+    }
+
     // --- Tending ---
 
     public static bool HasIgnition => Carried != null && Carried.Has(IgnitionId);

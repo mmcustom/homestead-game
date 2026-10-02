@@ -10,8 +10,8 @@ using UnityEngine.UI;
 // Each piece takes a few seconds (CampfireCooking); the button shows the progress, and clicking it again stops.
 // Carrying the Axe, Logs and Branches get a Split button the same way, making Firewood (AxeTool).
 // A Build section builds a campfire from carried Firewood (Fire System) or storage — Wood Pile, Rock Pile, Water
-// Barrel, Food Cache, Storage Bin (WoodManager) — and crafts traps and tools (Crafting's recipes), two rows of three
-// each; hovering a button says what it needs or why it can't be built there. Storage is filled and emptied in the
+// Barrel, Food Cache, Storage Bin, Tool Rack (WoodManager) — and crafts traps and tools (Crafting's recipes), rows of
+// three each; hovering a button says what it needs or why it can't be built there. Storage is filled and emptied in the
 // World, not from this screen.
 public class InventoryScreen : GameScreen
 {
@@ -103,14 +103,14 @@ public class InventoryScreen : GameScreen
             Grid(pileButtons[i], i + 1, 382f, 42f);
         }
         buildLabel = UiKit.Text(right, "Build Status", "", 15, UiKit.Muted);
-        Top(buildLabel.rectTransform, 516f, 38f);
+        Top(buildLabel.rectTransform, 560f, 38f);
 
         // Traps and tools, three to a row.
         for (int i = 0; i < Crafting.Recipes.Length; i++)
         {
             Crafting.Recipe recipe = Crafting.Recipes[i];
             craftButtons[i] = UiKit.Button(right, "Craft " + recipe.outputId, "", 16, () => Craft(recipe));
-            Grid(craftButtons[i], i, 556f, 40f);
+            Grid(craftButtons[i], i, 600f, 40f);
         }
 
         // Hovering a button explains it in the status line.
@@ -283,6 +283,18 @@ public class InventoryScreen : GameScreen
             if (wood == null)
                 continue;
             PileKind kind = WoodManager.Buildable[i];
+
+            // The Small Cabin site's button does double duty: place an (empty, free) site normally, or — once a
+            // nearby site is fully stocked and the Hammer's equipped — complete it into the real thing instead.
+            if (kind == PileKind.CabinSite && wood.CanCompleteCabin(player, out _, out string completeReason))
+            {
+                button.interactable = true;
+                button.GetComponentInChildren<Text>().text = "Complete\nSmall Cabin";
+                if (hovered == i + 1)
+                    status = "Small Cabin: fully stocked — build it now.";
+                continue;
+            }
+
             bool canPile = wood.CanBuildPile(kind, player, out _, out string why);
             button.interactable = canPile;
             button.GetComponentInChildren<Text>().text =
@@ -317,8 +329,11 @@ public class InventoryScreen : GameScreen
             case PileKind.WaterBarrel: return "pour water in from the Bucket (R), fill the Bucket from it (E). Holds 40 L.";
             case PileKind.FoodCache: return "store food (R), take it back (E).";
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
+            case PileKind.ToolRack: return "store Tools you're not carrying for a trip (R), take them back (E).";
             case PileKind.Tent: return "sleep in it (E), pack it up again (R). Keeps off rain, wind and much of the cold.";
             case PileKind.LeanTo: return "sleep in it (E), take it down (R). Keeps off most rain and wind, and some cold.";
+            case PileKind.Cabin: return "sleep in it (E) — permanent, the best shelter yet. Comes with a hearth to warm up and cook at.";
+            case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, this button completes it (needs the Hammer equipped).";
             default: return "store wood (R), take it back (E).";
         }
     }
@@ -333,6 +348,7 @@ public class InventoryScreen : GameScreen
             case "knife": return "carried, it lets you field dress kills and take game from traps.";
             case "pouch": return "carried, it lets you carry 10 kg more.";
             case "cordage": return "twisted from whichever fibre you have.";
+            case "hammer": return "equip it to build a Small Cabin.";
             default: return "equip it to set it.";
         }
     }
@@ -346,9 +362,27 @@ public class InventoryScreen : GameScreen
     void BuildPile(PileKind kind)
     {
         WoodManager wood = WoodManager.Instance;
-        if (wood == null || !wood.BuildPile(kind, FindAnyObjectByType<PlayerController>()))
+        if (wood == null)
+            return;
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+
+        if (kind == PileKind.CabinSite && wood.CanCompleteCabin(player, out _, out _))
+        {
+            if (!wood.CompleteCabin(player))
+                return;
+            ToolStatus.Flash("Small Cabin built — you can sleep in it, and its hearth is ready for Firewood.");
+            Close();
+            return;
+        }
+
+        if (!wood.BuildPile(kind, player))
             return;
         ToolStatus.Flash($"{WoodManager.PileName(kind)} built — {PileHelp(kind)}");
+        Close();
+    }
+
+    void Close()
+    {
         GameScreens screens = GetComponentInParent<GameScreens>();
         if (screens != null)
             screens.Close();

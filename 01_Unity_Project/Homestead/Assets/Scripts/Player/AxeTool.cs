@@ -20,6 +20,11 @@ using UnityEngine.InputSystem;
 // The Primitive Axe (2026-09-26) is a stone head on a stick handle, a tier below the Axe: it does everything the Axe
 // does, taking half as many blows again (a broad hardwood about 15 instead of 10) and splitting carried wood half as
 // slowly again. Either one carried lets the Inventory split wood; the metal Axe is used when both are.
+//
+// Clay (Building_Housing_System.md's Small Cabin, 2026-09-26): the Shovel also digs Clay straight out of a creek or
+// pond bank — dry ground close enough to the water's edge (Animal.IsOverWater checked in a ring around the aim point,
+// so it needs no placed deposit object) but not the water itself. Banks run the whole length of the property's water,
+// so unlike the one rock outcrop this never runs out.
 [DefaultExecutionOrder(90)]
 public class AxeTool : MonoBehaviour
 {
@@ -46,6 +51,9 @@ public class AxeTool : MonoBehaviour
     [Header("Pick Axe and Shovel")]
     [SerializeField, Min(1)] int blowsPerStone = 4;
     [SerializeField, Min(1)] int blowsPerStump = 6;
+    [SerializeField, Min(1)] int blowsPerClay = 4;
+    [Tooltip("How close to the water's edge counts as bank, for digging Clay (metres).")]
+    [SerializeField, Min(0.5f)] float bankReach = 3f;
 
     [Header("Firewood")]
     [SerializeField, Min(1)] int firewoodPerLog = 5;
@@ -63,6 +71,7 @@ public class AxeTool : MonoBehaviour
     int treeIndex = -1;
     WoodPile pileTarget;
     Object otherTarget; // the outcrop or stump the Pick Axe or Shovel is working
+    bool diggingBank; // the Shovel digging Clay out of a creek/pond bank, which has no target object of its own
     float blows;
     float lastBlowTime;
 
@@ -161,10 +170,11 @@ public class AxeTool : MonoBehaviour
             ToolStatus.Report($"{InventoryManager.Instance.EquippedTool.DisplayName} — hold click on a tree trunk to chop it down, or on a wood pile to split Firewood");
     }
 
-    // The Pick Axe on the rock outcrop, or the Shovel on a stump.
+    // The Pick Axe on the rock outcrop, or the Shovel on a stump or a creek/pond bank.
     void UpdateDigging(bool pick)
     {
         Object target = null;
+        bool bank = false;
         Vector3 point = Vector3.zero;
         if (player.AimRaycast(reach, out RaycastHit hit))
         {
@@ -178,24 +188,76 @@ public class AxeTool : MonoBehaviour
                         target = stump;
                         break;
                     }
+            if (!pick && target == null)
+                bank = IsCreekBank(hit.point);
         }
-        if (target != otherTarget && (target != null || Time.time - lastBlowTime > 4f))
+
+        bool changed = target != otherTarget || bank != diggingBank;
+        if (changed && (target != null || bank))
         {
             otherTarget = target;
+            diggingBank = bank;
+            blows = 0f;
+        }
+        else if (changed && Time.time - lastBlowTime > 4f)
+        {
+            otherTarget = null;
+            diggingBank = false;
             blows = 0f;
         }
 
-        if (target == null)
+        if (target == null && !bank)
         {
             ToolStatus.Report(pick ? "Stone Pick Axe — hold click on the rock outcrop on South Ridge to mine Stone"
-                                   : "Shovel — hold click on a stump to dig it out");
+                                   : "Shovel — hold click on a stump to dig it out, or a creek/pond bank to dig Clay");
             return;
         }
 
         if (pick)
             MineStone(point);
+        else if (target is Stump stump)
+            DigStump(stump, point);
         else
-            DigStump((Stump)target, point);
+            DigClay(point);
+    }
+
+    // Dry ground close enough to the water's edge in some direction to count as a bank, but not the water itself.
+    bool IsCreekBank(Vector3 point)
+    {
+        if (Animal.IsOverWater(point, out _))
+            return false;
+        const int rays = 8;
+        for (int i = 0; i < rays; i++)
+        {
+            float angle = i * (360f / rays) * Mathf.Deg2Rad;
+            Vector3 probe = point + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * bankReach;
+            if (Animal.IsOverWater(probe, out _))
+                return true;
+        }
+        return false;
+    }
+
+    void DigClay(Vector3 point)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        ItemDefinition item = ItemDatabase.Get(WoodManager.ClayId);
+        if (inventory == null || item == null || inventory.Player.SpaceFor(item) <= 0)
+        {
+            ToolStatus.Report("Creek bank — no room to carry more Clay");
+            return;
+        }
+
+        ToolStatus.Report(blows > 0f ? "Digging Clay out of the bank" : "Creek bank — hold click to dig Clay",
+                          blows > 0f ? blows / blowsPerClay : -1f);
+        if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
+            return;
+        blows += Efficiency;
+        if (blows < blowsPerClay)
+            return;
+
+        blows = 0f;
+        inventory.AddToPlayer(WoodManager.ClayId, 1);
+        ToolStatus.Flash("Dug a lump of Clay out of the bank");
     }
 
     void MineStone(Vector3 point)

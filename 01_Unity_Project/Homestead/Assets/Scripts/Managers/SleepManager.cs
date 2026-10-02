@@ -13,6 +13,9 @@ using UnityEngine.UI;
 //   Sleeping Bag alone — cuts Warmth loss by a quarter; no cover from rain or wind. Health recovers 1.5x while asleep.
 //   Lean-To — cuts Warmth loss by half, keeps off most rain (80%) and wind (60%). Health 2x.
 //   Tent — cuts Warmth loss by 60%, keeps off all rain and most wind (90%). Health 2x.
+//   Small Cabin (Building_Housing_System.md's first permanent residence) — the best tier yet: cuts Warmth loss by 75%,
+//   keeps off all rain and wind (a real enclosed shell). Health 2.5x. Its furnished hearth (FireManager.BuildFurnished)
+//   is a real campfire, so a lit one warms the sleeper the same way any nearby campfire already does — no extra code.
 // A Sleeping Bag inside a shelter adds its own quarter on top. Sleeping out, a carried Tarp strung overhead keeps off
 // most rain (90%) and some wind (30%) (Difficulty_System.md's kit). A campfire close by still warms as usual. The cold,
 // thirst or hunger can wake the player early rather than let them sleep into real harm.
@@ -134,10 +137,11 @@ public class SleepManager : MonoBehaviour
         if (shelter != null)
         {
             bool tent = shelter.kind == PileKind.Tent;
-            insulation = tent ? 0.6f : 0.5f;
-            rain = tent ? 1f : 0.8f;
-            wind = tent ? 0.9f : 0.6f;
-            recovery = 2f;
+            bool cabin = shelter.kind == PileKind.Cabin;
+            insulation = cabin ? 0.75f : tent ? 0.6f : 0.5f;
+            rain = cabin || tent ? 1f : 0.8f;
+            wind = cabin ? 1f : tent ? 0.9f : 0.6f;
+            recovery = cabin ? 2.5f : 2f;
         }
         if (CarryingBag)
         {

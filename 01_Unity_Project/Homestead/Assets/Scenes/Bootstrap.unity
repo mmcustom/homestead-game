@@ -1128,6 +1128,14 @@ MonoBehaviour:
   buildDistance: 1.8
   minSpacing: 2
   maxSlope: 30
+  cabinLogs: 20
+  cabinBranches: 10
+  cabinTallGrass: 15
+  cabinStone: 12
+  cabinClay: 6
+  cabinBuildDistance: 3.5
+  cabinFootprint: 3.2
+  cabinCompleteReach: 6
   windthrowBase: 0.0013888889
   windthrowStorm: 0.12
   windthrowAfterStorm: 0.03
