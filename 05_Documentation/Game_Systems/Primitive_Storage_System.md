@@ -51,6 +51,20 @@ Added 2026-09-26 (Mike). **Proposed (Claude, not confirmed):** a craftable gener
 
 ---
 
+# Tool Storage — Tool Rack (primitive tier)
+
+Purpose: catches what Storage Bin explicitly doesn't — Tools (Axe, Rifle, Bow, Fishing Rod, Cane Pole, Bucket, Fish Trap, Flint and Steel, Recurve Bow, Hammer, and so on).
+
+**Gap found 2026-10-02 (Mike), playtesting.** Hit the carry-weight limit trying to gather Hammer and Small Cabin materials while still hauling a full hunting/fishing/survival toolkit, and went looking for somewhere to stash the tools he didn't need for that trip. None of the shipped primitive storage takes a Tool: Storage Bin's own spec above explicitly says "holds everything else that isn't a Tool." There's currently no way anywhere in the game to shed a Tool's weight except not carrying it at all — a real gap, not a missing-UI question.
+
+**Resolved 2026-10-02 (Mike): "yes, separate tool storage and other resource storages."** Confirmed as its own dedicated container rather than folding Tools into Storage Bin — a Tool Rack (or similar), parallel to how Wood Pile/Rock Pile/Water Barrel/Food Cache/Storage Bin each already stay scoped to one category (Design Rule 3 below already set this precedent, just hadn't been extended to Tools yet). Build cost, capacity, and placement are Claude Code's first-pass call, same propose-then-confirm pattern as every other primitive storage type.
+
+**Related, pre-existing, not re-opened by this:** Storage Bin's own "everything that fits at once" take interaction (no partial-selection transfer screen) was already flagged by Claude Code as a known gap when it shipped. Worth keeping in mind for the Tool Rack's own design — an all-or-nothing take would be especially awkward for a tool stash the player wants to swap pieces of — but Mike hasn't asked for the selective-transfer fix itself yet, so that stays open rather than bundled into this.
+
+**Built and tested 2026-10-02 (Claude Code):** costs 4 Branches + 4 Sticks to build, holds any Tool (Axe, Rifle, Bow, Fishing Rod, Cane Pole, Bucket, Fish Trap, Flint and Steel, Recurve Bow, Hammer, Pouch, and so on) — anything of `ItemCategory.Tool`, the same category check Storage Bin already uses to exclude them. Same deposit/withdraw pattern as every other pile: R stores every Tool carried that isn't currently equipped, E takes back whatever fits. **Kept the all-or-nothing take for this first pass, same call as Storage Bin:** a real per-item transfer screen would suit a tool stash better than any other primitive storage (swapping one or two specific tools is the common case here), but building that screen is a bigger lift than this request asked for, and Mike's own framing left it open to defer — so it's flagged again here rather than built now. Looks like a standing wooden rack: a frame with one peg per kind of Tool stored (up to 6, more just stack on the nearest peg). Tested in Play Mode on a copy of Mike's own save — the exact overloaded toolkit from his playtest report (Flint and Steel, Bucket, Fishing Rod, Cane Pole, Recurve Bow, Bolt-Action Rifle, Fish Trap, plus the equipped Axe, at 44.95/45 kg carried): built the rack, stored all seven unequipped Tools at once (the Axe stayed equipped and in hand, correctly skipped), took them all back out, and confirmed a save/load round trip with the rack's contents intact. Save restored and hash-verified after; nothing of Mike's was left changed.
+
+---
+
 # Tools: Pouch or Bag
 
 Added 2026-09-26 (Mike) — new craftable Tool, parallel to the Bucket but for non-liquid resources: increases how much the player can carry of something back to whichever storage above (or Wood Pile/Rock Pile) it belongs in, the way the Bucket increases what can be carried of water.
@@ -78,4 +92,4 @@ Exact carry-capacity bonus, and whether it's a flat kg increase or a multiplier,
 
 2. Real storage buildings (Root Cellar, Storage Shed, Barn, Cistern) remain the eventual upgrade once Building/Housing ships — primitive tier isn't replaced, just superseded in usefulness, same relationship Wood Pile/Rock Pile already have with their own future upgrades.
 
-3. Each primitive storage type takes only its own category — Wood Pile stays wood, Rock Pile stays Stone, and so on — so there's never ambiguity about where a resource goes.
+3. Each primitive storage type takes only its own category — Wood Pile stays wood, Rock Pile stays Stone, Tool Rack stays Tools, and so on — so there's never ambiguity about where a resource goes.
