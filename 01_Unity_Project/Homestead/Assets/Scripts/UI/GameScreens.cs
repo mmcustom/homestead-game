@@ -21,14 +21,18 @@ public abstract class GameScreen : MonoBehaviour
 // A screen's key opens it, switches to it from another screen, or closes it if it's already showing; Esc also closes.
 // While a screen is open GameManager is in the Menu state: the clock, survival drain and player stop, the cursor is
 // free, and world audio keeps playing. Everything is built in code in the HUD's look, so the prefab only holds this.
+//
+// A fifth screen, Storage, has no key or tab of its own (Primitive_Storage_System.md's per-item transfer screen,
+// 2026-10-02) — WoodPile.Interact opens it directly via OpenStorage when the player presses E on a built storage
+// pile, targeting whichever one they looked at. The other four tabs stay reachable while it's open, same as always.
 public class GameScreens : MonoBehaviour
 {
-    enum Kind { None = -1, Map, Inventory, Journal, TradingPost }
+    enum Kind { None = -1, Map, Inventory, Journal, TradingPost, Storage }
 
     static readonly string[] ActionNames = { "Player/Map", "Player/Inventory", "Player/Journal", "Player/TradingPost" };
     static readonly string[] KeyHints = { "M", "I", "J", "T" };
 
-    readonly GameScreen[] screens = new GameScreen[4];
+    readonly GameScreen[] screens = new GameScreen[5];
     readonly Button[] tabs = new Button[4];
     readonly InputAction[] actions = new InputAction[4];
 
@@ -120,12 +124,20 @@ public class GameScreens : MonoBehaviour
         for (int i = 0; i < screens.Length; i++)
         {
             screens[i].gameObject.SetActive(i == (int)kind);
-            UiKit.SetSelected(tabs[i], i == (int)kind);
+            if (i < tabs.Length)
+                UiKit.SetSelected(tabs[i], i == (int)kind);
         }
 
         titleLabel.text = screens[(int)kind].Title;
         screens[(int)kind].OnShow();
         PlaySound(SoundCue.UiClick);
+    }
+
+    // WoodPile.Interact calls this directly — there's no hotkey or tab for Storage, just whichever pile was looked at.
+    public void OpenStorage(WoodPile pile)
+    {
+        ((StorageTransferScreen)screens[(int)Kind.Storage]).SetTarget(pile);
+        Open(Kind.Storage);
     }
 
     public void Close()
@@ -224,6 +236,7 @@ public class GameScreens : MonoBehaviour
         screens[(int)Kind.Inventory] = CreateScreen<InventoryScreen>(p, "Inventory");
         screens[(int)Kind.Journal] = CreateScreen<JournalScreen>(p, "Journal");
         screens[(int)Kind.TradingPost] = CreateScreen<TradingPostScreen>(p, "Trading Post");
+        screens[(int)Kind.Storage] = CreateScreen<StorageTransferScreen>(p, "Storage");
     }
 
     static T CreateScreen<T>(RectTransform panel, string name) where T : GameScreen

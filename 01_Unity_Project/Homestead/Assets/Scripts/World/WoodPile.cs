@@ -3,12 +3,18 @@ using UnityEngine;
 
 // A pile or container in the World (WoodManager owns the state): what a felled tree left at its base, or storage the
 // player built — Wood_Gathering_System.md's Wood Pile and Rock Pile, Primitive_Storage_System.md's Water Barrel, Food
-// Cache, Storage Bin and Tool Rack. Looking at it shows what's in it. The main interaction takes back whatever fits, lightest
-// things first (Logs last — they're 8 kg each), so a big load can take a few trips; the Water Barrel instead fills the
-// carried Buckets. The second (R) stores everything this kind of storage takes that the player is carrying — pouring
-// water into the barrel from the Bucket. Perishable food keeps the day it was acquired while stored. With the Axe,
-// swinging at a wood pile splits its Logs (then its Branches) into Firewood where they lie (AxeTool). Drawn from
-// simple shapes; built storage shows its frame even when empty.
+// Cache, Storage Bin and Tool Rack. Looking at it shows what's in it. The second interaction (R) stores everything
+// this kind of storage takes that the player is carrying — pouring water into the barrel from the Bucket — unchanged,
+// bulk, same as always. Perishable food keeps the day it was acquired while stored. With the Axe, swinging at a wood
+// pile splits its Logs (then its Branches) into Firewood where they lie (AxeTool). Drawn from simple shapes; built
+// storage shows its frame even when empty.
+//
+// Taking (E): a felled tree's pile and a Small Cabin's staged CabinSite still take everything that fits in one go,
+// lightest first (Logs last) — quick, incidental piles visited often while gathering. Every deliberate, player-built
+// storage kind (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack) instead opens
+// StorageTransferScreen (Primitive_Storage_System.md, 2026-10-02 — Mike: "i think we need a per-item transfer screen
+// now"), so the player picks what comes back out rather than grabbing the lot — the Water Barrel's quick "fill from
+// the best quality available" and the old "take everything" both stay there as shortcut buttons.
 public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 {
     WoodPileState state;
@@ -30,6 +36,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     bool IsBarrel => state.kind == PileKind.WaterBarrel;
     static InventoryManager Inventory => InventoryManager.Instance;
 
+    // The deliberate, player-built storage kinds — everything except a felled tree's incidental pile and a Small
+    // Cabin's staged CabinSite — get the per-item transfer screen on E instead of an instant take-all.
+    bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
+                                state.kind == PileKind.WaterBarrel || state.kind == PileKind.FoodCache ||
+                                state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack;
+
     // --- Taking (E) ---
 
     public string InteractionPrompt
@@ -41,18 +53,9 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (state.IsEmpty)
                 return $"{Name}  (empty)";
             string contents = Describe(state);
-            if (IsBarrel)
-            {
-                int room = BucketRoom();
-                return room > 0 ? $"Fill Bucket  ({contents})"
-                     : Inventory != null && WaterQualities.Capacity(Inventory.Player) > 0 ? $"{Name}  ({contents}) — your water containers are full"
-                     : $"{Name}  ({contents}) — needs a Bucket or Canteen to carry water";
-            }
-            string verb = state.kind == PileKind.RockStorage ? "Take Stone"
-                        : state.kind == PileKind.FoodCache ? "Take Food"
-                        : state.kind == PileKind.StorageBin ? "Take Things"
-                        : state.kind == PileKind.ToolRack ? "Take Tools"
-                        : state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
+            if (UsesTransferScreen)
+                return $"Open {Name}  ({contents})";
+            string verb = state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
             return AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more";
         }
     }
@@ -65,14 +68,21 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (state == null || Inventory == null || state.IsEmpty)
             return;
 
-        int taken = IsBarrel ? DrawWater() : TakeAll();
-        if (taken == 0)
+        if (UsesTransferScreen)
         {
-            if (!IsBarrel)
-                ToolStatus.Flash("Too heavy — no room to carry any of it");
+            GameScreens screens = FindAnyObjectByType<GameScreens>();
+            if (screens != null)
+                screens.OpenStorage(this);
             return;
         }
-        if (!state.IsEmpty && !IsBarrel)
+
+        int taken = TakeAll();
+        if (taken == 0)
+        {
+            ToolStatus.Flash("Too heavy — no room to carry any of it");
+            return;
+        }
+        if (!state.IsEmpty)
             ToolStatus.Flash($"Left behind: {Describe(state)}");
         if (WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(state);
@@ -91,6 +101,62 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         foreach (string itemId in ids)
             taken += TakeInto(itemId, state.Count(itemId));
         return taken;
+    }
+
+    // --- StorageTransferScreen's per-item take, and its two "old behavior" shortcut buttons ---
+
+    // One unit of a kind stored, or (all) the whole stack — StorageTransferScreen's Take/Shift-click. The barrel
+    // draws against Bucket/Canteen room instead of carry weight, same rule DrawWater always used.
+    public int TakeOne(string itemId, bool all)
+    {
+        if (state == null || Inventory == null)
+            return 0;
+        int available = IsBarrel ? Mathf.Min(BucketRoom(), state.Count(itemId)) : state.Count(itemId);
+        int want = all ? available : Mathf.Min(1, available);
+        int taken = TakeInto(itemId, want);
+        if (taken > 0 && WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state);
+        return taken;
+    }
+
+    // Whether TakeOne(itemId, ...) could take anything right now, and why not if not.
+    public bool CanTakeOne(string itemId, out string reason)
+    {
+        reason = "";
+        if (state == null || Inventory == null)
+            return false;
+        if (IsBarrel)
+        {
+            if (BucketRoom() > 0)
+                return true;
+            reason = WaterQualities.Capacity(Inventory.Player) > 0 ? "water containers full" : "needs a Bucket or Canteen";
+            return false;
+        }
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        if (item != null && Inventory.Player.SpaceFor(item) > 0)
+            return true;
+        reason = "too heavy to carry more";
+        return false;
+    }
+
+    // The old one-press "take everything"/"fill from the best quality" — now a shortcut inside the transfer screen.
+    public string TakeAllToStatus()
+    {
+        int taken = TakeAll();
+        if (taken > 0 && WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state);
+        return taken == 0 ? "Too heavy — no room to carry any of it."
+             : state.IsEmpty ? "Took everything."
+             : $"Took what fit. Left behind: {Describe(state)}";
+    }
+
+    public string DrawWaterToStatus()
+    {
+        int drawn = DrawWater();
+        if (drawn > 0 && WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state);
+        return drawn > 0 ? $"Filled your Bucket with {drawn} L."
+             : WaterQualities.Capacity(Inventory.Player) > 0 ? "Your water containers are full." : "Needs a Bucket or Canteen to carry water.";
     }
 
     int TakeInto(string itemId, int count)
@@ -267,6 +333,17 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (pile.kind == PileKind.WaterBarrel)
             return pile.IsEmpty ? "empty" : $"{pile.Total} L of water";
 
+        var parts = new List<string>();
+        foreach (KeyValuePair<string, int> pair in Contents(pile))
+            parts.Add($"{pair.Value} {ItemDatabase.Get(pair.Key)?.DisplayName ?? pair.Key}");
+        return parts.Count > 0 ? Shorten(parts) : "empty";
+    }
+
+    // Each distinct kind stored, totalled across every batch, in a sensible display order (wood biggest first,
+    // everything else in the order it went in) — used by Describe above and StorageTransferScreen's rows. Unlike
+    // Describe, this breaks the Water Barrel out by quality too, since the screen needs to offer each one separately.
+    public static List<KeyValuePair<string, int>> Contents(WoodPileState pile)
+    {
         var counts = new List<KeyValuePair<string, int>>();
         foreach (WoodStack stack in pile.contents)
         {
@@ -276,13 +353,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             else
                 counts[i] = new KeyValuePair<string, int>(stack.itemId, counts[i].Value + stack.count);
         }
-        // Wood reads biggest first, as before; everything else in the order it went in.
-        string[] woodOrder = { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.SticksId, FireManager.FirewoodId };
-        counts.Sort((a, b) => Order(a.Key, woodOrder).CompareTo(Order(b.Key, woodOrder)));
-        var parts = new List<string>();
-        foreach (KeyValuePair<string, int> pair in counts)
-            parts.Add($"{pair.Value} {ItemDatabase.Get(pair.Key)?.DisplayName ?? pair.Key}");
-        return parts.Count > 0 ? Shorten(parts) : "empty";
+        // Wood biggest first; water best quality first (DrawWater's old priority), matching how a player would want
+        // to draw it; everything else in the order it went in.
+        string[] order = { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.SticksId, FireManager.FirewoodId,
+                            Cooking.PurifiedWaterId, "water_excellent", "water_good", "water_questionable", "water_unsafe" };
+        counts.Sort((a, b) => Order(a.Key, order).CompareTo(Order(b.Key, order)));
+        return counts;
     }
 
     static int Order(string itemId, string[] order)
