@@ -145,7 +145,7 @@ public class InventoryScreen : GameScreen
     {
         var trigger = button.gameObject.AddComponent<EventTrigger>();
         var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-        enter.callback.AddListener(_ => { hovered = index; RefreshBuild(); });
+        enter.callback.AddListener(_ => { hovered = index; noticeUntil = 0f; RefreshBuild(); });
         var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
         exit.callback.AddListener(_ => { if (hovered == index) { hovered = -1; RefreshBuild(); } });
         trigger.triggers.Add(enter);
@@ -186,6 +186,11 @@ public class InventoryScreen : GameScreen
     {
         if (watched != null)
             PollHotkeyAssign();
+        if (notice != null && Time.unscaledTime >= noticeUntil)
+        {
+            notice = null;
+            RefreshBuild();
+        }
 
         CampfireCooking cooking = CampfireCooking.Instance;
         AxeTool axe = AxeTool.Instance;
@@ -275,13 +280,13 @@ public class InventoryScreen : GameScreen
         buildButton.gameObject.SetActive(fires != null);
         if (fires == null)
         {
-            buildLabel.text = "";
+            buildLabel.text = Notice ?? "";
             return;
         }
 
         PlayerController player = FindAnyObjectByType<PlayerController>();
         bool can = fires.CanBuild(player, out _, out string reason);
-        buildButton.interactable = can;
+        SetAvailable(buildButton, can);
         buildButton.GetComponentInChildren<Text>().text = $"Campfire\n<size=13><color=#EDE3C799>{fires.FirewoodToBuild} Firewood</color></size>";
         string status = hovered == 0 ? (can ? "Campfire: builds just in front of you. Light it with Flint and Steel." : $"Campfire: {reason}") : null;
 
@@ -298,7 +303,7 @@ public class InventoryScreen : GameScreen
             // nearby site is fully stocked and the Hammer's equipped — complete it into the real thing instead.
             if (kind == PileKind.CabinSite && wood.CanCompleteCabin(player, out _, out string completeReason))
             {
-                button.interactable = true;
+                SetAvailable(button, true);
                 button.GetComponentInChildren<Text>().text = "Complete\nSmall Cabin";
                 if (hovered == i + 1)
                     status = "Small Cabin: fully stocked — build it now.";
@@ -306,7 +311,7 @@ public class InventoryScreen : GameScreen
             }
 
             bool canPile = wood.CanBuildPile(kind, player, out _, out string why);
-            button.interactable = canPile;
+            SetAvailable(button, canPile);
             button.GetComponentInChildren<Text>().text =
                 $"{WoodManager.PileName(kind)}\n<size={CostSize(wood.CostText(kind), 13)}><color=#EDE3C799>{wood.CostText(kind)}</color></size>";
             if (hovered == i + 1)
@@ -317,7 +322,7 @@ public class InventoryScreen : GameScreen
         {
             Crafting.Recipe recipe = Crafting.Recipes[i];
             bool canCraft = Crafting.CanCraft(recipe, out string why);
-            craftButtons[i].interactable = canCraft;
+            SetAvailable(craftButtons[i], canCraft);
             string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
             string cost = Crafting.Cost(recipe);
             craftButtons[i].GetComponentInChildren<Text>().text = $"{name}\n<size={CostSize(cost, 12)}><color=#EDE3C799>{cost}</color></size>";
@@ -325,7 +330,36 @@ public class InventoryScreen : GameScreen
                 status = $"{name}: " + (canCraft ? CraftHelp(recipe.outputId) : why);
         }
 
-        buildLabel.text = status ?? "Hover a button to see what it needs. Things you build go just in front of you.";
+        buildLabel.text = Notice ?? status ?? "Hover a button to see what it needs. Click one you can't afford to see what's missing. Things you build go just in front of you.";
+    }
+
+    // --- Notice (Inventory_System.md's Build/Craft Missing-Materials Notice) ---
+
+    // A refused click on a Build/Craft button, a drop, or a hotkey assignment: shown on the status line above the Craft
+    // buttons for a few seconds, in place of the hover text, until it times out or the mouse moves to another button.
+    // The screen draws over the HUD's message line, so this lives in the screen rather than going through ToolStatus.
+    string notice;
+    float noticeUntil;
+    string Notice => notice != null && Time.unscaledTime < noticeUntil ? notice : null;
+
+    void Notify(string message, bool warning = true, float seconds = 4f)
+    {
+        notice = warning ? $"<color=#E67350>{message}</color>" : message;
+        noticeUntil = Time.unscaledTime + seconds;
+        if (warning && AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiBack);
+        RefreshBuild();
+    }
+
+    // Build and Craft buttons stay clickable when they can't be used — a click explains why (Notify) — so "unavailable"
+    // is shown by dimming rather than by Button.interactable, which would swallow the click.
+    static void SetAvailable(Button button, bool available)
+    {
+        button.interactable = true;
+        CanvasGroup group = button.GetComponent<CanvasGroup>();
+        if (group == null)
+            group = button.gameObject.AddComponent<CanvasGroup>();
+        group.alpha = available ? 1f : 0.45f;
     }
 
     // Long costs (the Lean-To's, Cordage's alternatives) in smaller type so they fit their button on one line.
@@ -365,8 +399,16 @@ public class InventoryScreen : GameScreen
 
     void Craft(Crafting.Recipe recipe)
     {
+        string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
+        if (!Crafting.CanCraft(recipe, out string why))
+        {
+            Notify($"Can't make {name} — {why}");
+            return;
+        }
+
+        noticeUntil = 0f;
         if (Crafting.Craft(recipe))
-            ToolStatus.Flash($"Made a {ItemDatabase.Get(recipe.outputId)?.DisplayName} — {CraftHelp(recipe.outputId)}");
+            ToolStatus.Flash($"Made a {name} — {CraftHelp(recipe.outputId)}");
     }
 
     void BuildPile(PileKind kind)
@@ -385,8 +427,15 @@ public class InventoryScreen : GameScreen
             return;
         }
 
+        if (!wood.CanBuildPile(kind, player, out _, out string why))
+        {
+            Notify($"Can't build {WoodManager.PileName(kind)} — {why}");
+            return;
+        }
+
         if (!wood.BuildPile(kind, player))
             return;
+        noticeUntil = 0f;
         ToolStatus.Flash($"{WoodManager.PileName(kind)} built — {PileHelp(kind)}");
         Close();
     }
@@ -401,8 +450,17 @@ public class InventoryScreen : GameScreen
     void BuildCampfire()
     {
         FireManager fires = FireManager.Instance;
-        if (fires == null || !fires.Build(FindAnyObjectByType<PlayerController>()))
+        if (fires == null)
             return;
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        if (!fires.CanBuild(player, out _, out string why))
+        {
+            Notify($"Can't build a Campfire — {why}");
+            return;
+        }
+        if (!fires.Build(player))
+            return;
+        noticeUntil = 0f;
 
         // (Using up the Firewood already plays the item-drop sound.)
         // Back to the world, so the player sees what they built.
@@ -531,7 +589,7 @@ public class InventoryScreen : GameScreen
             if (row != null && RectTransformUtility.RectangleContainsScreenPoint(row, point, cam))
             {
                 inventory.SetHotkey(pressed, tool.Id);
-                ToolStatus.Flash($"{tool.DisplayName} is on key {InventoryManager.HotkeyLabel(pressed)}.", 2f);
+                Notify($"{tool.DisplayName} is on key {InventoryManager.HotkeyLabel(pressed)}.", warning: false, seconds: 2.5f);
                 return;
             }
         }
@@ -546,7 +604,7 @@ public class InventoryScreen : GameScreen
 
         int count = ShiftHeld ? inventory.Player.Count(item.Id) : 1;
         int dropped = DroppedItems.Drop(player, item.Id, count, out string reason);
-        ToolStatus.Flash(dropped > 0 ? $"Dropped {dropped} {item.DisplayName} on the ground in front of you." : reason);
+        Notify(dropped > 0 ? $"Dropped {dropped} {item.DisplayName} on the ground in front of you." : reason, warning: dropped <= 0, seconds: 2.5f);
     }
 
     static void ToggleEquip(ItemDefinition tool)

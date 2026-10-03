@@ -680,14 +680,14 @@ public class WoodManager : MonoBehaviour, ISaveable
         // Placing a CabinSite is free and needs no tool — the Hammer only gates CompleteCabin, once it's fully stocked.
         bool cabin = kind == PileKind.CabinSite;
 
+        var shortfalls = new List<(string, int)>();
         foreach (WoodStack c in CostOf(kind))
+            shortfalls.Add((c.itemId, c.count - inventory.Player.Count(c.itemId)));
+        string needs = Crafting.NeedsText(shortfalls);
+        if (needs != null)
         {
-            int have = inventory.Player.Count(c.itemId);
-            if (have < c.count)
-            {
-                reason = $"Needs {c.count} {ItemDatabase.Get(c.itemId)?.DisplayName ?? c.itemId} (carrying {have}).";
-                return false;
-            }
+            reason = needs;
+            return false;
         }
 
         float distance = cabin ? cabinBuildDistance : buildDistance;
@@ -797,14 +797,14 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
         }
 
+        var missing = new List<(string, int)>();
         foreach (string itemId in CabinMaterialIds)
+            missing.Add((itemId, CabinRequired(itemId) - nearest.Count(itemId)));
+        string needsAtSite = Crafting.NeedsText(missing);
+        if (needsAtSite != null)
         {
-            int need = CabinRequired(itemId) - nearest.Count(itemId);
-            if (need > 0)
-            {
-                reason = $"Needs {need} more {ItemDatabase.Get(itemId)?.DisplayName ?? itemId} at the site.";
-                return false;
-            }
+            reason = needsAtSite.TrimEnd('.') + " at the site.";
+            return false;
         }
 
         InventoryManager inventory = InventoryManager.Instance;

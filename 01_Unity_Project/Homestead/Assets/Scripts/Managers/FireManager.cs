@@ -146,7 +146,7 @@ public class FireManager : MonoBehaviour, ISaveable
 
         if (carried.Count(FirewoodId) < firewoodToBuild)
         {
-            reason = $"Needs {firewoodToBuild} Firewood (carrying {carried.Count(FirewoodId)}).";
+            reason = Crafting.NeedsText(new[] { (FirewoodId, firewoodToBuild - carried.Count(FirewoodId)) });
             return false;
         }
 

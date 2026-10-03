@@ -1,4 +1,5 @@
 using System;
+using UnityEngine;
 
 // Simple item recipes for the Inventory screen's Build section. Trapping_System.md: the Rabbit Snare needs Cordage and
 // the Box Trap needs Wood; Fishing_System.md's Fish Trap loop starts with "Build Trap". Quantities are Claude Code's
@@ -72,6 +73,22 @@ public static class Crafting
         string.Join(" / ", Array.ConvertAll(Sets(recipe), set =>
             string.Join(", ", Array.ConvertAll(set, i => $"{i.quantity} {ItemDatabase.Get(i.itemId)?.DisplayName ?? i.itemId}"))));
 
+    // "Needs 4 more Logs, 2 more Stone." from (item, how many short) pairs; null if nothing is short. The one place the
+    // Inventory screen's missing-materials wording comes from, for recipes, storage piles, campfires and the cabin.
+    public static string NeedsText(System.Collections.Generic.IEnumerable<(string itemId, int missing)> shortfalls)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        foreach ((string itemId, int missing) in shortfalls)
+        {
+            if (missing > 0)
+                parts.Add($"{missing} more {ItemDatabase.Get(itemId)?.DisplayName ?? itemId}");
+        }
+        return parts.Count == 0 ? null : $"Needs {string.Join(", ", parts)}.";
+    }
+
+    static (string itemId, int missing)[] Shortfall(Ingredient[] set, InventoryManager inventory) =>
+        Array.ConvertAll(set, i => (i.itemId, i.quantity - inventory.Player.Count(i.itemId)));
+
     public static bool CanCraft(Recipe recipe, out string reason)
     {
         InventoryManager inventory = InventoryManager.Instance;
@@ -86,22 +103,34 @@ public static class Crafting
             reason = "";
             return true;
         }
-        // Say what's short in the first set (or "any of" for alternatives).
-        if (recipe.alternatives != null)
+
+        // Everything that's short — for alternatives, the way closest to affordable, then the other ways it can be made.
+        Ingredient[][] sets = Sets(recipe);
+        int best = 0, bestMissing = int.MaxValue;
+        for (int s = 0; s < sets.Length; s++)
         {
-            reason = $"Needs {Cost(recipe)}.";
-            return false;
-        }
-        foreach (Ingredient ingredient in recipe.ingredients)
-        {
-            int have = inventory.Player.Count(ingredient.itemId);
-            if (have < ingredient.quantity)
+            int total = 0;
+            foreach ((string _, int missing) in Shortfall(sets[s], inventory))
+                total += Mathf.Max(0, missing);
+            if (total < bestMissing)
             {
-                reason = $"Needs {ingredient.quantity} {ItemDatabase.Get(ingredient.itemId)?.DisplayName ?? ingredient.itemId} (carrying {have}).";
-                return false;
+                bestMissing = total;
+                best = s;
             }
         }
-        reason = "";
+
+        string needs = NeedsText(Shortfall(sets[best], inventory)) ?? "Not available here.";
+        if (sets.Length > 1)
+        {
+            var others = new System.Collections.Generic.List<string>();
+            for (int s = 0; s < sets.Length; s++)
+            {
+                if (s != best)
+                    others.Add(string.Join(", ", Array.ConvertAll(sets[s], i => $"{i.quantity} {ItemDatabase.Get(i.itemId)?.DisplayName ?? i.itemId}")));
+            }
+            needs = needs.TrimEnd('.') + $" (or {string.Join(", or ", others)}).";
+        }
+        reason = needs;
         return false;
     }
 
