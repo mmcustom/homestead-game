@@ -114,6 +114,19 @@ public class InventoryContainer
         return removed;
     }
 
+    // As Remove, but reports each batch taken as (acquiredDay, quantity) so the caller can keep the batch's age —
+    // used by dropping, so a dropped perishable doesn't come back fresh.
+    public int RemoveBatches(string itemId, int quantity, Action<int, int> onTaken)
+    {
+        int removed = TakeOldest(itemId, quantity, onTaken);
+        if (removed > 0)
+        {
+            Changed?.Invoke();
+            ItemsRemoved?.Invoke(itemId, removed);
+        }
+        return removed;
+    }
+
     // Moves up to quantity into another container, keeping each batch's acquired day.
     // Returns how many moved (limited by what this holds and what the target can take).
     public int MoveTo(InventoryContainer target, string itemId, int quantity)

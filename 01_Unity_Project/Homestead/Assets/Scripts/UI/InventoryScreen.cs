@@ -17,6 +17,9 @@ public class InventoryScreen : GameScreen
 {
     const float KgToLb = 2.20462f;
 
+    // Row columns: Item | Qty | Weight | Drop button.
+    const float QtyMin = 0.5f, QtyMax = 0.66f, WeightMax = 0.84f;
+
     static readonly Color BarNormal = new Color(0.55f, 0.66f, 0.36f);
     static readonly Color BarEncumbered = new Color(0.84f, 0.63f, 0.3f);
 
@@ -50,8 +53,8 @@ public class InventoryScreen : GameScreen
         header.offsetMin = new Vector2(0f, -36f);
         header.offsetMax = Vector2.zero;
         Column(header, "Item", 0f, 0.62f, TextAnchor.MiddleLeft, UiKit.Muted, 19, 18f);
-        Column(header, "Qty", 0.62f, 0.78f, TextAnchor.MiddleRight, UiKit.Muted, 19, 0f);
-        Column(header, "Weight", 0.78f, 1f, TextAnchor.MiddleRight, UiKit.Muted, 19, 0f, 18f);
+        Column(header, "Qty", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Muted, 19, 0f);
+        Column(header, "Weight", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Muted, 19, 0f, 8f);
 
         list = UiKit.ScrollList(left, "List");
         ((RectTransform)list.parent).Fill(0f, 0f, 0f, 40f);
@@ -234,7 +237,7 @@ public class InventoryScreen : GameScreen
         foreach ((ItemDefinition item, int quantity) in stacks)
             AddRow(item, quantity, item == equipped, atFire, player);
 
-        hintLabel.text = "Click a tool to equip or put it away, food or water to eat or drink one, the Sleeping Bag to sleep. " +
+        hintLabel.text = "Click a tool to equip or put it away, food or water to eat or drink one, the Sleeping Bag to sleep. Drop sets one on the ground (Shift: the stack). " +
                          (atFire ? "<color=#C7D68C>At the campfire: Cook meat and fish, Boil water (needs the Cooking Pot). Shift: whole stack.</color>"
                                  : "Cook and boil at a burning campfire. With the Axe, Split Logs and Branches into Firewood.");
 
@@ -428,16 +431,16 @@ public class InventoryScreen : GameScreen
         // Cook / Boil, beside the name, while standing at a lit campfire.
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
         bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried;
-        float nameRight = 0.62f;
+        float nameRight = QtyMin;
         if ((atFire && (cookable || boilable)) || splittable)
         {
-            nameRight = 0.5f;
+            nameRight = 0.36f;
             Button cook = UiKit.Button(rt, "Cook", splittable ? "Split" : boilable ? "Boil" : "Cook", 18,
                                        splittable ? (UnityEngine.Events.UnityAction)(() => ToggleSplit(item)) : () => ToggleCooking(item));
             cookLabels[item] = cook.GetComponentInChildren<Text>();
             var cookRt = (RectTransform)cook.transform;
-            cookRt.anchorMin = new Vector2(0.5f, 0f);
-            cookRt.anchorMax = new Vector2(0.61f, 1f);
+            cookRt.anchorMin = new Vector2(0.37f, 0f);
+            cookRt.anchorMax = new Vector2(0.49f, 1f);
             cookRt.offsetMin = new Vector2(0f, 7f);
             cookRt.offsetMax = new Vector2(0f, -7f);
             ColorBlock cookColors = cook.colors;
@@ -447,8 +450,29 @@ public class InventoryScreen : GameScreen
         }
         Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, nameRight,
                TextAnchor.MiddleLeft, UiKit.Cream, 21, 12f);
-        Column(rt, $"×{quantity}", 0.62f, 0.78f, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f);
-        Column(rt, $"{item.WeightKg * quantity:0.0} kg", 0.78f, 1f, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 12f);
+        Column(rt, $"×{quantity}", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f);
+        Column(rt, $"{item.WeightKg * quantity:0.0} kg", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 8f);
+
+        // Drop (Inventory_System.md's Dropping Items): one, or Shift-click the whole stack. Works on tools too —
+        // dropping the last one puts it away first, since InventoryManager unequips a tool that's no longer carried.
+        Button drop = UiKit.Button(rt, "Drop", "Drop", 18, () => DropItem(item));
+        var dropRt = (RectTransform)drop.transform;
+        dropRt.anchorMin = new Vector2(0.86f, 0f);
+        dropRt.anchorMax = new Vector2(0.99f, 1f);
+        dropRt.offsetMin = new Vector2(0f, 7f);
+        dropRt.offsetMax = new Vector2(0f, -7f);
+    }
+
+    void DropItem(ItemDefinition item)
+    {
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null)
+            return;
+
+        int count = ShiftHeld ? inventory.Player.Count(item.Id) : 1;
+        int dropped = DroppedItems.Drop(player, item.Id, count, out string reason);
+        ToolStatus.Flash(dropped > 0 ? $"Dropped {dropped} {item.DisplayName} on the ground in front of you." : reason);
     }
 
     static void ToggleEquip(ItemDefinition tool)
