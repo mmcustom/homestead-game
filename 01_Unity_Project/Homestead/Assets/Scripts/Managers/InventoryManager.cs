@@ -8,6 +8,7 @@ public struct InventorySaveData
     public InventoryContainerData player;
     public string equippedItemId;
     public List<InventoryContainerData> storage;
+    public List<string> hotkeys; // item id per slot, "" for empty; null in saves from before hotkeys
 }
 
 // Player inventory, storage containers, equipment (Unity_Architecture.md, Inventory_System.md).
@@ -30,10 +31,22 @@ public class InventoryManager : MonoBehaviour, ISaveable
 
     public const string PouchId = "pouch";
 
+    // Inventory_System.md's Tool Hotkeys: ten slots, keys 1-9 then 0, each holding the id of a Tool (or empty).
+    public const int HotkeySlots = 10;
+    public static readonly UnityEngine.InputSystem.Key[] HotkeyKeys =
+    {
+        UnityEngine.InputSystem.Key.Digit1, UnityEngine.InputSystem.Key.Digit2, UnityEngine.InputSystem.Key.Digit3,
+        UnityEngine.InputSystem.Key.Digit4, UnityEngine.InputSystem.Key.Digit5, UnityEngine.InputSystem.Key.Digit6,
+        UnityEngine.InputSystem.Key.Digit7, UnityEngine.InputSystem.Key.Digit8, UnityEngine.InputSystem.Key.Digit9,
+        UnityEngine.InputSystem.Key.Digit0,
+    };
+
     readonly Dictionary<string, InventoryContainer> storage = new Dictionary<string, InventoryContainer>();
+    readonly string[] hotkeys = new string[HotkeySlots];
     ItemDefinition equippedTool;
 
     public event Action<ItemDefinition> EquippedToolChanged;
+    public event Action HotkeysChanged;
 
     public InventoryContainer Player { get; private set; }
     public IEnumerable<InventoryContainer> Storage => storage.Values;
@@ -160,12 +173,99 @@ public class InventoryManager : MonoBehaviour, ISaveable
 
     public void Unequip() => SetEquipped(null);
 
+    // --- Tool hotkeys ---
+
+    // The label for a slot: keys 1-9, then 0 for the tenth.
+    public static string HotkeyLabel(int slot) => slot == HotkeySlots - 1 ? "0" : (slot + 1).ToString();
+
+    public string HotkeyItemId(int slot) =>
+        slot >= 0 && slot < HotkeySlots && !string.IsNullOrEmpty(hotkeys[slot]) ? hotkeys[slot] : null;
+
+    // The slot a Tool is on, or -1.
+    public int HotkeySlotOf(string itemId)
+    {
+        for (int i = 0; i < HotkeySlots; i++)
+        {
+            if (itemId != null && hotkeys[i] == itemId)
+                return i;
+        }
+        return -1;
+    }
+
+    // Puts a Tool on a slot (itemId null or empty clears it). A Tool lives on one slot at a time, so assigning it
+    // moves it off its old one, and whatever was on the target slot is replaced. Tools only.
+    public void SetHotkey(int slot, string itemId)
+    {
+        if (slot < 0 || slot >= HotkeySlots)
+            return;
+
+        if (!string.IsNullOrEmpty(itemId))
+        {
+            ItemDefinition item = ItemDatabase.Get(itemId);
+            if (item == null || item.Category != ItemCategory.Tool)
+                return;
+            int old = HotkeySlotOf(itemId);
+            if (old >= 0)
+                hotkeys[old] = null;
+            hotkeys[slot] = itemId;
+        }
+        else
+        {
+            hotkeys[slot] = null;
+        }
+
+        HotkeysChanged?.Invoke();
+    }
+
+    // A number key: equips that slot's Tool, or puts it away if it's already in hand. Says why when it can't.
+    public void PressHotkey(int slot)
+    {
+        string id = HotkeyItemId(slot);
+        if (id == null)
+        {
+            ToolStatus.Flash($"Nothing on key {HotkeyLabel(slot)} — assign a Tool from the Inventory screen (I).", 2f);
+            return;
+        }
+
+        ItemDefinition tool = ItemDatabase.Get(id);
+        string name = tool != null ? tool.DisplayName : id;
+        if (!Player.Has(id))
+        {
+            ToolStatus.Flash($"Not carrying the {name}.", 2f);
+            return;
+        }
+
+        if (equippedTool != null && equippedTool.Id == id)
+            Unequip();
+        else
+            Equip(id);
+    }
+
+    // Number keys work whenever the world is live — not in a menu, with the Inventory open, or paused.
+    void Update()
+    {
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        if (keyboard == null || GameManager.Instance == null || GameManager.Instance.State != GameState.Playing)
+            return;
+
+        for (int i = 0; i < HotkeySlots; i++)
+        {
+            if (keyboard[HotkeyKeys[i]].wasPressedThisFrame)
+            {
+                PressHotkey(i);
+                break;
+            }
+        }
+    }
+
     // Empties everything — used when starting a new game.
     public void ResetInventory()
     {
         Player.Clear();
         storage.Clear();
         SetEquipped(null);
+        Array.Clear(hotkeys, 0, hotkeys.Length);
+        HotkeysChanged?.Invoke();
     }
 
     void OnPlayerInventoryChanged()
@@ -199,6 +299,10 @@ public class InventoryManager : MonoBehaviour, ISaveable
         foreach (InventoryContainer container in storage.Values)
             data.storage.Add(container.ToData());
 
+        data.hotkeys = new List<string>();
+        foreach (string id in hotkeys)
+            data.hotkeys.Add(id ?? "");
+
         return data;
     }
 
@@ -221,6 +325,17 @@ public class InventoryManager : MonoBehaviour, ISaveable
                 storage[containerData.id] = container;
             }
         }
+
+        Array.Clear(hotkeys, 0, hotkeys.Length);
+        if (data.hotkeys != null)
+        {
+            for (int i = 0; i < HotkeySlots && i < data.hotkeys.Count; i++)
+            {
+                ItemDefinition item = string.IsNullOrEmpty(data.hotkeys[i]) ? null : ItemDatabase.Get(data.hotkeys[i]);
+                hotkeys[i] = item != null && item.Category == ItemCategory.Tool ? item.Id : null;
+            }
+        }
+        HotkeysChanged?.Invoke();
 
         equippedTool = null;
         if (!string.IsNullOrEmpty(data.equippedItemId))

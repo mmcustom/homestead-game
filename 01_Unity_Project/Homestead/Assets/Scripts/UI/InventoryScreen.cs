@@ -40,6 +40,7 @@ public class InventoryScreen : GameScreen
     Text encumberedTickLabel;
     InventoryManager watched;
     readonly Dictionary<ItemDefinition, Text> cookLabels = new Dictionary<ItemDefinition, Text>();
+    readonly List<(RectTransform row, ItemDefinition tool)> toolRows = new List<(RectTransform, ItemDefinition)>();
 
     public override string Title => "Inventory";
 
@@ -158,6 +159,7 @@ public class InventoryScreen : GameScreen
         {
             watched.Player.Changed += Refresh;
             watched.EquippedToolChanged += OnEquippedChanged;
+            watched.HotkeysChanged += Refresh;
         }
         Refresh();
     }
@@ -173,6 +175,7 @@ public class InventoryScreen : GameScreen
 
         watched.Player.Changed -= Refresh;
         watched.EquippedToolChanged -= OnEquippedChanged;
+        watched.HotkeysChanged -= Refresh;
         watched = null;
     }
 
@@ -181,6 +184,9 @@ public class InventoryScreen : GameScreen
     // The Cook / Boil buttons count down while their item is cooking.
     void Update()
     {
+        if (watched != null)
+            PollHotkeyAssign();
+
         CampfireCooking cooking = CampfireCooking.Instance;
         AxeTool axe = AxeTool.Instance;
         foreach (KeyValuePair<ItemDefinition, Text> pair in cookLabels)
@@ -206,6 +212,7 @@ public class InventoryScreen : GameScreen
     {
         UiKit.Clear(list);
         cookLabels.Clear();
+        toolRows.Clear();
         InventoryManager inventory = InventoryManager.Instance;
         if (inventory == null)
         {
@@ -237,7 +244,7 @@ public class InventoryScreen : GameScreen
         foreach ((ItemDefinition item, int quantity) in stacks)
             AddRow(item, quantity, item == equipped, atFire, player);
 
-        hintLabel.text = "Click a tool to equip or put it away, food or water to eat or drink one, the Sleeping Bag to sleep. Drop sets one on the ground (Shift: the stack). " +
+        hintLabel.text = "Click a tool to equip it, food or water to use one, the Sleeping Bag to sleep. Drop: Shift = stack. Point at a tool, press 1-9/0 for a hotkey. " +
                          (atFire ? "<color=#C7D68C>At the campfire: Cook meat and fish, Boil water (needs the Cooking Pot). Shift: whole stack.</color>"
                                  : "Cook and boil at a burning campfire. With the Axe, Split Logs and Branches into Firewood.");
 
@@ -448,8 +455,28 @@ public class InventoryScreen : GameScreen
             cookColors.highlightedColor = new Color(0.5f, 0.34f, 0.16f, 1f);
             cook.colors = cookColors;
         }
+        // Only Tools that clicking equips: the Sleeping Bag (sleeps) and Tent (placed) are Tools by category but aren't held.
+        bool hotkeyable = isTool && item.Id != SleepManager.SleepingBagId && item.Id != WoodManager.TentId;
+        if (hotkeyable)
+            nameRight = 0.36f; // room for the hotkey button
         Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, nameRight,
                TextAnchor.MiddleLeft, UiKit.Cream, 21, 12f);
+        // Tool Hotkeys (Inventory_System.md): the number key that equips this Tool. Click cycles 1-9, 0, none;
+        // or point at the row and press a number key.
+        if (hotkeyable)
+        {
+            toolRows.Add((rt, item));
+            InventoryManager inv = InventoryManager.Instance;
+            int slot = inv != null ? inv.HotkeySlotOf(item.Id) : -1;
+            Button key = UiKit.Button(rt, "Hotkey", slot >= 0 ? $"Key {InventoryManager.HotkeyLabel(slot)}" : "Key —", 16,
+                                      () => CycleHotkey(item));
+            var keyRt = (RectTransform)key.transform;
+            keyRt.anchorMin = new Vector2(0.37f, 0f);
+            keyRt.anchorMax = new Vector2(0.49f, 1f);
+            keyRt.offsetMin = new Vector2(0f, 7f);
+            keyRt.offsetMax = new Vector2(0f, -7f);
+        }
+
         Column(rt, $"×{quantity}", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f);
         Column(rt, $"{item.WeightKg * quantity:0.0} kg", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 8f);
 
@@ -461,6 +488,53 @@ public class InventoryScreen : GameScreen
         dropRt.anchorMax = new Vector2(0.99f, 1f);
         dropRt.offsetMin = new Vector2(0f, 7f);
         dropRt.offsetMax = new Vector2(0f, -7f);
+    }
+
+    // Next slot for a Tool: 1..9, 0, then off.
+    static void CycleHotkey(ItemDefinition tool)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null)
+            return;
+        int current = inventory.HotkeySlotOf(tool.Id);
+        if (current + 1 < InventoryManager.HotkeySlots)
+            inventory.SetHotkey(current + 1, tool.Id); // none -> slot 0, then onward
+        else
+            inventory.SetHotkey(current, null);        // past the last slot: off
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+    }
+
+    // Pointing at a Tool row and pressing 1-9 or 0 assigns that key to it.
+    void PollHotkeyAssign()
+    {
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        var mouse = UnityEngine.InputSystem.Mouse.current;
+        InventoryManager inventory = InventoryManager.Instance;
+        if (keyboard == null || mouse == null || inventory == null || toolRows.Count == 0)
+            return;
+
+        int pressed = -1;
+        for (int i = 0; i < InventoryManager.HotkeySlots; i++)
+        {
+            if (keyboard[InventoryManager.HotkeyKeys[i]].wasPressedThisFrame)
+                pressed = i;
+        }
+        if (pressed < 0)
+            return;
+
+        Canvas canvas = GetComponentInParent<Canvas>();
+        Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+        Vector2 point = mouse.position.ReadValue();
+        foreach ((RectTransform row, ItemDefinition tool) in toolRows)
+        {
+            if (row != null && RectTransformUtility.RectangleContainsScreenPoint(row, point, cam))
+            {
+                inventory.SetHotkey(pressed, tool.Id);
+                ToolStatus.Flash($"{tool.DisplayName} is on key {InventoryManager.HotkeyLabel(pressed)}.", 2f);
+                return;
+            }
+        }
     }
 
     void DropItem(ItemDefinition item)
