@@ -98,6 +98,8 @@ public class GameManager : MonoBehaviour
             StoneManager.Instance.ResetStone();
         if (GrassManager.Instance != null)
             GrassManager.Instance.ResetGrass();
+        if (PortableLight.Instance != null)
+            PortableLight.Instance.ResetLight();
 
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing));
     }
@@ -113,6 +115,8 @@ public class GameManager : MonoBehaviour
             DifficultyManager.Instance.ResetForLoad();
         if (TradingPost.Instance != null)
             TradingPost.Instance.ResetMoney(0);
+        if (PortableLight.Instance != null)
+            PortableLight.Instance.ResetLight(); // saves from before portable lighting have nothing to restore for it
         StartCoroutine(LoadRoutine(WorldScene, GameState.Playing, () => SaveManager.Instance.LoadGame()));
     }
 

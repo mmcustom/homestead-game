@@ -19,6 +19,7 @@ public class InventoryScreen : GameScreen
 
     // Row columns: Item | Qty | Weight | Drop button.
     const float QtyMin = 0.5f, QtyMax = 0.66f, WeightMax = 0.84f;
+    const float BuildRowHeight = 38f, CraftRowHeight = 36f;
 
     static readonly Color BarNormal = new Color(0.55f, 0.66f, 0.36f);
     static readonly Color BarEncumbered = new Color(0.84f, 0.63f, 0.3f);
@@ -99,22 +100,23 @@ public class InventoryScreen : GameScreen
         Heading(right, "Build", 344f);
         // Campfire and the storage kinds, three to a row.
         buildButton = UiKit.Button(right, "Build Campfire", "", 17, BuildCampfire);
-        Grid(buildButton, 0, 382f, 42f);
+        // (Row heights are kept tight so the craft grid — now 12 recipes, four rows — clears the "Esc to close" hint.)
+        Grid(buildButton, 0, 382f, BuildRowHeight);
         for (int i = 0; i < pileButtons.Length; i++)
         {
             PileKind kind = WoodManager.Buildable[i];
             pileButtons[i] = UiKit.Button(right, "Build " + kind, "", 17, () => BuildPile(kind));
-            Grid(pileButtons[i], i + 1, 382f, 42f);
+            Grid(pileButtons[i], i + 1, 382f, BuildRowHeight);
         }
         buildLabel = UiKit.Text(right, "Build Status", "", 15, UiKit.Muted);
-        Top(buildLabel.rectTransform, 560f, 38f);
+        Top(buildLabel.rectTransform, 544f, 38f);
 
         // Traps and tools, three to a row.
         for (int i = 0; i < Crafting.Recipes.Length; i++)
         {
             Crafting.Recipe recipe = Crafting.Recipes[i];
             craftButtons[i] = UiKit.Button(right, "Craft " + recipe.outputId, "", 16, () => Craft(recipe));
-            Grid(craftButtons[i], i, 600f, 40f);
+            Grid(craftButtons[i], i, 584f, CraftRowHeight);
         }
 
         // Hovering a button explains it in the status line.
@@ -393,6 +395,8 @@ public class InventoryScreen : GameScreen
             case "pouch": return "carried, it lets you carry 10 kg more.";
             case "cordage": return "twisted from whichever fibre you have.";
             case "hammer": return "equip it to build a Small Cabin.";
+            case "torch": return "equip it and click to light it (needs Flint and Steel). Burns about 3 hours, then it's gone.";
+            case "lantern": return "equip it and click to light it. Burns Lamp Oil (Trading Post) — refill it here with the Refill button.";
             default: return "equip it to set it.";
         }
     }
@@ -469,8 +473,28 @@ public class InventoryScreen : GameScreen
             screens.Close();
     }
 
+    // Pours Lamp Oil into the Lantern: one bottle, or Shift-click as many as fit.
+    void RefillLantern()
+    {
+        PortableLight light = PortableLight.Instance;
+        if (light == null)
+            return;
+        if (!light.CanRefill)
+        {
+            Notify("The Lantern's tank is full.");
+            return;
+        }
+        int used = light.Refill(ShiftHeld);
+        Notify($"Poured in {used} Lamp Oil — the Lantern has {light.LanternFuelHours:0.0} h of oil.", warning: false, seconds: 3f);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.Pour);
+    }
+
+    bool inventoryHasLantern;
+
     void AddRow(ItemDefinition item, int quantity, bool equipped, bool atFire, PlayerController player)
     {
+        inventoryHasLantern = InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(PortableLight.LanternId);
         bool isTool = item.Category == ItemCategory.Tool;
         UnityEngine.Events.UnityAction click = item.Id == SleepManager.SleepingBagId ? SleepHere
                                              : item.Id == WoodManager.TentId ? null
@@ -489,6 +513,11 @@ public class InventoryScreen : GameScreen
         Destroy(row.GetComponentInChildren<Text>().gameObject);
         string detail = item.IsFood ? FoodDetail(item) : CategoryName(item.Category);
         string tag = equipped ? "  <color=#C7D68C>• Equipped</color>" : "";
+        PortableLight light = PortableLight.Instance;
+        if (light != null && item.Id == PortableLight.TorchId && light.TorchHoursLeft > 0f)
+            tag += $"  <size=16><color=#E6A050>{light.TorchHoursLeft:0.0} h</color></size>";
+        else if (light != null && item.Id == PortableLight.LanternId)
+            tag += $"  <size=16><color=#E6A050>{light.LanternFuelHours:0.0} h</color></size>";
         string risk = Food.RiskTag(item);
         if (risk != null)
             tag += $"  <size=16><color=#E6A050>{risk}</color></size>";
@@ -496,13 +525,17 @@ public class InventoryScreen : GameScreen
         // Cook / Boil, beside the name, while standing at a lit campfire.
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
         bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried;
+        // Lamp Oil gets a Refill button while a Lantern is carried (Portable Lighting).
+        bool refillable = item.Id == PortableLight.LampOilId && inventoryHasLantern;
         float nameRight = QtyMin;
-        if ((atFire && (cookable || boilable)) || splittable)
+        if ((atFire && (cookable || boilable)) || splittable || refillable)
         {
             nameRight = 0.36f;
-            Button cook = UiKit.Button(rt, "Cook", splittable ? "Split" : boilable ? "Boil" : "Cook", 18,
-                                       splittable ? (UnityEngine.Events.UnityAction)(() => ToggleSplit(item)) : () => ToggleCooking(item));
-            cookLabels[item] = cook.GetComponentInChildren<Text>();
+            Button cook = UiKit.Button(rt, "Cook", refillable ? "Refill" : splittable ? "Split" : boilable ? "Boil" : "Cook", 18,
+                                       refillable ? (UnityEngine.Events.UnityAction)RefillLantern :
+                                       splittable ? () => ToggleSplit(item) : () => ToggleCooking(item));
+            if (!refillable)
+                cookLabels[item] = cook.GetComponentInChildren<Text>();
             var cookRt = (RectTransform)cook.transform;
             cookRt.anchorMin = new Vector2(0.37f, 0f);
             cookRt.anchorMax = new Vector2(0.49f, 1f);

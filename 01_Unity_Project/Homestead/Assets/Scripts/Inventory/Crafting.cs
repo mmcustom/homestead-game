@@ -37,6 +37,9 @@ public static class Crafting
         Make("knife", ("sticks", 1), ("cordage", 1), ("stone", 1)),
         Make("pouch", ("deer_hide", 1), ("cordage", 1)),
         Make("hammer", ("sticks", 2), ("cordage", 1), ("logs", 1)),
+        // Portable Lighting (Core_Survival_System.md): a stick wrapped in cordage, and a clay oil lamp with a cord wick.
+        Make("torch", ("sticks", 1), ("cordage", 1)),
+        Make("lantern", ("clay", 2), ("cordage", 1)),
         Either("cordage", new[] { ("tall_grass", 3) }, new[] { ("cattail", 2) }, new[] { ("sinew", 1) }),
     };
 
