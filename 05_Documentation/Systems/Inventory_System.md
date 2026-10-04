@@ -144,7 +144,7 @@ Making room for Drop narrowed the Qty and Weight columns slightly and moved the 
 - Exact presentation — a toast near the button, a banner at the top of the screen, how long it stays up — is Claude Code's call, matching that existing short-message convention.
 - The existing hover tooltip stays as-is; this adds an active notice on attempt, it doesn't replace the passive hover info.
 
-**Playtested 2026-10-04 (Mike): the notice works, but "is small and not easy to read."** Behavior is confirmed; the presentation isn't. (Claude Code's build report for this feature hasn't been reconciled into these docs yet — specifics of the shipped notice below are unconfirmed.)
+**Playtested 2026-10-04 (Mike): the notice works, but "is small and not easy to read."** Behavior is confirmed; the presentation isn't. (The original small version was committed `a71f6a3`; the enlarged banner below is `b8dcd04`.)
 
 **Readability fix, first-pass scope (Claude, not yet confirmed) — Claude Code should correct if this doesn't match:**
 

@@ -94,7 +94,7 @@ This is a real gap in what shipped 2026-10-02, not a bug: the shared transfer sc
 
 **Related:** Mike's wording says "moving items into **and out of**" — the take side already shipped as a per-item screen on 2026-10-02, so out should already work item by item. Worth Claude Code confirming during its test pass that it does, in case something about the take flow also felt wrong in playtest and hasn't been reported yet.
 
-**Built and tested 2026-10-04 (Claude Code):** built at the proposed scope. Commit hash for this piece wasn't visible in the report screenshot received (the top of the report was cut off) — confirm with Claude Code whether it's committed; the separate CabinSite-removal work from the same session is `e7cbe67`.
+**Built and tested 2026-10-04 (Claude Code):** built at the proposed scope. **Committed `ffa9fca`** (confirmed 2026-10-04); the separate CabinSite-removal work from the same session is `e7cbe67`.
 
 - **Opening:** E or R on a Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin or Tool Rack opens the screen on that specific structure. It opens even when the structure is empty, so items can be put in.
 - **Left panel (what you carry that this structure holds):** carried weight against the cap, e.g. "10.3 / 45 kg". An empty left panel says what the structure does hold. Chose the "only what this structure accepts" option from the proposal over showing everything greyed.

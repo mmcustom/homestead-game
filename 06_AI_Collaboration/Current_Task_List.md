@@ -1059,3 +1059,10 @@ Mike playtested: "lighting from torches and lanterns in daylight is fine." Close
 ## 2026-10-04 — Torch/Lantern flags closed
 
 Mike: "weather and sleep is fine the way it is for now, and the dropped torch is fine for now." Both accepted as-is, deferred rather than rejected. Portable Lighting (Torch/Lantern) has no remaining open flags in Core_Survival_System.md. Flashlight stays Future, gated on Power_System.md's battery item. Not sent to Claude Code.
+
+
+## 2026-10-04 — Everything committed and pushed; `master` matches GitHub (`5410341..9c62d6d`, nine commits)
+
+Mike had Claude Code "commit and push everything." Confirmed hashes for this stretch: `1de876f` Drop Items; `2fb66d2` tool hotkeys; `a71f6a3` missing-materials notice (original small version); `fd5bfe4` Torch/Lantern/Lamp Oil; `ffa9fca` two-way storage transfer screen; `e7cbe67` cabin-site and stray-pile removal; `b8dcd04` large notice banner; `fc37969` Hammer Dismantle; `9c62d6d` "Update docs and task list" — the documentation that was sitting uncommitted (Building_Housing_System, Core_Survival_System, Primitive_Storage_System, Inventory_System, Item_Data, Current_Task_List, and the new Power_System.md). Claude Code noted it hadn't written that documentation and committed it as it stood; since it was my reconciled version, it already reflects the Dismantle, banner and other recent builds, so its "still says not yet built" worry doesn't apply. Filled in the previously unknown hashes (transfer screen `ffa9fca`, Torch/Lantern `fd5bfe4`, notice `a71f6a3`) in Primitive_Storage_System.md, Core_Survival_System.md, Item_Data.md and Inventory_System.md — those four small edits are the only docs changes after `9c62d6d`, so they're uncommitted.
+
+Open: nothing from today's requests. Power_System.md remains Future (committed, not a build task).
