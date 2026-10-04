@@ -103,6 +103,30 @@ public class DroppedItems : MonoBehaviour, ISaveable
         return removed;
     }
 
+    // Leaves a pile of an item on the ground near a spot, for what a taken-down structure holds when the pack is full.
+    // The structure's own colliders (ignore) don't count as ground, so the pile lands where the structure stood rather
+    // than on top of it. Like any dropped pile it stays until picked up and is saved with the world.
+    public static void Place(string itemId, int quantity, Vector3 near, Transform ignore = null)
+    {
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        if (item == null || quantity <= 0)
+            return;
+
+        Vector3 spot = near;
+        RaycastHit[] below = Physics.RaycastAll(near + Vector3.up * 3f, Vector3.down, 8f, ~0, QueryTriggerInteraction.Ignore);
+        Array.Sort(below, (a, b) => a.distance.CompareTo(b.distance));
+        foreach (RaycastHit hit in below)
+        {
+            if ((ignore != null && hit.collider.transform.IsChildOf(ignore)) || hit.collider.GetComponentInParent<ItemPickup>() != null)
+                continue;
+            spot = hit.point;
+            break;
+        }
+
+        spot = ClearOfOtherPiles(spot, Vector3.right, item, -1);
+        Spawn(item, quantity, -1, spot, UnityEngine.Random.Range(0f, 360f), true);
+    }
+
     // A spot on the ground a short way in front of the player, pulled in if something solid is in the way.
     static bool TryFindSpot(PlayerController player, out Vector3 spot, out string reason)
     {

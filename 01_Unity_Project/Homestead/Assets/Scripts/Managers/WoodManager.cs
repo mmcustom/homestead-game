@@ -680,6 +680,20 @@ public class WoodManager : MonoBehaviour, ISaveable
         // Placing a CabinSite is free and needs no tool — the Hammer only gates CompleteCabin, once it's fully stocked.
         bool cabin = kind == PileKind.CabinSite;
 
+        // One site in progress at a time (Mike placed two by accident, 2026-10-04). A finished cabin isn't a site, so
+        // another can be started once the first is built — only an unfinished one blocks it.
+        if (cabin)
+        {
+            foreach (WoodPileState other in piles)
+            {
+                if (other.kind == PileKind.CabinSite)
+                {
+                    reason = "You already have a Small Cabin site — finish it, or take it down first.";
+                    return false;
+                }
+            }
+        }
+
         var shortfalls = new List<(string, int)>();
         foreach (WoodStack c in CostOf(kind))
             shortfalls.Add((c.itemId, c.count - inventory.Player.Count(c.itemId)));

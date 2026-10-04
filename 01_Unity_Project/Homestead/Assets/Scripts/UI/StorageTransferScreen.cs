@@ -20,8 +20,9 @@ public class StorageTransferScreen : GameScreen
 
     RectTransform packList, structureList;
     Text packWeight, structureWeight, statusLabel;
-    Button storeAllButton, takeAllButton;
+    Button storeAllButton, takeAllButton, removeButton;
     WoodPile target;
+    bool confirmingRemove;
 
     public override string Title => target != null && target.State != null ? WoodManager.PileName(target.State.kind) : "Storage";
 
@@ -29,9 +30,17 @@ public class StorageTransferScreen : GameScreen
     {
         statusLabel = UiKit.Text(area, "Status", "", 17, UiKit.Muted, TextAnchor.MiddleLeft);
         statusLabel.rectTransform.anchorMin = Vector2.zero;
-        statusLabel.rectTransform.anchorMax = new Vector2(1f, 0f);
+        statusLabel.rectTransform.anchorMax = new Vector2(0.62f, 0f);
         statusLabel.rectTransform.offsetMin = new Vector2(6f, 0f);
         statusLabel.rectTransform.offsetMax = new Vector2(0f, 30f);
+
+        // Takes a misplaced structure down (WoodPile.RemoveStructure) — two clicks, so it can't be done by accident.
+        removeButton = UiKit.Button(area, "Remove", "", 16, RemoveClicked);
+        var removeRt = (RectTransform)removeButton.transform;
+        removeRt.anchorMin = new Vector2(0.64f, 0f);
+        removeRt.anchorMax = new Vector2(1f, 0f);
+        removeRt.offsetMin = new Vector2(0f, 0f);
+        removeRt.offsetMax = new Vector2(0f, 30f);
 
         RectTransform body = UiKit.Rect("Body", area);
         body.Fill(0f, 34f, 0f, 0f);
@@ -71,14 +80,21 @@ public class StorageTransferScreen : GameScreen
     {
         UiKit.Clear(packList);
         UiKit.Clear(structureList);
+        confirmingRemove = false;
         InventoryManager inventory = InventoryManager.Instance;
         if (target == null || target.State == null || inventory == null)
         {
             storeAllButton.gameObject.SetActive(false);
             takeAllButton.gameObject.SetActive(false);
+            removeButton.gameObject.SetActive(false);
             packWeight.text = structureWeight.text = "";
             return;
         }
+
+        // Taking a stray structure down is only offered once it's empty — nothing disappears with it.
+        removeButton.gameObject.SetActive(true);
+        removeButton.interactable = target.CanRemove(out string removeReason);
+        removeButton.GetComponentInChildren<Text>().text = removeButton.interactable ? "Take Down Structure" : $"Take Down — {removeReason}";
 
         WoodPileState state = target.State;
         bool barrel = state.kind == PileKind.WaterBarrel;
@@ -221,6 +237,27 @@ public class StorageTransferScreen : GameScreen
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
         Refresh();
+    }
+
+    // First click asks, second takes it down, returns the half of its materials, and closes the screen.
+    void RemoveClicked()
+    {
+        if (target == null || target.State == null)
+            return;
+        if (!confirmingRemove)
+        {
+            confirmingRemove = true;
+            removeButton.GetComponentInChildren<Text>().text = "Click again to take it down";
+            statusLabel.text = "Gives back half its building materials. It has to be empty first.";
+            return;
+        }
+
+        string message = target.RemoveStructure();
+        target = null;
+        ToolStatus.Flash(message, 5f);
+        GameScreens screens = GetComponentInParent<GameScreens>();
+        if (screens != null)
+            screens.Close();
     }
 
     void TakeShortcut()

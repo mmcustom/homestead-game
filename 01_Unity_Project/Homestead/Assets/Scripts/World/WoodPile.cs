@@ -53,7 +53,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (UsesTransferScreen)
                 return $"Open {Name}  ({Describe(state)})";
             if (state.IsEmpty)
-                return $"{Name}  (empty)";
+                return IsCabinSite ? $"Remove {Name}  (empty — nothing to take back)" : $"{Name}  (empty)";
             string contents = Describe(state);
             string verb = state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
             return AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more";
@@ -75,8 +75,13 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             return;
         }
 
+        // An empty site has nothing to take, so E takes the site itself down (a stocked one is emptied first, then this).
         if (state.IsEmpty)
+        {
+            if (IsCabinSite)
+                ToolStatus.Flash(RemoveStructure());
             return;
+        }
 
         int taken = TakeAll();
         if (taken == 0)
@@ -213,8 +218,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (state == null)
                 return "";
             int carried = CarriedStorable(out string what);
+            // R stores what the site still takes; with nothing to store it takes the site down, like the Lean-To's
+            // pack-up — the one key left over on the site, since E takes materials back.
             if (carried <= 0)
-                return "";
+                return IsCabinSite ? "Remove Site  (everything stocked comes back to you)" : "";
             if (IsBarrel)
             {
                 int room = WoodManager.Instance != null ? WoodManager.Instance.BarrelLitres - state.Total : 0;
@@ -237,6 +244,13 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             return;
         }
 
+        // A CabinSite with nothing left to store takes itself down (see SecondaryPrompt).
+        if (IsCabinSite && CarriedStorable(out _) <= 0)
+        {
+            ToolStatus.Flash(RemoveStructure());
+            return;
+        }
+
         // A felled tree's pile and a CabinSite keep the quick bulk store.
         int stored = StoreEligible();
         if (stored <= 0)
@@ -252,6 +266,101 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         GameScreens screens = FindAnyObjectByType<GameScreens>();
         if (screens != null)
             screens.OpenStorage(this);
+    }
+
+    // --- Taking the structure down ---
+    //
+    // Building_Housing_System.md's Hammer Dismantle (2026-10-03) isn't built yet, and Mike hit the gap for real on
+    // 2026-10-04 (two Small Cabin sites, no way to remove the second). Until Dismantle lands, a placed structure can be
+    // taken down by hand:
+    //   A Small Cabin site — free to place and no Hammer needed, so none to take it down. Everything stocked in it
+    //     comes back in full (it was only stored, never used up); what the pack can't carry is left on the ground as
+    //     pickup piles. Nothing is lost by undoing a mistake.
+    //   A storage pile (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack) — only when it's empty,
+    //     so nothing silently disappears with it, and it gives back half its building materials, rounded down, the
+    //     Lean-To's precedent. Taken down from the transfer screen.
+    // A felled tree's pile goes away by itself once emptied, and a finished Small Cabin waits for Dismantle.
+
+    bool IsCabinSite => state.kind == PileKind.CabinSite;
+
+    // Whether this can be taken down by hand right now, and why not if not.
+    public bool CanRemove(out string reason)
+    {
+        reason = "";
+        if (state == null || Inventory == null)
+            return false;
+        if (IsCabinSite)
+            return true;
+        if (!UsesTransferScreen)
+        {
+            reason = "can't be taken down";
+            return false;
+        }
+        if (!state.IsEmpty)
+        {
+            reason = "empty it first";
+            return false;
+        }
+        return true;
+    }
+
+    // Takes it down for good and says what came back. The pack gets what fits; the rest is left as pickup piles where
+    // the structure stood.
+    public string RemoveStructure()
+    {
+        if (!CanRemove(out string reason))
+            return $"Can't take the {Name} down — {reason}.";
+
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null)
+            return "Not available here.";
+
+        Vector3 at = transform.position;
+        Transform self = transform;
+        var back = new List<string>();
+        var left = new List<string>();
+        int spot = 0;
+
+        // Hands items to the pack and leaves what doesn't fit lying around the structure's spot.
+        void Return(string itemId, int count, int day)
+        {
+            ItemDefinition item = ItemDatabase.Get(itemId);
+            if (item == null || count <= 0)
+                return;
+            int added = item.IsPerishable ? Inventory.AddToPlayer(itemId, count, day) : Inventory.AddToPlayer(itemId, count);
+            if (added > 0)
+                back.Add($"{added} {item.DisplayName}");
+            if (added < count)
+            {
+                float angle = spot++ * 72f * Mathf.Deg2Rad;
+                DroppedItems.Place(itemId, count - added, at + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f, self);
+                left.Add($"{count - added} {item.DisplayName}");
+            }
+        }
+
+        // Everything stocked, each batch keeping its day.
+        var ids = new List<string>();
+        foreach (WoodStack stack in state.contents)
+            if (!ids.Contains(stack.itemId))
+                ids.Add(stack.itemId);
+        foreach (string itemId in ids)
+            foreach (WoodStack batch in state.Take(itemId, state.Count(itemId)))
+                Return(itemId, batch.count, batch.day);
+
+        // Half the building materials of a storage pile (a site is free to place, so there's nothing to give back).
+        if (!IsCabinSite)
+            foreach (WoodStack cost in wood.CostOf(state.kind))
+                Return(cost.itemId, cost.count / 2, 0);
+
+        string name = Name;
+        wood.RemovePile(state);
+
+        string message = $"Took down the {name}";
+        if (back.Count > 0)
+            message += $" — {string.Join(", ", back)} back in your pack";
+        if (left.Count > 0)
+            message += $"; {string.Join(", ", left)} left on the ground (no room to carry it)";
+        return message + ".";
     }
 
     // --- Storing: the transfer screen's per-item store (the mirror of TakeOne), and the bulk store behind R ---
