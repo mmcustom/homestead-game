@@ -3,18 +3,18 @@ using UnityEngine;
 
 // A pile or container in the World (WoodManager owns the state): what a felled tree left at its base, or storage the
 // player built — Wood_Gathering_System.md's Wood Pile and Rock Pile, Primitive_Storage_System.md's Water Barrel, Food
-// Cache, Storage Bin and Tool Rack. Looking at it shows what's in it. The second interaction (R) stores everything
-// this kind of storage takes that the player is carrying — pouring water into the barrel from the Bucket — unchanged,
-// bulk, same as always. Perishable food keeps the day it was acquired while stored. With the Axe, swinging at a wood
-// pile splits its Logs (then its Branches) into Firewood where they lie (AxeTool). Drawn from simple shapes; built
-// storage shows its frame even when empty.
+// Cache, Storage Bin and Tool Rack. Looking at it shows what's in it. Perishable food keeps the day it was acquired
+// while stored. With the Axe, swinging at a wood pile splits its Logs (then its Branches) into Firewood where they lie
+// (AxeTool). Drawn from simple shapes; built storage shows its frame even when empty.
 //
-// Taking (E): a felled tree's pile and a Small Cabin's staged CabinSite still take everything that fits in one go,
-// lightest first (Logs last) — quick, incidental piles visited often while gathering. Every deliberate, player-built
-// storage kind (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack) instead opens
-// StorageTransferScreen (Primitive_Storage_System.md, 2026-10-02 — Mike: "i think we need a per-item transfer screen
-// now"), so the player picks what comes back out rather than grabbing the lot — the Water Barrel's quick "fill from
-// the best quality available" and the old "take everything" both stay there as shortcut buttons.
+// A felled tree's pile and a Small Cabin's staged CabinSite are quick, incidental piles visited often while gathering:
+// E takes everything that fits in one go, lightest first (Logs last), and R stores everything the pile accepts in one
+// go — pouring water into the barrel from the Bucket aside, unchanged, bulk, same as always. Every deliberate,
+// player-built storage kind (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack) instead opens
+// StorageTransferScreen on E and on R (Primitive_Storage_System.md's Two-Way Transfer Screen, 2026-10-04 — the take
+// side shipped 2026-10-02, the store side the day Mike's playtest showed he wanted it selectable too): the player's
+// pack on the left, the structure on the right, click moves one and Shift-click the stack. The old bulk behaviors stay
+// there as shortcut buttons — Store All Eligible, Take Everything, and the Water Barrel's "fill from the best quality".
 public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 {
     WoodPileState state;
@@ -50,11 +50,11 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         {
             if (state == null)
                 return "";
+            if (UsesTransferScreen)
+                return $"Open {Name}  ({Describe(state)})";
             if (state.IsEmpty)
                 return $"{Name}  (empty)";
             string contents = Describe(state);
-            if (UsesTransferScreen)
-                return $"Open {Name}  ({contents})";
             string verb = state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
             return AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more";
         }
@@ -65,16 +65,18 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 
     public void Interact(PlayerController player)
     {
-        if (state == null || Inventory == null || state.IsEmpty)
+        if (state == null || Inventory == null)
             return;
 
+        // Opens even when empty now — there may be something to put in.
         if (UsesTransferScreen)
         {
-            GameScreens screens = FindAnyObjectByType<GameScreens>();
-            if (screens != null)
-                screens.OpenStorage(this);
+            OpenScreen();
             return;
         }
+
+        if (state.IsEmpty)
+            return;
 
         int taken = TakeAll();
         if (taken == 0)
@@ -218,7 +220,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                 int room = WoodManager.Instance != null ? WoodManager.Instance.BarrelLitres - state.Total : 0;
                 return room > 0 ? $"Pour In Water  ({Mathf.Min(room, carried)} L)" : "";
             }
-            return $"Store {what}";
+            return UsesTransferScreen ? $"Store Items  ({what})" : $"Store {what}";
         }
     }
 
@@ -227,11 +229,107 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (state == null || Inventory == null)
             return;
 
+        // The built storage kinds open the transfer screen on R as well as E (Primitive_Storage_System.md's Two-Way
+        // Transfer Screen, 2026-10-04); "Store All Eligible" in there is the old one-press bulk store.
+        if (UsesTransferScreen)
+        {
+            OpenScreen();
+            return;
+        }
+
+        // A felled tree's pile and a CabinSite keep the quick bulk store.
+        int stored = StoreEligible();
+        if (stored <= 0)
+            return;
+        ToolStatus.Flash(IsBarrel ? $"Poured in {stored} L — the barrel holds {state.Total} L"
+                                  : $"Stored — it now holds {Describe(state)}");
+        if (WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state);
+    }
+
+    void OpenScreen()
+    {
+        GameScreens screens = FindAnyObjectByType<GameScreens>();
+        if (screens != null)
+            screens.OpenStorage(this);
+    }
+
+    // --- Storing: the transfer screen's per-item store (the mirror of TakeOne), and the bulk store behind R ---
+
+    // Litres the barrel can still take; unlimited for anything else.
+    int StorageRoom => IsBarrel && WoodManager.Instance != null ? Mathf.Max(0, WoodManager.Instance.BarrelLitres - state.Total) : int.MaxValue;
+
+    // Whether StoreOne(itemId, ...) could store anything right now, and why not if not.
+    public bool CanStoreOne(string itemId, out string reason)
+    {
+        reason = "";
+        if (state == null || Inventory == null)
+            return false;
+        if (!state.Accepts(itemId))
+        {
+            reason = $"a {Name} doesn't hold that";
+            return false;
+        }
+        if (Inventory.EquippedTool != null && Inventory.EquippedTool.Id == itemId)
+        {
+            reason = "equipped — put it away first";
+            return false;
+        }
+        if (Inventory.Player.Count(itemId) <= 0)
+        {
+            reason = "none carried";
+            return false;
+        }
+        if (StorageRoom <= 0)
+        {
+            reason = "the barrel is full";
+            return false;
+        }
+        return true;
+    }
+
+    // One unit of an item from the pack, or (all) the whole stack, into this pile — StorageTransferScreen's
+    // Store/Shift-click. Returns how many went in.
+    public int StoreOne(string itemId, bool all)
+    {
+        if (!CanStoreOne(itemId, out _))
+            return 0;
+        int want = Mathf.Min(all ? Inventory.Player.Count(itemId) : 1, StorageRoom);
+        int stored = StoreInto(itemId, want, IsBarrel);
+        if (stored > 0 && WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state);
+        return stored;
+    }
+
+    // Whether Store All Eligible would move anything.
+    public bool AnythingToStore()
+    {
+        foreach (ItemStack stack in Inventory.Player.Stacks)
+            if (CanStoreOne(stack.itemId, out _))
+                return true;
+        return false;
+    }
+
+    // The old one-press bulk store — everything carried that this takes, minus the equipped Tool — now a shortcut inside
+    // the transfer screen.
+    public string StoreAllToStatus()
+    {
+        int stored = StoreEligible();
+        if (stored > 0 && WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state);
+        if (stored <= 0)
+            return IsBarrel && StorageRoom <= 0 ? "The barrel is full." : "Nothing you're carrying fits in here.";
+        return IsBarrel ? $"Poured in {stored} L — the barrel holds {state.Total} L." : $"Stored {stored}.";
+    }
+
+    // Stores every kind of item carried that this pile accepts, up to its limits. Returns how many went in.
+    int StoreEligible()
+    {
         // The barrel's litres are one shared budget across every water type; a CabinSite's cap is per material
         // instead (each stops accepting more once it's got what Small Cabin needs — see WoodPileState.Accepts), so it
         // doesn't share a running total the way the barrel's room does.
         bool isCabinSite = state.kind == PileKind.CabinSite;
-        int room = IsBarrel && WoodManager.Instance != null ? WoodManager.Instance.BarrelLitres - state.Total : int.MaxValue;
+        int room = StorageRoom;
         int stored = 0;
         var ids = new List<string>();
         foreach (ItemStack stack in Inventory.Player.Stacks)
@@ -252,44 +350,49 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (cap <= 0)
                 continue;
 
-            // Note each batch's day before it leaves the inventory, oldest first as Remove takes them.
-            var batches = new List<ItemStack>();
-            foreach (ItemStack stack in Inventory.Player.Stacks)
-                if (stack.itemId == itemId)
-                    batches.Add(new ItemStack { itemId = itemId, quantity = stack.quantity, acquiredDay = stack.acquiredDay });
-            batches.Sort((a, b) => a.acquiredDay.CompareTo(b.acquiredDay));
-
-            ItemDefinition item = ItemDatabase.Get(itemId);
-            int want = Mathf.Min(cap, Inventory.Player.Count(itemId));
-            // Storing isn't dropping: the barrel plays one pour, everything else stays quiet.
-            if (AudioManager.Instance != null)
-            {
-                if (IsBarrel && first)
-                    AudioManager.Instance.PlayOnConsume(SoundCue.Pour);
-                else
-                    AudioManager.Instance.SilenceNextRemoval();
-            }
+            int removed = StoreInto(itemId, Mathf.Min(cap, Inventory.Player.Count(itemId)), IsBarrel && first);
             first = false;
-            int removed = Inventory.RemoveFromPlayer(itemId, want);
-            int left = removed;
-            foreach (ItemStack batch in batches)
-            {
-                if (left <= 0)
-                    break;
-                int n = Mathf.Min(left, batch.quantity);
-                state.Add(itemId, n, item != null && item.IsPerishable ? batch.acquiredDay : 0);
-                left -= n;
-            }
             stored += removed;
             if (!isCabinSite)
                 room -= removed;
         }
-        if (stored <= 0)
-            return;
-        ToolStatus.Flash(IsBarrel ? $"Poured in {stored} L — the barrel holds {state.Total} L"
-                                  : $"Stored — it now holds {Describe(state)}");
-        if (WoodManager.Instance != null)
-            WoodManager.Instance.NotifyChanged(state);
+        return stored;
+    }
+
+    // Moves up to want of an item from the pack into the pile, each batch keeping the day it was acquired. Storing
+    // isn't dropping: pour plays one pour (the barrel), otherwise it stays quiet. Returns how many moved.
+    int StoreInto(string itemId, int want, bool pour)
+    {
+        if (want <= 0)
+            return 0;
+
+        // Note each batch's day before it leaves the inventory, oldest first as Remove takes them.
+        var batches = new List<ItemStack>();
+        foreach (ItemStack stack in Inventory.Player.Stacks)
+            if (stack.itemId == itemId)
+                batches.Add(new ItemStack { itemId = itemId, quantity = stack.quantity, acquiredDay = stack.acquiredDay });
+        batches.Sort((a, b) => a.acquiredDay.CompareTo(b.acquiredDay));
+
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        if (AudioManager.Instance != null)
+        {
+            if (pour)
+                AudioManager.Instance.PlayOnConsume(SoundCue.Pour);
+            else
+                AudioManager.Instance.SilenceNextRemoval();
+        }
+
+        int removed = Inventory.RemoveFromPlayer(itemId, want);
+        int left = removed;
+        foreach (ItemStack batch in batches)
+        {
+            if (left <= 0)
+                break;
+            int n = Mathf.Min(left, batch.quantity);
+            state.Add(itemId, n, item != null && item.IsPerishable ? batch.acquiredDay : 0);
+            left -= n;
+        }
+        return removed;
     }
 
     // How many storable items the player carries (not the equipped tool), and a short description.
