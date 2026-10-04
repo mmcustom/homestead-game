@@ -854,11 +854,71 @@ public class WoodManager : MonoBehaviour, ISaveable
         // Furnished with a hearth — a real campfire, unlit and unfuelled until the player tends it, so
         // Warmth-by-proximity and Cooking work there exactly as at any other campfire.
         if (FireManager.Instance != null)
+            FireManager.Instance.BuildFurnished(HearthSpot(site), site.yaw);
+        return true;
+    }
+
+    // Where a Small Cabin's hearth sits: just outside its front wall.
+    static Vector3 HearthSpot(WoodPileState cabin) =>
+        cabin.position + Quaternion.Euler(0f, cabin.yaw, 0f) * new Vector3(Shelter.CabinWidth / 2f + 1.1f, 0f, 0f);
+
+    // --- Dismantling a finished Small Cabin (Building_Housing_System.md, Tools: Hammer) ---
+
+    // The Hammer is what dismantles anything finished, the way it's what completes a cabin.
+    public static bool HammerEquipped =>
+        InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null &&
+        InventoryManager.Instance.EquippedTool.Id == HammerId;
+
+    // The cabin's hearth, found by where CompleteCabin put it (so it works on saves from before this too).
+    CampfireState HearthOf(WoodPileState cabin) =>
+        FireManager.Instance != null ? FireManager.Instance.FireNear(HearthSpot(cabin), 0.75f) : null;
+
+    // Whether the player can dismantle this cabin now, and why not if not: the Hammer in hand, and the hearth out — a
+    // lit fire shouldn't just vanish with the house.
+    public bool CanDismantleCabin(WoodPileState cabin, out string reason)
+    {
+        reason = "";
+        if (cabin == null || cabin.kind != PileKind.Cabin)
         {
-            Vector3 hearthOffset = Quaternion.Euler(0f, site.yaw, 0f) * new Vector3(Shelter.CabinWidth / 2f + 1.1f, 0f, 0f);
-            FireManager.Instance.BuildFurnished(site.position + hearthOffset, site.yaw);
+            reason = "not a finished cabin";
+            return false;
+        }
+        if (!HammerEquipped)
+        {
+            reason = "equip the Hammer";
+            return false;
+        }
+        CampfireState hearth = HearthOf(cabin);
+        if (hearth != null && hearth.lit)
+        {
+            reason = "put the hearth fire out first";
+            return false;
         }
         return true;
+    }
+
+    // Takes a finished Small Cabin down for good: half its building materials back (rounded down, the Lean-To's
+    // precedent), its hearth removed with it and any Firewood still in the hearth returned too. What the pack can't
+    // carry is left on the ground as pickup piles. The caller has already confirmed it with the player.
+    public string DismantleCabin(WoodPileState cabin, Transform view)
+    {
+        if (!CanDismantleCabin(cabin, out string reason))
+            return $"Can't dismantle the Small Cabin — {reason}.";
+
+        var refund = new StructureRefund(cabin.position, view);
+        foreach (WoodStack cost in CostOf(PileKind.Cabin))
+            refund.Return(cost.itemId, cost.count / 2);
+
+        CampfireState hearth = HearthOf(cabin);
+        if (hearth != null)
+        {
+            FireManager fires = FireManager.Instance;
+            refund.Return(FireManager.FirewoodId, Mathf.FloorToInt(hearth.fuelHours / fires.HoursPerFirewood));
+            fires.RemoveFire(hearth);
+        }
+
+        RemovePile(cabin);
+        return refund.Describe("Small Cabin");
     }
 
     void SpawnPile(WoodPileState pile)

@@ -248,7 +248,7 @@ public class StorageTransferScreen : GameScreen
         {
             confirmingRemove = true;
             removeButton.GetComponentInChildren<Text>().text = "Click again to take it down";
-            statusLabel.text = "Gives back half its building materials. It has to be empty first.";
+            statusLabel.text = "Needs the Hammer equipped and the structure empty. Gives back half its materials.";
             return;
         }
 

@@ -3,7 +3,8 @@ using UnityEngine;
 // A placed Tent, Lean-To or Small Cabin (Building_Housing_System.md's Sleep System and Small Cabin; WoodManager owns
 // the state). The main interaction sleeps in it (SleepManager) — till morning at night, a short rest by day — with the
 // shelter keeping off rain, wind and some of the cold. The second (R) packs a Tent back up into the Inventory, or takes
-// a Lean-To down for half its Branches back; a Small Cabin is permanent, so it has no second interaction at all.
+// a Lean-To down for half its Branches back. A Small Cabin is permanent by default, so R does nothing for it unless the
+// Hammer is equipped: then it dismantles it (twice-pressed, hearth out first) for half its materials back.
 // Drawn from simple shapes: a canvas A-frame tent, a lean-to of branches on a ridge pole, a small stacked-log cabin
 // with a thatched roof (its hearth is a separate, ordinary Campfire — see WoodManager.BuildPile).
 public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
@@ -50,14 +51,44 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
             SleepManager.Instance.Sleep(state);
     }
 
-    public string SecondaryPrompt => state == null || IsCabin ? "" : IsTent ? "Pack Up Tent" : "Take Down Lean-To  (keeps 4 Branches)";
+    // A Small Cabin is dismantled with the Hammer (WoodManager.DismantleCabin), and — the most invested structure in the
+    // game so far — only on a second press of R within a few seconds, so it can't happen by accident.
+    const float ConfirmSeconds = 5f;
+    float confirmUntil;
+    bool Confirming => Time.unscaledTime < confirmUntil;
+
+    public string SecondaryPrompt
+    {
+        get
+        {
+            if (state == null)
+                return "";
+            if (IsCabin)
+            {
+                // Shown only with the Hammer in hand, so a cabin you're just walking past stays uncluttered.
+                WoodManager wood = WoodManager.Instance;
+                if (wood == null || !WoodManager.HammerEquipped)
+                    return "";
+                if (!wood.CanDismantleCabin(state, out string why))
+                    return $"Dismantle Small Cabin  — {why}";
+                return Confirming ? "Press R again to dismantle the Small Cabin" : "Dismantle Small Cabin  (gives back about half its materials)";
+            }
+            return IsTent ? "Pack Up Tent" : "Take Down Lean-To  (keeps 4 Branches)";
+        }
+    }
 
     public void SecondaryInteract(PlayerController player)
     {
         InventoryManager inventory = InventoryManager.Instance;
         WoodManager wood = WoodManager.Instance;
-        if (state == null || inventory == null || wood == null || IsCabin)
+        if (state == null || inventory == null || wood == null)
             return;
+
+        if (IsCabin)
+        {
+            DismantleCabin(wood);
+            return;
+        }
 
         if (IsTent)
         {
@@ -76,6 +107,25 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
             ToolStatus.Flash("Took down the Lean-To");
         }
         wood.RemovePile(state);
+    }
+
+    // First press asks; a second within ConfirmSeconds takes the cabin down.
+    void DismantleCabin(WoodManager wood)
+    {
+        if (!wood.CanDismantleCabin(state, out string reason))
+        {
+            ToolStatus.Flash($"Can't dismantle the Small Cabin — {reason}.", 3.5f);
+            return;
+        }
+
+        if (!Confirming)
+        {
+            confirmUntil = Time.unscaledTime + ConfirmSeconds;
+            ToolStatus.Flash("Dismantle the Small Cabin? Press R again to confirm — you'll get about half its materials back.", ConfirmSeconds);
+            return;
+        }
+
+        ToolStatus.Flash(wood.DismantleCabin(state, transform), 6f);
     }
 
     // --- Looks ---

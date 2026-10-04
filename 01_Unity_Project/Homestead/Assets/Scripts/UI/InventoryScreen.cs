@@ -482,7 +482,7 @@ public class InventoryScreen : GameScreen
             case PileKind.Tent: return "sleep in it (E), pack it up again (R). Keeps off rain, wind and much of the cold.";
             case PileKind.LeanTo: return "sleep in it (E), take it down (R). Keeps off most rain and wind, and some cold.";
             case PileKind.Cabin: return "sleep in it (E) — permanent, the best shelter yet. Comes with a hearth to warm up and cook at.";
-            case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, this button completes it (needs the Hammer equipped).";
+            case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, this button completes it (needs the Hammer equipped). Placed one by mistake? E on it when it's empty, or R with nothing to store, takes it down — no Hammer needed.";
             default: return "store wood (R), take it back (E).";
         }
     }
@@ -497,7 +497,7 @@ public class InventoryScreen : GameScreen
             case "knife": return "carried, it lets you field dress kills and take game from traps.";
             case "pouch": return "carried, it lets you carry 10 kg more.";
             case "cordage": return "twisted from whichever fibre you have.";
-            case "hammer": return "equip it to build a Small Cabin.";
+            case "hammer": return "equip it to build a Small Cabin, or to dismantle a finished structure for half its materials.";
             case "torch": return "equip it and click to light it (needs Flint and Steel). Burns about 3 hours, then it's gone.";
             case "lantern": return "equip it and click to light it. Burns Lamp Oil (Trading Post) — refill it here with the Refill button.";
             default: return "equip it to set it.";

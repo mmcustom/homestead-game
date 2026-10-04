@@ -216,6 +216,34 @@ public class FireManager : MonoBehaviour, ISaveable
         return fire;
     }
 
+    // A fire taken away with the structure it belonged to — a Small Cabin's hearth when the cabin is dismantled.
+    public void RemoveFire(CampfireState fire)
+    {
+        if (fire == null || !fires.Remove(fire))
+            return;
+        if (views.TryGetValue(fire.id, out Campfire view) && view != null)
+            Destroy(view.gameObject);
+        views.Remove(fire.id);
+        FireChanged?.Invoke(fire);
+    }
+
+    // The fire closest to a spot within range, lit or not, or null.
+    public CampfireState FireNear(Vector3 position, float range)
+    {
+        CampfireState best = null;
+        float bestDistance = range;
+        foreach (CampfireState fire in fires)
+        {
+            float d = Vector3.Distance(fire.position, position);
+            if (d <= bestDistance)
+            {
+                best = fire;
+                bestDistance = d;
+            }
+        }
+        return best;
+    }
+
     // --- Tending ---
 
     public static bool HasIgnition => Carried != null && Carried.Has(IgnitionId);
