@@ -862,3 +862,200 @@ Not sent yet — waiting on Mike's usage reset at 2pm EST.
 2026-10-02 — Claude Code — Built the shared per-item transfer screen at the proposed broad scope: Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin and Tool Rack all open it on E now, instead of taking everything at once. New `StorageTransferScreen.cs` (`GameScreen`), wired into `GameScreens.cs` as a fifth screen with no hotkey or tab of its own (`Kind.Storage`, `OpenStorage(WoodPile)` — `WoodPile.Interact` calls it directly for the six built-storage kinds, via a new `UsesTransferScreen` check; a felled tree's pile and a Small Cabin's CabinSite keep the old instant take-all, since they're incidental piles, not the deliberate storage Mike's ask was about). `WoodPile.cs` got the new per-item API (`TakeOne`, `CanTakeOne`, plus `TakeAllToStatus`/`DrawWaterToStatus` wrapping the old one-press behaviors as shortcut buttons) and a `Contents()` refactor out of `Describe()` so the screen can list the Water Barrel's qualities separately instead of one lump total, ordered best-quality-first. Storing (R) is untouched — still bulk, out in the World. Compiled clean (no errors/warnings) before every test pass. Tested in Play Mode on a copy of Mike's save: built a Storage Bin, Tool Rack and Water Barrel, stored a mix of goods/tools/water into each, opened the real E interaction on each one, clicked Take on a single row, exercised the Shift-click "whole stack" path, used both shortcut buttons ("Take Everything," "Fill Bucket (best quality)"), switched the open window from one pile straight to another without closing it, closed back to normal play (GameManager returned to Playing), confirmed R still bulk-stores exactly as before, and confirmed a full save/load round trip with every container's contents intact. Caught and fixed one real bug before calling it done: the screen was refreshing twice per take (its own explicit call plus a redundant `Player.Changed` subscription reacting to the same take), which left stale duplicate rows for a frame — removed the subscription, since GameManager's Menu state pauses gameplay while any screen is open, so nothing else can touch a pile while this one's up. Save backed up and hash-recorded before each test pass, restored and hash-verified identical after every one; `ProjectSettings/` diff stayed clean throughout. Updated Primitive_Storage_System.md (both the Storage Bin and Tool Rack sections) and this task list. Built and tested, NOT committed or pushed — holding for Mike's word.
 
 2026-10-02 — Claude — Added Mike's resolution to Primitive_Storage_System.md's Storage Bin section (cross-referenced from Tool Rack's own flag). Proposed scope, not yet confirmed by Mike: build the transfer screen once as shared UI across every primitive storage container (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack), rather than one-off per container, since they all share the same R/E mechanic today. Exact UI left to Claude Code's first pass. Flagged that Mike should correct if he actually meant a narrower scope (e.g., Tool Rack only). Drafted a hand-off for Mike to relay.
+
+
+2026-10-02 — Mike — Relayed terminal screenshots: Claude Code committed the Tool Rack + shared per-item transfer screen as two commits (`9c75638` code, `5410341` docs) and pushed both to GitHub (`master` at `b721371..5410341`). Mike moved on to "play test it in unity."
+
+2026-10-02 — Claude — Recorded both final commit hashes in Primitive_Storage_System.md — the doc's top Status line and every "Built and tested" entry touched by this batch (Storage Bin's transfer-screen report, Tool Rack's own build report and its follow-up resolving the all-or-nothing-take flag). This closes out the whole carry-weight/Tool Rack/transfer-screen thread that started with Mike's playtesting report: Tool Rack exists and holds Tools, and every primitive storage container (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack) now opens a real per-item transfer screen on E instead of taking everything at once. Nothing open on this thread; next is whatever Mike finds in his own Play Mode pass.
+
+
+## 2026-10-03 — General "Drop Items" capability (gap found + resolved)
+
+**Gap found (Mike), playtesting:** "i think we need to be sable to drop items if we are carrying too much or just don't need them." Confirmed via project search this didn't already exist anywhere — the only offload paths were the primitive storage piles (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack), each requiring that specific container and only accepting its own item category. No general "shed weight anywhere" action existed.
+
+**Resolved (Mike), asked directly:** dropped items stay in the world as real pickup objects where dropped, rather than vanishing — retrievable later. Documented in Systems/Inventory_System.md under a new "Dropping Items" section, cross-referenced from Game_Systems/Primitive_Storage_System.md.
+
+First-pass scope proposed (not yet built): drop from the Inventory screen (I), single item or whole stack (same split as the shared transfer screen), appears a short distance in front of the player using the existing ground-pickup interaction, no decay/despawn by default. Equipped-Tool drop-while-equipped vs. must-unequip-first left to Claude Code's judgment.
+
+Hand-off drafted for Mike to relay to Claude Code.
+
+
+## 2026-10-03 — Drop Items: build reconciled (Claude Code report)
+
+Claude Code built the Drop action (Inventory screen, click/Shift-click per-item/stack, ~1.2 m toss, water refused, real `ItemPickup` pending real models, no despawn timer, equipped Tool drops directly). Added beyond the proposal: world-persisted dropped piles (`dropped` block in `world.json` via new `DroppedItems` manager), perishables keep their original acquisition day instead of refreshing, and same-item drops merge into one pile.
+
+Tested in Play Mode via direct method calls (not real UI clicks yet) — single drop, 20-arrow merge, equipped-Axe drop, full save/restore round trip, weight returned to 19.0 kg. Mike's slot1 save backed up and restored byte-for-byte.
+
+Committed code only as `1de876f`. A pile-overlap nudge (keeps different-item piles from stacking on top of each other) was added after that commit, compiles clean, but has **not** been run in Play Mode yet.
+
+Docs reconciled into Systems/Inventory_System.md's "Dropping Items" section. Open items for next check-in: confirm the overlap fix once tested, and confirm the real Inventory UI (not direct calls) behaves as expected once Mike clicks through it himself.
+
+
+## 2026-10-03 — Hammer: Dismantle/Remove built structures (gap found + resolved)
+
+**Gap found (Mike):** "can we make the hammer remove or dismantle, built things too?" Confirmed via re-read of Building_Housing_System.md: the Hammer only builds/completes today. Only Lean-To (partial Branches refund) and Tent (re-pack, not consumed) can currently be taken down; Small Cabin explicitly has no take-down, and no primitive storage pile/Tool Rack/build site can be removed once placed.
+
+**Resolved (Mike), asked directly (scope):** dismantle covers everything, including permanent housing — not just the primitive/undoable tier. Confirmed as a deliberate, flagged reversal of the doc's existing "buildings are rarely replaced" / "older structures remain useful" philosophy for any structure the player actively chooses to remove.
+
+Documented in Building_Housing_System.md (Tools: Hammer section, plus notes added to Core Philosophy, Property Storytelling, and a new Design Rule 6 acknowledging the reversal), cross-referenced from Primitive_Storage_System.md.
+
+First-pass scope proposed (not yet built): Hammer-equipped Dismantle/Remove on any built structure (primitive piles, Tool Rack, in-progress build sites, permanent housing). Partial material refund proposed (matching Lean-To's existing precedent). A structure holding contents should refuse dismantle or require emptying first. A confirmation step proposed for dismantling Small Cabin specifically, given it's the most invested structure in the game so far. All of this is Claude Code's first-pass call to correct.
+
+Hand-off drafted for Mike to relay to Claude Code.
+
+
+## 2026-10-03 — Tool Hotkeys, 1-0 (gap found + resolved)
+
+**Gap found (Mike):** "what about hot keys for frequently used items? like numbers 1 thru 0 can be assigned a tool from inventory?" Confirmed via project search this didn't exist anywhere — equipping a Tool today requires opening the Inventory screen (I) and selecting it there; no direct-equip hotkeys exist.
+
+**Resolved (Mike):** add ten hotkey slots, number keys 1 through 0, each assignable to a specific Tool from the Inventory screen. Pressing an assigned number equips that Tool directly without opening Inventory.
+
+Documented in Systems/Inventory_System.md, new "Tool Hotkeys" section (placed right after Inventory Screen (UI), where EquippedTool selection already lives).
+
+First-pass scope proposed (not yet built): 10 slots (1-9, 0), assigned from the Inventory screen (exact gesture Claude Code's call), pressing a slot equips that Tool the same as selecting it in Inventory, toggle-vs-no-op on re-pressing an already-equipped slot is Claude Code's call, graceful no-op/message if the assigned Tool isn't currently carried, slot assignments persist in the save. Scope stays Tools only, matching what Mike asked for.
+
+Hand-off drafted for Mike to relay to Claude Code.
+
+
+## 2026-10-03 — Tool Hotkeys: build reconciled (Claude Code report)
+
+Claude Code built the 10-slot hotbar (keys 1-9, 0). Assign via a "Key –" cycle button on each Tool row in Inventory, or point-and-press a number directly. Pressing an assigned key equips/toggles off that Tool; a dropped/stored/lost Tool's key shows "Not carrying the Axe" but keeps its assignment; empty slots show an assign-from-Inventory hint. Only active during live gameplay (not while Inventory/other screens open or paused). Slot data saves with the inventory block; old saves load with empty slots. Sleeping Bag/Tent excluded (not equippable Tools). No input-binding conflict with the project's existing 1/2 = Previous/Next bindings — read directly instead of adding new input actions.
+
+Tested in Play Mode via the Inventory UI (assign, move, equip, toggle, not-carried, empty slot, save/reload, old-save compatibility). **Not yet tested: real physical key presses** — Unity ignores simulated keyboard input when unfocused, so only the underlying logic was exercised. Also worth a glance: new "Key –" button layout and hint-text overflow. Mike's slot1 save backed up/restored byte-for-byte. Committed as `2fb66d2`.
+
+Docs reconciled into Systems/Inventory_System.md's "Tool Hotkeys" section. Open items for next check-in: confirm real key presses work, and glance at the new UI for layout/overflow issues.
+
+
+## 2026-10-03 — Build/Craft Missing-Materials Notice (gap found + resolved)
+
+**Gap found (Mike):** "on the inventory / build screen, i think we need to pop open a notice or something that tells the player what they are lacking if they try to build something that they don't have all the resources to build it?" Confirmed via project search: Build/Craft buttons already explain on hover what's needed or why they're greyed out (shipped with the Pouch/Bag), but that's passive-only — a click on a disabled button, or a player who doesn't hover long enough, gets no clear feedback.
+
+**Resolved (Mike):** add an explicit on-screen notice on an actual Build/Craft attempt that's short on materials, naming exactly what's missing — not just the existing hover tooltip.
+
+Documented in Systems/Inventory_System.md, new "Build/Craft Missing-Materials Notice" section (between Inventory Screen (UI) and Tool Hotkeys).
+
+First-pass scope proposed (not yet built): applies to every Build/Craft action in the Inventory screen (all primitive storage, Small Cabin site/completion, Hammer, Pouch, every craftable Tool). Notice names exactly what's missing and how much, reusing the game's existing short-message convention (CanBuildPile's refusals, the hotkey "Not carrying" message) rather than a new UI element. Exact presentation (toast/banner/duration) is Claude Code's call. Existing hover tooltip stays as-is alongside it.
+
+Hand-off drafted for Mike to relay to Claude Code.
+
+
+## 2026-10-03 — Docs reconciled to the built code (Claude Code)
+
+Checked Inventory_System.md's Dropping Items and Tool Hotkeys sections against the committed code (`1de876f`, `2fb66d2`); both were already accurate on behavior. Fixed the "Key –" button label (it's "Key —"), corrected the hotkey test note to say most of it ran through direct method calls rather than the UI, and added an "As built" paragraph to Inventory Screen (UI) covering the Drop and Key buttons, the narrowed columns, the shortened hint text, and where status messages go. Two things flagged there as unverified: whether the world clock stops while Inventory is open, and whether the `ToolStatus.Flash` message line is visible over the open screen.
+
+Still open, unchanged: real physical number-key presses, the pile-overlap nudge in Play Mode, and a look at the new buttons' layout and the hint text for overflow.
+
+
+## 2026-10-03 — Portable Lighting (Torch/Lantern/Flashlight) + new Power_System.md research
+
+**Gap found (Mike):** "i also think we need to add another couple of tools. perhaps a primitive torch, and then a lantern or flashlight for nighttime." Confirmed via project search: no portable light source exists anywhere (only the fixed Campfire/Small Cabin hearth), and Core_Survival_System.md already lists "Lighting" as one of Fire's functions with nothing fulfilling it away from a fire.
+
+**Resolved (Mike):** add both, staged by what the project can support now. Torch and Lantern are buildable-now proposals (primitive materials, Core_Survival_System.md's new "Portable Lighting: Torch, Lantern, Flashlight" section). Flashlight is Future, deferred until a battery item exists.
+
+**Second part (Mike):** "here's where we need to do some research and math, to figure out the correct sizes of gas generators or solar or wind generators and battery banks to supply correct amounts of energy ... when we get to that point." Mike's own framing scopes this as research to have ready, not a build request yet. Researched real-world off-grid sizing (sources below) and wrote a new doc, **Power_System.md**, covering: load tiers mapped to the existing Housing progression (Large Cabin ~1-2 kWh/day via its conditional water-pump "equipment," Cottage/Workshop ~6-8, Farmhouse ~15-20), the sizing formulas (daily Wh, battery Ah via days-of-autonomy/depth-of-discharge, solar panel wattage via peak-sun-hours, wind turbine output via capacity factor, generator sizing to peak load, inverter sizing to peak load), and all three generation options tied to the Utility Structures already named in Building_Housing_System.md (Well House/Windmill/Solar Shed) plus a new Gas Generator option. Weather-dependent output (Solar/Wind) ties to Weather_System.md's existing weather/wind state. Cross-referenced from Building_Housing_System.md (Utility Structures, Large Cabin's "equipment" line) and Item_Data.md (Flashlight's battery dependency).
+
+Sources used: howtogosolar.org (off-grid homestead solar guide), offgridbenchmark.com (cabin power setup examples), voltcalcs.com (load-calculation formulas), attainablehome.com (small wind turbine output by rating).
+
+Item_Data.md updated with first-pass Torch and Lantern rows (weights/recipes unconfirmed, Claude Code's call).
+
+Hand-off drafted for Mike to relay to Claude Code — Torch/Lantern only; Power_System.md is research to have on hand, not a build task.
+
+
+## 2026-10-03 — Torch & Lantern: build reconciled (Claude Code report)
+
+Claude Code built both. Torch: 1 Sticks + 1 Cordage, needs Flint and Steel (uncon­sumed) to light, burns ~3 in-game hours (~4 real min), consumed/auto-unequipped when out, keeps remaining time across snuff/relight, dims in its last 24 in-game minutes. Lantern: 2 Clay + 1 Cordage (Claude Code's own material choice), burns a new `lamp_oil` consumable ($3/bottle at Trading Post, 8h/bottle, 16h tank = 2 bottles), Refill button on the Lamp Oil row, lights with no Flint and Steel needed (flagged — say so if Mike wants it to require flint too), brighter/wider pool than Torch, never consumed itself. Only the equipped light can be lit; switching/stowing snuffs it. HUD status line + Inventory hours-left readout. Both save state across reload. New items: torch (0.5kg), lantern (1.0kg), lamp_oil (0.5kg/bottle). Trading Post buyback: Torch $1, Lantern $4.
+
+Tested in Play Mode: crafting, lighting with/without flint, snuff/relight, torch burnout, refill + capacity cap, save/restore, night screenshots. **Not tested: real physical mouse clicks** (Unity ignores simulated input unfocused, same caveat pattern as Tool Hotkeys' untested key presses). Two incidental Inventory UI layout bugs found and fixed (Craft row overlapping "Esc to close" hint at 12 recipes; Lantern oil readout clipped). Light position corrected (was floating as a mid-air orb, moved to lower-right view). Mike's slot1 save backed up/restored throughout.
+
+**Flagged, unresolved:** no weather/sleep interaction (rain doesn't douse Torch, lights don't burn during sleep), no held/world models yet, a dropped half-burnt Torch loses its remaining time, and a note about "two Lanterns stacking" was cut off in the report — worth asking Claude Code to finish that thought next check-in.
+
+Docs reconciled into Core_Survival_System.md's Portable Lighting section and Item_Data.md (torch/lantern/lamp_oil rows). Not yet confirmed committed/pushed.
+
+
+## 2026-10-03 — Lantern no-flint lighting confirmed (Mike)
+
+Mike: "i'm fine with Lantern lighting without Flint and Steel." Resolves Claude Code's flagged question from the Torch/Lantern build report — no change needed. Updated Core_Survival_System.md's Portable Lighting section to mark this confirmed rather than open.
+
+
+## 2026-10-03 — Torch/Lantern build report: two more Flagged items caught on re-read
+
+Mike re-sent/re-scrolled the same Torch/Lantern build report (already reconciled into Core_Survival_System.md earlier today) and the fuller view showed two Flagged bullets that weren't visible in the first pass. Added to Core_Survival_System.md's Portable Lighting "Flagged" paragraph:
+- Wording: the "1 more Sticks" grammar on the crafting readout is unchanged — known quirk, left as-is, not a bug Claude Code is treating as blocking.
+- Daytime: Claude Code only tested the Torch/Lantern glow at night. They're meant to be nearly invisible in daylight, but that was never actually checked in Play Mode.
+
+No code or design change — purely closing the loop on documentation so Core_Survival_System.md's Flagged list matches the full build report. The "Two Lanterns stacking" sentence is still cut off in every view of this report seen so far — still open, still worth asking Claude Code to finish directly.
+
+The build report's own closing line confirmed Claude Code had not touched the docs itself for this feature ("I can update them if you want") — consistent with the docs already having been fully reconciled here, so no separate "update the docs" pass from Claude Code is needed for Torch/Lantern.
+
+
+## 2026-10-04 — Storage transfer: store side is still bulk, wants two-panel screen (gap + first-pass)
+
+Mike, playtesting: "i'm having trouble moving items into and out of the structures. it doesn't allow me to select which tools to put in the tool storage, it just transferrs all tools into the storage. I think we need to have an individual inventory screen for each structure that we can put items in individually and remove individually. maybe when working with one of the structures open 2 seperate inventory windows. 1 for the player and 1 for the structure..."
+
+Finding: the 2026-10-02 shared per-item transfer screen (`9c75638`) only covers taking. Storing (R) was deliberately left bulk (scope call 1) on a narrower reading of Mike's earlier ask. That reading is now superseded. Documented a new "Two-Way Transfer Screen" section in Primitive_Storage_System.md: one shared screen targeting the specific structure, two side-by-side panels (player | structure), click/Shift-click convention, greyed-with-reason rows, Water Barrel per-quality rows, capacity readouts, "Store All Eligible" shortcut added alongside the existing take shortcuts, R and E both opening the screen (R's old instant bulk-store flagged as Claude Code's call / Mike may want it kept). Added Design Rule 4 and marked scope call (1) as superseded.
+
+Not a design fork needing a question — Mike specified the shape himself; only the R-key default and literal-two-windows-vs-two-panels are left to Claude Code. Hand-off drafted; no build report yet. Also asked Claude Code to confirm the take direction really is per-item in practice, since Mike's wording mentioned problems "into and out of."
+
+
+## 2026-10-04 — Can't remove a second Small Cabin site placed by accident (gap + first-pass)
+
+Mike, playtesting: "and we also need to be able to remove a site if we accidentally place more than 1 site. i did exactly that and now i cant remove the second small cabin site."
+
+Finding: `CabinSite` placement is free/Hammer-less and nothing blocks a second one; nothing can remove one either. Already covered in principle by the 2026-10-03 Hammer Dismantle scope ("any in-progress build site"), but that build hasn't reported back, and this is now blocking a real save. Added a "Gap found 2026-10-04" block to Building_Housing_System.md under Tools: Hammer: removing a site needs no Hammer (placing was free), stored materials return in full (never consumed until completion; overflow drops as a pile), on-site prompt like the Lean-To's pack-up, optional guard against placing a second site (flagged as a judgment call, not decided), same fix for stray storage piles if Dismantle isn't landing soon. Hand-off drafted. No build report yet.
+
+Open: ask Claude Code whether Hammer Dismantle was already built — if so, this may be a site-handling bug rather than a missing feature. Mike's stray site currently has no workaround.
+
+
+## 2026-10-04 — Build reports reconciled: Two-Way Transfer Screen + Cabin site removal
+
+**Two-Way Transfer Screen — built and tested (commit hash not visible in the screenshot; confirm with Claude Code).** Two-panel screen on E or R for all six structures (left: what you carry that it holds, with carry weight; right: contents, with capacity where one exists). Click/Shift-click, greyed-with-reason rows, Water Barrel per-quality rows, Store All Eligible added beside Take Everything / Fill Bucket. R is now a screen opener, not a quick-store (Claude Code's call). Take direction confirmed item-by-item. Felled-tree pile and CabinSite unchanged. Real mouse click and held-Shift untested (same Unity-focus caveat). Two layout/stale-row problems found and fixed/noted. Documented in Primitive_Storage_System.md.
+
+**Cabin site removal — built and tested, committed `e7cbe67`.** E removes an empty site, R removes a stocked site (when carrying nothing it takes); stocked materials return in full, overflow dropped as piles. Second site now refused while one is in progress (Claude Code's call; one block in `WoodManager.CanBuildPile`). New "Take Down Structure" button on the transfer screen for all six storage kinds: empty-only, two clicks, half build materials back rounded down. **Key finding: Hammer Dismantle (2026-10-03) was never built** — only the Tent/Lean-To take-downs exist. Documented in Building_Housing_System.md and Primitive_Storage_System.md. Hammer Dismantle for completed structures remains unbuilt; its spec stands.
+
+Still open: Hammer Dismantle build; Build/Craft Missing-Materials Notice build report (still not seen); Torch/Lantern "Two Lanterns" cut-off sentence; Torch/Lantern uncommitted as of last report.
+
+
+## 2026-10-04 — Playtest results: Hammer Dismantle works, Missing-Materials Notice works but too small
+
+Mike playtested: **Hammer Dismantle worked** and the **Missing-Materials Notice works**, but the notice "is small and not easy to read." 
+
+- Hammer Dismantle: earlier today Claude Code reported it had never been built (only the Tent/Lean-To take-downs existed, plus the new CabinSite/stray-pile removal `e7cbe67`). Mike's report that it now works means it was built after that report. **No Claude Code build report for it has been reconciled into the docs** — the Building_Housing_System.md Hammer section still carries only the spec and the 10-04 removal entry. Need Claude Code's actual build report (what it covers, refund fraction, guards, confirm step, commit) to document it accurately; not guessing details.
+- Missing-Materials Notice: same — working per Mike, but no build report reconciled. Added a "Readability fix" first-pass scope to Inventory_System.md (larger text, solid high-contrast panel, placement near the button/top-centre, one missing material per line quantity-first, stays up long enough to read). Hand-off drafted.
+
+Also answered Mike's question about the cut-off "Two Lanterns would s…" sentence: appears to be the terminal line clipped at the pane edge in the screenshots (the diff side panel overlaps the text), not something Claude Code failed to write. Fix is to ask Claude Code to repeat that one sentence.
+
+
+## 2026-10-04 — Missing-Materials banner built (`b8dcd04`) + "Two Lanterns" sentence resolved
+
+**Banner:** large dark-red/amber/cream top banner on the Inventory screen with bold heading ("Can't build Lean-To" / "You still need:"), one large line per material quantity-first, alternatives for Cordage ("1 more Sinew, or 3 Tall Grass, or 2 Cattail"), 6 s + 1.5 s per line, dismisses on screen close or successful Build/Craft, doesn't block clicks. Also now used for refused drops and full-Lantern refills. Top-banner placement covers the top few item rows while up (Claude Code's tradeoff). Real mouse click untested. Reconciled into Inventory_System.md.
+
+**Cut-off sentence resolved:** "Dropping a half-burnt torch loses its partial time, and the next torch you pick up starts fresh. Two Lanterns would share one tank." — the Lantern fuel tank is saved once, not per Lantern. Updated in Core_Survival_System.md's Flagged paragraph. Open question for Mike: whether a shared tank is acceptable or each Lantern should hold its own fuel; not raised as a task.
+
+**Docs note:** Claude Code again said it hasn't touched the docs and is waiting on an "update the docs" prompt — no need, this entry and Inventory_System.md are current. **Still outstanding:** Hammer Dismantle build report (Mike says it works; details not reconciled) and the Torch/Lantern commit.
+
+
+## 2026-10-04 — Correction: Hammer Dismantle is NOT built; now being built
+
+The earlier log entry above ("Hammer Dismantle works… must have been built after that report") was my wrong inference. Mike asked Claude Code directly: **the Hammer Dismantle was never built** — no code, no commit. What worked for Mike was the CabinSite removal (`e7cbe67`) and the storage-pile take-down, which are stopgaps. Mike then told Claude Code "yes, build the real Hammer Dismantle" and it is in progress, starting from the 2026-10-03 spec in Building_Housing_System.md (Hammer gate, partial refund for finished buildings, refusal when a structure holds something, confirmation step for Small Cabin). Updated the Building_Housing_System.md note accordingly. Awaiting the build report.
+
+
+## 2026-10-04 — Hammer Dismantle built and tested (`fc37969`)
+
+Claude Code reported the real Hammer Dismantle built and committed as `fc37969` (tested by calling interaction code directly, not real key presses). Finished Small Cabin: Hammer equipped shows "Dismantle Small Cabin (gives back about half its materials)" on R; no Hammer = "Can't dismantle... equip the Hammer."; two-press confirm within 5 s; hearth must be out first (leftover fuel returns as Firewood). Storage-pile "Take Down Structure" now needs the Hammer (superseding the no-Hammer stopgap), still empty-only, half materials rounded down. In-progress cabin site removal stays Hammer-free and returns everything. Cabin refund: 10 Logs, 5 Branches, 7 Tall Grass, 6 Stone, 3 Clay + hearth Firewood; overflow drops as saved pickup piles. Not tested: real click; cabins from older saves. Known quirk: equipping the Hammer while the transfer screen is open doesn't refresh its button (close/reopen). Reconciled into Building_Housing_System.md and Primitive_Storage_System.md.
+
+All of today's requests (two-way transfer screen, site removal, Hammer Dismantle, missing-materials banner) are now built and documented. Still outstanding: Torch/Lantern commit; the earlier Tool Hotkeys/Torch real-input tests; Lantern shared-tank question for Mike.
+
+
+## 2026-10-04 — Lantern shared fuel tank confirmed
+
+Mike: "its fine if lanterns use a shared fuel source." Shared single tank across carried Lanterns is accepted as-is; no change for Claude Code. Updated in Core_Survival_System.md's Portable Lighting Flagged paragraph. Remaining open items from that paragraph: no weather/sleep interaction, dropped half-burnt Torch loses its time, daytime visibility untested.
+
+
+## 2026-10-04 — Torch/Lantern daylight check passed
+
+Mike playtested: "lighting from torches and lanterns in daylight is fine." Closes the daytime-visibility flag in Core_Survival_System.md. Remaining Portable Lighting flags: no weather/sleep interaction (rain doesn't extinguish the Torch; lights don't burn down during sleep), and dropping a half-burnt Torch loses its remaining time.
+
+
+## 2026-10-04 — Torch/Lantern flags closed
+
+Mike: "weather and sleep is fine the way it is for now, and the dropped torch is fine for now." Both accepted as-is, deferred rather than rejected. Portable Lighting (Torch/Lantern) has no remaining open flags in Core_Survival_System.md. Flashlight stays Future, gated on Power_System.md's battery item. Not sent to Claude Code.

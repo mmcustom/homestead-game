@@ -39,6 +39,8 @@ Older structures remain useful.
 
 Buildings are rarely replaced entirely.
 
+**Note added 2026-10-03 (Mike):** this is the default outcome, not an enforced one — the player can choose to dismantle any built structure, including permanent housing, with the Hammer (see Tools: Hammer below). A structure survives because the player kept it, not because the game won't let them remove it.
+
 ---
 
 # Survival Phase
@@ -190,6 +192,49 @@ Benefits:
 
 **Built and tested 2026-09-27 (Claude Code):** buildable now, exactly as this section proposed — 2 Sticks, 1 Cordage, 1 Log. Gates completing a Small Cabin, not placing its building site (Mike's revision, same day) — the same "equip the tool that matches the job" pattern already used for the Axe/Pick Axe/Shovel, just applied to the finishing step of a multi-trip build rather than the first one.
 
+**Gap found 2026-10-03 (Mike): "can we make the hammer remove or dismantle, built things too?"** The Hammer only builds/completes right now. Nothing lets the player remove a structure once it's placed, apart from the Lean-To's own pack-up (R, returns 4 of its 8 Branches) and the Tent's own pack-up (not consumed, just carried again). Small Cabin explicitly has no take-down at all ("a permanent structure has nothing to pack away," see above), and none of the primitive storage piles (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack — Primitive_Storage_System.md) or an in-progress build site can be removed once placed either.
+
+**Resolved 2026-10-03 (Mike), asked directly: dismantle should cover everything, including permanent housing** — not just the primitive/undoable tier. This extends to Small Cabin and every future permanent tier above it (Large Cabin, Cottage, Farmhouse). **This is a real, confirmed reversal of this doc's own "buildings are rarely replaced entirely" / "older structures remain useful" philosophy for any structure the player actively chooses to dismantle** — see the notes added to Core Philosophy and Property Storytelling below; it's the player's call, not an automatic loss.
+
+**First-pass scope (Claude, not yet confirmed) — Claude Code should correct if this doesn't match:**
+
+- The Hammer equipped gates a new Dismantle/Remove interaction on any built structure: every primitive storage pile and the Tool Rack, any in-progress build site (`CabinSite`), and completed permanent housing (Small Cabin now, future tiers once built).
+- Material return: proposed partial refund, matching the Lean-To's own existing take-down precedent (returns half its Branches cost) rather than a full refund or none — dismantling shouldn't be a free way to stockpile materials, but shouldn't feel punishing either. Exact fraction, and whether it's the same fraction for every structure type or varies, is Claude Code's first-pass call.
+- A structure currently holding something — a Tool Rack with tools on it, a Wood Pile with logs, a lit Small Cabin hearth — should refuse dismantle, or require it be emptied first, rather than silently destroying its contents. Exact guard is Claude Code's call, same spirit as Storage Bin's own category checks.
+- Dismantling Small Cabin specifically — the most invested structure in the game so far — is worth a confirmation step rather than a single accidental keypress; exact UI (hold-to-confirm, a yes/no prompt) is Claude Code's call, same as every other interaction-flow detail in this doc.
+
+**Gap found 2026-10-04 (Mike), playtesting — a real, current instance of the build-site case above:** "and we also need to be able to remove a site if we accidentally place more than 1 site. i did exactly that and now i cant remove the second small cabin site." Placing a `CabinSite` is free and has no Hammer requirement (see First Build: Small Cabin), nothing stops a second one being placed, and nothing can remove it afterward — so a misclick leaves a permanent, unwanted site in the world. This is the same missing capability the Hammer Dismantle scope above already covers ("any in-progress build site"), but it's now blocking real play, so it shouldn't have to wait for the whole Dismantle feature if that build is still pending.
+
+**First-pass scope (Claude, not yet confirmed) — Claude Code should correct if this doesn't match:**
+
+- **Removing an in-progress site needs no Hammer.** Placing a site is free and Hammer-less, so undoing one should be too — a player who just misplaced a site shouldn't have to craft or equip a tool to fix it. The Hammer requirement stays for dismantling *completed* structures. (If the Hammer Dismantle build already gates sites behind the Hammer, relax that for `CabinSite` specifically.)
+- **Anything already deposited comes back in full.** A site's materials were only stored, never consumed (construction consumes them at completion), so removing a stocked site returns everything inside to the player — or drops it as a persistent pile if the player can't carry it all (the Dropping Items behavior) — rather than applying the partial-refund rule meant for completed buildings. Nothing is lost by cleaning up a mistake. An empty site simply disappears.
+- **A prompt on the site itself**, same interaction style as the Lean-To's pack-up, so it's discoverable without opening a menu. Exact key/prompt text is Claude Code's call.
+- **Guard against the mistake, optional:** consider refusing to place a second `CabinSite` while one already exists, with a message like "You already have a cabin site." Real homesteaders can plausibly want two cabins eventually, so this is a judgment call rather than a rule — flagged to Claude Code and Mike rather than decided here. Removal is the confirmed ask; the placement guard is only a suggestion.
+- **Same fix should cover any other stray placed structure** (Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin, Tool Rack) if the Hammer Dismantle build doesn't land soon — the underlying gap is identical.
+
+**Built and tested 2026-10-04 (Claude Code), committed `e7cbe67`.** Answer to the open question: **Hammer Dismantle (resolved 2026-10-03) was never built** — there's no dismantle code anywhere and no commit for it. The only take-downs in the game are the Tent's pack-up and the Lean-To's take-down. So Mike's stuck site wasn't a bug in how Dismantle treats sites; Dismantle simply doesn't exist yet, and the fallback in the scope above applied (the same removal also covers stray storage piles — see Primitive_Storage_System.md, "Take Down Structure").
+
+- **Removing a site (no Hammer):** an empty site — press E; the prompt reads "Remove Small Cabin Site (empty — nothing to take back)". A stocked site — press R while carrying nothing the site takes; the prompt reads "Remove Site (everything stocked comes back to you)". Everything stocked returns in full, and whatever the pack can't carry is left on the ground as pickup piles.
+- **Key limits:** E and R were already taken (E takes materials, R deposits). If the player is carrying materials the site still takes, R deposits as before — the player can E to empty the site first, then E again to remove it. This is the trade-off of reusing the existing keys instead of adding a new one.
+- **Placing a second site is now refused while one is in progress:** "You already have a Small Cabin site — finish it, or take it down first." A finished cabin doesn't count, so a second site can be started once the first is built. This was Claude Code's call (the optional guard from the scope above); it's one block in `WoodManager.CanBuildPile` if Mike wants it gone. It doesn't affect Mike's existing second site, which can still be removed.
+
+**Tested in Play Mode by calling the interaction code directly, not with real key presses:** the second site was refused 12 m from the first, and the guard lifted once the first was removed. A stocked site with a full pack (4 Logs, 6 Branches, 5 Tall Grass, 8 Stone, 3 Clay) — only the Branches fit in the pack; the ground piles totaled Logs 4, Tall Grass 5, Stone 8, Clay 3, so nothing was lost, and the piles save with the world. An empty site was removed and the take-down logged. **Not tested:** where the overflow piles land on slopes, and the stray-pile button with a real mouse. Mike's slot1 save was backed up and restored, all six files matching.
+
+**Hammer Dismantle — built and tested 2026-10-04 (Claude Code), committed `fc37969`.** The 2026-10-03 spec is now real; the stopgap behavior above is partly superseded (noted per item). Tested in Play Mode by calling the interaction code directly, not with real key presses.
+
+- **Finished Small Cabin:** with the Hammer equipped, looking at the cabin shows "Dismantle Small Cabin (gives back about half its materials)" on R. Without the Hammer there's no prompt, and pressing R anyway says "Can't dismantle the Small Cabin — equip the Hammer." The first R press asks "Press R again to confirm — you'll get about half its materials back"; a second press within 5 seconds dismantles it, and if the window lapses the next press just asks again. The hearth has to be out first, otherwise "put the hearth fire out first"; it's removed with the cabin, and any fuel left in it comes back as Firewood.
+- **Storage piles (supersedes the stopgap above):** the "Take Down Structure" button on the transfer screen now **needs the Hammer** — greyed with "equip the Hammer" or "empty it first". It still returns half the build materials, rounded down. The previous turn's no-Hammer stopgap is gone, as the spec intended.
+- **In-progress cabin site:** unchanged and still Hammer-free (placing one needs no tool); returns everything stocked, in full.
+- **Lean-To and Tent:** keep their own pack-ups.
+- **Refunds:** half the materials, rounded down. A cabin returns 10 Logs, 5 Branches, 7 Tall Grass, 6 Stone and 3 Clay, plus the hearth's Firewood. What doesn't fit in the pack lands on the ground as pickup piles, saved with the world, never lost.
+
+**Tested:** cabin gating — the refusal without the Hammer, the refusal with the hearth lit, the confirmation lapsing, and the real dismantle. Overflow — with the pack nearly full, pack and ground totals matched the expected refund exactly, and the hearth and cabin were both gone. A Rock Pile refused without the Hammer and again when it held Stone, then came down once empty with the Hammer; a cabin site still came down with no Hammer in hand. **Not tested:** the button with a real click, and a cabin from an older save (the hearth is found by where it was placed, so older saves should work, but only a cabin built this session was tested).
+
+**Things to know:** equipping the Hammer while the transfer screen is open doesn't update its button — close and reopen it, because the screen only refreshes on its own actions. R without the Hammer next to a cabin shows the "equip the Hammer" message, not nothing. Storage piles have no on-site Dismantle prompt (E and R both open the screen), so the button is the only way in. Larger housing tiers don't exist yet; the cabin path is the template for them. Mike's slot1 save was restored after, all six files matching.
+
+**Still open:** nothing from the 2026-10-03 spec beyond future permanent tiers (Large Cabin and up) once they exist. **Earlier re-confirmation, now historical — 2026-10-04 (Claude Code, asked directly by Mike):** no dismantle code exists, no commit mentions it; the Tent/Lean-To take-downs in `Shelter.cs`, the CabinSite removal (`e7cbe67`) and the storage-pile take-down are stopgaps, not the Dismantle itself. **Mike green-lit building it ("yes, build the real Hammer Dismantle")** — Claude Code is starting from this spec's remaining items: the Hammer gate, refunds for finished buildings, and a confirmation step for the cabin. (Mike's earlier "hammer dismantle worked" was about the site/pile removal, not this.) No build report yet.
+
 ---
 
 ## Root Cellar
@@ -233,6 +278,8 @@ Benefits:
 - Better recovery bonuses
 
 **Extended 2026-09-26 (Mike) — this is the "larger log home" tier confirmed as Large Cabin, not a replacement for Cottage/Farmhouse above it.** A real jump up from the Small Cabin's single basic stove/fireplace: a wood fireplace AND a separate stove, a primitive kitchen, a sink, and indoor running water — but the running water is conditional, not automatic. It only works "if water reserves are full and equipment is working properly," meaning it draws from an actual water source (Water_System.md / Primitive_Storage_System.md's Water Barrel, or whatever cistern/well upgrade exists by the time this is built) rather than being an unlimited tap — go without maintaining that reserve or let the equipment fail, and indoor water stops working. Exact mechanic (what "equipment" means here — pipes, a pump, a well — and how failure is triggered/repaired) is Claude Code's call whenever this tier gets built, same as everything else in this doc.
+
+**Note added 2026-10-03 (Claude, research):** if "equipment" ends up meaning an electric well pump, Large Cabin is the first tier that would need real power — see the new Power_System.md, which sizes generation/storage against exactly this load as its first worked example (~1,500W peak, ~1–2 kWh/day). Not locked to an electric pump specifically; a hand or foot pump stays a valid non-electric alternative Claude Code could choose instead.
 
 **Flagged 2026-09-26 (Mike) — deferred, not decided:** indoor plumbing raises the sewage/composting question (where does wastewater and waste actually go), and Mike's explicit: this needs to be determined later, not guessed here. No sewage/composting mechanic exists anywhere in the game yet.
 
@@ -352,6 +399,8 @@ Examples:
 - Windmill
 - Solar Shed
 
+**Note added 2026-10-03 (Mike/Claude, research):** Windmill and Solar Shed, plus a new Gas Generator option, now have real sizing math behind them — see the new Power_System.md, researched and written in response to Mike's request to work out correct generator/solar/wind/battery sizing ahead of actually needing it. Nothing here is buildable yet; Power_System.md stays Future until a tier that actually needs electricity (Large Cabin's water pump is the first candidate) gets built.
+
 ---
 
 # Comfort System
@@ -416,6 +465,8 @@ Examples:
 
 Players should be able to look back and remember their journey.
 
+**Note added 2026-10-03 (Mike):** describes the default case, not a guarantee — see Tools: Hammer's new dismantle action, which lets the player remove any structure, including permanent housing, if they choose to. A homestead's story is still there to look back on for whoever leaves it standing.
+
 ---
 
 # Design Rules
@@ -429,3 +480,5 @@ Players should be able to look back and remember their journey.
 4. Buildings tell the story of the homestead.
 
 5. Structures should support self-sufficiency rather than wealth accumulation.
+
+6. **Added 2026-10-03 (Mike):** rules 3 and 4 above describe what happens by default, not what's enforced — the player can dismantle any structure, including permanent housing, with the Hammer (Tools: Hammer). Permanence is the player's choice to keep, not the game's choice to impose.
