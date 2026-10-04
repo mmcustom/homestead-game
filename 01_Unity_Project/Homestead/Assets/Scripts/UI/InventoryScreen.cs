@@ -125,6 +125,8 @@ public class InventoryScreen : GameScreen
             Hover(pileButtons[i], i + 1);
         for (int i = 0; i < craftButtons.Length; i++)
             Hover(craftButtons[i], CraftHover + i);
+
+        BuildBanner(area); // last, so it draws over everything else
     }
 
     // Places a button in a three-wide grid starting at top.
@@ -166,7 +168,11 @@ public class InventoryScreen : GameScreen
         Refresh();
     }
 
-    public override void OnHide() => Unsubscribe();
+    public override void OnHide()
+    {
+        HideBanner();
+        Unsubscribe();
+    }
 
     void OnDestroy() => Unsubscribe();
 
@@ -193,6 +199,8 @@ public class InventoryScreen : GameScreen
             notice = null;
             RefreshBuild();
         }
+        if (bannerUntil > 0f && Time.unscaledTime >= bannerUntil)
+            HideBanner();
 
         CampfireCooking cooking = CampfireCooking.Instance;
         AxeTool axe = AxeTool.Instance;
@@ -337,19 +345,114 @@ public class InventoryScreen : GameScreen
 
     // --- Notice (Inventory_System.md's Build/Craft Missing-Materials Notice) ---
 
-    // A refused click on a Build/Craft button, a drop, or a hotkey assignment: shown on the status line above the Craft
-    // buttons for a few seconds, in place of the hover text, until it times out or the mouse moves to another button.
-    // The screen draws over the HUD's message line, so this lives in the screen rather than going through ToolStatus.
+    // Two kinds of message, neither going through the HUD's message line (the screen draws over it):
+    //  - Information (a drop, a hotkey assignment, a refill): the small status line above the Craft buttons, for a few
+    //    seconds, in place of the hover text, until it times out or the mouse moves to another button.
+    //  - A refusal (a Build/Craft click that can't go ahead, a drop that can't happen): a banner across the top of the
+    //    screen in large type on a solid panel — Mike found the small line hard to read (2026-10-04). A missing-materials
+    //    refusal lists one material per line, quantity first, and stays up long enough to read; it doesn't block clicks.
     string notice;
     float noticeUntil;
     string Notice => notice != null && Time.unscaledTime < noticeUntil ? notice : null;
 
+    static readonly Color BannerBorder = new Color(0.96f, 0.72f, 0.30f, 1f);
+    static readonly Color BannerFill = new Color(0.36f, 0.07f, 0.06f, 1f);
+    RectTransform bannerRect;
+    Text bannerText;
+    float bannerUntil;
+
+    void BuildBanner(RectTransform area)
+    {
+        Image border = UiKit.Image(area, "Notice Banner", BannerBorder);
+        bannerRect = border.rectTransform;
+        bannerRect.anchorMin = new Vector2(0f, 1f);
+        bannerRect.anchorMax = new Vector2(1f, 1f);
+        bannerRect.pivot = new Vector2(0.5f, 1f);
+        bannerRect.anchoredPosition = new Vector2(0f, -6f);
+        bannerRect.sizeDelta = new Vector2(-40f, 100f);
+
+        Image panel = UiKit.Image(bannerRect, "Panel", BannerFill);
+        panel.rectTransform.Fill(4f, 4f, 4f, 4f);
+        bannerText = UiKit.Text(panel.rectTransform, "Text", "", 30, UiKit.Cream, TextAnchor.UpperLeft);
+        bannerText.rectTransform.Fill(22f, 8f, 22f, 8f);
+        bannerText.verticalOverflow = VerticalWrapMode.Overflow;
+        bannerRect.gameObject.SetActive(false);
+    }
+
+    void HideBanner()
+    {
+        bannerUntil = 0f;
+        if (bannerRect != null)
+            bannerRect.gameObject.SetActive(false);
+    }
+
+    // Shows the banner: a heading, an optional smaller sub-heading, then one big line per entry.
+    void ShowBanner(string heading, string subheading, List<string> lines)
+    {
+        var text = new System.Text.StringBuilder();
+        text.Append($"<size=34><b><color=#FFE2BC>{heading}</color></b></size>");
+        if (subheading != null)
+            text.Append($"\n<size=27><color=#F6CFA3>{subheading}</color></size>");
+        foreach (string line in lines)
+            text.Append($"\n<size=40><b>{line}</b></size>");
+        bannerText.text = text.ToString();
+
+        // About 42 px for the heading, 33 for a sub-heading and 50 a line, plus padding.
+        float height = 30f + 42f + (subheading != null ? 33f : 0f) + lines.Count * 50f;
+        bannerRect.sizeDelta = new Vector2(-40f, height);
+        bannerRect.SetAsLastSibling();
+        bannerRect.gameObject.SetActive(true);
+        bannerUntil = Time.unscaledTime + Mathf.Min(14f, 6f + 1.5f * lines.Count);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiBack);
+    }
+
+    // A Build/Craft refusal. The reasons from Crafting, WoodManager and FireManager read "Needs 4 more Logs, 2 more
+    // Stone." (also "… at the site." and "… (or 3 Tall Grass, or 2 Cattail).") — split into one material per line.
+    void NotifyCant(string heading, string reason)
+    {
+        var lines = new List<string>();
+        string text = (reason ?? "").Trim();
+        bool needs = text.StartsWith("Needs ");
+        if (!needs)
+        {
+            if (text.Length > 0)
+                lines.Add(text);
+            ShowBanner(heading, null, lines);
+            return;
+        }
+
+        string body = text.Substring("Needs ".Length).TrimEnd('.');
+        string alternatives = null, where = null;
+        int alt = body.IndexOf(" (or ", System.StringComparison.Ordinal);
+        if (alt >= 0)
+        {
+            alternatives = body.Substring(alt + " (or ".Length).TrimEnd(')');
+            body = body.Substring(0, alt);
+        }
+        const string AtSite = " at the site";
+        if (body.EndsWith(AtSite, System.StringComparison.Ordinal))
+        {
+            where = "You still need, at the cabin site:";
+            body = body.Substring(0, body.Length - AtSite.Length);
+        }
+
+        lines.AddRange(body.Split(new[] { ", " }, System.StringSplitOptions.RemoveEmptyEntries));
+        if (alternatives != null)
+            lines.Add($"or {alternatives}");
+        ShowBanner(heading, where ?? "You still need:", lines);
+    }
+
     void Notify(string message, bool warning = true, float seconds = 4f)
     {
-        notice = warning ? $"<color=#E67350>{message}</color>" : message;
+        if (warning)
+        {
+            ShowBanner(message, null, new List<string>());
+            return;
+        }
+
+        notice = message;
         noticeUntil = Time.unscaledTime + seconds;
-        if (warning && AudioManager.Instance != null)
-            AudioManager.Instance.Play(SoundCue.UiBack);
         RefreshBuild();
     }
 
@@ -406,11 +509,12 @@ public class InventoryScreen : GameScreen
         string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
         if (!Crafting.CanCraft(recipe, out string why))
         {
-            Notify($"Can't make {name} — {why}");
+            NotifyCant($"Can't make {name}", why);
             return;
         }
 
         noticeUntil = 0f;
+        HideBanner();
         if (Crafting.Craft(recipe))
             ToolStatus.Flash($"Made a {name} — {CraftHelp(recipe.outputId)}");
     }
@@ -433,13 +537,14 @@ public class InventoryScreen : GameScreen
 
         if (!wood.CanBuildPile(kind, player, out _, out string why))
         {
-            Notify($"Can't build {WoodManager.PileName(kind)} — {why}");
+            NotifyCant($"Can't build {WoodManager.PileName(kind)}", why);
             return;
         }
 
         if (!wood.BuildPile(kind, player))
             return;
         noticeUntil = 0f;
+        HideBanner();
         ToolStatus.Flash($"{WoodManager.PileName(kind)} built — {PileHelp(kind)}");
         Close();
     }
@@ -459,12 +564,13 @@ public class InventoryScreen : GameScreen
         PlayerController player = FindAnyObjectByType<PlayerController>();
         if (!fires.CanBuild(player, out _, out string why))
         {
-            Notify($"Can't build a Campfire — {why}");
+            NotifyCant("Can't build a Campfire", why);
             return;
         }
         if (!fires.Build(player))
             return;
         noticeUntil = 0f;
+        HideBanner();
 
         // (Using up the Firewood already plays the item-drop sound.)
         // Back to the world, so the player sees what they built.
