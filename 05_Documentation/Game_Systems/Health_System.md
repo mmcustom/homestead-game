@@ -103,7 +103,20 @@ Player Collapse
 
 Player becomes incapacitated.
 
-Final implementation TBD.
+**Decided 2026-10-04 (Mike):** collapse is "wake weakened" — the player is not killed and the save is not ended. The screen fades out, time passes, and the player wakes up weakened. This closes the "Failure/death state" gap from the 2026-09-22 design review. Mike chose the direction only; the specifics below are a first pass.
+
+**First-pass specifics (Claude, not yet confirmed) — Claude Code should correct if this doesn't match, and Mike confirms by feel in Play Mode:**
+
+- **Trigger:** Health reaching 0, from any cause (starvation, dehydration, Sickness, Exposure). Warmth reaching 0 is not a separate trigger; it only leads here by draining Health, as the Exposure System already says.
+- **Fade and time skip:** a fade to black, then 8 in-game hours pass. Fires burn down, fuel and food keep ticking, and weather advances, because the world doesn't pause. This is the main cost: lost daylight, and in winter, a cold night.
+- **Where you wake:** at the nearest sleeping spot you own (Small Cabin bed, Lean-To, or Tent) if one exists. Otherwise you wake where you fell.
+- **Stats on waking:** Health set to 20. Hunger and Hydration are raised to at least 25, so a starvation or thirst collapse can't loop straight back into another collapse. Warmth is raised to at least 40 and the wet status is cleared. Sickness is cleared, as the passed time is treated as a hard recovery.
+- **Weakened state:** for 4 in-game hours after waking, stamina is multiplied by 0.7. A short HUD line shows the time remaining, like the "Sick" line.
+- **Message:** a plain on-screen line such as "You collapsed and woke hours later, weak." The message names the cause (Starvation, Dehydration, Sickness or Exposure) so the player learns what went wrong.
+- **Saving:** an autosave is not triggered by collapse, and the Weakened timer is saved with the game.
+- **No item loss in the first pass.** Mike's chosen option allowed for a cost such as a dropped item, but the lost 8 hours is the cost. Item loss can be added later if collapse turns out to be too forgiving in playtesting.
+
+**Open for Mike or Claude Code:** repeated collapses (for example, whether a second collapse within one in-game day should cost more) are not specified. Wait to see how often collapse happens in a Winter Preparation playthrough first. Per the GDD Development Rule, this is designed now but should be built after, or alongside, that playthrough.
 
 ---
 

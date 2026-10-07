@@ -1066,3 +1066,23 @@ Mike: "weather and sleep is fine the way it is for now, and the dropped torch is
 Mike had Claude Code "commit and push everything." Confirmed hashes for this stretch: `1de876f` Drop Items; `2fb66d2` tool hotkeys; `a71f6a3` missing-materials notice (original small version); `fd5bfe4` Torch/Lantern/Lamp Oil; `ffa9fca` two-way storage transfer screen; `e7cbe67` cabin-site and stray-pile removal; `b8dcd04` large notice banner; `fc37969` Hammer Dismantle; `9c62d6d` "Update docs and task list" — the documentation that was sitting uncommitted (Building_Housing_System, Core_Survival_System, Primitive_Storage_System, Inventory_System, Item_Data, Current_Task_List, and the new Power_System.md). Claude Code noted it hadn't written that documentation and committed it as it stood; since it was my reconciled version, it already reflects the Dismantle, banner and other recent builds, so its "still says not yet built" worry doesn't apply. Filled in the previously unknown hashes (transfer screen `ffa9fca`, Torch/Lantern `fd5bfe4`, notice `a71f6a3`) in Primitive_Storage_System.md, Core_Survival_System.md, Item_Data.md and Inventory_System.md — those four small edits are the only docs changes after `9c62d6d`, so they're uncommitted.
 
 Open: nothing from today's requests. Power_System.md remains Future (committed, not a build task).
+
+
+## 2026-10-04 — Development_Roadmap.md refreshed
+
+Mike asked what the project documents say to address next. Findings: no open build items (Needs Claude Code / Needs Claude Review are all Done); the roadmap's own gate says to playtest the Alpha 0.1 loop (especially Winter Preparation) before designing anything new. Rewrote 00_Project_Management/Development_Roadmap.md: Current Phase now "Alpha 0.1 implemented, awaiting playthrough"; Alpha systems marked built; added a "Built Beyond the Alpha 0.1 List" section and a "Designed but Not Built (Future)" section; removed the stale "implementation tracked by Copilot" and "not started" folder claims. The 2026-09-22 design review's remaining gaps (death/failure state, economy sink, trapping-to-Economy link, livestock feed loop) are listed as unverified rather than open or closed — worth checking. Uncommitted.
+
+
+## 2026-10-04 — Design-review gaps checked against the docs
+
+Checked the four items left unverified in the roadmap refresh (read Economy_System.md, Health_System.md, Livestock_System.md, Trapping_System.md). **Failure/death state: still open** — Health_System.md says Health 0 = "Player Collapse… Final implementation TBD," Warmth 0 feeds the same collapse; nothing defines what collapse does. **Economy sink: covered** (Economic Sinks section + the built Trading Post). **Trapping → Early income: covered in design** (furs sellable; whether the Trading Post buys furs wasn't checked). **Livestock feed loop: partly covered** (needs, winter Feed Reserves, seasons) but no quantities, and Livestock isn't built. Recorded in Development_Roadmap.md. The only item that needs Mike is the collapse/failure state — a design fork, not yet asked. Uncommitted.
+
+
+## 2026-10-04 — Player Collapse decided: "wake weakened"
+
+Mike answered the one open design fork from the gap check: when Health (or, via Health drain, Warmth) hits 0, the player collapses and wakes weakened. They are not killed and the save does not end. Recorded in Health_System.md under "0 — Player Collapse" with a first-pass spec, labeled "(Claude, not yet confirmed)": fade to black, 8 in-game hours pass with the world still running, wake at the nearest owned sleeping spot (otherwise where you fell), Health 20, Hunger and Hydration floored at 25 so a collapse can't loop, Warmth floored at 40, wet and Sickness cleared, a 4-hour Weakened state (stamina ×0.7) with a HUD line, a cause-naming message, no item loss in the first pass. Updated the roadmap's Open Questions entry from "open" to "decided, designed, not built". Not added to Needs Claude Code: per the GDD Development Rule, build it after or alongside the Winter Preparation playthrough. Claude Code should correct the first-pass specifics if they don't fit the existing code. Uncommitted, along with the roadmap rewrite and the gap-check entry above.
+
+
+## 2026-10-07 — Status Snapshot added to Development_Roadmap.md
+
+Mike asked where the full GDD design stands. Answered in chat from the roadmap and the 05_Documentation folder listing, then, at his request, added a "Status Snapshot — 2026-10-07" section to 00_Project_Management/Development_Roadmap.md (built, designed-not-built, known gaps, next step, housekeeping). No new design decisions. The roadmap rewrite, gap-check entries and Player Collapse edits are still uncommitted; Mike needs to ask Claude Code to commit and push.
