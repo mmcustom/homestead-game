@@ -33,6 +33,10 @@ Confirmed 2026-09-23 (Mike, reviewing Claude Code's TimeManager implementation).
 
 A full in-game day takes 30 real minutes. Each season lasts 28 in-game days, a 112-day year. A new game begins at 6:00 AM on Spring, day 1.
 
+**Resolved 2026-10-07 (Mike): "it could have been spring, just the snow flurries made me think it was winter."** So this is most likely not a mismatch: a Spring day-1 start with flurries and Pioneer's −3°C reads as winter. Not verified in the code; Claude Code can confirm in a few seconds that a new game starts on Spring day 1, but nothing is blocked on it. Original note, kept for the record:
+
+**Possible mismatch found 2026-10-07 (Mike, Pioneer playtest):** Mike reported that his new game "started in the wintertime when temperatures were lower." This section says a new game starts on Spring day 1, so either the code starts somewhere else (or doesn't use this start date for a new game), or early Spring on Pioneer (−3°C, Difficulty_System.md) simply read as winter. The docs can't tell which. **Needs Claude Code to check:** what season and day `TimeManager` actually starts a new game on, and what the HUD showed. If the code and this section disagree, one of them is stale and Mike should say which is right. Whether a new game should always start in Spring is Mike's call, since a Winter start combined with Pioneer is the hardest possible opening.
+
 Daytime is meant to feel generous rather than strictly realistic — roughly twice as long as night in every season, and never flipping to night-heavy the way a real mid-latitude Winter would. Confirmed day/night split: Summer 17h day / 7h night, Spring and Fall 16h/8h, Winter 14h/10h. Dawn and Dusk each span 2 in-game hours bridging sunrise and sunset into full Day or Night.
 
 These values live in TimeManager.cs as Inspector-tunable defaults; this section records what's currently confirmed, not a permanent lock. See 06_AI_Collaboration/Current_Task_List.md for the review history.

@@ -91,6 +91,24 @@ Exact build cost (if any — could be free to place, or cost a small amount of C
 
 ---
 
+# Ground Sticks and Fallen Branches (gap found 2026-10-07)
+
+**Gap found 2026-10-07 (Mike, Pioneer playtest, new game from the beginning):** "i'm noticing some difficulty finding any branches or sticks to build my campfire. I think we need to re-evaluate the distribution of some basic resources. Basically, i think rocks, sticks, branches and tall grass should be more readily available."
+
+**What the docs show (Claude, from the Wood, Stone, Trapping and Difficulty docs):** the only way to get Sticks or Branches today is felling a tree with an Axe (Yields above). Deadfall piles give Firewood only, never Sticks or Branches, and windthrow leaves a wood pile only when a tree actually falls. Pioneer starts with no Axe, so on that tier Sticks and Branches have no source at all. That also blocks the way out: the Primitive Axe needs 2 Sticks, so a Pioneer who can't find Sticks can't make the tool that would yield them. This breaks Difficulty_System.md's Design Rule 2 ("every tier must leave a viable path from nothing to self-sufficient"). It applies to every tier in a milder form, since Homesteader and Settler can only get Sticks by chopping too.
+
+**First-pass scope (Claude) — accepted for now 2026-10-07 (Mike: "seems ok, for now"; he'll update after more playtesting). Claude Code should still correct anything that doesn't fit the code:**
+
+- **Loose Sticks:** scattered stick bundles on the ground, picked up by hand with E, no tool. Each bundle gives 3 Sticks (0.3 kg). About 300 across the property, densest under the hardwood canopy and along woodland edges, lighter in meadow and pasture, none on open water.
+- **Fallen Branches:** single branches lying on the ground, picked up by hand, no tool. Each gives 1 Branch (1 kg). About 120, concentrated in the woods.
+- **Regrowth:** unlike Stone, which is gone for good once taken, loose Sticks and Branches come back. Claude's first pass is 5 in-game days for a stick bundle and 7 for a branch (a forest keeps shedding them), so a Pioneer can never be left without a source. Available in every season, Winter included.
+- **Not difficulty-scaled:** the same availability on all three tiers. Pioneer's harshness comes from the drain multipliers and the empty starting kit (Difficulty_System.md), not from a missing source of basic materials.
+- **Placement:** an editor-only menu like the Stone and Tall Grass ones (for example Homestead → Place Sticks and Branches), not a player-facing feature. Exact counts, spacing and a look-prompt such as "Sticks" or "Fallen branch" are Claude Code's call.
+
+**Related density changes (Stone and Tall Grass) are in Stone_Gathering_System.md and Trapping_System.md, same date.**
+
+---
+
 # Natural Tree Fall (Windthrow)
 
 **Added 2026-09-26 (Mike) — confirmed as a real ask, not yet built.** Resolves the open question Audio_System.md raised when `tree-fall.wav` was sourced: besides a tree coming down from being chopped (built above), standing trees should also be able to fall on their own from weather, independent of the player. Mike's own framing: "random throughout the year, primarily after or during heavy thunderstorms or long winters with a lot of snow buildup."

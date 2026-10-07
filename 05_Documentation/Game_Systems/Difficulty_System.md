@@ -89,6 +89,8 @@ Three tiers, each the full kit with items removed per the Design Rules' "one ful
 
 3. **"Pioneer" (hardest).** Bucket, 3 Cordage, and the guaranteed Knife — $0 cash.
 
+**Gap found 2026-10-07 (Mike, Pioneer playtest, new game from the beginning):** Pioneer's kit has no Axe, and the only source of Sticks and Branches in the docs is felling a tree with one (Wood_Gathering_System.md). So a Pioneer can't get the Sticks to build a campfire or craft the Primitive Axe, and can't buy an Axe either, because the player starts with $0 and nothing sellable until they gather something. This breaks Design Rule 2 below. First-pass fix: loose Sticks and Fallen Branches on the ground, hand pickup, no tool, on every tier — see Wood_Gathering_System.md's "Ground Sticks and Fallen Branches". Stone and Tall Grass density also go up (Stone_Gathering_System.md, Trapping_System.md). A cold-start Warmth fix (the researched Core Temperature Model, which replaced a first "Exertion Warmth" idea) is in Health_System.md. The starting season turned out to be most likely fine (Spring day 1 with snow flurries; Mike, 2026-10-07): see Season_System.md's Pacing section.
+
 **Claude Code's own addition, not on the original list:** Flint and Steel is in the Homesteader and Settler kits (and buyable on Pioneer) — without it, even the easiest tiers couldn't light a fire, so Pioneer has to buy one before its first campfire.
 
 **Note:** the Pick Axe and Shovel granted are the Stone Pick Axe and Primitive Shovel — the only versions that exist until Iron/Steel are buildable (Mining_Metalworking_System.md).

@@ -35,6 +35,10 @@ Exact rock count, spawn spacing, how much denser the water zones are than the ba
 
 **Built and tested 2026-09-26 (Claude Code):** 250 loose rocks total — 150 scattered lightly across the whole property (about one every 30 m), 90 in a denser band along the creek and pond banks, 10 lying at the foot of the outcrop. Placed via a new editor-only menu, Homestead → Place Stone (not player-facing). The South Ridge outcrop is 8 large, half-buried boulders on the ridge's south face, 16 m below the ridge top and clear of the cabin site — moved once already during testing, off the new-game spawn point where the first pass had put it.
 
+**Gap found 2026-10-07 (Mike, Pioneer playtest):** "i think rocks, sticks, branches and tall grass should be more readily available." Stone is the one of the four that already had a real scatter, so this is a density increase, not a new source.
+
+**First-pass density increase (Claude) — accepted for now 2026-10-07 (Mike: "that seems good, but will confirm after playtest"). Claude Code should still correct anything that doesn't fit the code:** roughly double the loose rocks. The base scatter goes from 150 to about 300 (about one every 15 m instead of 30 m), and the creek and pond band from 90 to about 180. The 10 rocks at the outcrop's foot and the tool-gated outcrop itself (40 Stone) stay as they are. Rocks stay single hold-E pickups worth 1 Stone with no tool, and still don't respawn. Stone is 5 kg each, so the carry limit (45 kg, nine stones) already caps what a player can haul at once. Claude Code should say whether a second placement run through the editor menu is enough, or whether the existing placement needs to be re-run or cleared first.
+
 ---
 
 # Picking Up Stone

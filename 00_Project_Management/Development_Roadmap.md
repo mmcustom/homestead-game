@@ -42,9 +42,16 @@ A one-page view of the whole GDD. Details are in the sections below.
 - Lumber at the Trading Post was confirmed 2026-09-26 but never sent to Claude Code.
 - Real mouse and keyboard input (clicks, Shift-click, held keys) is untested, because Unity ignores simulated input when its window is unfocused.
 
+**Playtest findings 2026-10-07 (Mike, Pioneer run from a new game):**
+
+- Sticks and Branches have no source without an Axe, which Pioneer doesn't start with. Designed and accepted for now, not built: loose Sticks and Fallen Branches on the ground (Wood_Gathering_System.md). Mike will update after more playtesting.
+- Stone and Tall Grass need to be more common. Designed and accepted for now, not built: density increases (Stone_Gathering_System.md, Trapping_System.md). To be confirmed after playtest.
+- Warmth drops very fast in a cold start. Mike wants it built to real human physiology, so the first idea (a simple exertion bonus) was replaced by a researched Core Temperature Model, designed but not confirmed (Health_System.md, with the sources in Research/Human_Thermoregulation.md).
+- The "winter start" was most likely Spring day 1 with snow flurries. Resolved by Mike; no action needed.
+
 **Next step:** a Winter Preparation playthrough. Stages 2 through 4 stay deferred until the survival loop is proven fun.
 
-**Housekeeping:** this roadmap rewrite, the design-review gap check and the Player Collapse edits were uncommitted as of 2026-10-07.
+**Housekeeping:** the roadmap rewrite, gap check and first Player Collapse draft were committed and pushed 2026-10-07 (`f74dd5f`). The Player Collapse corrections after Claude Code's code check are a later, uncommitted edit.
 
 ---
 

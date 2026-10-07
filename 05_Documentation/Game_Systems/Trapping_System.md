@@ -64,6 +64,10 @@ Requirements:
 
 **Built, tested, committed and pushed 2026-09-26 (Claude Code)** as part of commit `4145888` (`8b3ea6e` carries the doc updates). A single Cordage craft button uses whichever fibre the player is carrying: 3 Tall Grass, 2 Cattail, or 1 Sinew. Tall Grass is a brand-new Foraged Plant, 90 clumps placed across open meadow and pasture via a new editor-only "Homestead → Place Tall Grass" menu; cutting a clump with E gives 3 Tall Grass and the clump regrows after 4 in-game days, with dry stalks usable in Winter too. Sinew is also new — Claude Code's choice over a standalone "Animal Tendons" item — a field-dressing byproduct: 2 per deer, 1 per turkey. Cattail is the existing forage item, but its single marsh patch only bears in Spring, so Tall Grass and Sinew are the main day-to-day sources. The store-purchase path stays Future, per above. Both new items (`tall_grass`, `sinew`) are now added to Item_Data.md's Resources tables. Tested in Play Mode: cut a grass clump (+3), crafted Cordage from each of the three sources, got a clear "Needs…" message with none, and confirmed the clump regrows after 4 days.
 
+**Gap found 2026-10-07 (Mike, Pioneer playtest):** "i think rocks, sticks, branches and tall grass should be more readily available." Tall Grass is the raw material for Cordage and for the Small Cabin roof (15 needed), so it is the one feeding the most other recipes.
+
+**First-pass density increase (Claude) — accepted for now 2026-10-07 (Mike: "that seems good, but will confirm after playtest"). Claude Code should still correct anything that doesn't fit the code:** the 90 clumps become about 200 across open meadow and pasture, and the regrow time drops from 4 in-game days to 3. A cut still gives 3 Tall Grass, and clumps still bear in Winter as dry stalks. Whether grass should also appear along woodland edges and trails, not just open meadow, is Claude Code's call. The Sticks and Branches side of the same playtest note is in Wood_Gathering_System.md.
+
 Best Placement:
 
 - Rabbit trails
