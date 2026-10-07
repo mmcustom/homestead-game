@@ -65,9 +65,20 @@ Caveat on sources: most numbers below come from Wikipedia and general safety or 
 
 ---
 
+# Hot-Side Weather Inputs (added 2026-10-07)
+
+Researched so the hot side of the Core Temperature Model has real numbers behind the weather additions in Weather_System.md.
+
+- **Sun load on a person.** A 1940s National Academies field study of a clothed person outdoors found about 3.9 kcal/min (about 273 W) for a standing person with the sun overhead, about 4 kcal/min (about 280 W) averaged, and about 5.75 kcal/min (about 400 W) for a person lying flat with the sun overhead. That is roughly 2 to 3 times resting heat production. White cloth (about 71% reflective) roughly halves the load to about 140 W; dark flannel (about 12% reflective) raises it to about 430 W. The study gives no measured shade value; a rough sum of its sky and ground terms for a standing person is about 210 W, but sun-baked ground is cooler in shade, so Weather_System.md uses a lower placeholder (about 50 W) that is my estimate. Offsetting 280 W takes about 420 g of sweat evaporated per hour. Old and partly estimated; modern values vary with clothing, posture and ground. ([National Academies, solar heat load chapter](https://nap.nationalacademies.org/read/18651/chapter/5))
+- **Heat index bands (NWS, as reproduced by the City of Pittsburgh):** Caution 80–90 °F; Extreme Caution 90–105 °F (heat exhaustion, cramps possible with prolonged exposure or activity); Danger 105–129 °F (heat exhaustion likely, heat stroke possible); Extreme Danger 130 °F and up (heat stroke likely). The page does not mention full sun adding to the index. ([Heat index and heat disorders](https://pittsburghpa.gov/files/assets/city/v/1/public-safety/documents/heat_index_and_heat_disorders.pdf))
+- **Humidity limit.** The old rule of thumb is that a wet-bulb temperature of 35 °C is the survivability limit, but that assumes a shaded, unclothed, sedentary, fully acclimatised average person. A newer physiology-based study (Vanos et al., Nature Communications 2023) says real limits are lower and depend on humidity, age, activity and sun exposure; the news summary gives no replacement figure and I did not fetch the paper. ([University of Sydney summary](https://www.sydney.edu.au/news-opinion/news/2023/12/01/new-perspective-on-limits-of-survival-and-liveability-in-extreme.html))
+- **My arithmetic, not sourced:** sweating at 1 L per hour (the low end of the 1–2 L per hour heat-exhaustion range above) evaporating fully would carry away about 670 W, using a latent heat of roughly 2.4 MJ/kg. That is why the model treats sweat as the main cooling route and humidity and dehydration as the things that limit it. The evaporation-factor numbers by humidity in Weather_System.md (1.0 at 30%, 0.65 at 60%, 0.3 at 90%) are my own first-pass shape, not from a source.
+
+---
+
 # Not Found / Not Verified
 
 - A reliable number for how fast a clothed person's core temperature falls at a given air temperature and wind speed (needs a heat-balance model with clothing insulation; none of the pages gave one).
-- The body's heat capacity (how many watts of imbalance move core temperature by 1 °C per hour). The commonly cited figure is about 3.5 kJ/kg/°C, but I did not fetch a source for it this session. Claude Code or Mike should verify before it goes into a formula.
+- The body's heat capacity (how many watts of imbalance move core temperature by 1 °C per hour). The commonly cited figure is about 3.5 kJ/kg/°C (Claude Code independently used the same value on 2026-10-07, which works out to roughly 67 Wh per °C for a 70 kg player), but no source was fetched for it. Verify before it goes into a formula.
 - Splitting logs' MET (not listed), and MET for carrying a heavy pack.
 - A specific lethal temperature on the hot side.

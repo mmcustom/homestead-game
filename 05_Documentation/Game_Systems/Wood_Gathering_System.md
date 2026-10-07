@@ -107,6 +107,8 @@ Exact build cost (if any — could be free to place, or cost a small amount of C
 
 **Related density changes (Stone and Tall Grass) are in Stone_Gathering_System.md and Trapping_System.md, same date.**
 
+**Built 2026-10-07 (Claude Code) — compile-checked only, not committed, not tested in Play Mode.** `GroundWood` is a hand-pickup component with no tool needed: a stick bundle gives 3 Sticks and a fallen branch gives 1 Branch, with the prompts "Pick up Sticks" and "Pick up Branch". `GroundWoodManager` remembers what was taken and brings it back after 5 in-game days (sticks) or 7 (branches). It saves under the key `groundwood`, resets on a new game, and creates itself at startup, so no scene edit was needed; saves from before this load with nothing taken. The new editor menu Homestead → Place Sticks and Branches places 300 bundles (85% under hardwood canopy or at shrub edges, the rest in the open) and 120 branches (95% in the woods). Both skip water and slopes over 25°, and the shapes are generated low-poly meshes saved under `Assets/Art/Wood`. Same on every difficulty and in Winter. **Not tested:** Play Mode, the placement menu, pickup, regrowth, save and reload, and real input. UnityMCP failed to connect, and the open editor hadn't recompiled. **Still needed (Mike, or Claude Code with MCP):** run the menu, check pickup and prompts, regrowth across days, a save and reload, and that a new Pioneer game can get Sticks, light a fire and craft a Primitive Axe. Claude Code also edited `Bootstrap.unity` on disk while the editor had it open, so Unity may ask to reload.
+
 ---
 
 # Natural Tree Fall (Windthrow)

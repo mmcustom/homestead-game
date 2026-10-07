@@ -44,14 +44,14 @@ A one-page view of the whole GDD. Details are in the sections below.
 
 **Playtest findings 2026-10-07 (Mike, Pioneer run from a new game):**
 
-- Sticks and Branches have no source without an Axe, which Pioneer doesn't start with. Designed and accepted for now, not built: loose Sticks and Fallen Branches on the ground (Wood_Gathering_System.md). Mike will update after more playtesting.
-- Stone and Tall Grass need to be more common. Designed and accepted for now, not built: density increases (Stone_Gathering_System.md, Trapping_System.md). To be confirmed after playtest.
-- Warmth drops very fast in a cold start. Mike wants it built to real human physiology, so the first idea (a simple exertion bonus) was replaced by a researched Core Temperature Model, designed but not confirmed (Health_System.md, with the sources in Research/Human_Thermoregulation.md).
-- The "winter start" was most likely Spring day 1 with snow flurries. Resolved by Mike; no action needed.
+- Sticks and Branches have no source without an Axe, which Pioneer doesn't start with. Accepted for now, and built 2026-10-07 by Claude Code but only compile-checked, not tested in Play Mode, not committed: loose Sticks and Fallen Branches on the ground (Wood_Gathering_System.md). Mike will update after more playtesting.
+- Stone and Tall Grass need to be more common. Accepted for now, built and compile-checked but not tested or committed: density increases (Stone_Gathering_System.md, Trapping_System.md). The three placement menus still have to be run in the World scene. To be confirmed after playtest.
+- Warmth drops very fast in a cold start. Mike wants it built to real human physiology, so the first idea (a simple exertion bonus) was replaced by a researched Core Temperature Model (Health_System.md, sources in Research/Human_Thermoregulation.md). Claude Code reviewed it against the code and found it buildable for the cold side with corrections (now in the doc), but the hot side first needs weather additions: humidity, sun load, heat waves and heat Health tiers. Claude drafted those as a first pass in Weather_System.md on 2026-10-07 (not confirmed, not built). Numbers are still unconfirmed.
+- The "winter start" was Spring day 1 with snow flurries. Mike resolved it, and Claude Code confirmed from the code that a new game starts on Spring day 1 at 06:00.
 
 **Next step:** a Winter Preparation playthrough. Stages 2 through 4 stay deferred until the survival loop is proven fun.
 
-**Housekeeping:** the roadmap rewrite, gap check and first Player Collapse draft were committed and pushed 2026-10-07 (`f74dd5f`). The Player Collapse corrections after Claude Code's code check are a later, uncommitted edit.
+**Housekeeping:** the roadmap rewrite, gap check and first Player Collapse draft were committed and pushed 2026-10-07 (`f74dd5f`). The Player Collapse corrections, Core Temperature Model, thermoregulation research and the first sticks/branches/density doc changes were committed and pushed later the same day (`66c5c53`). Doc edits made after that commit (built notes in the Wood, Stone and Trapping docs, Season confirmation, Health_System review corrections, research heat-capacity note, roadmap playtest bullets, Current_Task_List log, and the new Heat Wave, humidity, sun load and overheating-tier draft in Weather_System.md with its research and pointer) are uncommitted.
 
 ---
 

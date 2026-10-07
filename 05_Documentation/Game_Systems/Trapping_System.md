@@ -68,6 +68,8 @@ Requirements:
 
 **First-pass density increase (Claude) — accepted for now 2026-10-07 (Mike: "that seems good, but will confirm after playtest"). Claude Code should still correct anything that doesn't fit the code:** the 90 clumps become about 200 across open meadow and pasture, and the regrow time drops from 4 in-game days to 3. A cut still gives 3 Tall Grass, and clumps still bear in Winter as dry stalks. Whether grass should also appear along woodland edges and trails, not just open meadow, is Claude Code's call. The Sticks and Branches side of the same playtest note is in Wood_Gathering_System.md.
 
+**Built 2026-10-07 (Claude Code) — compile-checked only, not committed, not tested in Play Mode:** Tall Grass goes from 90 to 200 clumps; the 110 new ones use 8 m spacing instead of the original 12 m. Regrowth drops from 4 to 3 days, both in the code default and in the `Bootstrap.unity` serialized value. Run Homestead → Place Tall Grass once in the World scene and save the scene. The count may come out under 200 if open meadow runs out, because grass keeps its 7 m tree clearance. The original 90 layouts and ids are kept, so Mike's save stays valid. Not tested: Play Mode, the menu, cutting, regrowth, save and reload.
+
 Best Placement:
 
 - Rabbit trails

@@ -39,6 +39,8 @@ Exact rock count, spawn spacing, how much denser the water zones are than the ba
 
 **First-pass density increase (Claude) — accepted for now 2026-10-07 (Mike: "that seems good, but will confirm after playtest"). Claude Code should still correct anything that doesn't fit the code:** roughly double the loose rocks. The base scatter goes from 150 to about 300 (about one every 15 m instead of 30 m), and the creek and pond band from 90 to about 180. The 10 rocks at the outcrop's foot and the tool-gated outcrop itself (40 Stone) stay as they are. Rocks stay single hold-E pickups worth 1 Stone with no tool, and still don't respawn. Stone is 5 kg each, so the carry limit (45 kg, nine stones) already caps what a player can haul at once. Claude Code should say whether a second placement run through the editor menu is enough, or whether the existing placement needs to be re-run or cleared first.
 
+**Built 2026-10-07 (Claude Code) — compile-checked only, not committed, not tested in Play Mode:** a second batch of about 150 scattered rocks and 90 along the water, bringing the totals to about 300 and 180. **No clearing is needed:** each placement menu deletes and rebuilds its own root, keeping the original layouts and ids exactly as they were and adding the new ones after them (new stone ids start at 1001 and 2001). That keeps Mike's existing save valid. Run Homestead → Place Stone once in the World scene and save the scene; the Debug log shows the counts. **Doc correction (Claude Code):** the text in this doc and above says "hold E" for loose stones, but they are a single E press, like the new wood pickups. Not tested: Play Mode, the menu, pickup, save and reload.
+
 ---
 
 # Picking Up Stone
