@@ -109,6 +109,7 @@ Only one can be equipped at a time per InventoryManager.cs; don't spoil. Correct
 | fish_trap | Fishing_System.md | 3.0 |
 | bucket | Water_System.md (hand carrying — water/liquid transport only, not boiling) | 1.5 |
 | flint_and_steel | Core_Survival_System.md (Fire System) | 0.2 |
+| bow_drill | Core_Survival_System.md (Fire System, Bow Drill). **Added 2026-10-07 (Mike), first pass (Claude, not yet confirmed):** crafted 2 Sticks + 1 Cordage, lights a Campfire without Flint and Steel but can fail. Not built yet. | 0.4 |
 | stone_pickaxe | Stone_Gathering_System.md (crafted: 2 Sticks + 1 Cordage + 1 Stone) | 2.5 |
 | primitive_shovel | Wood_Gathering_System.md (crafted: 3 Sticks + 1 Cordage + 1 Stone — **resolved 2026-09-26 (Mike): recipe unchanged**; joins the Axe/Pick Axe's Primitive → Iron → Steel tiering instead of switching to Board) | 2.0 |
 | metal_cooking_pot | Water_System.md (Boiling vessel, replaces the Bucket — new-game starting kit, NOT craftable; F11 grants one to existing saves) | 1.0 |

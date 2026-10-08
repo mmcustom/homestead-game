@@ -396,4 +396,56 @@ Morale should matter but never dominate gameplay.
 
 # Hot-Side Weather Inputs (pointer, 2026-10-07)
 
-**Claude, first pass, not yet confirmed.** The hot side of the Core Temperature Model needs weather inputs that did not exist. They are designed in Weather_System.md under "Heat Inputs for the Core Temperature Model": a humidity value, a sun-load value, a Heat Wave weather type (Summer, about +6 C for an ordinary one, no design ceiling), and the overheating tiers summarized there (Hot 37.5-38, Heat exhaustion 38-39, Severe 39-40, Heat stroke above 40 C). Sweat cooling is limited by humidity and by Hydration, which is the main way dehydration becomes dangerous. Confirmed 2026-10-07 (Mike): the seasonal automatic clothing assumption (about 2 clo in Winter down to about 0.5 clo in Summer until clothing exists) is OK for now. Open items there: the HUD for overheating, and pond drying in Heat Waves. **Decided 2026-10-07 (Mike): heat is handled like cold.** Overheating does not kill the player outright. When heat drains Health to 0, the player passes out and wakes weakened, with penalties that grow with repeated collapses. It uses the same Player Collapse system as cold, and the same recent-collapse count (one shared counter, whatever the cause; Claude's reading of "progressing penalties", not separately confirmed). The heat tiers (Hot, Heat exhaustion, Severe, Heat stroke) are the warning steps on the way there, as the cold tiers are. First-pass wake rules for heat (Claude, not yet confirmed): the time skip is spent cooling in the wake shelter, so core temperature is set to no higher than about 37.5 C on waking; Hydration floor of 50 already applies; the message may name heat as the cause. Also decided 2026-10-07 (Mike): there is no 100 F ceiling on Heat Waves (see Weather_System.md). Nothing here is built; per the GDD Development Rule it waits for the playthrough.
+**Claude, first pass, not yet confirmed.** The hot side of the Core Temperature Model needs weather inputs that did not exist. They are designed in Weather_System.md under "Heat Inputs for the Core Temperature Model": a humidity value, a sun-load value, a Heat Wave weather type (Summer, about +6 C for an ordinary one, no design ceiling), and the overheating tiers summarized there (Hot 37.5-38, Heat exhaustion 38-39, Severe 39-40, Heat stroke above 40 C). Sweat cooling is limited by humidity and by Hydration, which is the main way dehydration becomes dangerous. Confirmed 2026-10-07 (Mike): the seasonal automatic clothing assumption (about 2 clo in Winter down to about 0.8 clo in Summer until clothing exists; Claude Code's review raised the Summer end from 0.5 so ordinary Summer nights don't cause shivering) is OK for now. Open items there: the HUD for overheating, and pond drying in Heat Waves. **Decided 2026-10-07 (Mike): heat is handled like cold.** Overheating does not kill the player outright. When heat drains Health to 0, the player passes out and wakes weakened, with penalties that grow with repeated collapses. It uses the same Player Collapse system as cold, and the same recent-collapse count (one shared counter, whatever the cause; confirmed 2026-10-07, Mike: "progressing penalties" means the same repeated-collapse scale as cold). The heat tiers (Hot, Heat exhaustion, Severe, Heat stroke) are the warning steps on the way there, as the cold tiers are. First-pass wake rules for heat (Claude, not yet confirmed): the time skip is spent cooling in the wake shelter, so core temperature is clamped into 35-37.5 C on waking, using about 37.2 C for heat (Claude Code's review, 2026-10-07: 37.5 is exactly where Hot starts, and the clamp also covers the cold-side Warmth floor; the other collapse gaps it found are listed in Weather_System.md under "Heat and Player Collapse"); Hydration floor of 50 already applies; the message may name heat as the cause. Also decided 2026-10-07 (Mike): there is no 100 F ceiling on Heat Waves (see Weather_System.md). Nothing here is built; per the GDD Development Rule it waits for the playthrough.
+
+
+**Build status 2026-10-07:** Mike approved building the cold side of the Core Temperature Model now, because Warmth dropping too fast was a playtest problem. Scope: the single stored core temperature, Warmth as a derived value, resistance-based heat loss, the activity hook, shivering, damp clothing, the seasonal clothing assumption, and the save change, all as written in the Core Temperature Model and its review corrections. The hot side (humidity, sun load, Heat Waves, overheating tiers) and Player Collapse stay unbuilt until Mike says so. The model should leave hooks for the hot side.
+
+# Core Temperature Model, Cold Side: Built 2026-10-07 (Claude Code), compile-checked only
+
+Not tested in Play Mode (UnityMCP was down), not committed. Claude Code ran the physics on its own (a pure-math class with no Unity types) to get tuning numbers, and the game itself has not run it. Every number below is a first pass for Mike to confirm by feel.
+
+**What was built**
+
+- New `Survival/BodyHeat.cs`: pure math. The Warmth to core temperature table (100 = 37.0 C, 75 = 36.5, 50 = 35.0, 25 = 32.0, 0 = 28.0), heat production, resistance-based loss, shivering, and the Advance step. Its physics numbers sit in an Inspector-tunable Settings block on `SurvivalManager`.
+- `SurvivalManager.cs`: core temperature is the stored value and Warmth is a getter derived from it. `StepWarmth` is replaced by `StepBody`. Rain wetness and the fire's drying are kept from the old code. Bedding and shelter hooks are kept: `SleepInsulation` ("cuts the cold by X") is converted to added resistance against a 0.44 m2K/W reference.
+- Seasonal clothing: 2.0 clo at -1 C and below, falling to 0.8 clo at 24 C and above, driven by a 24-hour smoothed temperature.
+- A campfire is radiant gain, scaled by the existing falloff. Pioneer's multiplier scales heat lost, never heat gained.
+- Retired: the Hunger cold multiplier, the Hydration hot multiplier, and the Hunger walk and sprint multipliers. Hunger now scales with body heat output (0.06 per extra MET, which reproduces about x1.15 walking and about x1.54 sprinting). Hydration's own walk and sprint multipliers stay.
+- Save: still writes `chill`, and adds `coreTempC` and `damp`. A `coreTempC` of 20 or less means an old save and is converted through the table.
+- `ClampCoreTemperature(35, 37.5)` exists but nothing calls it yet (for waking from Player Collapse). `HeatLevel` and `HeatLoss` are hooks for the hot side; `HeatLoss` returns 0.
+- `PlayerController.TrySpendStamina` calls `NoteWork()`, so every tool swing counts as work. `SurvivalHud` adds "Shivering", "Working up a heat" and "Damp".
+- `WeatherManager`: the difficulty temperature offset now goes in the harmful direction: full strength at 14 C and below, reversed at 26 C and above, easing through zero between. This is the only weather change. None of the hot-side weather work is built.
+
+**Numbers Claude Code chose or changed**
+
+- Resting heat 80 W, skin 33 C, body area 1.8 m2. Still-air transfer 7.8 W/m2K (0.128 m2K/W). Wind transfer 8.3 x sqrt(speed). Clothing 0.155 m2K/W per clo.
+- Wind: the 0-1 strength is mapped to 8 m/s at full strength, cut in proportion under tree shelter.
+- Wet clothing: x5 loss on clothing resistance, 4.0 in the code per the doc; sweat damp x2.
+- Activity (MET): 0.9 sleeping, 1 idle, 2.5 crouching, 3.5 walking, 10 sprinting, +1.5 carrying at the limit, 5.5 working with a tool (each swing adds 0.35, fades in about 7 seconds).
+- Fire: 250 W radiant at full heat. It started at 400 W, but the standalone run overheated a seated player.
+- Shivering: starts at 36.5 C, full by 35.5 C, peak 4.9x resting, weakens below 25 Hunger, stamina down to x0.7 taken as the lowest of the existing factors (so it never stacks on the Warmth tier's own penalty).
+- Placeholder heat dissipation of 400 W per C above 37 C until the hot side exists. Core temperature limits 24 to 41 C.
+- Damp builds 0.5 per hour when MET is 4.5 or more, core is above 36.9 C and the air is under 15 C. It clears per hour: 1.0 by a fire, 0.33 in shelter, 0.1 in the open, not at all in rain.
+
+**Doc points not followed as written**
+
+- The shivering cliff at Warmth 25 was removed by fading shivering from full at 33 C to zero at 30 C, instead of stopping at 32 C.
+- "Shivering fades after a few hours" is not built; low Hunger as fuel stands in for it.
+- Damp builds from hard work (MET 4.5 or more and core above 36.9 C), so sitting by a fire does not count.
+- Stamina goes through `StaminaMultiplier`, which scales maximum stamina and recovery together, not recovery alone.
+- Inventory log splitting is not hooked, only tool swings.
+
+**Standalone run (75 real seconds per game hour)**
+
+- Winter (-1 C, light wind), Settler, resting: shivering at about 30 seconds, settling at Warmth about 70. Walking stays at 100. Chopping holds core about 37.3 to 37.5 C. Chop 3 minutes then rest: Warmth falls to about 64 within 60 seconds (sweat chill) and recovers slowly; by a fire it is back to 100 in about a minute.
+- Pioneer, Spring dawn (2 C), resting: shivering at about 21 seconds, settling at Warmth about 68. Walking stays at 100. Winter night (-9 C), resting: settles at about 64. Same with Hunger at 15: Warmth under 50 at about 135 seconds, under 25 at about 330, 0 at about 445.
+- Soaked at 4 C with wind (x5): Warmth under 50 at 42 seconds, 0 at about 196 seconds, even when walking. Sleeping in a bag at -5 C: about 72. In a tent with the bag: 100.
+
+**Tuning risks Claude Code flagged**
+
+- Soaked is the biggest risk: about three times faster than the old model, survivable only with a fire or shelter. A wet factor of 3 collapses in about 5 minutes, and 2 holds. The knob is `wetFactor` in `BodyHeat.Settings`.
+- Plateau: a resting player in any cold air sits at Warmth about 65 to 72 with shivering showing, including Spring at 12 C and Summer nights at 18 C. The meter drops fast near the top (25 points per 0.5 C), then holds. That is by design in the model but will feel different. Watch for shivering on ordinary Summer nights, which the 0.8 clo floor was meant to prevent; if it shows up, raise the Summer floor or lower the shivering onset.
+- Shivering costs Hunger very little at 0.06 per MET, so a shivering player is not punished much for it.
+
+**Still to do:** Mike tests in Play Mode (list in Current_Task_List.md log), then Claude Code commits. The hot side and Player Collapse are still not built.

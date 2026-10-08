@@ -139,6 +139,27 @@ Fire requires:
 
 ---
 
+## Bow Drill (primitive fire starter)
+
+**Gap found 2026-10-07 (Mike, playtest):** "There is still no way to light a campfire even after building a primitive axe to collect firewood from chopped down trees. We need to create a new primitive tool - "Bow Drill" for lighting a fire without flint and steel. It should require 2 sticks and 1 cordage to craft, but isn't always successful." The only ignition source in the docs was Flint and Steel, which the Pioneer kit does not include and which costs $8 at the Trading Post on a $0 start, so a Pioneer could gather every ingredient for a Campfire and still not light it.
+
+**Requested by Mike:** new primitive Tool, Bow Drill. Crafted from 2 Sticks + 1 Cordage. Lights a fire without Flint and Steel. Not always successful.
+
+**First-pass scope (Claude, not yet confirmed) - Claude Code should correct if this does not fit the code:**
+
+- **Item:** `bow_drill`, 0.4 kg, a Tool in the Craft grid next to the Torch and the primitive tools. Reusable - it is never consumed by use in the first pass (no durability), because the point is that it replaces a reusable item, Flint and Steel, for a player who has none.
+- **Use:** equip it, face a built Campfire that has fuel in it, and hold left-click to run a drilling attempt. Each attempt takes about 6 real seconds with a progress bar, costs stamina (about 15 points, enough to matter but not to exhaust a rested player), and moves the in-game clock forward about 10 minutes. On success the Campfire lights exactly as it would with Flint and Steel. On failure the player gets a message such as "The ember died. Try again." and nothing is lost except the stamina and time.
+- **Chance of success:** about 45% per attempt in calm, dry weather. Modifiers by current weather: Wind about 35%, Light Rain or Snow about 20%, Heavy Rain or Thunderstorm about 10%. A Campfire under cover (a built shelter or roof) ignores the rain and snow penalty. Cold Front and Cloudy use the calm figure. These are tuning numbers, not rules, and should be Inspector fields.
+- **Frustration guard:** each failed attempt at the same Campfire adds about 10 percentage points to the next attempt's chance (a growing ember), capped at +30, and the bonus resets on success or after about an in-game hour away. This keeps "not always successful" from turning into ten minutes of clicking a coin flip, while still failing often enough that Flint and Steel is clearly the better tool.
+- **Flint and Steel stays the reliable tier:** it never fails, takes no stamina and no time. The Bow Drill is the free, crude, unreliable alternative, in the same way the Torch is the cheap disposable light and the Lantern is the better one.
+- **What it lights:** Campfire only in the first pass. The Torch still needs Flint and Steel by default; **optional, Claude Code's call:** let a Torch be lit from a burning Campfire by standing next to the fire and clicking, so a Bow Drill player is not locked out of portable light. The Lantern already lights with nothing.
+- **Pioneer loop this closes:** Sticks from the ground (see Wood_Gathering_System.md) + the kit's Cordage -> Bow Drill; Sticks and Firewood -> Campfire; Bow Drill -> fire. No Axe and no purchase is required.
+- **Messages:** needs-fuel ("The fire needs fuel before you can start it."), attempt in progress, success, and failure text, plus the HUD status line and tooltip. When the Campfire is already lit, the Bow Drill does nothing.
+- **Trading Post:** buys back a Bow Drill for $1, like the Torch. It is not stocked for sale, since it is meant to be crafted.
+
+**Open questions for Mike (none are blockers):** does about 45% with the growing-ember bonus feel right, or should failure be rarer or tougher? Should the Bow Drill eventually get a durability or a skill-based success bonus?
+
+---
 # Portable Lighting: Torch, Lantern, Flashlight
 
 **Gap found 2026-10-03 (Mike):** "i also think we need to add another couple of tools. perhaps a primitive torch, and then a lantern or flashlight for nighttime." Lighting is already listed as one of Fire's functions above, but only the Campfire and a Small Cabin's hearth exist as fixed, stationary light sources — nothing portable the player can carry and use away from a fire goes anywhere in the game yet.

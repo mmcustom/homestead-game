@@ -123,3 +123,6 @@ Nothing left — the tier count/names/contents question and the New-Game-lock qu
 2. Harder is not "unwinnable" — every tier must leave a viable path from nothing to self-sufficient, even if the easiest early move on the hardest tier is just gathering something small enough to sell.
 3. Self-sufficiency is the shared destination regardless of tier — difficulty changes how far from it you start, not where the game is trying to take you.
 4. **Added 2026-09-26 (Mike):** one full kit, items removed going up in difficulty. The easiest tier is the whole "packed for a week of camping" list — every harder tier is defined as that same list with items taken away, not as separate kits built up independently. Keeps every tier's contents traceable back to one source list instead of drifting out of sync with each other.
+
+
+**Pioneer fire gap found and resolved 2026-10-07 (Mike, playtest):** Pioneer could gather Sticks and Firewood but had no ignition source (Flint and Steel is $8 at the Trading Post on a $0 start). A craftable Bow Drill (2 Sticks + 1 Cordage, unreliable) is added in Core_Survival_System.md so the hardest tier has a free path to fire. The kit itself is unchanged.

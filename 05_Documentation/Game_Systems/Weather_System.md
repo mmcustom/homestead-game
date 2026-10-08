@@ -183,9 +183,9 @@ A new standing value, relative humidity from 0 to 100 percent, present at all ti
 - **Daily shape:** humidity is lowest in mid-afternoon (when it is hottest) and highest near dawn, the reverse of temperature. Real air does this and it makes dawn and dusk feel better to work in.
 - **Weather drives it:** Clear roughly 35–65 percent; Cloudy 55–80; Light Rain 75–95; Heavy Rain and Thunderstorm 85–100; Snow and Cold Front are dry-to-moderate. After rain it stays high for a day, then falls.
 - **Season:** Summer is the most humid season (Ohio summers are humid), Winter and early Spring the driest outdoors-felt. Exact curves are Claude Code's call.
-- **Heat Waves raise it** by about 15 points over the day's normal.
+- **Heat Waves raise it** by raising the dew point about 3–5 °C over the day's normal. Changed 2026-10-07 after Claude Code's review: a flat +15 humidity points gives an impossible dew point once the air is 40 °C or hotter. Store a dew point per day and derive relative humidity from the temperature (Magnus formula), so humidity stays coherent with the daily temperature curve. It can be computed from season, hour, weather type, a new rain-recently timer and the Heat Wave bonus; the timer is the only new save field.
 
-How it affects the body: sweat only cools when it evaporates, and humid air slows evaporation. First pass for the **evaporation factor** (the fraction of sweat that actually cools you): 1.0 at 30 percent humidity or below, about 0.65 at 60, about 0.3 at 90, about 0.2 at 100. Wind raises it toward 1.0. Dehydration lowers how much sweat there is to evaporate (see Health_System.md).
+How it affects the body: sweat only cools when it evaporates, and humid air slows evaporation. First pass for the **evaporation factor** (the fraction of sweat that actually cools you): 1.0 at 30 percent humidity or below, about 0.65 at 60, about 0.3 at 90, about 0.2 at 100. Wind raises it toward 1.0 (wind is a 0–1 strength in the code, not metres per second, so this needs a mapping, and so does the cold side's convective loss). Those humidity numbers are only a shape for moderate temperatures. In hot air the real driver is the gap between skin and air vapor pressure, so evaporation should be driven by wet-bulb temperature and fall to zero near a wet-bulb of about 35 °C, the physical survival limit where sweat cools no one (Claude Code's review, 2026-10-07; how to compute it is Claude Code's call). Dehydration lowers how much sweat there is to evaporate (see Health_System.md).
 
 Player-facing: the pause screen can show a **feels-like temperature (heat index)** in °F when it is above about 80 °F, computed from temperature and humidity. It is a summary for the player only; the body model uses temperature, humidity, sun and activity directly, not the heat index. For orientation, the standard National Weather Service bands are: Caution 80–90 °F, Extreme Caution 90–105 °F, Danger 105–130 °F, Extreme Danger 130 °F and up.
 
@@ -195,10 +195,12 @@ The sun heats a person who stands in it. An older (1940s) field study put the ex
 
 A new **solar exposure** value from 0 to 1, then multiplied into heat gain:
 
-- **Sun height:** zero at night, small near dawn and dusk, highest at midday. Summer midday is the maximum; Winter midday sun is low and gives roughly a third to a half of that.
-- **Cloud:** Clear 1.0, Cloudy about 0.4, Light Rain about 0.25, Heavy Rain, Thunderstorm and Snow about 0.15.
+- **Sun height:** zero at night, small near dawn and dusk, highest at midday. Midday elevations in the code are about 53°, 76°, 53° and 30° (Spring, Summer, Fall, Winter), so the sine of the elevation (my arithmetic) gives about 0.8, 0.97, 0.8 and 0.5: Winter midday is about half of Summer's. `DayNightCycle.SunElevation` is public but has no static instance, and it updates only per frame, so it is stale during sleep and collapse time skips (which step `TimeManager` directly). The heat model should compute elevation itself from hour, season and sunrise/sunset (`SunPosition` is static). Claude Code's review, 2026-10-07.
+- **Cloud:** reuse the existing per-weather `weatherSunlight` values in `DayNightCycle` (and its smoothed `cloudCover`) so the visuals and the heat agree. They read 1, 0.5, 0.35, 0.2, 0.15, 0.8, 0.35, 0.9 in weather type order, which I take to be Clear, Cloudy, Light Rain, Heavy Rain, Thunderstorm, Cold Front, Snow, Wind (Claude Code to confirm the order). This replaces my first-pass table (Cloudy 0.4, Heavy Rain 0.15 and so on), which differed from the code. Heat Wave needs its own entry.
 - **Overhead cover:** reuse the existing overhead-occlusion check (`OverheadCover.cs`). Open sky 1.0, partial canopy in between, and full cover (inside a structure) drops direct sun to zero. Real shade still leaves some sky and ground radiation; first-pass placeholder is about 50 W in canopy shade at midday, which Claude Code can tune.
 - **Heat gain** in watts = solar exposure × about 270 W.
+- **`OverheadCover` needs changes for sun** (Claude Code's review, 2026-10-07): it probes straight up, but a low sun (Winter noon, and every dawn and dusk) needs a probe toward the sun. Canopy counts only for trees 4 m or taller. It ignores the season even though trees lose leaves in winter (`SeasonalTrees`), so canopy shade is overstated in Winter. A Tent or Lean-To only counts if it has a collider overhead, and `SleepManager` currently injects `SleepRainShelter` by hand for that reason, so sun needs the same kind of override.
+- **Posture and exposure:** the 270 W figure is for a standing, clothed person. A lying or sleeping player is different, and the sun load applies to heat production only while the player is actually exposed.
 
 This applies in cold weather too. A sunny winter noon is a small gain that offsets some cold loss, which is real and makes shelter, clearings and timing matter in Winter. Claude Code should include it when tuning the cold baseline.
 
@@ -208,12 +210,19 @@ A Heat Wave is a weather type, the mirror of Cold Front (see Weather Types above
 
 - **When:** Summer only. Average about one per Summer; some Summers have none and some have two, so no two years feel the same (Design Rule 5).
 - **Length:** about 3–6 in-game days, with about a day to build and a day to ease off.
-- **Temperature:** about +6 °C (+11 °F) above that day's normal for an ordinary Heat Wave, with **no design ceiling** (decided 2026-10-07, Mike: some regions go well past 100 °F, so a 100 °F cap is wrong). Stronger Heat Waves should be possible and rarer, for example +10 °C or more. The current weather caps near 34 °C (93 °F); that cap is lifted for Heat Waves. Claude Code may keep an Inspector-tunable safety limit in code (first-pass default about 46 °C / 115 °F; real-world extremes run higher still) so a bad roll cannot produce nonsense. That is a code guard, not a design limit, and it can be raised.
+- **Temperature:** about +6 °C (+11 °F) above that day's normal for an ordinary Heat Wave, with **no design ceiling** (decided 2026-10-07, Mike: some regions go well past 100 °F, so a 100 °F cap is wrong). Stronger Heat Waves should be possible and rarer, for example +10 °C or more. Correction after Claude Code's review (2026-10-07): there is no explicit temperature cap in the code to lift. The 34 °C is emergent (Summer high of 30 °C, plus up to +4 °C daily variation, plus a weather offset that is 0 at most, for Clear), and Homesteader difficulty already reaches 37 °C through its +3 °C offset. The only existing clamp is for Snow, in `WeatherManager.cs` just before `TargetTemperatureC` returns. Claude Code's plan for the safety limit: an Inspector field (default about 46 °C; real-world extremes run higher still) under the "Variation" header, applied at the end of `TargetTemperatureC` after the difficulty offset (the offset goes before the clamp), so even Homesteader cannot exceed it. It is a code guard, not a design limit, and it can be raised.
 - **Nights stay warm:** overnight cooling is roughly halved, so the body does not recover during sleep. This is what makes real heat waves dangerous.
-- **Humidity:** +15 points, per above.
-- **Sky:** mostly Clear. A Heat Wave usually ends with a Thunderstorm or Cold Front, which also gives the player relief and fits existing weather behavior.
+- **Humidity:** dew point raised about 3–5 °C, per above (the old "+15 points" was withdrawn).
+- **Sky:** mostly Clear. A Heat Wave usually ends with a Thunderstorm or Cold Front, which also gives the player relief and fits existing weather behavior. That ending is not automatic in the code: weather types are mutually exclusive, so a wave replaces rain and thunderstorms for its duration, and the ending needs a rule that forces the next roll to be one of those (Claude Code's review, 2026-10-07).
 - **No warning:** forecasting is not in Alpha 0.1 (see Forecasting above), so a Heat Wave arrives as it happens. The player notices it by feel: the sun load, the sweat, and the HUD line.
-- **Water link:** a Heat Wave should raise Hydration use and could dry out ponds and shallow water. The pond effect is not designed; it belongs to Water_System.md and is an open question below.
+- **Water link:** a Heat Wave should raise Hydration use and could dry out ponds and shallow water. The pond effect is not designed; it belongs to Water_System.md and is an open question below. Claude Code's review found the flag already exists (`IsDrought`) but nothing reads it, so pond drying isn't hooked up. It also found that a wave plus no rain makes `dryDays` hit the 5-day drought threshold almost every time, so a Heat Wave should not count as an ordinary dry stretch for drought purposes unless that is wanted.
+- **Build notes (Claude Code's review, 2026-10-07; the type is mostly buildable):**
+  - `WeatherType` has 8 entries and `WeatherTypeCount = 8` sizes the arrays. Add `HeatWave` at index 8, appended and not inserted, because saves store the type as an integer.
+  - It needs an extra entry in the four seasons' weights, the `weatherTypes` settings, and `DayNightCycle`'s per-weather arrays (`weatherSunlight`, `weatherFogDistance`, `weatherCloudCover`). `DayNightCycle` falls back safely when an array is too short, but a Heat Wave would then read as Clear.
+  - Scene gotcha: Inspector-serialized arrays don't pick up the C# defaults (`OnValidate` just resizes them with zeros), so Summer's Heat Wave weight has to be set in the Inspector or the scene.
+  - Frequency (Claude Code's arithmetic): Summer's weights sum to 100 and are duration-adjusted, so a Heat Wave weight of about 15 gives about one per Summer on average. Reduce Clear to compensate. Zero weight in the other seasons is enough, since `OnSeasonChanged` already ends a type whose weight is 0 in the new season. Duration of 72–144 hours fits the existing `int hoursRemaining`.
+  - Strength and ramp: `temperatureOffsetC` is a constant per type, but a wave needs a per-wave strength (+6 ordinary, rarer stronger) and a build/ease-off envelope. Both must be saved; old saves load as 0, so no wave.
+  - Warm nights: the daily curve is `lerp(low, high, dayCurve)` (`WeatherManager.cs` line 360). Halving the night cooling means shrinking that curve's amplitude during a wave, on top of the +6.
 
 ## 4. Overheating Health Tiers (summary)
 
@@ -223,11 +232,17 @@ Specified in full in Health_System.md. Core temperature tiers from the research:
 |---|---|---|
 | Up to 37.5 °C | Normal | None |
 | 37.5–38.0 °C | Hot | Sweating; HUD line "Hot"; no penalty |
-| 38.0–39.0 °C | Heat exhaustion | Stamina recovery cut to about 70 percent; HUD line |
-| 39.0–40.0 °C | Severe heat exhaustion | Stamina recovery cut to about 40 percent, sprinting not allowed, mild screen effect, slow Health loss |
-| Above 40 °C | Heat stroke | Sweating stops (no cooling), Health drains steadily, strong screen effect |
+| 38.0–39.0 °C | Heat exhaustion | Stamina reduced through the existing `StaminaMultiplier`, about ×0.7 (it scales maximum stamina and recovery together, so there is no separate recovery knob); HUD line |
+| 39.0–40.0 °C | Severe heat exhaustion | `StaminaMultiplier` about ×0.5, slow Health loss. The sprint block and screen effect wait for later: they need new `PlayerController` and HUD hooks |
+| Above 40 °C | Heat stroke | Sweating fades rather than switching off (see the runaway note below), Health drains steadily; the strong screen effect waits for later |
 
 **Decided 2026-10-07 (Mike): heat is handled like cold.** Overheating does not kill outright. When heat drains Health to 0 the player passes out and wakes weakened, with penalties that grow with repeated collapses, using the same Player Collapse system as cold (Health_System.md). The tiers above are the warning steps on the way there.
+
+**Tier build notes (Claude Code's review, 2026-10-07):** the tiers fit as an extension of the same core temperature variable. Warmth stays clamped at 100 above 37 °C. Add a heat tier property and a `HeatLoss(tier)` next to `ColdLoss` in `Step`. The existing rule that anything costing Health blocks regeneration already covers the tiers that cost Health, so Hot and Heat exhaustion don't block regen.
+
+**Runaway risk:** with a body heat capacity of about 67 Wh per °C (Claude Code's arithmetic), a 300 W net gain raises core temperature about 4.5 °C per game hour, which is roughly 35 real seconds to go from 38 to 40 °C. Switching sweating off at 40 °C would therefore make a runaway. First-pass fix (Claude, not confirmed): sweating efficiency falls gradually above 40 °C, for example to about a quarter by 41.5 °C, instead of stopping. The "within a few hours" tuning targets below are also very sensitive to small net gains, so they should be restated in real minutes when tuned.
+
+**Health loss for the heat tiers was not specified.** First pass (Claude, not confirmed): the same rates as the cold tiers at matching severity (none at the lowest, slow at moderate, steady at severe), with Claude Code picking the numbers from the existing cold values.
 
 ## Counterplay (Design Rule 2: prepared players are less affected)
 
@@ -249,16 +264,22 @@ These describe what a tuned model should roughly produce. They are not formulas.
 | 90 °F, 60 percent humidity, hard work in full sun, with water | Hot within roughly the first game hour, heat exhaustion within a few hours without a rest in shade |
 | Heat Wave, about 100 °F, 70 percent humidity, resting in shade, with water | Slowly climbing; heat exhaustion over many hours, avoidable by staying cool and wet |
 | Heat Wave, hard work in full sun, no water | Heat stroke within a few hours; the dangerous case |
-| Severe Heat Wave, 110 °F or more | Dangerous even resting in shade without water; shade, wading, water and resting through midday are the way through |
+| Severe Heat Wave, 110 °F or more | Dangerous even resting in shade without water; shade, wading, water and resting through midday are the way through. Past a wet-bulb of about 35 °C sweat cools no one, so only water cooling (wading) works, and Health loss and collapse follow within hours whatever the player does |
 
 ## Dependencies and open questions (Claude, not yet confirmed)
 
-- **Seasonal clothing assumption (important). Confirmed 2026-10-07 (Mike): OK for now, until clothing exists.** Claude Code's review set the cold baseline at about 2 clo of insulation. That much clothing in a Summer heat wave would trap heat and make the hot side unfair, and the game has no clothing yet. First-pass fix: until clothing exists, the model assumes the player dresses for the season automatically, from about 2 clo in Winter down to about 0.5 clo in Summer, interpolated by season or air temperature. When clothing is built, it replaces this assumption.
+- **Seasonal clothing assumption (important). Confirmed 2026-10-07 (Mike): OK for now, until clothing exists.** Claude Code's review set the cold baseline at about 2 clo of insulation. That much clothing in a Summer heat wave would trap heat and make the hot side unfair, and the game has no clothing yet. First-pass fix: until clothing exists, the model assumes the player dresses for the season automatically, from about 2 clo in Winter down to about 0.8 clo in Summer, interpolated by a smoothed 24-hour temperature rather than the instant air temperature, so the player doesn't change clothes at dusk. Claude Code's review (2026-10-07) found this workable but raised the Summer end from 0.5 clo: at 0.5 clo and 18 °C (a Summer night), a resting player loses about 150 W against about 80 W produced, which means shivering on ordinary Summer nights. A floor of about 0.8–1.0 clo, with the sleeping bag and shelter helping at night, avoids that. When clothing is built, it replaces this assumption.
 - **HUD for overheating.** Warmth stays a cold-side meter pegged at 100 above 37.0 °C. First pass: a separate overheating indicator appears only when core temperature is above 37.5 °C, and Warmth is not made two-sided. Not confirmed.
 - **Pond drying in Heat Waves** is not designed (Water_System.md).
 - **Heat Wave odds and strength** are first-pass values, to be tuned after the cold side is tested. The 38 °C ceiling was withdrawn 2026-10-07 (Mike); see Heat Waves above.
 - **Wildlife and Livestock** reactions to heat are not designed; Livestock heat stress is a likely future link.
-- **Difficulty:** the Pioneer penalty applies in the harmful direction only (hotter and sunnier for heat). See Health_System.md review corrections.
+- **Difficulty:** the Pioneer penalty applies in the harmful direction only (hotter and sunnier for heat). See Health_System.md review corrections. Claude Code's review adds: the ±3 °C temperature offset still needs the harmful-direction fix from the cold review, and Heat Wave frequency should join the harsher-by-difficulty list in `RollWeight`.
+- **Heat and Player Collapse (Claude Code's review, 2026-10-07).** Both of the earlier assumptions fit: one shared counter works, because it counts collapses and not causes (it needs a saved last-collapse day, and the count decays by 1 per 3 in-game days). Waking at 37.5 °C or lower works as a single assignment, because the skip doesn't tick the player's meters, but use about 37.2 °C for heat (37.5 is exactly where Hot starts, so the player would wake one tick from sweating) and make it a general clamp of core temperature into 35–37.5 °C, which also covers the cold-side Warmth floor. Gaps it found, with first-pass answers that are Claude's and not confirmed:
+  - **Wake timing:** an 8-hour skip from a morning collapse wakes the player at the hottest hour. For a heat collapse, end the skip at the next dusk or dawn instead.
+  - **No shelter:** the player wakes where they fell, possibly in full sun at Health 20. Accepted for now as the cost of having no shelter (Design Rule 2).
+  - **Sleep wake-up:** `SleepManager` wakes the player early for cold, thirst, hunger and low Health. It needs a too-hot wake-up, for example core temperature above about 38 °C.
+  - **Sleeping insulation:** the sleeping bag, Tent and Cabin currently cut heat loss unconditionally, which would make hot nights worse. It should apply to dry heat only (Claude Code's wording), and the bag should be ignored above about 22 °C.
+  - **Cause naming:** "Heat" needs adding to the cause attribution in `Step` (see Health_System.md).
 
 Per the GDD Development Rule, none of this is built until the core survival loop is proven fun. Mike chose cold and hot together as the build scope, so this section is what the hot side is waiting on.
 

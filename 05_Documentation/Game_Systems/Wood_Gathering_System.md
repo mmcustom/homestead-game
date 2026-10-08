@@ -195,3 +195,14 @@ Both recipes are now confirmed by Mike (2026-09-26) as far as materials go — s
 # Starting Kit Note
 
 **2026-09-26 (Claude Code):** the Axe is now in the starting kit for new games, since nothing else in the game previously supplied one — without it, this whole system would be unreachable from a fresh start. F11 also grants an Axe to existing saves that predate this change.
+
+
+**Playtest 2026-10-07, later (Mike):** still could not find any sticks or branches on the ground, even under trees, and wants them plentiful. Claude checked the files: the World scene has not been changed since 2026-09-26 and the Assets/Art/Wood folder (created when the placement menu runs) does not exist, so Homestead > Place Sticks and Branches has not been run and saved yet. The first-pass counts (300 stick bundles, 120 fallen branches) are untested by feel. If the ground still looks sparse after the menu is run, raise the counts (suggested start: about 600 bundles and about 250 branches) and the stick spacing can drop; to be set from what Mike sees.
+
+## Playtest 2026-10-07, after placement (Mike): still too sparse
+
+Mike ran Place Sticks and Branches (300 bundles + 120 branches, 420 objects saved) and reports: "I only found a few sticks and 1 branch. there should be much more available under the trees." The first-pass counts are not enough: spread across the whole map, 300 bundles averages out to very little under any one tree.
+
+**Resolved 2026-10-07 (Mike, direction):** plentiful, concentrated under trees. **First-pass numbers (Claude, not yet confirmed):** raise to roughly 1,200 stick bundles and 450 fallen branches, and place them tree-driven rather than map-driven - each tree gets 1 to 3 bundles and a 40% chance of a branch inside its drip line - with the old global spacing rules relaxed accordingly. The placer should report the average count found within 50 m of the player's start and under the nearest ten trees, so the result can be checked without hunting. Also check visibility: if the pickups are small or dark against the ground, scale them up or add a faint highlight at close range. Re-runnable with stable ids, as before. Regrow rules unchanged.
+
+**Related gap, same day:** with Sticks now available, a Pioneer can build a Campfire but had no way to light it. Bow Drill added in Core_Survival_System.md (Fire System).
