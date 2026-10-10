@@ -129,6 +129,20 @@ public class PortableLight : MonoBehaviour, ISaveable
 
     // --- Lighting, snuffing, burning ---
 
+    // A torch can be lit from a burning Campfire close by, so a player with only a Bow Drill still gets portable light.
+    const float TorchFireReach = 2.5f;
+
+    bool NearBurningFire
+    {
+        get
+        {
+            if (player == null)
+                player = FindAnyObjectByType<PlayerController>();
+            return player != null && FireManager.Instance != null &&
+                   FireManager.Instance.NearestLit(player.transform.position, TorchFireReach) != null;
+        }
+    }
+
     void Toggle(string id, InventoryManager inventory)
     {
         if (litId == id)
@@ -139,9 +153,9 @@ public class PortableLight : MonoBehaviour, ISaveable
 
         if (id == TorchId)
         {
-            if (!inventory.Player.Has(FireManager.IgnitionId))
+            if (!inventory.Player.Has(FireManager.IgnitionId) && !NearBurningFire)
             {
-                ToolStatus.Flash("You need Flint and Steel to light the Torch.", 2.5f);
+                ToolStatus.Flash("You need Flint and Steel, or a burning Campfire beside you, to light the Torch.", 3f);
                 return;
             }
             if (torchHoursLeft <= 0f)
@@ -195,8 +209,8 @@ public class PortableLight : MonoBehaviour, ISaveable
         {
             float left = lit || torchHoursLeft > 0f ? torchHoursLeft : TorchBurnHours;
             line = lit ? $"Torch — burning, {left:0.0} h left. Click to snuff it."
-                       : FireManager.HasIgnition ? $"Torch — {left:0.0} h of burn. Click to light it."
-                                                 : "Torch — needs Flint and Steel to light.";
+                       : FireManager.HasIgnition || NearBurningFire ? $"Torch — {left:0.0} h of burn. Click to light it."
+                                                 : "Torch — needs Flint and Steel, or stand by a burning Campfire, to light.";
         }
         else
         {

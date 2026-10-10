@@ -81,7 +81,7 @@ Milk gets the shortest shelf life in the game (dairy spoils fast); eggs get one 
 | clay | Building_Housing_System.md's Small Cabin stove/fireplace furnishing. **Built and tested 2026-09-27 (Claude Code):** a creek/pond bank dig site, as proposed — the Primitive Shovel (AxeTool) digs it straight from dry ground close to the water's edge (checked against the existing water-surface raycast, not a placed deposit), so unlike the South Ridge rock outcrop it never runs out | 3.5 | — |
 | cordage | Trapping_System.md (crafted: 3 Tall Grass, 2 Cattail, or 1 Sinew) | 0.3 | — |
 | firewood | Core_Survival_System.md (Fire System) | 1.5 | — |
-| arrows | Hunting_System.md (Recurve Bow ammunition) | 0.05 | — |
+| arrows | Hunting_System.md (ammunition for the Recurve Bow and the Primitive Bow; **craftable 2026-10-09 (Mike), first pass (Claude, not yet confirmed): 1 Stick + 1 Stone makes 2**) | 0.05 | — |
 | rifle_rounds | Hunting_System.md (Bolt-Action Rifle ammunition) | 0.02 | — |
 | sticks | Wood_Gathering_System.md (chopping trees) | 0.1 | — |
 | branches | Wood_Gathering_System.md (chopping trees) | 1.0 | — |
@@ -101,6 +101,7 @@ Only one can be equipped at a time per InventoryManager.cs; don't spoil. Correct
 |---|---|---|
 | axe | Inventory_System.md | 2.0 |
 | recurve_bow | Hunting_System.md | 1.5 |
+| primitive_bow | Hunting_System.md (Primitive Bow). **Added 2026-10-09 (Mike), first pass (Claude, not yet confirmed):** crafted 1 Branch + 1 Cordage, a shorter-range, less accurate bow that fires the same arrows as the Recurve Bow. **Built 2026-10-09 (Claude Code), compile-checked only, not Play Mode tested, not committed;** Trading Post buys back for $2. | 0.8 |
 | bolt_action_rifle | Hunting_System.md | 3.5 |
 | fishing_rod | Fishing_System.md (Rod and Reel) | 1.0 |
 | cane_pole | Fishing_System.md | 0.8 |
@@ -109,7 +110,7 @@ Only one can be equipped at a time per InventoryManager.cs; don't spoil. Correct
 | fish_trap | Fishing_System.md | 3.0 |
 | bucket | Water_System.md (hand carrying — water/liquid transport only, not boiling) | 1.5 |
 | flint_and_steel | Core_Survival_System.md (Fire System) | 0.2 |
-| bow_drill | Core_Survival_System.md (Fire System, Bow Drill). **Added 2026-10-07 (Mike), first pass (Claude, not yet confirmed):** crafted 2 Sticks + 1 Cordage, lights a Campfire without Flint and Steel but can fail. Not built yet. | 0.4 |
+| bow_drill | Core_Survival_System.md (Fire System, Bow Drill). **Added 2026-10-07 (Mike), first pass (Claude, not yet confirmed):** crafted 2 Sticks + 1 Cordage, lights a Campfire without Flint and Steel but can fail. **Built 2026-10-07 (Claude Code), compile-checked only, not Play Mode tested, not committed.** | 0.4 |
 | stone_pickaxe | Stone_Gathering_System.md (crafted: 2 Sticks + 1 Cordage + 1 Stone) | 2.5 |
 | primitive_shovel | Wood_Gathering_System.md (crafted: 3 Sticks + 1 Cordage + 1 Stone — **resolved 2026-09-26 (Mike): recipe unchanged**; joins the Axe/Pick Axe's Primitive → Iron → Steel tiering instead of switching to Board) | 2.0 |
 | metal_cooking_pot | Water_System.md (Boiling vessel, replaces the Bucket — new-game starting kit, NOT craftable; F11 grants one to existing saves) | 1.0 |
@@ -121,7 +122,7 @@ Only one can be equipped at a time per InventoryManager.cs; don't spoil. Correct
 | knife | Hunting_System.md (**committed and pushed 2026-09-26** — code `67d85da`: 1 Stick + 1 Cordage + 1 Stone; **confirmed 2026-09-26 (Mike): also joins the new-game starting kit**, F11 grants one to existing saves, tested in Play Mode both ways before pushing) | 0.5 |
 | wooden_hoe | Wood_Gathering_System.md (crafted: 2 Sticks + 1 Cordage + 1 Stone — **confirmed 2026-09-26 (Mike): "keep it like the stone sickle"**; Future, no Gardening/Farming system exists yet) | 1.5 |
 | stone_sickle | Wood_Gathering_System.md (crafted, proposed: 2 Sticks + 1 Cordage + 1 Stone — Future, no Gardening/Farming system exists yet) | 1.0 |
-| tarp | Difficulty_System.md (**committed 2026-09-26 as `a815628`, not yet pushed:** new-game starting kit / Trading Post item ($8), NOT craftable; carried, blocks 90% rain/30% wind when sleeping on a bare Sleeping Bag) | 0.8 |
+| tarp | Difficulty_System.md (**committed 2026-09-26 as `a815628`, not yet pushed:** new-game starting kit / Trading Post item ($8), NOT craftable; carried, blocks 90% rain/30% wind when sleeping on a bare Sleeping Bag) **Pitchable as a Tarp Shelter 2026-10-09 (Building_Housing_System.md; built, compile-checked only, not Play Mode tested, not committed).** | 0.8 |
 | canteen | Difficulty_System.md (**committed 2026-09-26 as `a815628`, not yet pushed:** new-game starting kit / Trading Post item ($5), NOT craftable; 2 L water container, equips and fills at water sources like the Bucket) | 0.4 |
 | torch | Core_Survival_System.md (Portable Lighting). **Built and tested 2026-10-03 (Claude Code):** crafted 1 Sticks + 1 Cordage, confirmed and functional. | 0.5 |
 | lantern | Core_Survival_System.md (Portable Lighting). **Built and tested 2026-10-03 (Claude Code):** crafted 2 Clay + 1 Cordage (Claude Code's own material call, not Mike's), burns the new `lamp_oil` consumable rather than being disposable. | 1.0 |

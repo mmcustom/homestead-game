@@ -16,13 +16,17 @@ using UnityEngine.UI;
 //   Small Cabin (Building_Housing_System.md's first permanent residence) — the best tier yet: cuts Warmth loss by 75%,
 //   keeps off all rain and wind (a real enclosed shell). Health 2.5x. Its furnished hearth (FireManager.BuildFurnished)
 //   is a real campfire, so a lit one warms the sleeper the same way any nearby campfire already does — no extra code.
+//   Tarp Shelter (a pitched Tarp, 2026-10-09) — the lowest tier: cuts Warmth loss by a quarter, keeps off most rain (90%)
+//   and half the wind. Health 1.5x. Above sleeping rough, below the Lean-To, so the tiers run nothing, Tarp, Lean-To, Tent, Cabin.
 // A Sleeping Bag inside a shelter adds its own quarter on top. Sleeping out, a carried Tarp strung overhead keeps off
-// most rain (90%) and some wind (30%) (Difficulty_System.md's kit). A campfire close by still warms as usual. The cold,
+// most rain (90%) and some wind (30%) (Difficulty_System.md's kit). Your Tarp keeps the rain off while you sleep
+// outdoors, or pitch it for a proper shelter. A campfire close by still warms as usual. The cold,
 // thirst or hunger can wake the player early rather than let them sleep into real harm.
 public class SleepManager : MonoBehaviour
 {
     public const string SleepingBagId = "sleeping_bag";
     public const string TarpId = "tarp";
+    public const string TarpNote = "Your Tarp keeps the rain off while you sleep outdoors, or pitch it for a proper shelter.";
 
     public static SleepManager Instance { get; private set; }
 
@@ -97,7 +101,9 @@ public class SleepManager : MonoBehaviour
         GameManager game = GameManager.Instance;
         bool openedMenu = game != null && game.State == GameState.Playing && game.OpenMenu();
 
-        yield return Fade(1f, shelter != null ? $"Sleeping in the {WoodManager.PileName(shelter.kind)}…" : "Sleeping…");
+        bool roughWithTarp = shelter == null && InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(TarpId);
+        yield return Fade(1f, shelter != null ? $"Sleeping in the {WoodManager.PileName(shelter.kind)}…"
+                              : roughWithTarp ? $"Sleeping…\n{TarpNote}" : "Sleeping…");
 
         float slept = PassNight(shelter, out string woke);
         PlayerController player = FindAnyObjectByType<PlayerController>();
@@ -138,10 +144,11 @@ public class SleepManager : MonoBehaviour
         {
             bool tent = shelter.kind == PileKind.Tent;
             bool cabin = shelter.kind == PileKind.Cabin;
-            insulation = cabin ? 0.75f : tent ? 0.6f : 0.5f;
-            rain = cabin || tent ? 1f : 0.8f;
-            wind = cabin ? 1f : tent ? 0.9f : 0.6f;
-            recovery = cabin ? 2.5f : 2f;
+            bool tarp = shelter.kind == PileKind.TarpShelter;
+            insulation = cabin ? 0.75f : tent ? 0.6f : tarp ? 0.25f : 0.5f;
+            rain = cabin || tent ? 1f : tarp ? 0.9f : 0.8f;
+            wind = cabin ? 1f : tent ? 0.9f : tarp ? 0.5f : 0.6f;
+            recovery = cabin ? 2.5f : tarp ? 1.5f : 2f;
         }
         if (CarryingBag)
         {

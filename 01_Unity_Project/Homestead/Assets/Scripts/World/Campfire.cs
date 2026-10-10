@@ -172,7 +172,10 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
 
             string fuel = $"{state.fuelHours:0.0} h of fuel";
             if (!state.lit && state.fuelHours > 0f)
-                return FireManager.HasIgnition ? $"Light Fire  ({fuel})" : "Light Fire  — needs Flint and Steel";
+                return FireManager.HasIgnition ? $"Light Fire  ({fuel})"
+                     : InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(BowDrill.ItemId)
+                         ? "Light Fire  — equip the Bow Drill and hold click"
+                         : "Light Fire  — needs Flint and Steel (or a Bow Drill)";
             string cook = state.lit && CarryingCookables ? "  · Cook or boil from Inventory (I)" : "";
             if (fires.CanAddFuel(state))
                 return state.lit ? $"Add Firewood  (burning, {fuel}){cook}" : "Add Firewood";

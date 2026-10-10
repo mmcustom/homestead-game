@@ -11,6 +11,10 @@ public struct SurvivalSaveData
     // Warmth is saved as how far below full it is, so saves from before Warmth load as warm rather than frozen.
     public float chill;
     public float wetness;
+    // Core Temperature Model: core temperature is the stored value (chill above is still written, derived from Warmth, so an
+    // older build can read a new save). A real core temperature is never below 28, so 20 or less means "not saved yet".
+    public float coreTempC;
+    public float damp;
 }
 
 // Core_Survival_System.md's Health, Hydration and Hunger (Unity_Architecture.md: player survival stats).
@@ -36,13 +40,15 @@ public struct SurvivalSaveData
 // Hunger nor Hydration is empty — faster when both are at least half full — except while sick, and while anything
 // else is actively costing Health (a Severe tier, the cold), which wins until it's dealt with.
 //
-// Warmth (Health_System.md's Exposure System, 2026-09-26): 0-100, drifting with how cold it feels. "Feels like" is the
-// air temperature less wind chill (Weather's wind strength, partly blocked under trees) and less a wet chill; being
-// wet also makes the cold bite faster. Rain and snow soak the player unless they're under a canopy; they dry slowly on
-// their own and fast by a fire. Above about 50°F feels-like Warmth recovers; below it, it falls — faster the colder.
-// A lit campfire warms strongly within a couple of metres, fading out by 6 m (the crackle's inner radius, not its
-// 22 m hearing range). Tiers mirror Hydration's: Mild — a little more tired; Moderate — less stamina, Health loss
-// begins; Severe — fast Health loss and slower movement; 0 — the same collapse path as Health reaching 0.
+// Warmth (Health_System.md's Exposure System, 2026-09-26) is now read off the body's core temperature (Core Temperature
+// Model, 2026-10-07; the physics is in BodyHeat): 100 is 37.0 °C, 75 is 36.5, 50 is 35.0, 25 is 32.0, 0 is 28.0. Core
+// temperature moves with heat produced (resting heat × the activity's MET, or the shivering the body adds when cold)
+// against heat lost through clothing, an air layer that thins in wind, and any bedding or shelter. Rain and snow soak the
+// player unless under a canopy, and wet clothing insulates far worse; hard work in the cold builds a sweat damp that does
+// the same, more mildly. A lit campfire is radiant gain, strongest within 1.5 m and gone by 6 m (the crackle's inner
+// radius, not its 22 m hearing range). Tiers mirror Hydration's: Mild — a little more tired; Moderate — less stamina,
+// Health loss begins; Severe — fast Health loss and slower movement; 0 — the same collapse path as Health reaching 0.
+// The hot side (humidity, sun, overheating) is not built; HeatLevel and HeatLoss are its hooks.
 public class SurvivalManager : MonoBehaviour, ISaveable
 {
     public const float MaxValue = 100f;
@@ -51,6 +57,10 @@ public class SurvivalManager : MonoBehaviour, ISaveable
 
     // Core_Survival_System.md's Hydration effect tiers; Hunger mirrors them.
     public enum Tier { Fine, Minor, Reduced, Severe, Empty }
+
+    // Overheating steps (Weather_System.md's Heat Inputs): Hot from 37.5 °C, heat exhaustion from 38, severe from 39,
+    // heat stroke above 40. Nothing acts on them yet.
+    public enum HeatStage { None, Hot, Exhaustion, Severe, Stroke }
 
     public static SurvivalManager Instance { get; private set; }
 
@@ -63,18 +73,9 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     [Header("Activity (drain multipliers)")]
     [SerializeField, Min(0f)] float walkingHydration = 1.2f;
     [SerializeField, Min(0f)] float sprintingHydration = 2f;
-    [SerializeField, Min(0f)] float walkingHunger = 1.15f;
-    [SerializeField, Min(0f)] float sprintingHunger = 1.6f;
-
-    [Header("Temperature (°F)")]
-    [Tooltip("Hydration drains faster above this, reaching the max multiplier at the hot limit.")]
-    [SerializeField] float warmF = 80f;
-    [SerializeField] float hotF = 95f;
-    [SerializeField, Min(1f)] float hotHydrationMultiplier = 1.5f;
-    [Tooltip("Hunger drains faster below this (keeping warm burns food), reaching the max multiplier at the frigid limit.")]
-    [SerializeField] float coolF = 40f;
-    [SerializeField] float frigidF = 10f;
-    [SerializeField, Min(1f)] float coldHungerMultiplier = 1.3f;
+    [Tooltip("Hunger drains this much faster per extra MET of body heat production (walking 3.5 MET, sprinting 10, shivering " +
+             "up to 4.9). Replaces the old walking and sprinting multipliers, which were a rough fit to this.")]
+    [SerializeField, Min(0f)] float hungerPerExtraMet = 0.06f;
 
     [Header("Health (points per in-game hour)")]
     [SerializeField, Min(0f)] float dehydrationSevereLoss = 1.5f;
@@ -87,22 +88,11 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0f)] float lowRecoveryPerHour = 1.5f;
     [SerializeField] float halfFed = 50f;
 
-    [Header("Warmth")]
-    [Tooltip("Feels-like temperature (°F) at which Warmth holds steady; warmer recovers it, colder drains it.")]
-    [SerializeField] float neutralF = 50f;
-    [Tooltip("Warmth per in-game hour per °F away from neutral.")]
-    [SerializeField, Min(0f)] float warmthPerDegree = 0.3f;
-    [SerializeField, Min(0f)] float maxWarmthLossPerHour = 12f;
-    [SerializeField, Min(0f)] float maxWarmthGainPerHour = 5f;
-    [Tooltip("°F of wind chill at full wind strength in the open.")]
-    [SerializeField, Min(0f)] float windChillF = 15f;
-    [Tooltip("°F of chill when soaked through.")]
-    [SerializeField, Min(0f)] float wetChillF = 12f;
+    [Header("Rain and fire")]
     [Tooltip("Wetness gained per in-game hour in rain (heavy rain doubles it, snow halves it), 0-1 scale.")]
     [SerializeField, Min(0f)] float soakPerHour = 1.5f;
     [SerializeField, Min(0f)] float dryPerHour = 0.4f;
-    [Tooltip("Warmth per in-game hour right beside a lit campfire, and how fast it dries the player.")]
-    [SerializeField, Min(0f)] float fireWarmthPerHour = 30f;
+    [Tooltip("How fast a lit campfire dries the player, per in-game hour at full heat.")]
     [SerializeField, Min(0f)] float fireDryPerHour = 3f;
     [Tooltip("Full heat within the inner radius, fading to none at the outer radius (metres).")]
     [SerializeField, Min(0f)] float fireInnerRadius = 1.5f;
@@ -110,6 +100,56 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0f)] float coldModerateLoss = 1f;
     [SerializeField, Min(0f)] float coldSevereLoss = 4f;
     [SerializeField, Min(0f)] float coldEmptyLoss = 8f;
+
+    [Header("Body heat (Core Temperature Model)")]
+    [Tooltip("The physics: body size, heat capacity, insulation, shivering. See BodyHeat.")]
+    [SerializeField] BodyHeat.Settings body = new BodyHeat.Settings();
+    [Tooltip("Radiant heat on the player standing close to a lit campfire at full fuel, in watts.")]
+    [SerializeField, Min(0f)] float fireRadiantWatts = 250f;
+    [Tooltip("Wind speed in m/s at full wind strength (the weather's 0-1 strength has no units).")]
+    [SerializeField, Min(0f)] float windMetersPerSecondAtFull = 8f;
+    [Tooltip("Resistance (m²K/W) that a bed's or shelter's \"cuts the cold by X\" is converted against: about 2 clo of " +
+             "clothing plus still air.")]
+    [SerializeField, Min(0.05f)] float bedReferenceResistance = 0.44f;
+
+    [Header("Seasonal clothing (until a clothing system exists)")]
+    [Tooltip("The player dresses for the recent temperature: this much insulation (clo) at or below the cold temperature, " +
+             "falling to the warm figure at or above the warm temperature.")]
+    [SerializeField, Min(0f)] float winterClo = 2f;
+    [SerializeField, Min(0f)] float summerClo = 0.8f;
+    [SerializeField] float clothingColdC = -1f;
+    [SerializeField] float clothingWarmC = 24f;
+    [Tooltip("In-game hours over which the recent temperature is averaged, so clothing doesn't change with every swing of the day.")]
+    [SerializeField, Min(1f)] float clothingSmoothHours = 24f;
+
+    [Header("Activity heat (MET: multiples of resting heat)")]
+    [SerializeField, Min(0.5f)] float sleepMet = 0.9f;
+    [SerializeField, Min(0.5f)] float idleMet = 1f;
+    [SerializeField, Min(0.5f)] float crouchMet = 2.5f;
+    [SerializeField, Min(0.5f)] float walkMet = 3.5f;
+    [SerializeField, Min(0.5f)] float sprintMet = 10f;
+    [Tooltip("Extra MET for moving at the carry limit, scaled by the share of the limit carried (carrying 25-49 lb is 5 MET).")]
+    [SerializeField, Min(0f)] float carryMetBonus = 1.5f;
+    [Tooltip("MET while working flat out with a tool (chopping 5, digging 5-6). Swings raise the working level; it fades in seconds.")]
+    [SerializeField, Min(1f)] float workMet = 5.5f;
+    [SerializeField, Range(0f, 1f)] float workPerSwing = 0.35f;
+    [SerializeField, Min(0f)] float workFadePerSecond = 0.15f;
+
+    [Header("Shivering and sweat")]
+    [Tooltip("Stamina multiplier at full shivering (through StaminaMultiplier, as the lowest of the factors).")]
+    [SerializeField, Range(0f, 1f)] float shiverStamina = 0.7f;
+    [Tooltip("Sweat-damp (0-1) builds this much per in-game hour while the body is shedding work heat in cold air.")]
+    [SerializeField, Min(0f)] float dampBuildPerHour = 0.5f;
+    [Tooltip("Sweat only builds while the body is working at least this hard (MET): real work, not walking, and not just sitting by a fire.")]
+    [SerializeField, Min(1f)] float dampMinMet = 4.5f;
+    [Tooltip("Core temperature above which work heat is being shed as sweat.")]
+    [SerializeField] float dampAboveCoreC = 36.9f;
+    [Tooltip("Sweat only soaks clothing in air colder than this.")]
+    [SerializeField] float dampBelowAirC = 15f;
+    [Tooltip("Damp cleared per in-game hour: beside a fire (about an hour), in a dry shelter (about three), in open dry air; none in rain.")]
+    [SerializeField, Min(0f)] float dampClearByFire = 1f;
+    [SerializeField, Min(0f)] float dampClearInShelter = 0.33f;
+    [SerializeField, Min(0f)] float dampClearInOpen = 0.1f;
 
     [Header("Illness")]
     [Tooltip("In-game hours one bout of sickness lasts (8 h = 10 real minutes). More than this left is Very Sick.")]
@@ -142,8 +182,14 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     float hydration = MaxValue;
     float hunger = MaxValue;
     float illnessHours;
-    float warmth = MaxValue;
-    float wetness;       // 0-1
+    float coreC = 37f;   // the stored value; Warmth is read off it
+    float wetness;       // 0-1, soaked by rain
+    float damp;          // 0-1, soaked by sweat
+    float shiver;        // 0-1, as of the last step
+    float totalMet = 1f; // what the body produced last step, in multiples of resting heat
+    float workLevel;     // 0-1, raised by tool swings, fades in seconds
+    float smoothedTempC; // recent air temperature, for the seasonal clothing
+    bool smoothedReady;
     float fireHeat;      // 0-1, how close to a lit fire the player was last step
     float symptomHours; // in-game hours until the next grumble or vomit
     bool collapsed;
@@ -160,16 +206,25 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     public float Hydration => hydration;
     public float Hunger => hunger;
     public bool IsCollapsed => collapsed;
-    public float Warmth => warmth;
-    public Tier WarmthTier => TierOf(warmth);
+    // Derived from core temperature (Core Temperature Model); 100 at 37.0 °C and above.
+    public float Warmth => BodyHeat.CoreToWarmth(coreC);
+    public Tier WarmthTier => TierOf(Warmth);
+    public float CoreTemperatureC => coreC;
     public float Wetness => wetness;
+    public float Damp => damp;
     public bool NearFire => fireHeat > 0.05f;
+    public float ShiverIntensity => shiver;
+    public bool IsShivering => shiver > 0.05f;
+    // Hard work is making real heat (chopping and digging are about 5 MET) without the body having to shiver for it.
+    public bool IsWorkingUpHeat => totalMet >= 4f && shiver <= 0.05f;
+    public HeatStage HeatLevel => coreC > 40f ? HeatStage.Stroke : coreC > 39f ? HeatStage.Severe
+                                : coreC > 38f ? HeatStage.Exhaustion : coreC > 37.5f ? HeatStage.Hot : HeatStage.None;
     // Severe cold slows movement.
     public float MovementMultiplier => WarmthMovement[(int)WarmthTier];
     public bool IsSick => illnessHours > 0f;
 
     // Set by SleepManager while the player sleeps (Building_Housing_System.md's Sleep System): how much of the cold the
-    // bedding and shelter keep off (0-1, cutting Warmth loss), how much rain and wind the shelter blocks, and how much
+    // bedding and shelter keep off (0-1, cutting heat loss), how much rain and wind the shelter blocks, and how much
     // faster Health recovers at rest. Back to nothing when they wake.
     public float SleepInsulation { get; set; }
     public float SleepRainShelter { get; set; }
@@ -182,9 +237,13 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     public Tier HydrationTier => TierOf(hydration);
     public Tier HungerTier => TierOf(hunger);
 
+    // Shivering saps stamina, down to this at full shivering. It joins the other factors as the lowest of them, so it
+    // never stacks on top of the Warmth tier's own penalty. Heat exhaustion's penalty will join the same way.
+    float ShiverStaminaFactor => Mathf.Lerp(1f, shiverStamina, shiver);
+
     // Multiplies the player's maximum stamina and recovery rate.
     public float StaminaMultiplier => Mathf.Min(Mathf.Min(HydrationStamina[(int)HydrationTier], HungerStamina[(int)HungerTier]),
-                                                WarmthStamina[(int)WarmthTier]) *
+                                                Mathf.Min(WarmthStamina[(int)WarmthTier], ShiverStaminaFactor)) *
                                       ByLevel(1f, mildStamina, severeStamina);
 
     // For work actions (chopping, harvesting, building) once they exist: 1 = full speed.
@@ -248,6 +307,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         if (player == null)
             return; // no player in this scene (menus)
 
+        workLevel = Mathf.MoveTowards(workLevel, 0f, workFadePerSecond * Time.deltaTime);
         PassHours(Time.deltaTime * time.GameHoursPerRealSecond, player.State);
     }
 
@@ -259,6 +319,9 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         nextPlayerSearch = Time.unscaledTime + 1f;
         player = FindAnyObjectByType<PlayerController>();
     }
+
+    // A tool swing (PlayerController.TrySpendStamina): the player is working hard, so they're making work heat.
+    public void NoteWork() => workLevel = Mathf.Min(1f, workLevel + workPerSwing);
 
     // Advances the stats by an amount of in-game time, e.g. hours spent asleep. Long spans run in short steps so a
     // stat crossing into a worse tier partway through only costs Health from that point on.
@@ -275,33 +338,29 @@ public class SurvivalManager : MonoBehaviour, ISaveable
 
     void Step(float hours, MovementState activity)
     {
-        float tempF = WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureF : 60f;
+        float tempC = WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureC : 15f;
+
+        // Body heat first: the heat the body makes (activity, shivering) sets how fast Hunger burns.
+        StepBody(hours, tempC, activity);
 
         // Difficulty's survival severity scales every drain (DifficultyManager).
         float severity = DifficultyManager.DrainMultiplier;
-        float hydrationRate = hydrationPerHour * severity * IllnessHydrationMultiplier *
-                              Mathf.Lerp(1f, hotHydrationMultiplier, Mathf.InverseLerp(warmF, hotF, tempF));
-        float hungerRate = hungerPerHour * severity * Mathf.Lerp(1f, coldHungerMultiplier, Mathf.InverseLerp(coolF, frigidF, tempF));
+        float hydrationRate = hydrationPerHour * severity * IllnessHydrationMultiplier;
+        float hungerRate = hungerPerHour * severity * (1f + hungerPerExtraMet * Mathf.Max(0f, totalMet - 1f));
 
         if (activity == MovementState.Sprinting)
-        {
             hydrationRate *= sprintingHydration;
-            hungerRate *= sprintingHunger;
-        }
         else if (activity == MovementState.Walking || activity == MovementState.Crouching)
-        {
             hydrationRate *= walkingHydration;
-            hungerRate *= walkingHunger;
-        }
 
         hydration = Mathf.Max(0f, hydration - hydrationRate * hours);
         hunger = Mathf.Max(0f, hunger - hungerRate * hours);
-        StepWarmth(hours, tempF);
 
         float healthLoss = HealthLoss(HydrationTier, dehydrationSevereLoss, dehydrationEmptyLoss) +
                            HealthLoss(HungerTier, starvationSevereLoss, starvationEmptyLoss) +
                            ByLevel(0f, mildHealthLoss, severeHealthLoss) +
-                           ColdLoss(WarmthTier);
+                           ColdLoss(WarmthTier) +
+                           HeatLoss(HeatLevel);
         if (IsSick)
         {
             illnessHours = Mathf.Max(0f, illnessHours - hours);
@@ -318,8 +377,32 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     float ColdLoss(Tier tier) =>
         tier == Tier.Empty ? coldEmptyLoss : tier == Tier.Severe ? coldSevereLoss : tier == Tier.Reduced ? coldModerateLoss : 0f;
 
-    // Warmth and wetness for a stretch of time, from the weather where the player stands and any fire nearby.
-    void StepWarmth(float hours, float tempF)
+    // The hot side's Health cost (Weather_System.md's overheating tiers) is not built yet.
+    static float HeatLoss(HeatStage stage) => 0f;
+
+    // How hard the body is working, in multiples of resting heat (MET): sleeping, standing, moving, or a tool in hand.
+    float ActivityMet(MovementState activity)
+    {
+        if (SleepManager.Instance != null && SleepManager.Instance.IsSleeping)
+            return sleepMet;
+
+        float met;
+        switch (activity)
+        {
+            case MovementState.Sprinting: met = sprintMet; break;
+            case MovementState.Walking:
+            case MovementState.Jumping: met = walkMet; break;
+            case MovementState.Crouching: met = crouchMet; break;
+            default: met = idleMet; break;
+        }
+        InventoryManager inventory = InventoryManager.Instance;
+        if (met > idleMet && inventory != null && inventory.MaxCarryWeightKg > 0f)
+            met += carryMetBonus * Mathf.Clamp01(inventory.CarriedWeightKg / inventory.MaxCarryWeightKg);
+        return Mathf.Max(met, 1f + (workMet - 1f) * workLevel);
+    }
+
+    // Core temperature, wetness and sweat-damp for a stretch of time, from the weather where the player stands and any fire nearby.
+    void StepBody(float hours, float tempC, MovementState activity)
     {
         WeatherManager weather = WeatherManager.Instance;
         bool placed = player != null;
@@ -341,15 +424,51 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         // Drying never stops, so a trickle past a tarp or canopy doesn't soak through; open rain outpaces it.
         wetness = Mathf.Clamp01(wetness + (soak - dryPerHour - fireDryPerHour * fireHeat) * hours);
 
-        float wind = weather != null ? weather.WindStrength : 0f;
-        float feelsF = tempF - windChillF * wind * (1f - windShelter) - wetChillF * wetness;
-        float rate = (feelsF - neutralF) * warmthPerDegree;
-        if (rate < 0f)
-            rate = Mathf.Max(-maxWarmthLossPerHour, rate * (1f + wetness)) * (1f - SleepInsulation) * DifficultyManager.DrainMultiplier;
+        // The player dresses for the recent temperature, not the moment's.
+        if (!smoothedReady)
+        {
+            smoothedTempC = tempC;
+            smoothedReady = true;
+        }
         else
-            rate = Mathf.Min(maxWarmthGainPerHour, rate);
-        rate += fireWarmthPerHour * fireHeat;
-        warmth = Mathf.Clamp(warmth + rate * hours, 0f, MaxValue);
+        {
+            smoothedTempC += (tempC - smoothedTempC) * (1f - Mathf.Exp(-hours / clothingSmoothHours));
+        }
+
+        float wind = weather != null ? weather.WindStrength : 0f;
+        // A bed or shelter that "cuts the cold by X" is an added resistance that does exactly that against the reference.
+        float cut = Mathf.Clamp(SleepInsulation, 0f, 0.95f);
+        var conditions = new BodyHeat.Conditions
+        {
+            airC = tempC,
+            windMetersPerSecond = wind * windMetersPerSecondAtFull * (1f - windShelter),
+            clo = BodyHeat.Clo(smoothedTempC, winterClo, summerClo, clothingColdC, clothingWarmC),
+            wetness = wetness,
+            damp = damp,
+            extraResistance = bedReferenceResistance * cut / (1f - cut),
+            activityMet = ActivityMet(activity),
+            radiantWatts = fireRadiantWatts * fireHeat,
+            hunger = hunger,
+            lossMultiplier = DifficultyManager.DrainMultiplier, // harmful direction only: it scales heat lost, never gained
+        };
+        BodyHeat.Result result = BodyHeat.Advance(body, coreC, conditions, hours);
+        coreC = result.coreC;
+        shiver = result.shiver;
+        totalMet = result.totalMet;
+
+        // Sweat: shedding work heat in cold air soaks the clothes; it clears by a fire, in shelter, slowly in the open,
+        // and not at all in the rain.
+        if (totalMet >= dampMinMet && coreC > dampAboveCoreC && tempC < dampBelowAirC)
+        {
+            damp += dampBuildPerHour * Mathf.Clamp01((coreC - dampAboveCoreC) / 0.3f) * hours;
+        }
+        else
+        {
+            bool inRain = weather != null && weather.IsPrecipitating && rainShelter < 0.5f;
+            float clear = inRain ? 0f : fireHeat > 0.3f ? dampClearByFire : rainShelter >= 0.8f ? dampClearInShelter : dampClearInOpen;
+            damp -= clear * hours;
+        }
+        damp = Mathf.Clamp01(damp);
     }
 
     // 0-1: full beside a lit campfire, fading out with distance, and weaker as its fuel runs low.
@@ -411,6 +530,10 @@ public class SurvivalManager : MonoBehaviour, ISaveable
 
     public void Cure() => illnessHours = symptomHours = 0f;
 
+    // Pulls core temperature into a band — for waking from a collapse (Player Collapse: no lower than 35 °C, no higher
+    // than 37.5 °C). Nothing calls it yet.
+    public void ClampCoreTemperature(float minC = 35f, float maxC = 37.5f) => coreC = Mathf.Clamp(coreC, minC, maxC);
+
     static float Restore(ref float stat, float amount)
     {
         float before = stat;
@@ -437,8 +560,11 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     // Everything full — used when starting a new game.
     public void ResetStats()
     {
-        health = hydration = hunger = warmth = MaxValue;
-        illnessHours = symptomHours = wetness = 0f;
+        health = hydration = hunger = MaxValue;
+        coreC = 37f;
+        illnessHours = symptomHours = wetness = damp = shiver = workLevel = 0f;
+        totalMet = 1f;
+        smoothedReady = false;
         collapsed = false;
     }
 
@@ -453,13 +579,15 @@ public class SurvivalManager : MonoBehaviour, ISaveable
 
     public void DebugSetWarmth(float newWarmth, float newWetness)
     {
-        warmth = Mathf.Clamp(newWarmth, 0f, MaxValue);
+        coreC = BodyHeat.WarmthToCore(Mathf.Clamp(newWarmth, 0f, MaxValue));
         wetness = Mathf.Clamp01(newWetness);
+        if (newWarmth >= MaxValue && newWetness <= 0f)
+            damp = 0f; // F9 dries the player off
     }
 #endif
 
     public SurvivalSaveData CaptureState() => new SurvivalSaveData { health = health, hydration = hydration, hunger = hunger, illnessHours = illnessHours,
-                                                                  chill = MaxValue - warmth, wetness = wetness };
+                                                                  chill = MaxValue - Warmth, wetness = wetness, coreTempC = coreC, damp = damp };
 
     public void RestoreState(SurvivalSaveData data)
     {
@@ -467,8 +595,13 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         hunger = Mathf.Clamp(data.hunger, 0f, MaxValue);
         health = Mathf.Clamp(data.health, 0f, MaxValue);
         illnessHours = Mathf.Clamp(data.illnessHours, 0f, maxIllnessHours);
-        warmth = Mathf.Clamp(MaxValue - data.chill, 0f, MaxValue);
+        // A save from before the Core Temperature Model has Warmth only (as chill): read core temperature off that.
+        coreC = data.coreTempC > 20f ? data.coreTempC : BodyHeat.WarmthToCore(Mathf.Clamp(MaxValue - data.chill, 0f, MaxValue));
         wetness = Mathf.Clamp01(data.wetness);
+        damp = Mathf.Clamp01(data.damp);
+        shiver = workLevel = 0f;
+        totalMet = 1f;
+        smoothedReady = false; // dress for the weather as it is on loading
         symptomHours = grumbleEveryHours * 0.5f;
         collapsed = health <= 0f;
     }

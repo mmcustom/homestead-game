@@ -5,12 +5,14 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 
 // Homestead > Place Stone: Stone_Gathering_System.md's stone, in the open World scene.
-//   Loose stones — a light, even scatter across the whole property (about one every 30 m) and a denser band along the
+//   Loose stones — an even scatter across the whole property (about one every 15 m) and a denser band along the
 //   creek and pond banks, each a hand-pickup LooseStone worth one Stone, with a stable id for the save.
 //   South Ridge's rock outcrop — a cluster of big boulders on the steepest ground of the ridge's south face, clear of
 //   the cabin site, the new-game spawn point and trees, carrying RockDeposit (mined with the Stone Pick Axe), with a scatter of loose stones at its foot.
 // Rock shapes are generated low-poly meshes saved under Assets/Art/Rocks. Re-running replaces the previous set, with
-// the same layout (fixed seed) and so the same ids.
+// the same layout (fixed seed) and so the same ids. The original layout (150 scattered, 90 along the water, the
+// outcrop's 10) comes first with its ids, and the 2026-10-07 density increase (Stone_Gathering_System.md) adds a second
+// batch after it with ids from 1001 (scatter) and 2001 (water), so a save made before it still hides the right stones.
 public static class StonePlacer
 {
     const string StonesRoot = "Stones";
@@ -23,6 +25,12 @@ public static class StonePlacer
     const int BankCount = 90;
     const float BankSpacing = 5f;
     const int OutcropLooseCount = 10;
+    const int ExtraBaseCount = 150;
+    const float ExtraBaseSpacing = 11f;
+    const int ExtraBaseIdStart = 1000;
+    const int ExtraBankCount = 90;
+    const float ExtraBankSpacing = 3.5f;
+    const int ExtraBankIdStart = 2000;
 
     // Property_Layout.md's South Ridge high point and cabin site (PropertyTerrainBuilder's coordinates).
     static readonly Vector2 RidgeCenter = new Vector2(12f, -80f);
@@ -145,9 +153,35 @@ public static class StonePlacer
             foot++;
         }
 
+        // The density increase: a second scatter and a second water band, laid out after everything above so the original
+        // stones and their ids don't move.
+        int extraBase = 0;
+        for (int attempt = 0; attempt < 12000 && extraBase < ExtraBaseCount; attempt++)
+        {
+            float u = 0.04f + (float)random.NextDouble() * 0.92f, v = 0.04f + (float)random.NextDouble() * 0.92f;
+            Vector3 p = origin + new Vector3(u * data.size.x, 0f, v * data.size.z);
+            if (!Usable(terrain, ref p, 30f) || Crowded(placed, p, ExtraBaseSpacing))
+                continue;
+            placed.Add(p);
+            CreateStone(root.transform, p, meshes, stone, random, ExtraBaseIdStart + ++extraBase, 0.26f, 0.42f);
+        }
+        var extraBank = new List<Vector3>();
+        for (int attempt = 0; attempt < 8000 && extraBank.Count < ExtraBankCount && shore.Count > 0; attempt++)
+        {
+            Vector3 p = shore[random.Next(shore.Count)];
+            float angle = (float)random.NextDouble() * Mathf.PI * 2f;
+            p += new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * (0.5f + (float)random.NextDouble() * 3.5f);
+            if (!Usable(terrain, ref p, 35f) || Crowded(placed, p, ExtraBankSpacing))
+                continue;
+            placed.Add(p);
+            extraBank.Add(p);
+            CreateStone(root.transform, p, meshes, stone, random, ExtraBankIdStart + extraBank.Count, 0.24f, 0.4f);
+        }
+
         EditorSceneManager.MarkSceneDirty(root.scene);
         AssetDatabase.SaveAssets();
-        Debug.Log($"[StonePlacer] {baseCount} scattered stones, {bank.Count} along the water, outcrop at {outcrop} with {foot} loose at its foot.");
+        Debug.Log($"[StonePlacer] {baseCount} scattered stones, {bank.Count} along the water, outcrop at {outcrop} with {foot} loose at its foot; " +
+                  $"density increase added {extraBase} scattered and {extraBank.Count} along the water.");
     }
 
     // On land, not too steep, off the water; snaps p to the ground.

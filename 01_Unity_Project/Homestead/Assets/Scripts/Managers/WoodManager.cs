@@ -24,8 +24,9 @@ public class FelledTree
 // Storage Bin and Tool Rack. Tent, LeanTo and Cabin aren't storage but shelters to sleep in (Building_Housing_System.md's
 // Sleep System and Small Cabin), placed and saved the same way. CabinSite is a Wood-Pile-style accumulator — deposited
 // into over multiple trips, then converted in place into a real Cabin once fully stocked (WoodManager.CompleteCabin).
+// TarpShelter is a pitched Tarp (Mike, 2026-10-09): a shelter like the Tent, but the cheapest tier.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter }
 
 [Serializable]
 public class WoodPileState
@@ -99,7 +100,7 @@ public class WoodPileState
 
     public bool IsEmpty => contents.Count == 0;
     public bool IsRock => kind == PileKind.RockStorage;
-    public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo || kind == PileKind.Cabin;
+    public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo || kind == PileKind.Cabin || kind == PileKind.TarpShelter;
     public bool IsWoodPile => kind == PileKind.Felled || kind == PileKind.WoodStorage;
     public bool IsBuilt => kind != PileKind.Felled;
 
@@ -121,6 +122,7 @@ public class WoodPileState
                        Count(itemId) < WoodManager.Instance.CabinRequired(itemId);
             case PileKind.Tent:
             case PileKind.LeanTo:
+            case PileKind.TarpShelter:
             case PileKind.Cabin: return false;
             default: return WoodManager.IsWood(itemId);
         }
@@ -154,7 +156,8 @@ public struct WoodSaveData
 //
 // Shelters (Sleep System, 2026-09-26) are placed the same way: a Tent, from the one the player carries (not craftable —
 // a starting-kit item), or a Lean-To from 8 Branches, 4 Sticks and 1 Cordage. Sleeping in one is Shelter's job; a Tent
-// packs back up, a Lean-To comes down for some of its Branches.
+// packs back up, a Lean-To comes down for some of its Branches. A Tarp Shelter pitches the Tarp the player carries
+// (with 2 Sticks and 1 Cordage) and takes down for the Tarp and half the Sticks.
 //
 // Small Cabin (Building_Housing_System.md's first permanent residence, 2026-09-26): a two-phase build, not a one-trip
 // BuildPile like everything above — Mike's call, so a first permanent residence costs real time and multiple trips
@@ -601,9 +604,12 @@ public class WoodManager : MonoBehaviour, ISaveable
     // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
-        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.ToolRack, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite };
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite };
 
     public const string TentId = "tent";
+    // The Tarp Shelter's stakes and ridgeline: 2 Sticks and 1 Cordage, plus the Tarp itself. Taking it down returns the
+    // Tarp and half the Sticks (rounded down) — the Tarp is placed, not used up.
+    public const int TarpShelterSticks = 2;
 
     public static string PileName(PileKind kind)
     {
@@ -615,6 +621,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.StorageBin: return "Storage Bin";
             case PileKind.ToolRack: return "Tool Rack";
             case PileKind.Tent: return "Tent";
+            case PileKind.TarpShelter: return "Tarp Shelter";
             case PileKind.LeanTo: return "Lean-To";
             case PileKind.Cabin: return "Small Cabin";
             case PileKind.CabinSite: return "Small Cabin Site";
@@ -634,6 +641,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.StorageBin: return new[] { new WoodStack { itemId = BranchesId, count = 6 }, new WoodStack { itemId = SticksId, count = 6 } };
             case PileKind.ToolRack: return new[] { new WoodStack { itemId = BranchesId, count = 4 }, new WoodStack { itemId = SticksId, count = 4 } };
             case PileKind.Tent: return new[] { new WoodStack { itemId = TentId, count = 1 } };
+            case PileKind.TarpShelter: return new[] { new WoodStack { itemId = SleepManager.TarpId, count = 1 }, new WoodStack { itemId = SticksId, count = TarpShelterSticks },
+                                                      new WoodStack { itemId = "cordage", count = 1 } };
             case PileKind.LeanTo: return new[] { new WoodStack { itemId = BranchesId, count = 8 }, new WoodStack { itemId = SticksId, count = 4 },
                                                  new WoodStack { itemId = "cordage", count = 1 } };
             // Not what a CabinSite costs to place (free) — what Small Cabin needs deposited into one before it can be
@@ -688,7 +697,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             {
                 if (other.kind == PileKind.CabinSite)
                 {
-                    reason = "You already have a Small Cabin site — finish it, or take it down first.";
+                    float away = Vector3.Distance(other.position, player.transform.position);
+                    reason = $"You already have a Small Cabin site, {away:0} m away — finish it (go within {cabinCompleteReach:0} m), or take it down first.";
                     return false;
                 }
             }
@@ -782,16 +792,11 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     // --- Completing a Small Cabin ---
 
-    // The nearest CabinSite within reach that's fully stocked, the Hammer equipped and ready to complete — or why not.
-    public bool CanCompleteCabin(PlayerController player, out WoodPileState site, out string reason)
+    // The nearest unfinished Small Cabin site within cabinCompleteReach of the player, stocked or not, or null.
+    public WoodPileState SiteInReach(PlayerController player)
     {
-        site = null;
-        if (player == null || !WorldLoaded)
-        {
-            reason = "Not available here.";
-            return false;
-        }
-
+        if (player == null)
+            return null;
         WoodPileState nearest = null;
         float bestDistance = cabinCompleteReach;
         foreach (WoodPileState p in piles)
@@ -805,6 +810,42 @@ public class WoodManager : MonoBehaviour, ISaveable
                 bestDistance = d;
             }
         }
+        return nearest;
+    }
+
+    // What a site still lacks, quantity first: "17 Logs, 10 Branches". Null when every material is at its requirement.
+    public string SiteNeeds(WoodPileState site)
+    {
+        var parts = new List<string>();
+        foreach (string itemId in CabinMaterialIds)
+        {
+            int missing = CabinRequired(itemId) - site.Count(itemId);
+            if (missing > 0)
+                parts.Add($"{missing} {ItemDatabase.Get(itemId)?.DisplayName ?? itemId}");
+        }
+        return parts.Count == 0 ? null : string.Join(", ", parts);
+    }
+
+    // Have / need for every material: "Logs 3 / 20, Branches 0 / 10, ...".
+    public string SiteProgress(WoodPileState site)
+    {
+        var parts = new List<string>();
+        foreach (string itemId in CabinMaterialIds)
+            parts.Add($"{ItemDatabase.Get(itemId)?.DisplayName ?? itemId} {site.Count(itemId)} / {CabinRequired(itemId)}");
+        return string.Join(", ", parts);
+    }
+
+    // The nearest CabinSite within reach that's fully stocked, the Hammer equipped and ready to complete — or why not.
+    public bool CanCompleteCabin(PlayerController player, out WoodPileState site, out string reason)
+    {
+        site = null;
+        if (player == null || !WorldLoaded)
+        {
+            reason = "Not available here.";
+            return false;
+        }
+
+        WoodPileState nearest = SiteInReach(player);
         if (nearest == null)
         {
             reason = "No Small Cabin site nearby — build one first.";

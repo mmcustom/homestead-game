@@ -49,7 +49,8 @@ public class TradingPost : MonoBehaviour, ISaveable
         { "chicken_eggs", 1 }, { "goat_milk", 1 },
         { "firewood", 1 }, { "logs", 3 }, { "stone", 1 },
         { "stone_pick_axe", 4 }, { "shovel", 4 }, { "primitive_axe", 4 }, { "rabbit_snare", 1 }, { "box_trap", 2 },
-        { "fish_trap", 3 }, { "cane_pole", 2 }, { "pouch", 3 }, { "torch", 1 }, { "lantern", 4 },
+        { "fish_trap", 3 }, { "cane_pole", 2 }, { "pouch", 3 }, { "torch", 1 }, { "bow_drill", 1 }, { "lantern", 4 },
+        { "primitive_bow", 2 },
     };
 
     int money;

@@ -21,6 +21,7 @@ public static class Crafting
     public struct Recipe
     {
         public string outputId;
+        public int outputCount; // how many one craft makes
         public Ingredient[] ingredients;
         // Other ingredient sets that make the same thing; the first the player can afford is used.
         public Ingredient[][] alternatives;
@@ -39,7 +40,13 @@ public static class Crafting
         Make("hammer", ("sticks", 2), ("cordage", 1), ("logs", 1)),
         // Portable Lighting (Core_Survival_System.md): a stick wrapped in cordage, and a clay oil lamp with a cord wick.
         Make("torch", ("sticks", 1), ("cordage", 1)),
+        // A fire starter that needs no Flint and Steel (Core_Survival_System.md's Bow Drill): not always successful.
+        Make("bow_drill", ("sticks", 2), ("cordage", 1)),
         Make("lantern", ("clay", 2), ("cordage", 1)),
+        // Hunting_System.md's Primitive Bow and stone-tipped Arrows (Mike, 2026-10-09): a bent Branch strung with Cordage,
+        // and a Stick with a Stone point, two arrows to a craft. The same `arrows` the Recurve Bow shoots.
+        Make("primitive_bow", ("branches", 1), ("cordage", 1)),
+        Make("arrows", 2, ("sticks", 1), ("stone", 1)),
         Either("cordage", new[] { ("tall_grass", 3) }, new[] { ("cattail", 2) }, new[] { ("sinew", 1) }),
     };
 
@@ -65,11 +72,21 @@ public static class Crafting
         return null;
     }
 
-    static Recipe Make(string output, params (string item, int quantity)[] ingredients) => new Recipe
+    static Recipe Make(string output, params (string item, int quantity)[] ingredients) => Make(output, 1, ingredients);
+
+    static Recipe Make(string output, int count, params (string item, int quantity)[] ingredients) => new Recipe
     {
         outputId = output,
+        outputCount = count,
         ingredients = Array.ConvertAll(ingredients, i => new Ingredient { itemId = i.item, quantity = i.quantity }),
     };
+
+    // "Arrows x2" for a recipe that makes several, else just the item's name.
+    public static string OutputName(Recipe recipe)
+    {
+        string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
+        return recipe.outputCount > 1 ? $"{name} x{recipe.outputCount}" : name;
+    }
 
     // e.g. "1 Cordage", "3 Firewood, 1 Cordage", or "3 Tall Grass / 2 Cattail / 1 Sinew" for alternatives.
     public static string Cost(Recipe recipe) =>
@@ -146,7 +163,7 @@ public static class Crafting
         foreach (Ingredient ingredient in Affordable(recipe))
             inventory.RemoveFromPlayer(ingredient.itemId, ingredient.quantity);
         // The ingredients weigh at least as much as what's made, so it always fits once they're used.
-        inventory.AddToPlayer(recipe.outputId, 1);
+        inventory.AddToPlayer(recipe.outputId, Mathf.Max(1, recipe.outputCount));
         return true;
     }
 }

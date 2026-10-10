@@ -13,6 +13,36 @@ public class CampfireState
     public bool lit;
 }
 
+// The Bow Drill's tuning, in the Inspector on FireManager. Chances are 0-1.
+[Serializable]
+public class BowDrillSettings
+{
+    [Tooltip("Real seconds of holding click for one attempt.")]
+    [Min(0.5f)] public float drillSeconds = 6f;
+    [Tooltip("Stamina one attempt costs.")]
+    [Min(0f)] public float staminaCost = 15f;
+    [Tooltip("In-game minutes one attempt takes off the clock.")]
+    [Min(0f)] public float minutesPerAttempt = 10f;
+    [Tooltip("How close to the Campfire you must be, metres.")]
+    [Min(0.5f)] public float reach = 3f;
+
+    [Header("Chance of catching, by weather")]
+    [Range(0f, 1f)] public float chanceCalm = 0.45f;          // Clear, Cloudy, Cold Front
+    [Range(0f, 1f)] public float chanceWind = 0.35f;
+    [Range(0f, 1f)] public float chanceLightPrecipitation = 0.20f; // Light Rain, Snow
+    [Range(0f, 1f)] public float chanceHeavyPrecipitation = 0.10f; // Heavy Rain, Thunderstorm
+    [Tooltip("A Campfire under a roof ignores the rain and snow penalty.")]
+    public bool coverIgnoresPrecipitation = true;
+
+    [Header("Growing ember (frustration guard)")]
+    [Tooltip("Each failed attempt at the same Campfire adds this to the next attempt's chance...")]
+    [Range(0f, 1f)] public float emberBonusPerFailure = 0.10f;
+    [Tooltip("...up to this much.")]
+    [Range(0f, 1f)] public float emberBonusCap = 0.30f;
+    [Tooltip("In-game hours away from that Campfire after which the bonus is forgotten.")]
+    [Min(0.1f)] public float emberForgetHours = 1f;
+}
+
 [Serializable]
 public struct FireSaveData
 {
@@ -51,6 +81,9 @@ public class FireManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0f)] float minSpacing = 3f;
     [Tooltip("Steepest ground a campfire can sit on (degrees).")]
     [SerializeField, Range(0f, 60f)] float maxSlope = 25f;
+
+    [Header("Bow Drill (Core_Survival_System.md) — first-pass numbers for Mike to tune by feel")]
+    [SerializeField] BowDrillSettings bowDrill = new BowDrillSettings();
 
     readonly List<CampfireState> fires = new List<CampfireState>();
     readonly Dictionary<int, Campfire> views = new Dictionary<int, Campfire>();
@@ -254,15 +287,20 @@ public class FireManager : MonoBehaviour, ISaveable
     public bool CanAddFuel(CampfireState fire) =>
         fire != null && FirewoodCarried > 0 && fire.fuelHours + hoursPerFirewood <= maxFuelHours + 0.01f;
 
-    public bool Light(CampfireState fire)
+    public bool Light(CampfireState fire) => CanLight(fire) && Ignite(fire);
+
+    // Lights a fire that has fuel, whatever started it (Flint and Steel above, or the Bow Drill).
+    public bool Ignite(CampfireState fire)
     {
-        if (!CanLight(fire))
+        if (fire == null || fire.lit || fire.fuelHours <= 0f)
             return false;
 
         fire.lit = true;
         Changed(fire);
         return true;
     }
+
+    public BowDrillSettings BowDrill => bowDrill;
 
     // Puts a burning fire out on purpose. The fuel left stays in the ring, so it can be relit later with Flint and Steel
     // instead of rebuilt — nothing is lost but the time it spent burning.

@@ -95,7 +95,7 @@ public static class MinimapTerrain
 
         StampTrees(pixels, size, data, origin, worldMin, metresPerPixel);
         foreach (WaterSource water in Object.FindObjectsByType<WaterSource>(FindObjectsSortMode.None))
-            StampWater(pixels, size, water.GetComponent<MeshFilter>(), worldMin, metresPerPixel);
+            StampWater(pixels, size, water, worldMin, metresPerPixel);
 
         return ToTexture(pixels, size);
     }
@@ -146,19 +146,38 @@ public static class MinimapTerrain
         }
     }
 
-    // Rasterises the water mesh's triangles, seen from above.
-    static void StampWater(Color[] pixels, int size, MeshFilter filter, Vector2 worldMin, float metresPerPixel)
+    // Rasterises the water mesh's triangles, seen from above. The MeshFilter's mesh can't be used: the water is static,
+    // so at play time it is part of a batched 'Combined Mesh' that isn't readable. Its MeshCollider still holds the
+    // original mesh (the collider is only for looking at the water, so it's the same shape), so that is read instead;
+    // failing that, the water's bounding rectangle is painted so the minimap still shows where it is.
+    static void StampWater(Color[] pixels, int size, WaterSource water, Vector2 worldMin, float metresPerPixel)
     {
-        if (filter == null || filter.sharedMesh == null)
-            return;
+        Mesh mesh = null;
+        var collider = water.GetComponent<MeshCollider>();
+        if (collider != null && collider.sharedMesh != null && collider.sharedMesh.isReadable)
+            mesh = collider.sharedMesh;
+        else
+        {
+            var filter = water.GetComponent<MeshFilter>();
+            if (filter != null && filter.sharedMesh != null && filter.sharedMesh.isReadable)
+                mesh = filter.sharedMesh;
+        }
 
-        Mesh mesh = filter.sharedMesh;
+        if (mesh == null)
+        {
+            Renderer renderer = water.GetComponent<Renderer>();
+            if (renderer != null)
+                StampRectangle(pixels, size, renderer.bounds, worldMin, metresPerPixel);
+            return;
+        }
+
+        Transform transform = water.transform;
         Vector3[] vertices = mesh.vertices;
         int[] triangles = mesh.triangles;
         var points = new Vector2[vertices.Length];
         for (int i = 0; i < vertices.Length; i++)
         {
-            Vector3 w = filter.transform.TransformPoint(vertices[i]);
+            Vector3 w = transform.TransformPoint(vertices[i]);
             points[i] = new Vector2((w.x - worldMin.x) / metresPerPixel, (w.z - worldMin.y) / metresPerPixel);
         }
 
@@ -184,6 +203,17 @@ public static class MinimapTerrain
                 }
             }
         }
+    }
+
+    static void StampRectangle(Color[] pixels, int size, Bounds bounds, Vector2 worldMin, float metresPerPixel)
+    {
+        int x0 = Mathf.Max(0, Mathf.FloorToInt((bounds.min.x - worldMin.x) / metresPerPixel));
+        int x1 = Mathf.Min(size - 1, Mathf.CeilToInt((bounds.max.x - worldMin.x) / metresPerPixel));
+        int y0 = Mathf.Max(0, Mathf.FloorToInt((bounds.min.z - worldMin.y) / metresPerPixel));
+        int y1 = Mathf.Min(size - 1, Mathf.CeilToInt((bounds.max.z - worldMin.y) / metresPerPixel));
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++)
+                pixels[y * size + x] = Water;
     }
 
     static float Edge(Vector2 a, Vector2 b, Vector2 p) => (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x);

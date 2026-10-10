@@ -7,7 +7,9 @@ using UnityEngine.Rendering.HighDefinition;
 // Homestead > Place Tall Grass: clumps of tall meadow grass for Cordage (Trapping_System.md's sourcing) in the open
 // ground — pasture and meadows, away from trees, off the water and steep slopes — each a TallGrass with a stable id.
 // The clump is a generated mesh of tapered blades saved under Assets/Art/Grass. Re-running replaces the previous set
-// with the same layout (fixed seed) and ids.
+// with the same layout (fixed seed) and ids. The first 90 clumps are the original layout, with ids 1-90; the 2026-10-07
+// density increase (Trapping_System.md) adds more after them with ids from 1001, so a save made before it still hides
+// the right clumps.
 public static class GrassPlacer
 {
     const string RootName = "Tall Grass";
@@ -15,6 +17,9 @@ public static class GrassPlacer
     const int Seed = 20260927;
     const int Count = 90;
     const float Spacing = 12f;
+    const int ExtraCount = 110;
+    const float ExtraSpacing = 8f;
+    const int ExtraIdStart = 1000;
     const float TreeClearance = 7f;
 
     [MenuItem("Homestead/Place Tall Grass")]
@@ -53,7 +58,22 @@ public static class GrassPlacer
         }
 
         var placed = new List<Vector3>();
-        for (int attempt = 0; attempt < 8000 && placed.Count < Count; attempt++)
+        Scatter(terrain, root.transform, trees, random, mesh, material, placed, Count, Spacing, 0);
+        int original = placed.Count;
+        Scatter(terrain, root.transform, trees, random, mesh, material, placed, original + ExtraCount, ExtraSpacing, ExtraIdStart - original);
+
+        EditorSceneManager.MarkSceneDirty(root.scene);
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[GrassPlacer] Placed {placed.Count} tall grass clumps ({original} original, {placed.Count - original} added).");
+    }
+
+    // Fills placed up to total clumps on open ground at least spacing apart. A clump's id is its number in placed plus idShift.
+    static void Scatter(Terrain terrain, Transform root, Dictionary<Vector2Int, List<Vector2>> trees, System.Random random,
+                        Mesh mesh, Material material, List<Vector3> placed, int total, float spacing, int idShift)
+    {
+        TerrainData data = terrain.terrainData;
+        Vector3 origin = terrain.transform.position;
+        for (int attempt = 0; attempt < 12000 && placed.Count < total; attempt++)
         {
             float u = 0.05f + (float)random.NextDouble() * 0.9f, v = 0.05f + (float)random.NextDouble() * 0.9f;
             if (data.GetSteepness(u, v) > 20f)
@@ -63,7 +83,7 @@ public static class GrassPlacer
                 continue;
             bool crowded = false;
             foreach (Vector3 other in placed)
-                if ((other - p).sqrMagnitude < Spacing * Spacing)
+                if ((other - p).sqrMagnitude < spacing * spacing)
                 {
                     crowded = true;
                     break;
@@ -72,8 +92,9 @@ public static class GrassPlacer
                 continue;
 
             placed.Add(p);
-            var go = new GameObject($"Tall Grass {placed.Count}");
-            go.transform.SetParent(root.transform);
+            int id = placed.Count + idShift;
+            var go = new GameObject($"Tall Grass {id}");
+            go.transform.SetParent(root);
             go.transform.position = p;
             go.transform.rotation = Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f);
             float scale = 0.85f + (float)random.NextDouble() * 0.35f;
@@ -85,12 +106,8 @@ public static class GrassPlacer
             collider.height = 1.1f;
             collider.center = new Vector3(0f, 0.55f, 0f);
             collider.isTrigger = false;
-            go.AddComponent<TallGrass>().SetId(placed.Count);
+            go.AddComponent<TallGrass>().SetId(id);
         }
-
-        EditorSceneManager.MarkSceneDirty(root.scene);
-        AssetDatabase.SaveAssets();
-        Debug.Log($"[GrassPlacer] Placed {placed.Count} tall grass clumps.");
     }
 
     static bool NearTree(Dictionary<Vector2Int, List<Vector2>> trees, Vector3 p)

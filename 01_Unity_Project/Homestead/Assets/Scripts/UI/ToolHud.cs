@@ -26,7 +26,8 @@ public class ToolHud : MonoBehaviour
     [Tooltip("Smallest gap between the spread reticle's ticks and the centre (canvas pixels).")]
     [SerializeField, Min(0f)] float minSpreadRadius = 7f;
 
-    RectTransform spreadRoot, scopeRoot;
+    RectTransform spreadRoot, scopeRoot, bannerRoot;
+    Text bannerLabel;
     readonly Image[] ticks = new Image[4];
     Image spreadDot, scopeDot;
     Image[] scopeLines;
@@ -55,6 +56,11 @@ public class ToolHud : MonoBehaviour
         flashGroup.alpha = Mathf.MoveTowards(flashGroup.alpha, string.IsNullOrEmpty(flash) ? 0f : 1f, Time.unscaledDeltaTime * 4f);
         if (!string.IsNullOrEmpty(flash))
             flashLabel.text = flash;
+
+        string banner = playing ? ToolStatus.BannerMessage : null;
+        bannerRoot.gameObject.SetActive(!string.IsNullOrEmpty(banner));
+        if (!string.IsNullOrEmpty(banner))
+            bannerLabel.text = banner;
 
         UpdateSights(reticle);
     }
@@ -171,6 +177,20 @@ public class ToolHud : MonoBehaviour
         spreadRoot.gameObject.SetActive(false);
         scopeRoot.gameObject.SetActive(false);
         readout.enabled = false;
+
+        // The large notice banner (ToolStatus.Banner): the same amber-on-red look as the Inventory screen's refusals.
+        Image border = UiKit.Image(root, "Notice Banner", new Color(0.96f, 0.72f, 0.30f, 1f));
+        bannerRoot = border.rectTransform;
+        bannerRoot.anchorMin = bannerRoot.anchorMax = new Vector2(0.5f, 1f);
+        bannerRoot.pivot = new Vector2(0.5f, 1f);
+        bannerRoot.anchoredPosition = new Vector2(0f, -40f);
+        bannerRoot.sizeDelta = new Vector2(1300f, 130f);
+        Image panel = UiKit.Image(bannerRoot, "Panel", new Color(0.36f, 0.07f, 0.06f, 1f));
+        panel.rectTransform.Fill(4f, 4f, 4f, 4f);
+        bannerLabel = UiKit.Text(panel.rectTransform, "Text", "", 36, UiKit.Cream, TextAnchor.MiddleCenter);
+        bannerLabel.rectTransform.Fill(22f, 8f, 22f, 8f);
+        bannerLabel.fontStyle = FontStyle.Bold;
+        bannerRoot.gameObject.SetActive(false);
     }
 
     static Image Block(RectTransform parent, string name, Vector2 size)

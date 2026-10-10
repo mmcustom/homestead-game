@@ -188,8 +188,9 @@ public class AxeTool : MonoBehaviour
                         target = stump;
                         break;
                     }
+            // A placed Clay bank patch (ClayBank) always counts, and so does any dry ground within bankReach of the water.
             if (!pick && target == null)
-                bank = IsCreekBank(hit.point);
+                bank = hit.collider.GetComponentInParent<ClayBank>() != null || IsCreekBank(hit.point);
         }
 
         bool changed = target != otherTarget || bank != diggingBank;

@@ -141,6 +141,8 @@ public class PlayerController : MonoBehaviour, ISaveable
         stamina -= amount;
         lastSprintTime = Time.time;
         sprintExertion += amount / Mathf.Max(0.01f, sprintStaminaPerSecond);
+        if (SurvivalManager.Instance != null)
+            SurvivalManager.Instance.NoteWork(); // working with a tool makes body heat (Core Temperature Model)
         return true;
     }
 

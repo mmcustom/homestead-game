@@ -93,6 +93,12 @@ public class WeatherManager : MonoBehaviour, ISaveable
              "a cold front arrives over a few hours rather than instantly.")]
     [SerializeField, Min(0.1f)] float maxTemperatureChangePerHour = 3f;
 
+    [Header("Difficulty temperature offset")]
+    [Tooltip("Difficulty's ±°C offset applies in full (colder for Pioneer) at or below this temperature...")]
+    [SerializeField] float offsetColdBelowC = 14f;
+    [Tooltip("...and reversed (hotter for Pioneer) at or above this one, easing through zero in between.")]
+    [SerializeField] float offsetHotAboveC = 26f;
+
     [Header("Late Fall snow")]
     [Tooltip("Weather_System.md: light snow can occasionally occur late in Fall. Snow's share of the time " +
              "(same scale as the season weights) once Fall is this far through.")]
@@ -359,8 +365,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
         float dayCurve = (Mathf.Cos((time.HourOfDay - PeakTemperatureHour) / 24f * 2f * Mathf.PI) + 1f) * 0.5f;
         float temperature = Mathf.Lerp(low, high, dayCurve)
                             + dailyTemperatureOffset
-                            + weatherTypes[(int)current].temperatureOffsetC
-                            + DifficultyManager.TemperatureOffsetC; // milder or harsher by difficulty
+                            + weatherTypes[(int)current].temperatureOffsetC;
+        temperature += DifficultyOffsetC(temperature);
 
         // Snow pulls the temperature to freezing or below (reached over the next few hours).
         if (current == WeatherType.Snow)
@@ -368,6 +374,11 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
         return temperature;
     }
+
+    // Difficulty's temperature offset in the harmful direction (Core Temperature Model): Pioneer is colder in cold weather
+    // and hotter in hot weather, Homesteader the reverse, easing through zero between the two temperatures below.
+    float DifficultyOffsetC(float baseC) =>
+        DifficultyManager.TemperatureOffsetC * Mathf.Lerp(1f, -1f, Mathf.InverseLerp(offsetColdBelowC, offsetHotAboveC, baseC));
 
     // Deterministic per seed and point in time, so a reloaded save keeps rolling the same way.
     System.Random Rng(int salt)

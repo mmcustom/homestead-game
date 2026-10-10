@@ -19,7 +19,7 @@ public class InventoryScreen : GameScreen
 
     // Row columns: Item | Qty | Weight | Drop button.
     const float QtyMin = 0.5f, QtyMax = 0.66f, WeightMax = 0.84f;
-    const float BuildRowHeight = 38f, CraftRowHeight = 36f;
+    const float BuildRowHeight = 38f, CraftRowHeight = 32f;
 
     static readonly Color BarNormal = new Color(0.55f, 0.66f, 0.36f);
     static readonly Color BarEncumbered = new Color(0.84f, 0.63f, 0.3f);
@@ -100,7 +100,7 @@ public class InventoryScreen : GameScreen
         Heading(right, "Build", 344f);
         // Campfire and the storage kinds, three to a row.
         buildButton = UiKit.Button(right, "Build Campfire", "", 17, BuildCampfire);
-        // (Row heights are kept tight so the craft grid — now 12 recipes, four rows — clears the "Esc to close" hint.)
+        // (Row heights are kept tight so the craft grid — now 13 recipes, five rows — clears the "Esc to close" hint.)
         Grid(buildButton, 0, 382f, BuildRowHeight);
         for (int i = 0; i < pileButtons.Length; i++)
         {
@@ -311,12 +311,16 @@ public class InventoryScreen : GameScreen
 
             // The Small Cabin site's button does double duty: place an (empty, free) site normally, or — once a
             // nearby site is fully stocked and the Hammer's equipped — complete it into the real thing instead.
-            if (kind == PileKind.CabinSite && wood.CanCompleteCabin(player, out _, out string completeReason))
+            // With an unfinished site in reach the button is the completion button even while it can't be used yet, so
+            // hovering and clicking say what's still missing (Mike's playtest, 2026-10-09). The "you already have a
+            // site" refusal is only for a site that's out of reach.
+            if (kind == PileKind.CabinSite && wood.SiteInReach(player) != null)
             {
-                SetAvailable(button, true);
-                button.GetComponentInChildren<Text>().text = "Complete\nSmall Cabin";
+                bool complete = wood.CanCompleteCabin(player, out _, out string completeReason);
+                SetAvailable(button, complete);
+                button.GetComponentInChildren<Text>().text = "Complete Small Cabin";
                 if (hovered == i + 1)
-                    status = "Small Cabin: fully stocked — build it now.";
+                    status = "Small Cabin: " + (complete ? "fully stocked — build it now." : completeReason);
                 continue;
             }
 
@@ -333,7 +337,7 @@ public class InventoryScreen : GameScreen
             Crafting.Recipe recipe = Crafting.Recipes[i];
             bool canCraft = Crafting.CanCraft(recipe, out string why);
             SetAvailable(craftButtons[i], canCraft);
-            string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
+            string name = Crafting.OutputName(recipe);
             string cost = Crafting.Cost(recipe);
             craftButtons[i].GetComponentInChildren<Text>().text = $"{name}\n<size={CostSize(cost, 12)}><color=#EDE3C799>{cost}</color></size>";
             if (hovered == CraftHover + i)
@@ -480,6 +484,7 @@ public class InventoryScreen : GameScreen
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
             case PileKind.ToolRack: return "store Tools you're not carrying for a trip (R), take them back (E).";
             case PileKind.Tent: return "sleep in it (E), pack it up again (R). Keeps off rain, wind and much of the cold.";
+            case PileKind.TarpShelter: return "sleep under it (E), take it down for the Tarp and half the Sticks back (R). Keeps off most rain and half the wind, and a little cold. No Hammer needed.";
             case PileKind.LeanTo: return "sleep in it (E), take it down (R). Keeps off most rain and wind, and some cold.";
             case PileKind.Cabin: return "sleep in it (E) — permanent, the best shelter yet. Comes with a hearth to warm up and cook at.";
             case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, this button completes it (needs the Hammer equipped). Placed one by mistake? E on it when it's empty, or R with nothing to store, takes it down — no Hammer needed.";
@@ -498,7 +503,10 @@ public class InventoryScreen : GameScreen
             case "pouch": return "carried, it lets you carry 10 kg more.";
             case "cordage": return "twisted from whichever fibre you have.";
             case "hammer": return "equip it to build a Small Cabin, or to dismantle a finished structure for half its materials.";
-            case "torch": return "equip it and click to light it (needs Flint and Steel). Burns about 3 hours, then it's gone.";
+            case "torch": return "equip it and click to light it (needs Flint and Steel, or stand by a burning Campfire). Burns about 3 hours, then it's gone.";
+            case "bow_drill": return "equip it, face a Campfire with fuel and hold click to start a fire without Flint and Steel. Doesn't always catch.";
+            case "primitive_bow": return "equip it, hold click to draw and release to shoot. Shorter range and less accurate than a Recurve Bow, but it's made from a Branch.";
+            case "arrows": return "shoot them from either bow; a killing arrow can often be recovered when field dressing.";
             case "lantern": return "equip it and click to light it. Burns Lamp Oil (Trading Post) — refill it here with the Refill button.";
             default: return "equip it to set it.";
         }
@@ -506,7 +514,7 @@ public class InventoryScreen : GameScreen
 
     void Craft(Crafting.Recipe recipe)
     {
-        string name = ItemDatabase.Get(recipe.outputId)?.DisplayName ?? recipe.outputId;
+        string name = Crafting.OutputName(recipe);
         if (!Crafting.CanCraft(recipe, out string why))
         {
             NotifyCant($"Can't make {name}", why);
@@ -516,7 +524,7 @@ public class InventoryScreen : GameScreen
         noticeUntil = 0f;
         HideBanner();
         if (Crafting.Craft(recipe))
-            ToolStatus.Flash($"Made a {name} — {CraftHelp(recipe.outputId)}");
+            ToolStatus.Flash($"Made {(recipe.outputCount > 1 ? name : "a " + name)} — {CraftHelp(recipe.outputId)}");
     }
 
     void BuildPile(PileKind kind)
@@ -526,8 +534,13 @@ public class InventoryScreen : GameScreen
             return;
         PlayerController player = FindAnyObjectByType<PlayerController>();
 
-        if (kind == PileKind.CabinSite && wood.CanCompleteCabin(player, out _, out _))
+        if (kind == PileKind.CabinSite && wood.SiteInReach(player) != null)
         {
+            if (!wood.CanCompleteCabin(player, out _, out string completeWhy))
+            {
+                NotifyCant("Can't complete Small Cabin", completeWhy);
+                return;
+            }
             if (!wood.CompleteCabin(player))
                 return;
             ToolStatus.Flash("Small Cabin built — you can sleep in it, and its hearth is ready for Firewood.");

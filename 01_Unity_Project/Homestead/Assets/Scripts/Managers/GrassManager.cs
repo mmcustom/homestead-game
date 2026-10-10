@@ -19,7 +19,7 @@ public class GrassManager : MonoBehaviour, ISaveable
     public static GrassManager Instance { get; private set; }
 
     [Tooltip("In-game days before a cut clump stands again.")]
-    [SerializeField, Min(1)] int regrowDays = 4;
+    [SerializeField, Min(1)] int regrowDays = 3;
 
     readonly Dictionary<int, int> cutDay = new Dictionary<int, int>();
     float nextCheck;

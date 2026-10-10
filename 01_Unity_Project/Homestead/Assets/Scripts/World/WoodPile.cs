@@ -53,11 +53,24 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (UsesTransferScreen)
                 return $"Open {Name}  ({Describe(state)})";
             if (state.IsEmpty)
-                return IsCabinSite ? $"Remove {Name}  (empty — nothing to take back)" : $"{Name}  (empty)";
+                return IsCabinSite ? WithSiteNeeds($"Remove {Name}  (empty — nothing to take back)") : $"{Name}  (empty)";
             string contents = Describe(state);
             string verb = state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
-            return AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more";
+            return WithSiteNeeds(AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more");
         }
+    }
+
+    // A Small Cabin site's look prompt gets a second line with every material still short, quantity first, or the next
+    // step once it is complete (Mike's playtest, 2026-10-09: he could not tell what a partly stocked site was missing).
+    string WithSiteNeeds(string prompt)
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (!IsCabinSite || wood == null)
+            return prompt;
+        string needs = wood.SiteNeeds(state);
+        string done = WoodManager.HammerEquipped ? "Fully stocked - open Inventory and press Complete Small Cabin"
+                                                 : "Fully stocked - equip the Hammer, open Inventory and press Complete Small Cabin";
+        return prompt + "\n" + (needs != null ? $"Still needs: {needs}" : done);
     }
 
     // Always true so the contents show when looked at.
@@ -252,13 +265,23 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         }
 
         // A felled tree's pile and a CabinSite keep the quick bulk store.
+        bool wasComplete = IsCabinSite && WoodManager.Instance != null && WoodManager.Instance.SiteNeeds(state) == null;
         int stored = StoreEligible();
         if (stored <= 0)
+        {
+            // Nothing carried is still wanted: say how far along the site is, so the cap is not a silent refusal.
+            if (IsCabinSite && WoodManager.Instance != null)
+                ToolStatus.Flash($"Nothing more to add — {WoodManager.Instance.SiteProgress(state)}", 4f);
             return;
+        }
         ToolStatus.Flash(IsBarrel ? $"Poured in {stored} L — the barrel holds {state.Total} L"
-                                  : $"Stored — it now holds {Describe(state)}");
+                         : IsCabinSite && WoodManager.Instance != null ? $"Stored — {WoodManager.Instance.SiteProgress(state)}"
+                         : $"Stored — it now holds {Describe(state)}");
         if (WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(state);
+        // The deposit that supplied the last missing material: a big notice, so the next step isn't missed.
+        if (IsCabinSite && !wasComplete && WoodManager.Instance != null && WoodManager.Instance.SiteNeeds(state) == null)
+            ToolStatus.Banner("Small Cabin site fully stocked - equip the Hammer, open Inventory and press Complete Small Cabin", 10f);
     }
 
     void OpenScreen()

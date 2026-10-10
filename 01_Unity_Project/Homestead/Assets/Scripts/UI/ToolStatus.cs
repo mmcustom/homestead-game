@@ -55,6 +55,19 @@ public static class ToolStatus
         flashUntil = Time.unscaledTime + seconds;
     }
 
+    static string banner;
+    static float bannerUntil;
+
+    // A large message across the top of the screen, for something the player must not miss (a Small Cabin site that
+    // just got its last material). ToolHud draws it.
+    public static void Banner(string message, float seconds = 8f)
+    {
+        banner = message;
+        bannerUntil = Time.unscaledTime + seconds;
+    }
+
+    public static string BannerMessage => Time.unscaledTime < bannerUntil ? banner : null;
+
     static bool Current => Time.frameCount - reportedFrame <= 1;
 
     public static string Line => Current ? line : null;

@@ -98,6 +98,8 @@ public class GameManager : MonoBehaviour
             StoneManager.Instance.ResetStone();
         if (GrassManager.Instance != null)
             GrassManager.Instance.ResetGrass();
+        if (GroundWoodManager.Instance != null)
+            GroundWoodManager.Instance.ResetGroundWood();
         if (PortableLight.Instance != null)
             PortableLight.Instance.ResetLight();
 

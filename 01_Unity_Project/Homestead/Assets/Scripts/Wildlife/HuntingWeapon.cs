@@ -4,6 +4,9 @@ using UnityEngine.InputSystem;
 // Hunting_System.md's early weapons, used from the equipped tool slot:
 //   Recurve Bow — hold Attack to draw, release to loose an arrow. Silent, short effective range (about 30 m), and a
 //   partial draw or shooting on the move throws the arrow wide. A killing arrow is recovered when field dressing.
+//   Primitive Bow (2026-10-09, Mike's playtest) — a Branch strung with Cordage. Same draw, reticle and arrows as the
+//   Recurve, just worse: about two thirds the range, half again the spread, a slower draw, and a weaker arrow, so big
+//   game is only reliable up close. Its numbers are the Primitive Bow fields below.
 //   Bolt-Action Rifle — click to fire, then a moment to work the bolt. Accurate out to about 150 m, but loud: every
 //   animal within earshot bolts.
 // Aim is the centre of the screen. A hit in an animal's vitals is a clean kill with a chance that falls off beyond
@@ -17,6 +20,7 @@ using UnityEngine.InputSystem;
 public class HuntingWeapon : MonoBehaviour
 {
     const string BowId = "recurve_bow";
+    const string PrimitiveBowId = "primitive_bow";
     const string RifleId = "bolt_action_rifle";
     const string ArrowId = "arrows";
     const string RoundId = "rifle_rounds";
@@ -29,6 +33,15 @@ public class HuntingWeapon : MonoBehaviour
     [SerializeField, Min(1f)] float bowMaxRange = 60f;
     [Tooltip("Spread in degrees at a full draw and at the weakest shot.")]
     [SerializeField] float bowSpreadFull = 0.35f, bowSpreadWeak = 2.5f;
+
+    [Header("Primitive Bow")]
+    [SerializeField, Min(0.1f)] float primitiveDrawSeconds = 1.1f;
+    [SerializeField, Min(1f)] float primitiveEffectiveRange = 20f;
+    [SerializeField, Min(1f)] float primitiveMaxRange = 40f;
+    [Tooltip("Spread in degrees at a full draw and at the weakest shot.")]
+    [SerializeField] float primitiveSpreadFull = 0.525f, primitiveSpreadWeak = 3.75f;
+    [Tooltip("Chance a vitals hit is a clean kill: at point-blank, at the effective range, and at the maximum range.")]
+    [SerializeField, Range(0f, 1f)] float primitiveKillClose = 0.85f, primitiveKillEdge = 0.5f, primitiveKillFar = 0.15f;
 
     [Header("Bolt-Action Rifle")]
     [SerializeField, Min(0f)] float boltSeconds = 1.3f;
@@ -75,7 +88,7 @@ public class HuntingWeapon : MonoBehaviour
     {
         InventoryManager inventory = InventoryManager.Instance;
         string equipped = inventory != null && inventory.EquippedTool != null ? inventory.EquippedTool.Id : null;
-        if (equipped != BowId && equipped != RifleId)
+        if (equipped != BowId && equipped != PrimitiveBowId && equipped != RifleId)
         {
             draw = 0f;
             if (scope > 0f)
@@ -93,8 +106,8 @@ public class HuntingWeapon : MonoBehaviour
         scope = Mathf.MoveTowards(scope, wantScope ? 1f : 0f, Time.deltaTime / scopeRaiseSeconds);
         ApplyScope();
 
-        if (equipped == BowId)
-            UpdateBow(inventory);
+        if (equipped == BowId || equipped == PrimitiveBowId)
+            UpdateBow(inventory, equipped == PrimitiveBowId);
         else
             UpdateRifle(inventory);
     }
@@ -108,7 +121,12 @@ public class HuntingWeapon : MonoBehaviour
             player.LookScale = Mathf.Lerp(1f, scopedLookScale, scope);
     }
 
-    float BowSpread => Mathf.Lerp(bowSpreadWeak, bowSpreadFull, draw) * (Moving ? movingSpread : 1f);
+    // The bow in hand's numbers; the Primitive Bow is the Recurve's worse cousin.
+    float DrawSeconds(bool primitive) => primitive ? primitiveDrawSeconds : drawSeconds;
+    float EffectiveRange(bool primitive) => primitive ? primitiveEffectiveRange : bowEffectiveRange;
+    float MaxRange(bool primitive) => primitive ? primitiveMaxRange : bowMaxRange;
+    float BowSpread(bool primitive, float power) =>
+        Mathf.Lerp(primitive ? primitiveSpreadWeak : bowSpreadWeak, primitive ? primitiveSpreadFull : bowSpreadFull, power) * (Moving ? movingSpread : 1f);
     float RifleSpread => Mathf.Lerp(rifleHipSpread, rifleScopedSpread, scope) * (Moving ? movingSpread : 1f);
 
     // What the sight is on right now, for the reticle: nothing, an animal's body, or its vitals — and how far.
@@ -129,20 +147,22 @@ public class HuntingWeapon : MonoBehaviour
         ToolStatus.ReportAim(kind, spread, target, distance, distance <= effectiveRange, scope);
     }
 
-    void UpdateBow(InventoryManager inventory)
+    void UpdateBow(InventoryManager inventory, bool primitive)
     {
+        string name = primitive ? "Primitive Bow" : "Recurve Bow";
+        float effectiveRange = EffectiveRange(primitive), maxRange = MaxRange(primitive);
         int arrows = inventory.Player.Count(ArrowId);
-        ReportSight(ReticleKind.Spread, BowSpread, bowEffectiveRange, bowMaxRange);
+        ReportSight(ReticleKind.Spread, BowSpread(primitive, draw), effectiveRange, maxRange);
         if (arrows <= 0)
         {
             draw = 0f;
-            ToolStatus.Report("Recurve Bow — no arrows", -1f);
+            ToolStatus.Report($"{name} — no arrows", -1f);
             return;
         }
 
         if (attack.IsPressed())
         {
-            draw = Mathf.Min(1f, draw + Time.deltaTime / drawSeconds);
+            draw = Mathf.Min(1f, draw + Time.deltaTime / DrawSeconds(primitive));
             ToolStatus.Report(draw >= 1f ? $"Full draw — release to shoot   Arrows: {arrows}" : $"Drawing…   Arrows: {arrows}", draw);
             return;
         }
@@ -159,13 +179,14 @@ public class HuntingWeapon : MonoBehaviour
 
             SilenceAmmoRemoval();
             inventory.RemoveFromPlayer(ArrowId, 1);
-            float spread = Mathf.Lerp(bowSpreadWeak, bowSpreadFull, power) * (Moving ? movingSpread : 1f); // as the reticle showed
+            float spread = BowSpread(primitive, power); // as the reticle showed
             PlaySound(a => a.BowRelease, player.transform.position);
-            Fire(spread, bowEffectiveRange, Mathf.Lerp(bowMaxRange * 0.5f, bowMaxRange, power), arrow: true);
+            Vector3 kill = primitive ? new Vector3(primitiveKillClose, primitiveKillEdge, primitiveKillFar) : RecurveKill;
+            Fire(spread, effectiveRange, Mathf.Lerp(maxRange * 0.5f, maxRange, power), arrow: true, kill);
             return;
         }
 
-        ToolStatus.Report($"Recurve Bow — hold to draw, release to shoot   Arrows: {arrows}");
+        ToolStatus.Report($"{name} — hold to draw, release to shoot   Arrows: {arrows}");
     }
 
     void UpdateRifle(InventoryManager inventory)
@@ -191,7 +212,7 @@ public class HuntingWeapon : MonoBehaviour
         inventory.RemoveFromPlayer(RoundId, 1);
         readyAt = Time.time + boltSeconds;
         PlaySound(a => a.Gunshot, player.transform.position);
-        Fire(RifleSpread, rifleEffectiveRange, rifleMaxRange, arrow: false);
+        Fire(RifleSpread, rifleEffectiveRange, rifleMaxRange, arrow: false, RifleKill);
 
         // Hunting_System.md: loud, may disperse nearby wildlife.
         if (WildlifeManager.Instance != null)
@@ -200,7 +221,11 @@ public class HuntingWeapon : MonoBehaviour
 
     bool Moving => player.HorizontalSpeed > 0.5f;
 
-    void Fire(float spreadDegrees, float effectiveRange, float maxRange, bool arrow)
+    // Chance a vitals hit is a clean kill at point-blank, at the effective range, and at the maximum range.
+    static readonly Vector3 RecurveKill = new Vector3(0.95f, 0.8f, 0.35f);
+    static readonly Vector3 RifleKill = new Vector3(0.97f, 0.97f, 0.35f);
+
+    void Fire(float spreadDegrees, float effectiveRange, float maxRange, bool arrow, Vector3 kill)
     {
         Transform cam = player.CameraTransform;
         Vector2 jitter = Random.insideUnitCircle * spreadDegrees;
@@ -223,8 +248,8 @@ public class HuntingWeapon : MonoBehaviour
 
         float distance = hit.distance;
         float cleanKill = distance <= effectiveRange
-            ? (arrow ? Mathf.Lerp(0.95f, 0.8f, distance / effectiveRange) : 0.97f)
-            : Mathf.Lerp(arrow ? 0.8f : 0.97f, 0.35f, Mathf.InverseLerp(effectiveRange, maxRange, distance));
+            ? Mathf.Lerp(kill.x, kill.y, distance / effectiveRange)
+            : Mathf.Lerp(kill.y, kill.z, Mathf.InverseLerp(effectiveRange, maxRange, distance));
         bool vitals = animal.IsVitalsHit(cam.position, direction);
 
         string outcome = animal.OnShot(vitals, cleanKill, player.transform.position);

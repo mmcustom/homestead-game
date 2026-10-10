@@ -1168,7 +1168,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 22c115a9397fcb24db4e0b275619acbe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GrassManager
-  regrowDays: 4
+  regrowDays: 3
 --- !u!114 &199833602
 MonoBehaviour:
   m_ObjectHideFlags: 0
