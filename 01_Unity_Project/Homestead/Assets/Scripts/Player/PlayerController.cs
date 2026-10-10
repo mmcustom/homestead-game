@@ -544,13 +544,31 @@ public class PlayerController : MonoBehaviour, ISaveable
             cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 
-    // A save made before the terrain was built or reshaped can hold a position that's now underground.
-    static Vector3 AboveGround(Vector3 position)
+    // A save made before the terrain was built or reshaped can hold a position that's now underground, so a saved spot
+    // is lifted to the ground above it — but only if the player's body doesn't fit there. A spot where it does fit is
+    // restored exactly: inside a Small Cabin, under a Tarp Shelter, in a cabin doorway (Mike, 2026-10-09: loading a save
+    // made inside the cabin put the player on the roof, because the straight-down probe stopped at the roof's collider).
+    // When it does have to lift, structures (Shelter colliders: roof, walls, tarp sheet) are skipped, so the probe lands
+    // on the ground, not on top of a building.
+    Vector3 AboveGround(Vector3 position)
     {
         const float ProbeHeight = 500f;
-        if (Physics.Raycast(position + Vector3.up * ProbeHeight, Vector3.down, out RaycastHit hit, ProbeHeight * 2f,
-                            ~0, QueryTriggerInteraction.Ignore) && hit.point.y > position.y)
-            return hit.point;
+        Physics.SyncTransforms(); // structures rebuilt this frame must be where their transforms say
+        float r = controller.radius * 0.9f;
+        Vector3 bottom = position + Vector3.up * (r + 0.1f);
+        Vector3 top = position + Vector3.up * Mathf.Max(r + 0.1f, controller.height - r);
+        if (!Physics.CheckCapsule(bottom, top, r, ~0, QueryTriggerInteraction.Ignore))
+            return position;
+
+        RaycastHit[] hits = Physics.RaycastAll(position + Vector3.up * ProbeHeight, Vector3.down, ProbeHeight * 2f,
+                                               ~0, QueryTriggerInteraction.Ignore);
+        Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.collider.GetComponentInParent<Shelter>() != null)
+                continue;
+            return hit.point.y > position.y ? hit.point : position;
+        }
         return position;
     }
 

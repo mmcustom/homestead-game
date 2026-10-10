@@ -169,7 +169,7 @@ public struct WoodSaveData
 // freely takeable back out, nothing locked in early. Once every material's at its required amount, CompleteCabin (only
 // with the Hammer equipped — the tool finally gates something, same "equip the tool for the job" pattern as the
 // Axe/Pick Axe/Shovel) swaps the site in place for the real thing: permanent, no take-down unlike Tent/Lean-To, and
-// furnished with a hearth — FireManager.BuildFurnished drops an unlit, unfuelled campfire just outside it, so
+// furnished with a hearth — FireManager.BuildFurnished drops an unlit, unfuelled campfire inside it, on a stone slab, so
 // Warmth-by-proximity and Cooking work exactly as they do at any other campfire, no new mechanic needed. Sleeping in
 // it (Shelter) is the best tier yet, above the Tent.
 //
@@ -520,6 +520,11 @@ public class WoodManager : MonoBehaviour, ISaveable
         bool playing = GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
         if (time == null || !time.IsRunning || !playing || !WorldLoaded)
             return;
+        if (Time.unscaledTime >= nextHearthCheck)
+        {
+            nextHearthCheck = Time.unscaledTime + 1f;
+            MigrateHearths();
+        }
         PassHours(Time.deltaTime * time.GameHoursPerRealSecond);
     }
 
@@ -899,9 +904,44 @@ public class WoodManager : MonoBehaviour, ISaveable
         return true;
     }
 
-    // Where a Small Cabin's hearth sits: just outside its front wall.
+    // Where a Small Cabin's hearth sits: inside, against the back wall (Shelter.HearthLocal; the slab under it is built by
+    // the cabin's view).
     static Vector3 HearthSpot(WoodPileState cabin) =>
+        cabin.position + Quaternion.Euler(0f, cabin.yaw, 0f) * Shelter.HearthLocal;
+
+    // Where cabins used to put it: just outside the walls. Only read to find and move a hearth saved that way.
+    static Vector3 OldHearthSpot(WoodPileState cabin) =>
         cabin.position + Quaternion.Euler(0f, cabin.yaw, 0f) * new Vector3(Shelter.CabinWidth / 2f + 1.1f, 0f, 0f);
+
+    // Cabins whose hearth is known to be at the indoor spot this session (so they aren't searched again).
+    readonly HashSet<int> hearthSettled = new HashSet<int>();
+    float nextHearthCheck;
+
+    // A cabin saved with its hearth outside gets it moved indoors, fuel and lit state intact (the fire is moved, not
+    // rebuilt). Run about once a second from Update, because the fires and the piles load separately and either can come
+    // first; a cabin is settled once a fire is found at the new spot, or the old one has been moved there.
+    void MigrateHearths()
+    {
+        FireManager fires = FireManager.Instance;
+        if (fires == null)
+            return;
+        foreach (WoodPileState cabin in piles)
+        {
+            if (cabin.kind != PileKind.Cabin || hearthSettled.Contains(cabin.id))
+                continue;
+            if (fires.FireNear(HearthSpot(cabin), 0.75f) != null)
+            {
+                hearthSettled.Add(cabin.id);
+                continue;
+            }
+            CampfireState old = fires.FireNear(OldHearthSpot(cabin), 0.75f);
+            if (old != null)
+            {
+                fires.MoveFire(old, HearthSpot(cabin), cabin.yaw);
+                hearthSettled.Add(cabin.id);
+            }
+        }
+    }
 
     // --- Dismantling a finished Small Cabin (Building_Housing_System.md, Tools: Hammer) ---
 
@@ -910,9 +950,11 @@ public class WoodManager : MonoBehaviour, ISaveable
         InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null &&
         InventoryManager.Instance.EquippedTool.Id == HammerId;
 
-    // The cabin's hearth, found by where CompleteCabin put it (so it works on saves from before this too).
+    // The cabin's hearth, found by where CompleteCabin put it — or, for a cabin saved before the hearth moved indoors and
+    // not yet migrated, where it used to be.
     CampfireState HearthOf(WoodPileState cabin) =>
-        FireManager.Instance != null ? FireManager.Instance.FireNear(HearthSpot(cabin), 0.75f) : null;
+        FireManager.Instance == null ? null
+        : FireManager.Instance.FireNear(HearthSpot(cabin), 0.75f) ?? FireManager.Instance.FireNear(OldHearthSpot(cabin), 0.75f);
 
     // Whether the player can dismantle this cabin now, and why not if not: the Hammer in hand, and the hearth out — a
     // lit fire shouldn't just vanish with the house.
@@ -1044,6 +1086,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         felled.Clear();
         felledSet.Clear();
         piles.Clear();
+        hearthSettled.Clear();
         nextPileId = 1;
         snowLoadHours = stormAfterglow = 0f;
         bark = null;
@@ -1074,6 +1117,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             }
         }
         piles.Clear();
+        hearthSettled.Clear();
         if (saved.piles != null)
             piles.AddRange(saved.piles);
         nextPileId = Mathf.Max(1, saved.nextPileId);

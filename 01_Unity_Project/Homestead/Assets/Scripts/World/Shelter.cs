@@ -6,11 +6,19 @@ using UnityEngine;
 // a Lean-To down for half its Branches back. A Small Cabin is permanent by default, so R does nothing for it unless the
 // Hammer is equipped: then it dismantles it (twice-pressed, hearth out first) for half its materials back.
 // Drawn from simple shapes: a canvas A-frame tent, a lean-to of branches on a ridge pole, a small stacked-log cabin
-// with a thatched roof (its hearth is a separate, ordinary Campfire — see WoodManager.BuildPile).
+// with a thatched roof. Its hearth is a separate, ordinary Campfire (FireManager.BuildFurnished, from
+// WoodManager.CompleteCabin) set inside, against the back wall, on a stone slab this view builds, under a clay chimney.
 public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
 {
-    // The cabin's footprint (its own local space), so WoodManager can place the hearth just clear of its walls.
+    // The cabin's footprint (its own local space).
     public const float CabinWidth = 4f, CabinDepth = 5f;
+
+    // The hearth (Mike, 2026-10-09: the fireplace belongs inside). The door is on the +Z wall, so the back wall is -Z. The
+    // fire sits a little right of centre, 1.45 m from the middle of the room toward the back: the slab is 1.3 x 1.1 m, which
+    // leaves 0.76 m between it and the right wall (the player is 0.7 m across), 1.7 m of open floor on the left for the
+    // doorway path and a sleeping spot, and the whole front of the slab free. The fire stands on the slab, 0.18 m up.
+    public const float FloorHeight = 0.3f, HearthSlabHeight = 0.18f;
+    public static readonly Vector3 HearthLocal = new Vector3(0.45f, FloorHeight + HearthSlabHeight, -1.45f);
 
     WoodPileState state;
     Material bark;
@@ -312,6 +320,41 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
             Solid("Wall Front", new Vector3(side * (DoorWidth / 2f + frontLength / 2f), slabY, depth / 2f), new Vector3(frontLength, slabHeight, logDiameter), Quaternion.identity);
         float lintelHeight = wallTop - doorTop;
         Solid("Lintel", new Vector3(0f, doorTop + lintelHeight / 2f, depth / 2f), new Vector3(DoorWidth, lintelHeight, logDiameter), Quaternion.identity);
+
+        BuildHearth(stoneColor);
+    }
+
+    // The fireplace for the cabin's furnished campfire: a low stone slab to stand it on (walkable, with a collider), a clay
+    // backing against the back wall and a short clay chimney up through the thatch as the smoke vent (visual only: no
+    // collider, so it doesn't block the roof's cover check straight above the fire, and no smoke simulation). The open
+    // gable above the back wall is a second gap. Nothing here burns: structures don't take fire damage in this game.
+    void BuildHearth(Color stoneColor)
+    {
+        var clay = new Color(0.56f, 0.43f, 0.34f);
+        Vector3 spot = HearthLocal;
+        const float slabWidth = 1.3f, slabDepth = 1.1f;
+        float slabCentreY = FloorHeight + HearthSlabHeight / 2f;
+
+        GameObject slab = Piece(PrimitiveType.Cube, new Vector3(spot.x, slabCentreY, spot.z), Vector3.zero,
+                                new Vector3(slabWidth, HearthSlabHeight, slabDepth), null);
+        Tint(slab, stoneColor * 0.85f);
+        Solid("Hearth Slab", slab.transform.localPosition, slab.transform.localScale, Quaternion.identity);
+
+        // Against the back wall's inner face (z = -CabinDepth / 2 + half a log).
+        float wallFace = -CabinDepth / 2f + 0.14f;
+        float backingZ = wallFace + 0.15f;
+        GameObject backing = Piece(PrimitiveType.Cube, new Vector3(spot.x, FloorHeight + 0.55f, backingZ), Vector3.zero,
+                                   new Vector3(slabWidth, 1.1f, 0.3f), null);
+        Tint(backing, clay);
+
+        // The chimney: from the top of the backing up past the thatch, which is about 3.2 m high here.
+        float chimneyBottom = FloorHeight + 1.1f, chimneyTop = 3.8f;
+        GameObject chimney = Piece(PrimitiveType.Cube, new Vector3(spot.x, (chimneyBottom + chimneyTop) / 2f, wallFace + 0.17f), Vector3.zero,
+                                   new Vector3(0.6f, chimneyTop - chimneyBottom, 0.34f), null);
+        Tint(chimney, clay);
+        GameObject cap = Piece(PrimitiveType.Cube, new Vector3(spot.x, chimneyTop + 0.05f, wallFace + 0.17f), Vector3.zero,
+                               new Vector3(0.72f, 0.1f, 0.46f), null);
+        Tint(cap, stoneColor * 0.8f);
     }
 
     // An invisible box collider on a child, in this shelter's local space. Child colliders still resolve to this Shelter

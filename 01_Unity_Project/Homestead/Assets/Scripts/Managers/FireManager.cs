@@ -249,6 +249,19 @@ public class FireManager : MonoBehaviour, ISaveable
         return fire;
     }
 
+    // Moves a fire (and its world object) to a new spot, keeping its fuel and whether it is lit — a Small Cabin's hearth
+    // saved outside the walls is moved indoors this way (WoodManager.MigrateHearths).
+    public void MoveFire(CampfireState fire, Vector3 position, float yaw)
+    {
+        if (fire == null)
+            return;
+        fire.position = position;
+        fire.yaw = yaw;
+        if (views.TryGetValue(fire.id, out Campfire view) && view != null)
+            view.transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+        FireChanged?.Invoke(fire);
+    }
+
     // A fire taken away with the structure it belonged to — a Small Cabin's hearth when the cabin is dismantled.
     public void RemoveFire(CampfireState fire)
     {

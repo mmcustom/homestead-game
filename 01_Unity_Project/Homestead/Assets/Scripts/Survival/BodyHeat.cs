@@ -76,6 +76,8 @@ public static class BodyHeat
         public float radiantWatts;        // from a campfire
         public float hunger;              // 0-100, fuels shivering
         public float lossMultiplier;      // difficulty: heat loss scaled in the harmful direction
+        public float rewarmMultiplier;    // game-feel boost on the body's own net heat gain; 0 or 1 = none
+        public float rewarmBelowC;        // the boost applies only while core temperature is below this
     }
 
     public struct Result
@@ -104,9 +106,20 @@ public static class BodyHeat
         return clothing + AirResistance(s, c.windMetersPerSecond) + c.extraResistance;
     }
 
-    public static float ShiverIntensity(Settings s, float coreC, float hunger)
+    // The shivering that makes heat (the body's, from shiverStartC): feeds the heat balance, the stamina penalty and the
+    // Hunger cost, so it is what the resting plateaus rest on.
+    public static float ShiverIntensity(Settings s, float coreC, float hunger) =>
+        ShiverBetween(s, coreC, hunger, s.shiverStartC, s.shiverStartC - Math.Max(0.01f, s.shiverRampC));
+
+    // The shivering the player is shown and hears (HUD word, Shiver.wav): the same fade-out and Hunger fuel as above, but
+    // it starts and reaches full at its own, lower core temperatures (Health_System.md, Shivering Threshold, Mike 2026-10-10).
+    // It changes nothing about the heat physics; it only decides when shivering is announced.
+    public static float VisibleShiver(Settings s, float coreC, float hunger, float onsetC, float fullC) =>
+        ShiverBetween(s, coreC, hunger, onsetC, fullC);
+
+    static float ShiverBetween(Settings s, float coreC, float hunger, float onsetC, float fullC)
     {
-        float rise = Clamp01((s.shiverStartC - coreC) / Math.Max(0.01f, s.shiverRampC));
+        float rise = Clamp01((onsetC - coreC) / Math.Max(0.01f, onsetC - fullC));
         float fade = coreC >= s.shiverFadeFromC ? 1f : Clamp01((coreC - s.shiverEndC) / Math.Max(0.01f, s.shiverFadeFromC - s.shiverEndC));
         float fuel = Clamp01(hunger / Math.Max(0.01f, s.shiverFuelHunger));
         return rise * fade * fuel;
@@ -130,7 +143,13 @@ public static class BodyHeat
             float dry = s.areaM2 * (s.skinC - c.airC) / resistance;
             float loss = dry > 0f ? dry * c.lossMultiplier : dry; // heat gained from warm air isn't scaled
             float dissipation = Math.Max(0f, coreC - s.normalCoreC) * s.dissipationWattsPerC;
-            float net = production + c.radiantWatts - loss - dissipation;
+            // Rewarming boost (Health_System.md, Warmth Regeneration, Mike 2026-10-10): only the body's OWN net gain is
+            // multiplied, and only while below the ceiling. A net loss is never touched (so cooling and the resting
+            // plateaus are unchanged, because a plateau is net zero), and a campfire's radiant watts are added after.
+            float body = production - loss - dissipation;
+            if (body > 0f && c.rewarmMultiplier > 1f && coreC < c.rewarmBelowC)
+                body *= c.rewarmMultiplier;
+            float net = body + c.radiantWatts;
 
             coreC = Math.Min(s.maxCoreC, Math.Max(s.minCoreC, coreC + net / s.heatCapacityWhPerC * dt));
             r = new Result { coreC = coreC, shiver = shiver, totalMet = totalMet, productionWatts = production, lossWatts = loss, netWatts = net };
