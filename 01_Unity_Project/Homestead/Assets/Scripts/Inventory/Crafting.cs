@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-// Simple item recipes for the Inventory screen's Build section. Trapping_System.md: the Rabbit Snare needs Cordage and
+// Simple item recipes for the Crafting screen's Craft tab (CraftingScreen). Trapping_System.md: the Rabbit Snare needs Cordage and
 // the Box Trap needs Wood; Fishing_System.md's Fish Trap loop starts with "Build Trap". Quantities are Claude Code's
 // first pass (2026-09-25) — Firewood stands in for "Wood" since it's the wood the player can gather now.
 // 2026-09-26: the primitive hand tools — the Stone Pick Axe (Stone_Gathering_System.md) and Primitive Shovel
@@ -59,6 +59,39 @@ public static class Crafting
     }
 
     static Ingredient[][] Sets(Recipe recipe) => recipe.alternatives ?? new[] { recipe.ingredients };
+
+    // Every way the recipe can be made (one set for most; Cordage has three), for the Crafting screen's ingredient list.
+    public static Ingredient[][] IngredientSets(Recipe recipe) => Sets(recipe);
+
+    // How many times in a row the pack could pay for it (each craft uses the first set that is affordable), up to cap.
+    public static int MaxCrafts(Recipe recipe, int cap = 99)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null)
+            return 0;
+        var left = new System.Collections.Generic.Dictionary<string, int>();
+        int Have(string id) => left.TryGetValue(id, out int n) ? n : (left[id] = inventory.Player.Count(id));
+
+        int crafts = 0;
+        while (crafts < cap)
+        {
+            Ingredient[] paid = null;
+            foreach (Ingredient[] set in Sets(recipe))
+            {
+                if (Array.TrueForAll(set, i => Have(i.itemId) >= i.quantity))
+                {
+                    paid = set;
+                    break;
+                }
+            }
+            if (paid == null)
+                break;
+            foreach (Ingredient i in paid)
+                left[i.itemId] = Have(i.itemId) - i.quantity;
+            crafts++;
+        }
+        return crafts;
+    }
 
     // The ingredient set the player can afford right now, or null.
     static Ingredient[] Affordable(Recipe recipe)
@@ -162,8 +195,30 @@ public static class Crafting
         InventoryManager inventory = InventoryManager.Instance;
         foreach (Ingredient ingredient in Affordable(recipe))
             inventory.RemoveFromPlayer(ingredient.itemId, ingredient.quantity);
-        // The ingredients weigh at least as much as what's made, so it always fits once they're used.
-        inventory.AddToPlayer(recipe.outputId, Mathf.Max(1, recipe.outputCount));
+        // The ingredients usually weigh at least as much as what's made, so it fits once they're used; if it doesn't,
+        // what the pack can't carry is left on the ground in front of the player rather than lost.
+        int count = Mathf.Max(1, recipe.outputCount);
+        int added = inventory.AddToPlayer(recipe.outputId, count);
+        if (added < count)
+        {
+            PlayerController player = UnityEngine.Object.FindAnyObjectByType<PlayerController>();
+            if (player != null)
+                DroppedItems.Place(recipe.outputId, count - added, player.transform.position + player.transform.forward * 1.2f);
+            LeftOnGround += count - added;
+        }
         return true;
+    }
+
+    // How many of the last Craft call(s)' results had no room in the pack and went on the ground; the screen reads and
+    // clears it to say so.
+    public static int LeftOnGround;
+
+    // Crafts up to `times` in a row (stopping when the materials run out) and returns how many were made.
+    public static int Craft(Recipe recipe, int times)
+    {
+        int made = 0;
+        while (made < times && Craft(recipe))
+            made++;
+        return made;
     }
 }

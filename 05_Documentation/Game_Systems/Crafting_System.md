@@ -1,6 +1,6 @@
 # Crafting System and Crafting Screen
 
-Status: APPROVED TO BUILD 2026-10-09 (Mike: "think we need to move forward with the separate craft/build screen"). Layout numbers below are still Claude's first pass; scope updated to Craft AND Build on one screen (see Scope).
+Status: BUILT 2026-10-09 and PLAYTEST-CONFIRMED (Mike, all five test groups pass: open/close, Craft tab, Build tab, cabin flow, Inventory screen). Key B, CraftingScreen.cs; Craft and Build tabs, Inventory screen button. Code not yet committed. Originally: APPROVED TO BUILD 2026-10-09 (Mike: "think we need to move forward with the separate craft/build screen"). Layout numbers below are still Claude's first pass; scope updated to Craft AND Build on one screen (see Scope).
 
 ## Why this exists
 
@@ -55,6 +55,15 @@ Reported by Claude Code 2026-10-09 from Crafting.cs (15 recipes, including the t
 - Which key opens it. Suggested B (unbound); Claude Code to verify C, T and the code-bound number keys first.
 - RESOLVED 2026-10-09 (Mike): Build items move to this screen as a second tab in the same pass (Craft and Build together).
 - Claude Code to report: the final key, how the Build tab gets its list and affordability from WoodManager.CanBuildPile and CanCompleteCabin, and whether Build placement preview (cursor/aim) needs the screen to close on click.
+
+## Built 2026-10-09 (Claude Code report, reconciled by Claude; compile-checked, NOT Play Mode tested, uncommitted)
+
+- **Key: B.** C is Crouch, T is Trading Post, digits 1-9 and 0 are code-bound tool hotkeys. A new Crafting action was added to InputSystem_Actions.inputactions bound to B. B toggles the screen; Esc, the X button and B close it. The Inventory screen has a "Craft and Build [B]" button, and the window tab bar has a "Craft & Build [B]" tab (other tabs narrowed so all five fit). Pause and cursor behavior come from the same menu state as the Inventory.
+- **Files:** new UI/CraftingScreen.cs and UI/ScreenBanner.cs (the red missing-materials banner, now shared by both screens); edited GameScreens.cs (new tab, OpenCrafting()), InventoryScreen.cs (Craft grid, Build area and their help and banner code removed; keeps a small notice line for drops and hotkey messages), Crafting.cs (MaxCrafts, IngredientSets, Craft(recipe, times) overload), InputSystem_Actions.inputactions.
+- **Craft tab:** six categories as in the table above, each tab showing how many recipes are makeable now; makeable first; detail panel with name, description, makes, weight and green/red have/need per ingredient; Cordage shows "Either ... or ... or"; x1 / x5 / Max for Arrows and Cordage (Max shows the count); Craft greys when short and clicking it anyway shows the missing-materials banner; lists refresh as the pack changes and about four times a second; hovering previews without changing the selection.
+- **Build tab:** Shelter (Tarp Shelter, Tent, Lean-To, cabin site), Storage and Piles (six storage kinds), Other (Campfire). Costs from WoodManager.CostOf; affordability and red reason text from CanBuildPile (FireManager.CanBuild for the Campfire), so rules are unchanged. With a cabin site in reach the entry becomes "Complete Small Cabin" with have/need for the five materials, a Hammer-equipped line and CanCompleteCabin's reason; beyond 6 m it reverts to "Place Site" with the distance message. A successful Build closes the screen and the structure appears just in front of the player.
+- **Behavior change to note:** a crafted result that does not fit the pack now lands on the ground in front of the player with a note (it was previously dropped silently).
+- **Small additions:** Shovel description mentions Clay; Lantern refill text points to the Inventory. Nothing from the old Inventory Build area was lost; the in-world "Still needs" look prompt and the R deposit flow are untouched.
 
 ## Not decided here
 

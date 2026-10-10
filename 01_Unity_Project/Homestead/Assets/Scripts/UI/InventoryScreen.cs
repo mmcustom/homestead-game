@@ -9,17 +9,14 @@ using UnityEngine.UI;
 // raw meat and fish rows get a Cook button and raw water a Boil button (Cooking) — Shift-click does the whole stack.
 // Each piece takes a few seconds (CampfireCooking); the button shows the progress, and clicking it again stops.
 // Carrying the Axe, Logs and Branches get a Split button the same way, making Firewood (AxeTool).
-// A Build section builds a campfire from carried Firewood (Fire System) or storage — Wood Pile, Rock Pile, Water
-// Barrel, Food Cache, Storage Bin, Tool Rack (WoodManager) — and crafts traps and tools (Crafting's recipes), rows of
-// three each; hovering a button says what it needs or why it can't be built there. Storage is filled and emptied in the
-// World, not from this screen.
+// Building and crafting moved to their own Craft and Build screen (CraftingScreen, key B, 2026-10-09) — a button here
+// opens it. Storage is filled and emptied in the World, not from this screen.
 public class InventoryScreen : GameScreen
 {
     const float KgToLb = 2.20462f;
 
     // Row columns: Item | Qty | Weight | Drop button.
     const float QtyMin = 0.5f, QtyMax = 0.66f, WeightMax = 0.84f;
-    const float BuildRowHeight = 38f, CraftRowHeight = 32f;
 
     static readonly Color BarNormal = new Color(0.55f, 0.66f, 0.36f);
     static readonly Color BarEncumbered = new Color(0.84f, 0.63f, 0.3f);
@@ -29,12 +26,9 @@ public class InventoryScreen : GameScreen
     Text statusLabel;
     Text equippedLabel;
     Text hintLabel;
-    Button buildButton;
-    readonly Button[] pileButtons = new Button[WoodManager.Buildable.Length];
-    Text buildLabel;
-    int hovered = -1; // build buttons 0 (campfire) up, then craft buttons from CraftHover
-    const int CraftHover = 100;
-    readonly Button[] craftButtons = new Button[Crafting.Recipes.Length];
+    Button craftButton;
+    Text noticeLabel;
+    readonly ScreenBanner banner = new ScreenBanner();
     RectTransform barFill;
     Image barFillImage;
     RectTransform encumberedTick;
@@ -96,64 +90,13 @@ public class InventoryScreen : GameScreen
         hintLabel = UiKit.Text(right, "Hint", "", 16, UiKit.Muted);
         Top(hintLabel.rectTransform, 278f, 64f);
 
-        // Building (Fire System).
-        Heading(right, "Build", 344f);
-        // Campfire and the storage kinds, three to a row.
-        buildButton = UiKit.Button(right, "Build Campfire", "", 17, BuildCampfire);
-        // (Row heights are kept tight so the craft grid — now 13 recipes, five rows — clears the "Esc to close" hint.)
-        Grid(buildButton, 0, 382f, BuildRowHeight);
-        for (int i = 0; i < pileButtons.Length; i++)
-        {
-            PileKind kind = WoodManager.Buildable[i];
-            pileButtons[i] = UiKit.Button(right, "Build " + kind, "", 17, () => BuildPile(kind));
-            Grid(pileButtons[i], i + 1, 382f, BuildRowHeight);
-        }
-        buildLabel = UiKit.Text(right, "Build Status", "", 15, UiKit.Muted);
-        Top(buildLabel.rectTransform, 544f, 38f);
+        // Building and crafting live on their own screen now.
+        craftButton = UiKit.Button(right, "Craft and Build", "Craft and Build  [B]", 22, OpenCrafting);
+        Top((RectTransform)craftButton.transform, 352f, 52f);
+        noticeLabel = UiKit.Text(right, "Notice", "", 18, UiKit.Muted);
+        Top(noticeLabel.rectTransform, 414f, 56f);
 
-        // Traps and tools, three to a row.
-        for (int i = 0; i < Crafting.Recipes.Length; i++)
-        {
-            Crafting.Recipe recipe = Crafting.Recipes[i];
-            craftButtons[i] = UiKit.Button(right, "Craft " + recipe.outputId, "", 16, () => Craft(recipe));
-            Grid(craftButtons[i], i, 584f, CraftRowHeight);
-        }
-
-        // Hovering a button explains it in the status line.
-        Hover(buildButton, 0);
-        for (int i = 0; i < pileButtons.Length; i++)
-            Hover(pileButtons[i], i + 1);
-        for (int i = 0; i < craftButtons.Length; i++)
-            Hover(craftButtons[i], CraftHover + i);
-
-        BuildBanner(area); // last, so it draws over everything else
-    }
-
-    // Places a button in a three-wide grid starting at top.
-    static void Grid(Button button, int index, float top, float height)
-    {
-        int column = index % 3, row = index / 3;
-        var rt = (RectTransform)button.transform;
-        Top(rt, top + row * (height + 2f), height);
-        rt.anchorMin = new Vector2(column / 3f, 1f);
-        rt.anchorMax = new Vector2((column + 1) / 3f, 1f);
-        rt.offsetMin = new Vector2(column == 0 ? 0f : 2f, rt.offsetMin.y);
-        rt.offsetMax = new Vector2(column == 2 ? 0f : -2f, rt.offsetMax.y);
-        Text label = rt.GetComponentInChildren<Text>();
-        label.rectTransform.Fill(4f, 0f, 4f, 0f);
-        label.horizontalOverflow = HorizontalWrapMode.Wrap;
-        label.lineSpacing = 0.9f;
-    }
-
-    void Hover(Button button, int index)
-    {
-        var trigger = button.gameObject.AddComponent<EventTrigger>();
-        var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-        enter.callback.AddListener(_ => { hovered = index; noticeUntil = 0f; RefreshBuild(); });
-        var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-        exit.callback.AddListener(_ => { if (hovered == index) { hovered = -1; RefreshBuild(); } });
-        trigger.triggers.Add(enter);
-        trigger.triggers.Add(exit);
+        banner.Build(area); // last, so it draws over everything else
     }
 
     public override void OnShow()
@@ -170,7 +113,7 @@ public class InventoryScreen : GameScreen
 
     public override void OnHide()
     {
-        HideBanner();
+        banner.Hide();
         Unsubscribe();
     }
 
@@ -197,10 +140,9 @@ public class InventoryScreen : GameScreen
         if (notice != null && Time.unscaledTime >= noticeUntil)
         {
             notice = null;
-            RefreshBuild();
+            RefreshNotice();
         }
-        if (bannerUntil > 0f && Time.unscaledTime >= bannerUntil)
-            HideBanner();
+        banner.Tick();
 
         CampfireCooking cooking = CampfireCooking.Instance;
         AxeTool axe = AxeTool.Instance;
@@ -281,315 +223,44 @@ public class InventoryScreen : GameScreen
             statusLabel.text = $"Unencumbered. {limit - carried:0.0} kg before you slow down.";
 
         equippedLabel.text = equipped != null ? equipped.DisplayName : "<color=#EDE3C799>None</color>";
-        RefreshBuild();
+        RefreshNotice();
     }
 
-    void RefreshBuild()
-    {
-        FireManager fires = FireManager.Instance;
-        buildButton.gameObject.SetActive(fires != null);
-        if (fires == null)
-        {
-            buildLabel.text = Notice ?? "";
-            return;
-        }
-
-        PlayerController player = FindAnyObjectByType<PlayerController>();
-        bool can = fires.CanBuild(player, out _, out string reason);
-        SetAvailable(buildButton, can);
-        buildButton.GetComponentInChildren<Text>().text = $"Campfire\n<size=13><color=#EDE3C799>{fires.FirewoodToBuild} Firewood</color></size>";
-        string status = hovered == 0 ? (can ? "Campfire: builds just in front of you. Light it with Flint and Steel." : $"Campfire: {reason}") : null;
-
-        WoodManager wood = WoodManager.Instance;
-        for (int i = 0; i < pileButtons.Length; i++)
-        {
-            Button button = pileButtons[i];
-            button.gameObject.SetActive(wood != null);
-            if (wood == null)
-                continue;
-            PileKind kind = WoodManager.Buildable[i];
-
-            // The Small Cabin site's button does double duty: place an (empty, free) site normally, or — once a
-            // nearby site is fully stocked and the Hammer's equipped — complete it into the real thing instead.
-            // With an unfinished site in reach the button is the completion button even while it can't be used yet, so
-            // hovering and clicking say what's still missing (Mike's playtest, 2026-10-09). The "you already have a
-            // site" refusal is only for a site that's out of reach.
-            if (kind == PileKind.CabinSite && wood.SiteInReach(player) != null)
-            {
-                bool complete = wood.CanCompleteCabin(player, out _, out string completeReason);
-                SetAvailable(button, complete);
-                button.GetComponentInChildren<Text>().text = "Complete Small Cabin";
-                if (hovered == i + 1)
-                    status = "Small Cabin: " + (complete ? "fully stocked — build it now." : completeReason);
-                continue;
-            }
-
-            bool canPile = wood.CanBuildPile(kind, player, out _, out string why);
-            SetAvailable(button, canPile);
-            button.GetComponentInChildren<Text>().text =
-                $"{WoodManager.PileName(kind)}\n<size={CostSize(wood.CostText(kind), 13)}><color=#EDE3C799>{wood.CostText(kind)}</color></size>";
-            if (hovered == i + 1)
-                status = $"{WoodManager.PileName(kind)}: " + (canPile ? PileHelp(kind) : why);
-        }
-
-        for (int i = 0; i < Crafting.Recipes.Length; i++)
-        {
-            Crafting.Recipe recipe = Crafting.Recipes[i];
-            bool canCraft = Crafting.CanCraft(recipe, out string why);
-            SetAvailable(craftButtons[i], canCraft);
-            string name = Crafting.OutputName(recipe);
-            string cost = Crafting.Cost(recipe);
-            craftButtons[i].GetComponentInChildren<Text>().text = $"{name}\n<size={CostSize(cost, 12)}><color=#EDE3C799>{cost}</color></size>";
-            if (hovered == CraftHover + i)
-                status = $"{name}: " + (canCraft ? CraftHelp(recipe.outputId) : why);
-        }
-
-        buildLabel.text = Notice ?? status ?? "Hover a button to see what it needs. Click one you can't afford to see what's missing. Things you build go just in front of you.";
-    }
-
-    // --- Notice (Inventory_System.md's Build/Craft Missing-Materials Notice) ---
+    // --- Notice ---
 
     // Two kinds of message, neither going through the HUD's message line (the screen draws over it):
-    //  - Information (a drop, a hotkey assignment, a refill): the small status line above the Craft buttons, for a few
-    //    seconds, in place of the hover text, until it times out or the mouse moves to another button.
-    //  - A refusal (a Build/Craft click that can't go ahead, a drop that can't happen): a banner across the top of the
-    //    screen in large type on a solid panel — Mike found the small line hard to read (2026-10-04). A missing-materials
-    //    refusal lists one material per line, quantity first, and stays up long enough to read; it doesn't block clicks.
+    //  - Information (a drop, a hotkey assignment, a refill): a small status line under the Equipped Tool, for a few
+    //    seconds.
+    //  - A refusal (a drop that can't happen): a banner across the top of the screen in large type on a solid panel —
+    //    Mike found the small line hard to read (2026-10-04); see ScreenBanner.
     string notice;
     float noticeUntil;
     string Notice => notice != null && Time.unscaledTime < noticeUntil ? notice : null;
 
-    static readonly Color BannerBorder = new Color(0.96f, 0.72f, 0.30f, 1f);
-    static readonly Color BannerFill = new Color(0.36f, 0.07f, 0.06f, 1f);
-    RectTransform bannerRect;
-    Text bannerText;
-    float bannerUntil;
-
-    void BuildBanner(RectTransform area)
+    void RefreshNotice()
     {
-        Image border = UiKit.Image(area, "Notice Banner", BannerBorder);
-        bannerRect = border.rectTransform;
-        bannerRect.anchorMin = new Vector2(0f, 1f);
-        bannerRect.anchorMax = new Vector2(1f, 1f);
-        bannerRect.pivot = new Vector2(0.5f, 1f);
-        bannerRect.anchoredPosition = new Vector2(0f, -6f);
-        bannerRect.sizeDelta = new Vector2(-40f, 100f);
-
-        Image panel = UiKit.Image(bannerRect, "Panel", BannerFill);
-        panel.rectTransform.Fill(4f, 4f, 4f, 4f);
-        bannerText = UiKit.Text(panel.rectTransform, "Text", "", 30, UiKit.Cream, TextAnchor.UpperLeft);
-        bannerText.rectTransform.Fill(22f, 8f, 22f, 8f);
-        bannerText.verticalOverflow = VerticalWrapMode.Overflow;
-        bannerRect.gameObject.SetActive(false);
+        if (noticeLabel != null)
+            noticeLabel.text = Notice ?? "";
     }
 
-    void HideBanner()
+    void OpenCrafting()
     {
-        bannerUntil = 0f;
-        if (bannerRect != null)
-            bannerRect.gameObject.SetActive(false);
-    }
-
-    // Shows the banner: a heading, an optional smaller sub-heading, then one big line per entry.
-    void ShowBanner(string heading, string subheading, List<string> lines)
-    {
-        var text = new System.Text.StringBuilder();
-        text.Append($"<size=34><b><color=#FFE2BC>{heading}</color></b></size>");
-        if (subheading != null)
-            text.Append($"\n<size=27><color=#F6CFA3>{subheading}</color></size>");
-        foreach (string line in lines)
-            text.Append($"\n<size=40><b>{line}</b></size>");
-        bannerText.text = text.ToString();
-
-        // About 42 px for the heading, 33 for a sub-heading and 50 a line, plus padding.
-        float height = 30f + 42f + (subheading != null ? 33f : 0f) + lines.Count * 50f;
-        bannerRect.sizeDelta = new Vector2(-40f, height);
-        bannerRect.SetAsLastSibling();
-        bannerRect.gameObject.SetActive(true);
-        bannerUntil = Time.unscaledTime + Mathf.Min(14f, 6f + 1.5f * lines.Count);
-        if (AudioManager.Instance != null)
-            AudioManager.Instance.Play(SoundCue.UiBack);
-    }
-
-    // A Build/Craft refusal. The reasons from Crafting, WoodManager and FireManager read "Needs 4 more Logs, 2 more
-    // Stone." (also "… at the site." and "… (or 3 Tall Grass, or 2 Cattail).") — split into one material per line.
-    void NotifyCant(string heading, string reason)
-    {
-        var lines = new List<string>();
-        string text = (reason ?? "").Trim();
-        bool needs = text.StartsWith("Needs ");
-        if (!needs)
-        {
-            if (text.Length > 0)
-                lines.Add(text);
-            ShowBanner(heading, null, lines);
-            return;
-        }
-
-        string body = text.Substring("Needs ".Length).TrimEnd('.');
-        string alternatives = null, where = null;
-        int alt = body.IndexOf(" (or ", System.StringComparison.Ordinal);
-        if (alt >= 0)
-        {
-            alternatives = body.Substring(alt + " (or ".Length).TrimEnd(')');
-            body = body.Substring(0, alt);
-        }
-        const string AtSite = " at the site";
-        if (body.EndsWith(AtSite, System.StringComparison.Ordinal))
-        {
-            where = "You still need, at the cabin site:";
-            body = body.Substring(0, body.Length - AtSite.Length);
-        }
-
-        lines.AddRange(body.Split(new[] { ", " }, System.StringSplitOptions.RemoveEmptyEntries));
-        if (alternatives != null)
-            lines.Add($"or {alternatives}");
-        ShowBanner(heading, where ?? "You still need:", lines);
+        GameScreens screens = GetComponentInParent<GameScreens>();
+        if (screens != null)
+            screens.OpenCrafting();
     }
 
     void Notify(string message, bool warning = true, float seconds = 4f)
     {
         if (warning)
         {
-            ShowBanner(message, null, new List<string>());
+            banner.Show(message, null, new List<string>());
             return;
         }
 
         notice = message;
         noticeUntil = Time.unscaledTime + seconds;
-        RefreshBuild();
-    }
-
-    // Build and Craft buttons stay clickable when they can't be used — a click explains why (Notify) — so "unavailable"
-    // is shown by dimming rather than by Button.interactable, which would swallow the click.
-    static void SetAvailable(Button button, bool available)
-    {
-        button.interactable = true;
-        CanvasGroup group = button.GetComponent<CanvasGroup>();
-        if (group == null)
-            group = button.gameObject.AddComponent<CanvasGroup>();
-        group.alpha = available ? 1f : 0.45f;
-    }
-
-    // Long costs (the Lean-To's, Cordage's alternatives) in smaller type so they fit their button on one line.
-    static int CostSize(string cost, int normal) => cost.Length > 30 ? 10 : cost.Length > 24 ? 11 : normal;
-
-    static string PileHelp(PileKind kind)
-    {
-        switch (kind)
-        {
-            case PileKind.RockStorage: return "store Stone (R), take it back (E).";
-            case PileKind.WaterBarrel: return "pour water in from the Bucket (R), fill the Bucket from it (E). Holds 40 L.";
-            case PileKind.FoodCache: return "store food (R), take it back (E).";
-            case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
-            case PileKind.ToolRack: return "store Tools you're not carrying for a trip (R), take them back (E).";
-            case PileKind.Tent: return "sleep in it (E), pack it up again (R). Keeps off rain, wind and much of the cold.";
-            case PileKind.TarpShelter: return "sleep under it (E), take it down for the Tarp and half the Sticks back (R). Keeps off most rain and half the wind, and a little cold. No Hammer needed.";
-            case PileKind.LeanTo: return "sleep in it (E), take it down (R). Keeps off most rain and wind, and some cold.";
-            case PileKind.Cabin: return "sleep in it (E) — permanent, the best shelter yet. Comes with a hearth to warm up and cook at.";
-            case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, this button completes it (needs the Hammer equipped). Placed one by mistake? E on it when it's empty, or R with nothing to store, takes it down — no Hammer needed.";
-            default: return "store wood (R), take it back (E).";
-        }
-    }
-
-    static string CraftHelp(string itemId)
-    {
-        switch (itemId)
-        {
-            case "stone_pick_axe": return "mines Stone from the rock outcrop on South Ridge.";
-            case "shovel": return "digs out stumps.";
-            case "primitive_axe": return "fells trees and splits wood like the Axe, just slower.";
-            case "knife": return "carried, it lets you field dress kills and take game from traps.";
-            case "pouch": return "carried, it lets you carry 10 kg more.";
-            case "cordage": return "twisted from whichever fibre you have.";
-            case "hammer": return "equip it to build a Small Cabin, or to dismantle a finished structure for half its materials.";
-            case "torch": return "equip it and click to light it (needs Flint and Steel, or stand by a burning Campfire). Burns about 3 hours, then it's gone.";
-            case "bow_drill": return "equip it, face a Campfire with fuel and hold click to start a fire without Flint and Steel. Doesn't always catch.";
-            case "primitive_bow": return "equip it, hold click to draw and release to shoot. Shorter range and less accurate than a Recurve Bow, but it's made from a Branch.";
-            case "arrows": return "shoot them from either bow; a killing arrow can often be recovered when field dressing.";
-            case "lantern": return "equip it and click to light it. Burns Lamp Oil (Trading Post) — refill it here with the Refill button.";
-            default: return "equip it to set it.";
-        }
-    }
-
-    void Craft(Crafting.Recipe recipe)
-    {
-        string name = Crafting.OutputName(recipe);
-        if (!Crafting.CanCraft(recipe, out string why))
-        {
-            NotifyCant($"Can't make {name}", why);
-            return;
-        }
-
-        noticeUntil = 0f;
-        HideBanner();
-        if (Crafting.Craft(recipe))
-            ToolStatus.Flash($"Made {(recipe.outputCount > 1 ? name : "a " + name)} — {CraftHelp(recipe.outputId)}");
-    }
-
-    void BuildPile(PileKind kind)
-    {
-        WoodManager wood = WoodManager.Instance;
-        if (wood == null)
-            return;
-        PlayerController player = FindAnyObjectByType<PlayerController>();
-
-        if (kind == PileKind.CabinSite && wood.SiteInReach(player) != null)
-        {
-            if (!wood.CanCompleteCabin(player, out _, out string completeWhy))
-            {
-                NotifyCant("Can't complete Small Cabin", completeWhy);
-                return;
-            }
-            if (!wood.CompleteCabin(player))
-                return;
-            ToolStatus.Flash("Small Cabin built — you can sleep in it, and its hearth is ready for Firewood.");
-            Close();
-            return;
-        }
-
-        if (!wood.CanBuildPile(kind, player, out _, out string why))
-        {
-            NotifyCant($"Can't build {WoodManager.PileName(kind)}", why);
-            return;
-        }
-
-        if (!wood.BuildPile(kind, player))
-            return;
-        noticeUntil = 0f;
-        HideBanner();
-        ToolStatus.Flash($"{WoodManager.PileName(kind)} built — {PileHelp(kind)}");
-        Close();
-    }
-
-    void Close()
-    {
-        GameScreens screens = GetComponentInParent<GameScreens>();
-        if (screens != null)
-            screens.Close();
-    }
-
-    void BuildCampfire()
-    {
-        FireManager fires = FireManager.Instance;
-        if (fires == null)
-            return;
-        PlayerController player = FindAnyObjectByType<PlayerController>();
-        if (!fires.CanBuild(player, out _, out string why))
-        {
-            NotifyCant("Can't build a Campfire", why);
-            return;
-        }
-        if (!fires.Build(player))
-            return;
-        noticeUntil = 0f;
-        HideBanner();
-
-        // (Using up the Firewood already plays the item-drop sound.)
-        // Back to the world, so the player sees what they built.
-        GameScreens screens = GetComponentInParent<GameScreens>();
-        if (screens != null)
-            screens.Close();
+        RefreshNotice();
     }
 
     // Pours Lamp Oil into the Lantern: one bottle, or Shift-click as many as fit.

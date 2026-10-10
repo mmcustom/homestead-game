@@ -132,6 +132,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "Crafting",
+                    "type": "Button",
+                    "id": "b08321d3-b121-4d63-8759-9d49698ea8a4",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Aim",
                     "type": "Button",
                     "id": "217d54f1-c956-4e96-8494-c13ef7d4423e",
@@ -557,6 +566,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Inventory",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "de24f711-a514-492a-9fa2-da7bf4365f24",
+                    "path": "<Keyboard>/b",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Crafting",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
