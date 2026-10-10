@@ -314,6 +314,8 @@ MonoBehaviour:
   dailyTemperatureVariationC: 4
   dailyWindShiftDegrees: 45
   maxTemperatureChangePerHour: 3
+  offsetColdBelowC: 14
+  offsetHotAboveC: 26
   lateFallSnowShare: 4
   lateFallStartsAt: 0.75
   droughtDryDays: 5
@@ -609,6 +611,14 @@ MonoBehaviour:
     maxDuration: 0
     fadeOut: 0.2
     pitch: 1
+  shiver:
+    clip: {fileID: 8300000, guid: 588b8f78c43221444bacd78967798936, type: 3}
+    volume: 1
+    startTime: 1
+    loopEnd: 6
+    maxDuration: 1
+    fadeOut: 0.2
+    pitch: 1
   itemPickup:
     clip: {fileID: 8300000, guid: 9489232f45891434988643f01200bf19, type: 3}
     volume: 0.27
@@ -863,14 +873,7 @@ MonoBehaviour:
   hungerPerHour: 1.4
   walkingHydration: 1.2
   sprintingHydration: 2
-  walkingHunger: 1.15
-  sprintingHunger: 1.6
-  warmF: 80
-  hotF: 95
-  hotHydrationMultiplier: 1.5
-  coolF: 40
-  frigidF: 10
-  coldHungerMultiplier: 1.3
+  hungerPerExtraMet: 0.06
   dehydrationSevereLoss: 1.5
   dehydrationEmptyLoss: 8
   starvationSevereLoss: 1
@@ -878,21 +881,59 @@ MonoBehaviour:
   recoveryPerHour: 3
   lowRecoveryPerHour: 1.5
   halfFed: 50
-  neutralF: 50
-  warmthPerDegree: 0.3
-  maxWarmthLossPerHour: 12
-  maxWarmthGainPerHour: 5
-  windChillF: 15
-  wetChillF: 12
   soakPerHour: 1.5
   dryPerHour: 0.4
-  fireWarmthPerHour: 30
   fireDryPerHour: 3
   fireInnerRadius: 1.5
   fireOuterRadius: 6
   coldModerateLoss: 1
   coldSevereLoss: 4
   coldEmptyLoss: 8
+  body:
+    restWatts: 80
+    heatCapacityWhPerC: 67
+    skinC: 33
+    areaM2: 1.8
+    stillAirH: 7.8
+    windH: 8.3
+    resistancePerClo: 0.155
+    wetFactor: 4
+    dampFactor: 1
+    shiverStartC: 36.5
+    shiverRampC: 1
+    shiverFadeFromC: 33
+    shiverEndC: 30
+    shiverPeakMet: 4.9
+    shiverFuelHunger: 25
+    normalCoreC: 37
+    dissipationWattsPerC: 400
+    minCoreC: 24
+    maxCoreC: 41
+  fireRadiantWatts: 250
+  windMetersPerSecondAtFull: 8
+  bedReferenceResistance: 0.44
+  winterClo: 2
+  summerClo: 0.8
+  clothingColdC: -1
+  clothingWarmC: 24
+  clothingSmoothHours: 24
+  sleepMet: 0.9
+  idleMet: 1
+  crouchMet: 2.5
+  walkMet: 3.5
+  sprintMet: 10
+  carryMetBonus: 1.5
+  workMet: 5.5
+  workPerSwing: 0.35
+  workFadePerSecond: 0.15
+  shiverStamina: 0.7
+  dampBuildPerHour: 0.5
+  dampMinMet: 4.5
+  dampAboveCoreC: 36.9
+  dampBelowAirC: 15
+  dampClearByFire: 1
+  dampClearInShelter: 0.33
+  dampClearInOpen: 0.1
   illnessHoursPerBout: 8
   maxIllnessHours: 16
   mildStamina: 0.8
@@ -942,6 +983,19 @@ MonoBehaviour:
   buildDistance: 1.8
   minSpacing: 3
   maxSlope: 25
+  bowDrill:
+    drillSeconds: 6
+    staminaCost: 15
+    minutesPerAttempt: 10
+    reach: 3
+    chanceCalm: 0.45
+    chanceWind: 0.35
+    chanceLightPrecipitation: 0.2
+    chanceHeavyPrecipitation: 0.1
+    coverIgnoresPrecipitation: 1
+    emberBonusPerFailure: 0.1
+    emberBonusCap: 0.3
+    emberForgetHours: 1
 --- !u!114 &199833595
 MonoBehaviour:
   m_ObjectHideFlags: 0

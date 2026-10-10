@@ -34,17 +34,21 @@ public class PlayerAudio : MonoBehaviour
     [Tooltip("Breathing trails off rather than cutting out when the effort stops.")]
     [SerializeField, Min(0.01f)] float breathingFadeOutSeconds = 1.5f;
 
+    [Header("Shivering")]
+    [SerializeField, Min(0.01f)] float shiverFadeInSeconds = 1.5f;
+    [SerializeField, Min(0.01f)] float shiverFadeOutSeconds = 2.5f;
+
     const float SurfaceCheckInterval = 0.2f;
     const float StepLeadIn = 0.03f; // start just before each measured step time, which sits slightly after the attack
     const float FirstStepProgress = 0.6f; // starting to move lands the first step after a short partial stride
 
     PlayerController controller;
-    AudioSource sprintBreath, encumberedBreath;
+    AudioSource sprintBreath, encumberedBreath, shiverLoop;
     readonly AudioSource[] stepSources = new AudioSource[3];
     readonly float[] stepEnds = new float[3];
     int nextStepSource, lastStepIndex = -1;
     float strideProgress = FirstStepProgress;
-    float sprintLevel, encumberedLevel;
+    float sprintLevel, encumberedLevel, shiverLevel;
     float nextSurfaceCheck;
     bool wading;
     float nextWadeSplash;
@@ -62,6 +66,7 @@ public class PlayerAudio : MonoBehaviour
         }
         sprintBreath = CreateSource("Sprint Breathing");
         encumberedBreath = CreateSource("Encumbered Breathing");
+        shiverLoop = CreateSource("Shivering");
     }
 
     // sfx_splash when stepping from dry ground into water deep enough to wade (over the ankles).
@@ -120,6 +125,16 @@ public class PlayerAudio : MonoBehaviour
 
         ApplyLoop(sprintBreath, audio.SprintBreathing, sprintLevel);
         ApplyLoop(encumberedBreath, audio.EncumberedBreathing, encumberedLevel);
+
+        // Shivering: looped while the body is cold enough to shiver, its level following how hard it shivers. Faded in
+        // and out so it doesn't pop; silent asleep and collapsed (a paused game pauses the source with the listener).
+        SurvivalManager survival = SurvivalManager.Instance;
+        bool sleeping = SleepManager.Instance != null && SleepManager.Instance.IsSleeping;
+        bool shivering = survival != null && survival.IsShivering && !survival.IsCollapsed && !sleeping;
+        float target = shivering ? Mathf.Clamp01(survival.ShiverIntensity) : 0f;
+        float rate = target > shiverLevel ? 1f / shiverFadeInSeconds : 1f / shiverFadeOutSeconds;
+        shiverLevel = Mathf.MoveTowards(shiverLevel, target, rate * dt);
+        ApplyLoop(shiverLoop, audio.Shiver, shiverLevel);
     }
 
     SurfaceType DetectSurface()

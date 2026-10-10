@@ -6,7 +6,7 @@ using UnityEngine.Audio;
 public enum AudioChannel { Master, Music, Ambient, Sfx, Ui }
 
 // Audio_System.md's one-shot sounds.
-public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop, Drink, Eat, UpsetStomach, Vomit, Forage, Pour }
+public enum SoundCue { UiClick, UiBack, DiscoveryChime, JournalUpdated, Milestone, ItemPickup, ItemDrop, Drink, Eat, UpsetStomach, Vomit, Forage, Pour, Shiver }
 
 // A clip and the level it plays at within its mixer group. Levels start from each file's measured loudness,
 // so sounds sourced from different libraries sit sensibly together; adjust by ear in the Inspector.
@@ -111,6 +111,8 @@ public class AudioManager : MonoBehaviour
     [SerializeField] List<float> footstepsGravelTimes = new List<float>();
     [SerializeField] Sound sprintBreathing = new Sound();
     [SerializeField] Sound encumberedBreathing = new Sound();
+    [Tooltip("Shiver.wav: looped by PlayerAudio while the body is shivering (SurvivalManager.IsShivering), louder as it gets worse.")]
+    [SerializeField] Sound shiver = new Sound();
 
     [Header("One-shots")]
     [SerializeField] Sound itemPickup = new Sound();
@@ -397,6 +399,7 @@ public class AudioManager : MonoBehaviour
 
     public Sound SprintBreathing => sprintBreathing;
     public Sound EncumberedBreathing => encumberedBreathing;
+    public Sound Shiver => shiver;
 
     public void Play(SoundCue cue)
     {
@@ -406,7 +409,7 @@ public class AudioManager : MonoBehaviour
 
         if (cue == SoundCue.ItemPickup || cue == SoundCue.ItemDrop || cue == SoundCue.Drink || cue == SoundCue.Eat ||
             cue == SoundCue.UpsetStomach || cue == SoundCue.Vomit || cue == SoundCue.Forage ||
-            cue == SoundCue.Pour)
+            cue == SoundCue.Pour || cue == SoundCue.Shiver)
             PlayOn(NextSfxSource(), sound, null);
         else
             uiSource.PlayOneShot(sound.clip, sound.volume); // UI group; still heard while paused
@@ -453,6 +456,7 @@ public class AudioManager : MonoBehaviour
             case SoundCue.Vomit: return vomit;
             case SoundCue.Forage: return foraging;
             case SoundCue.Pour: return pour;
+            case SoundCue.Shiver: return shiver;
             default: return null;
         }
     }
