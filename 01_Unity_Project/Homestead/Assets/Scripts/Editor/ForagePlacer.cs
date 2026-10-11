@@ -54,7 +54,7 @@ public static class ForagePlacer
         // exist, placed AFTER the originals so the originals keep their random draws, positions and ids. ForagingManager
         // switches them on and off by season. Nine extras: the most any season needs is nuts at 2.0 x 3 = 6 patches.
         S("dandelion", "Dandelion Meadow", "greens", ForageLook.GroundGreens, Season.Spring, 2, ForageRegrowth.Days, 4, Habitat.Open, new Vector2(-100f, -40f), suffix: "_2"),
-        S("cattail", "Cattail Marsh", "greens", ForageLook.Cattail, Season.Spring, 2, ForageRegrowth.Days, 4, Habitat.Shore, new Vector2(130f, -60f), suffix: "_2"),
+        S("cattail", "Cattail Marsh", "greens", ForageLook.Cattail, Season.Spring, 2, ForageRegrowth.Days, 4, Habitat.Shore, new Vector2(-215f, -135f), suffix: "_2"),
         S("oyster_mushroom", "Oyster Mushroom Log", "mushroom", ForageLook.LogMushroom, Season.Spring, 2, ForageRegrowth.Days, 3, Habitat.Forest, new Vector2(110f, -20f), suffix: "_2"),
         S("blackberries", "Blackberry Patch", "berry", ForageLook.BerryBush, Season.Summer, 3, ForageRegrowth.Annual, 0, Habitat.Edge, new Vector2(-30f, -110f), suffix: "_2"),
         S("raspberries", "Raspberry Canes", "berry", ForageLook.BerryBush, Season.Summer, 3, ForageRegrowth.Annual, 0, Habitat.Edge, new Vector2(-110f, -90f), suffix: "_2"),
