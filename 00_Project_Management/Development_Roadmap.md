@@ -122,3 +122,22 @@ Livestock, Plants, Wildlife and Fishing species sheets, Gameplay_Loops (Core_Loo
 # Stages 2 Through 4 — Explicitly Deferred
 
 Early Homestead, Established Homestead, and Modern Homestead (per the GDD's Progression Overview) are not in scope for design work right now. The GDD's Development Rule blocks Farming, Large Livestock Operations, Vehicles, Solar Arrays, and Automation until the Stage 1 survival loop is proven fun. This roadmap will not add tasks for those stages until that milestone is reached and Mike says so.
+
+
+---
+
+# Status Update — 2026-10-10 (supersedes the 2026-10-07 housekeeping and playtest notes above where they differ)
+
+**Everything below is built, Play Mode tested by Mike, committed and pushed (latest commit b71ace2; master matches origin/master). `ProjectSettings.asset` runInBackground remains a local, uncommitted setting by Mike's choice.**
+
+- Core Temperature Model, cold side (BodyHeat.cs, SurvivalManager): confirmed, with Mike's tuning on 2026-10-10: visible shivering starts at core 35.5 C (full 34.5 C) so dry rests no longer shiver; shivering's stamina penalty follows the visible ramp; a rewarming boost speeds recovery while walking (x1.5), working (x2.0) and sprinting (x2.5) without changing resting levels or cooling. Shiver.wav wired.
+- Bow Drill, ground wood, stone and tall grass density, Primitive Bow and Arrows, Clay patches, Tarp Shelter: confirmed.
+- Small Cabin: site messaging, geometry and walkable interior confirmed; hearth moved INSIDE (stone slab, clay backing and chimney) and confirmed; old saves migrate; loading a save made inside a cabin or under a Tarp no longer puts the player on the roof.
+- Crafting and Build screen (key B, Craft and Build tabs, 15 recipes, have/need panel): confirmed.
+- Audio listener fallback and minimap water: confirmed.
+
+**Still designed, not built:** hot side of the temperature model (humidity, sun load, Heat Waves, Overheating tiers; Weather_System.md first pass), Player Collapse and its repeated-collapse scale (Warmth 0 and soaked players can currently fall to a core of 24 C with no rescue path), Power_System, Flashlight, Maple_Sugaring, Rainwater Collection, Lumber Mill, Large Cabin and higher tiers, Livestock, Mining/Metalworking.
+
+**Known gaps:** Lumber at the Trading Post (confirmed 2026-09-26, never sent to Claude Code), Livestock feed quantities, whether the Trading Post buys furs, pond drying in Heat Waves, what is dropped on a fourth collapse, a performance review of the roughly 13,000 placed ground objects in World.unity (46 MB, each with its own collider), and real mouse/keyboard input untested.
+
+**Next step (unchanged, per the GDD Development Rule):** a full Winter Preparation playthrough. Fire, shelter, food, water, storage, light, crafting and temperature now all exist together, so the playthrough is the real test. Anything beyond Alpha 0.1 waits until the survival loop is proven fun, except fixes the playthrough turns up.

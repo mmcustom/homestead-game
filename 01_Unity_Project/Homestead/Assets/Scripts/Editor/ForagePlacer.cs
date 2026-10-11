@@ -29,6 +29,7 @@ public static class ForagePlacer
         public int regrowDays;
         public Habitat habitat;
         public Vector2 anchor;
+        public string idSuffix; // "" for the original patches (their ids never change); "_2", "_3" for the pool's extras
     }
 
     // Numbers from the Plants sheets (yields and regrowth confirmed 2026-09-22); anchors are rough landmarks from
@@ -48,13 +49,26 @@ public static class ForagePlacer
         S("morel", "Morel Ground", "mushroom", ForageLook.GroundMushroom, Season.Spring, 2, ForageRegrowth.Annual, 0, Habitat.Forest, new Vector2(-40f, 160f), 0.1f, 0.6f),
         S("dryads_saddle", "Dryad's Saddle Log", "mushroom", ForageLook.LogMushroom, Season.Spring, 2, ForageRegrowth.Days, 3, Habitat.Forest, new Vector2(175f, 55f)),
         S("oyster_mushroom", "Oyster Mushroom Log", "mushroom", ForageLook.LogMushroom, Season.Spring, 2, ForageRegrowth.Days, 3, Habitat.Forest, new Vector2(-160f, 10f)),
+
+        // The seasonal pool (Foraging_System.md, Seasonal Forage Frequency, 2026-10-10): extra patches of species that already
+        // exist, placed AFTER the originals so the originals keep their random draws, positions and ids. ForagingManager
+        // switches them on and off by season. Nine extras: the most any season needs is nuts at 2.0 x 3 = 6 patches.
+        S("dandelion", "Dandelion Meadow", "greens", ForageLook.GroundGreens, Season.Spring, 2, ForageRegrowth.Days, 4, Habitat.Open, new Vector2(-100f, -40f), suffix: "_2"),
+        S("cattail", "Cattail Marsh", "greens", ForageLook.Cattail, Season.Spring, 2, ForageRegrowth.Days, 4, Habitat.Shore, new Vector2(130f, -60f), suffix: "_2"),
+        S("oyster_mushroom", "Oyster Mushroom Log", "mushroom", ForageLook.LogMushroom, Season.Spring, 2, ForageRegrowth.Days, 3, Habitat.Forest, new Vector2(110f, -20f), suffix: "_2"),
+        S("blackberries", "Blackberry Patch", "berry", ForageLook.BerryBush, Season.Summer, 3, ForageRegrowth.Annual, 0, Habitat.Edge, new Vector2(-30f, -110f), suffix: "_2"),
+        S("raspberries", "Raspberry Canes", "berry", ForageLook.BerryBush, Season.Summer, 3, ForageRegrowth.Annual, 0, Habitat.Edge, new Vector2(-110f, -90f), suffix: "_2"),
+        S("wild_apples", "Old Apple Tree", "fruit", ForageLook.FruitTree, Season.Fall, 4, ForageRegrowth.Annual, 0, Habitat.Edge, new Vector2(30f, 110f), suffix: "_2"),
+        S("hickory_nuts", "Hickory Stand", "nut", ForageLook.NutTree, Season.Fall, 5, ForageRegrowth.Annual, 0, Habitat.Forest, new Vector2(150f, -60f), suffix: "_2"),
+        S("walnuts", "Black Walnut Trees", "nut", ForageLook.NutTree, Season.Fall, 5, ForageRegrowth.Annual, 0, Habitat.Forest, new Vector2(-130f, 60f), suffix: "_2"),
+        S("chestnuts", "Chestnut Tree", "nut", ForageLook.NutTree, Season.Fall, 4, ForageRegrowth.Annual, 0, Habitat.Forest, new Vector2(20f, 60f), suffix: "_2"),
     };
 
     static Spec S(string item, string patch, string icon, ForageLook look, Season season, int yield, ForageRegrowth regrowth,
-                  int regrowDays, Habitat habitat, Vector2 anchor, float windowStart = 0f, float windowEnd = 1f) => new Spec
+                  int regrowDays, Habitat habitat, Vector2 anchor, float windowStart = 0f, float windowEnd = 1f, string suffix = "") => new Spec
     {
         item = item, patch = patch, icon = icon, look = look, season = season, yield = yield, regrowth = regrowth,
-        regrowDays = regrowDays, habitat = habitat, anchor = anchor, windowStart = windowStart, windowEnd = windowEnd,
+        regrowDays = regrowDays, habitat = habitat, anchor = anchor, windowStart = windowStart, windowEnd = windowEnd, idSuffix = suffix,
     };
 
     static System.Random random;
@@ -88,7 +102,7 @@ public static class ForagePlacer
         {
             ForageSpecies species = WriteSpecies(spec);
             GameObject node;
-            if (spec.item == "blackberries")
+            if (spec.item == "blackberries" && spec.idSuffix == "")
             {
                 node = FindBriarPatch();
                 if (node == null)
@@ -106,13 +120,13 @@ public static class ForagePlacer
                     continue;
                 }
                 taken.Add(position);
-                node = new GameObject(spec.patch);
+                node = new GameObject(spec.patch + spec.idSuffix);
                 node.transform.SetParent(root.transform);
                 node.transform.position = position;
                 node.transform.rotation = Quaternion.Euler(0f, (float)random.NextDouble() * 360f, 0f);
 
                 var site = node.AddComponent<DiscoverySite>();
-                site.Configure("forage_" + spec.item, spec.patch, DiscoveryCategory.Plant, Facts(spec, species),
+                site.Configure("forage_" + spec.item + spec.idSuffix, spec.patch, DiscoveryCategory.Plant, Facts(spec, species),
                                spec.icon, onApproach: false, bySight: false);
             }
 

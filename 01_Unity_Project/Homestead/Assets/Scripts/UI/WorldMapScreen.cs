@@ -134,25 +134,32 @@ public class WorldMapScreen : GameScreen
         Vector2 size = mapArea.rect.size;
         foreach (DiscoveryRecord record in discovery.Records)
         {
+            // A forage patch that is out of season stays on the map, greyed, with the season it returns.
+            bool dormant = ForagingManager.IsDormant(record.siteId, out string returns);
+            string returnNote = dormant && returns.Length > 0 ? $" (returns {returns})" : dormant ? " (out of season)" : "";
             if (map != null)
-                markers.Add(CreateMarker(record, Vector2.Scale(map.ToNormalized(record.position), size)));
+                markers.Add(CreateMarker(record, Vector2.Scale(map.ToNormalized(record.position), size), dormant, returnNote));
 
             // Legend row: icon, name, category.
             RectTransform row = UiKit.Height(UiKit.Rect(record.displayName, siteList), 44f);
             Image icon = UiKit.Image(row, "Icon", Color.white);
             icon.sprite = MapIcons.Marker(record.category, record.markerIcon);
+            if (dormant)
+                icon.color = DormantTint;
             icon.rectTransform.anchorMin = icon.rectTransform.anchorMax = new Vector2(0f, 0.5f);
             icon.rectTransform.pivot = new Vector2(0f, 0.5f);
             icon.rectTransform.sizeDelta = new Vector2(32f, 32f);
             icon.rectTransform.anchoredPosition = new Vector2(4f, 0f);
-            Text name = UiKit.Text(row, "Name", $"{record.displayName}  <color=#EDE3C799>{DiscoveryCategoryNames.Of(record.category)}</color>",
-                                   21, UiKit.Cream);
+            Text name = UiKit.Text(row, "Name", $"{record.displayName}  <color=#EDE3C799>{DiscoveryCategoryNames.Of(record.category)}{returnNote}</color>",
+                                   21, dormant ? UiKit.Muted : UiKit.Cream);
             name.rectTransform.Fill(48f, 0f, 0f, 0f);
         }
         playerArrow.SetAsLastSibling();
     }
 
-    GameObject CreateMarker(DiscoveryRecord record, Vector2 position)
+    static readonly Color DormantTint = new Color(1f, 1f, 1f, 0.4f);
+
+    GameObject CreateMarker(DiscoveryRecord record, Vector2 position, bool dormant = false, string returnNote = "")
     {
         RectTransform marker = UiKit.Rect(record.displayName, markerLayer);
         marker.anchorMin = marker.anchorMax = Vector2.zero;
@@ -161,9 +168,11 @@ public class WorldMapScreen : GameScreen
 
         Image icon = UiKit.Image(marker, "Icon", Color.white);
         icon.sprite = MapIcons.Marker(record.category, record.markerIcon);
+        if (dormant)
+            icon.color = DormantTint;
         icon.rectTransform.Fill();
 
-        Text label = UiKit.Text(marker, "Label", record.displayName, 17, UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
+        Text label = UiKit.Text(marker, "Label", record.displayName + returnNote, 17, dormant ? UiKit.Muted : UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
         label.horizontalOverflow = HorizontalWrapMode.Overflow;
         label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(1f, 0.5f);
         label.rectTransform.pivot = new Vector2(0f, 0.5f);

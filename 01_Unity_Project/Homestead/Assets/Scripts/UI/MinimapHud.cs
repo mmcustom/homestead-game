@@ -111,7 +111,9 @@ public class MinimapHud : MonoBehaviour
             RectTransform rt = markers[i].rectTransform;
             rt.anchoredPosition = offset;
             rt.localScale = Vector3.one * (beyond ? 0.75f : 1f);
-            markers[i].color = new Color(1f, 1f, 1f, beyond ? 0.7f : 1f);
+            // Out-of-season forage patches stay on the minimap, greyed.
+            bool dormant = ForagingManager.IsDormant(records[i].siteId, out _);
+            markers[i].color = new Color(1f, 1f, 1f, dormant ? 0.35f : beyond ? 0.7f : 1f);
         }
     }
 

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // A forage patch in the world (Foraging_System.md): a berry bush, fruit or nut tree, patch of greens or cattails, or a
@@ -12,9 +13,22 @@ public class ForageNode : MonoBehaviour, IInteractable
     [Tooltip("The ripe fruit, nuts, flowers or caps — shown only while there's something to pick (ForagePlacer builds it).")]
     [SerializeField] GameObject crop;
 
+    // Every patch in the loaded scenes: ForagingManager picks the active ones from this, the map and journal look one up.
+    public static readonly List<ForageNode> All = new List<ForageNode>();
+
+    public static ForageNode Find(string siteId)
+    {
+        foreach (ForageNode node in All)
+            if (node != null && node.Id == siteId)
+                return node;
+        return null;
+    }
+
     DiscoverySite site;
     float nextRefresh;
     bool cropShown = true;
+    bool shownActive = true;
+    Collider[] ownColliders;
 
     public ForageSpecies Species => species;
 
@@ -25,11 +39,40 @@ public class ForageNode : MonoBehaviour, IInteractable
         crop = ripeCrop;
     }
 
+    public string Id => NodeId;
+
     string NodeId => site != null ? site.SiteId : name;
 
     void Awake()
     {
         site = GetComponent<DiscoverySite>();
+        ownColliders = GetComponents<Collider>();
+    }
+
+    void OnEnable() => All.Add(this);
+
+    void OnDisable() => All.Remove(this);
+
+    // Out of season, the patch isn't there: no plant, no crop, no collider, no prompt. (Seasonal Forage Frequency.)
+    bool Active => ForagingManager.Instance == null || ForagingManager.Instance.IsActive(this);
+
+    void ApplyActive(bool active)
+    {
+        if (active == shownActive && ownColliders != null)
+            return;
+        shownActive = active;
+        foreach (Transform child in transform)
+        {
+            if (child.name == "Plant")
+                child.gameObject.SetActive(active);
+            else if (child.name == "Crop")
+                child.gameObject.SetActive(active && Available > 0);
+        }
+        if (ownColliders != null)
+            foreach (Collider c in ownColliders)
+                if (c != null)
+                    c.enabled = active;
+        cropShown = active && Available > 0;
     }
 
     void Update()
@@ -42,13 +85,14 @@ public class ForageNode : MonoBehaviour, IInteractable
 
     void RefreshCrop()
     {
-        bool show = Available > 0;
+        ApplyActive(Active);
+        bool show = shownActive && Available > 0;
         if (crop != null && show != cropShown)
             crop.SetActive(show);
         cropShown = show;
     }
 
-    int Available => ForagingManager.Instance != null ? ForagingManager.Instance.Available(NodeId, species) : 0;
+    int Available => shownActive && ForagingManager.Instance != null ? ForagingManager.Instance.Available(NodeId, species) : 0;
 
     string ItemName
     {
@@ -63,7 +107,7 @@ public class ForageNode : MonoBehaviour, IInteractable
     {
         get
         {
-            if (species == null || ForagingManager.Instance == null)
+            if (species == null || ForagingManager.Instance == null || !shownActive)
                 return "";
 
             int available = Available;
@@ -84,7 +128,7 @@ public class ForageNode : MonoBehaviour, IInteractable
     }
 
     // Always true, so the patch can be identified and its season learned even when there's nothing to pick.
-    public bool CanInteract(PlayerController player) => species != null && ForagingManager.Instance != null;
+    public bool CanInteract(PlayerController player) => species != null && ForagingManager.Instance != null && shownActive;
 
     public void Interact(PlayerController player)
     {

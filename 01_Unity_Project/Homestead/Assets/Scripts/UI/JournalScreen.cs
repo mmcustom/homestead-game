@@ -147,10 +147,18 @@ public class JournalScreen : GameScreen
             int id = entry.id;
             string title = string.IsNullOrEmpty(entry.title) ? "Untitled" : entry.title;
             string unread = entry.isRead ? "" : "<color=#C7D68C>●</color> ";
-            string label = $"{unread}{title}\n<size=16><color=#EDE3C799>{FormatDay(entry.day)}</color></size>";
+            string label = $"{unread}{title}\n<size=16><color=#EDE3C799>{FormatDay(entry.day)}{DormantNote(entry)}</color></size>";
             Button row = UiKit.Height(UiKit.Button(entryList, title, label, 20, () => Select(id), TextAnchor.MiddleLeft), 62f);
             UiKit.SetSelected(row, id == selectedId);
         }
+    }
+
+    // A forage patch that is out of season stays in the journal, noted with the season it returns.
+    static string DormantNote(JournalEntry entry)
+    {
+        if (entry.IsPlayerNote || string.IsNullOrEmpty(entry.siteId) || !ForagingManager.IsDormant(entry.siteId, out string returns))
+            return "";
+        return returns.Length > 0 ? $"  ·  out of season, returns {returns}" : "  ·  out of season";
     }
 
     void RefreshDetail()
@@ -168,7 +176,7 @@ public class JournalScreen : GameScreen
             return;
         }
 
-        Text meta = UiKit.Text(detail, "Meta", $"{FormatDay(entry.day)}  ·  {TypeName(entry.type)}", 18, UiKit.Muted);
+        Text meta = UiKit.Text(detail, "Meta", $"{FormatDay(entry.day)}  ·  {TypeName(entry.type)}{DormantNote(entry)}", 18, UiKit.Muted);
         Top(meta.rectTransform, 0f, 28f);
 
         if (entry.IsPlayerNote)

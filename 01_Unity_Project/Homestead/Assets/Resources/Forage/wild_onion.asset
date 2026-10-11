@@ -22,3 +22,4 @@ MonoBehaviour:
   yield: 2
   regrowth: 1
   regrowDays: 4
+  alsoBearsIn: 

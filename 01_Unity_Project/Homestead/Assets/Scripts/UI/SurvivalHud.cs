@@ -157,7 +157,7 @@ public class SurvivalHud : MonoBehaviour
         if (survival.IsShivering)
             parts.Add("<color=#9CC4E4>Shivering</color>");
         else if (survival.IsWorkingUpHeat)
-            parts.Add("<color=#F0B070>Working up a heat</color>");
+            parts.Add("<color=#F0B070>Working up some heat</color>");
         if (survival.Damp > 0.25f)
             parts.Add("<color=#8FB8D8>Damp</color>");
         if (survival.NearFire && survival.Warmth < SurvivalManager.MaxValue - 0.5f)

@@ -44,7 +44,7 @@ Reported by Claude Code 2026-10-09 from Crafting.cs (15 recipes, including the t
 | Traps and Fishing | rabbit_snare | 1 Cordage | 1 |
 | Traps and Fishing | box_trap | 3 Firewood | 1 |
 | Traps and Fishing | fish_trap | 3 Firewood, 1 Cordage | 1 |
-| Containers and Storage | pouch | 1 Deer Hide, 1 Cordage | 1 |
+| Containers and Storage | pouch | 1 Deer Hide, 2 Cordage, or 4 Small Furs, 2 Cordage (changed 2026-10-10, Mike; was 1 Deer Hide, 1 Cordage; built 2026-10-10 as alternative ingredient sets, small_furs item id; not compile-checked or Play Mode tested) | 1 |
 | Materials | cordage | 3 Tall Grass, or 2 Cattail, or 1 Sinew | 1 |
 
 **How the current grid is built (for the migration):** InventoryScreen.cs creates one button per Crafting.Recipes entry, three to a row starting at y=584 with CraftRowHeight, through the Grid() helper. A refresh loop greys out unaffordable buttons, hover shows help text or what is missing, and a click calls Craft(), which runs Crafting.CanCraft and then Crafting.Craft. Recipes now carry an output count (added for Arrows). 15 recipes is exactly five rows, so the grid has no room left on the Inventory screen.
