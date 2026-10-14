@@ -16,7 +16,8 @@ public struct TradingPostSaveData
 //   Buys (the store's stock) — the "camping kit" and hunting and fishing gear: Flint and Steel $8, Knife $4, Canteen $5,
 //     Bucket $6, Cooking Pot $12, Tarp $8, Sleeping Bag $15, Tent $25, Axe $20, Hammer $10, Fishing Rod $12, Recurve
 //     Bow $30, Arrow $1, Bolt-Action Rifle $60, Rifle Round $1, Cordage $2, Lamp Oil $3 (Portable Lighting, 2026-10-03:
-//     the Lantern's fuel — 8 hours of light a bottle — until a free source like rendered tallow exists).
+//     the Lantern's fuel — 8 hours of light a bottle — until a free source like rendered tallow exists), Lumber $8
+//     (plain basic lumber, 5 kg; nothing consumes it yet; sells back for $3 by the 40% rule).
 //   Sells — anything the store stocks goes back for 40% (at least $1), except the $1-2 ammo and Cordage; and what the
 //     land gives: hides and furs, antlers and feathers, meat and fish (a little more cooked), forage, firewood, logs and
 //     stone. A day's gathering is worth a few dollars — Pioneer's first Flint and Steel is about eight Stone or a couple
@@ -32,7 +33,7 @@ public class TradingPost : MonoBehaviour, ISaveable
         ("flint_and_steel", 8), ("knife", 4), ("canteen", 5), ("bucket", 6), ("cooking_pot", 12), ("tarp", 8),
         ("sleeping_bag", 15), ("tent", 25), ("axe", 20), ("hammer", 10), ("fishing_rod", 12),
         ("recurve_bow", 30), ("arrows", 1), ("bolt_action_rifle", 60), ("rifle_rounds", 1), ("cordage", 2),
-        ("lamp_oil", 3),
+        ("lamp_oil", 3), ("lumber", 8),
     };
 
     // What the store pays for things it doesn't stock.
