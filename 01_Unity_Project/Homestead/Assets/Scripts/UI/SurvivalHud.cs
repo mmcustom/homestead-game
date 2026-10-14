@@ -150,6 +150,8 @@ public class SurvivalHud : MonoBehaviour
             parts.Add(survival.SicknessLevel == SurvivalManager.Sickness.Severe
                 ? $"Very sick  <size=16>{survival.IllnessHoursLeft:0.0} h — vomiting, very weak, losing health</size>"
                 : $"Sick  <size=16>{survival.IllnessHoursLeft:0.0} h — upset stomach, weak, thirsty</size>");
+        if (survival.IsWeakened)
+            parts.Add($"Weakened  <size=16>{survival.WeakenedHoursLeft:0.0} h — stamina reduced after the collapse</size>");
         if (survival.Wetness > 0.6f)
             parts.Add("<color=#8FB8D8>Soaked</color>");
         else if (survival.Wetness > 0.15f)

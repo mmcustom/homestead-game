@@ -15,9 +15,9 @@ This roadmap covers design documentation and, as of this refresh, a summary of w
 
 # Current Phase
 
-Alpha 0.1 implemented, awaiting playthrough. Every one of the GDD's 16 Alpha 0.1 Required Systems has a design doc and has been built and tested in Unity. The GDD's Development Rule still applies: nothing beyond Alpha 0.1 should be designed or built until the core survival loop has been proven fun by actually playing it.
+Alpha 0.1 implemented and PLAYTHROUGH PASSED (2026-10-11). Every one of the GDD's 16 Alpha 0.1 Required Systems has a design doc and has been built and tested in Unity. The GDD's Development Rule asked for the core survival loop to be proven fun by actually playing it before anything beyond Alpha 0.1 is designed or built. The full Winter Preparation run (Spring through 14+ Winter days, 25 of 25 checks passed, "playtest was fun") met that gate on 2026-10-11, so post-Alpha 0.1 design is now open at Mike's choice.
 
-**The next step is playtesting, not new design.** The best test is a full run toward Winter Preparation — the Year One climax the GDD names — since it exercises fire, shelter, food, water, storage and light together.
+**The next step is picking the first post-Alpha 0.1 item** (see "Next step" below). Unrequested new design should still wait for Mike's pick.
 
 ---
 
@@ -136,8 +136,12 @@ Early Homestead, Established Homestead, and Modern Homestead (per the GDD's Prog
 - Crafting and Build screen (key B, Craft and Build tabs, 15 recipes, have/need panel): confirmed.
 - Audio listener fallback and minimap water: confirmed.
 
-**Still designed, not built:** hot side of the temperature model (humidity, sun load, Heat Waves, Overheating tiers; Weather_System.md first pass), Player Collapse and its repeated-collapse scale (Warmth 0 and soaked players can currently fall to a core of 24 C with no rescue path), Power_System, Flashlight, Maple_Sugaring, Rainwater Collection, Lumber Mill, Large Cabin and higher tiers, Livestock, Mining/Metalworking.
+**Still designed, not built:** hot side of the temperature model (humidity, sun load, Heat Waves, Overheating tiers; Weather_System.md first pass), Power_System, Flashlight, Maple_Sugaring, Rainwater Collection, Lumber Mill, Large Cabin and higher tiers, Livestock, Mining/Metalworking.
 
-**Known gaps:** Lumber at the Trading Post (confirmed 2026-09-26, never sent to Claude Code), Livestock feed quantities, whether the Trading Post buys furs, pond drying in Heat Waves, what is dropped on a fourth collapse, a performance review of the roughly 13,000 placed ground objects in World.unity (46 MB, each with its own collider), and real mouse/keyboard input untested.
+**Known gaps:** Lumber at the Trading Post (confirmed 2026-09-26, never sent to Claude Code), Livestock feed quantities, pond drying in Heat Waves; spoilage and smoking/drying are NOT built (found 2026-10-11 by Claude Code: items record their acquired day but nothing ages them) and surface water never freezes (the Trading Post does buy furs, closing that gap), what is dropped on a fourth collapse, a performance review of the roughly 13,000 placed ground objects in World.unity (46 MB, each with its own collider), and real mouse/keyboard input untested.
 
-**Next step (unchanged, per the GDD Development Rule):** a full Winter Preparation playthrough. Fire, shelter, food, water, storage, light, crafting and temperature now all exist together, so the playthrough is the real test. Anything beyond Alpha 0.1 waits until the survival loop is proven fun, except fixes the playthrough turns up.
+**Winter Preparation playthrough DONE 2026-10-11: PASS (25 of 25), "playtest was fun."** Fire, shelter, food, water, storage, light, crafting and temperature work together from Spring through 14+ Winter days, with no bugs found and no Console errors. The Development Rule's gate (core survival loop proven fun) is met for Alpha 0.1 as built, without spoilage, smoking/drying or Winter water freezing.
+
+**Status 2026-10-14: Player Collapse is BUILT and CONFIRMED in Play Mode (cold side and all non-heat causes; two bugs found, fixed and confirmed; clean Console). Commit pending.** The hot side will reuse it with no change.
+
+**Next step:** commit Player Collapse (done building and confirmed 2026-10-14; it closed the Warmth 0 / core 24 C no-rescue gap), then pick the next item. Candidates in Claude's suggested order (not confirmed): Lumber at the Trading Post (small, already confirmed), hot side and Heat Waves (reuses Player Collapse), spoilage plus smoking/drying and Winter water pressure (Mike wants these later), Rainwater Collection, Large Cabin, Power_System/Flashlight.

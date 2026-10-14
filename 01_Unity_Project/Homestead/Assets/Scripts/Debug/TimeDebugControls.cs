@@ -12,6 +12,7 @@ using UnityEngine.InputSystem;
 //   F8  skip to the start of Winter
 //   F9  refill Hydration, Hunger, Health and Warmth, dry off and cure sickness (SurvivalManager)
 //   F10 drop Hydration, Hunger and Warmth to 20, into the Severe tier, to check the warnings and Health loss
+//   Shift+F10 set Health to 0, to test Player Collapse (SleepManager.CollapseRoutine)
 //   F11 give the starting kit to older saves: Flint and Steel, a Bucket, the Axe, a Cooking Pot, a Sleeping Bag, a Tent,
 //       a Knife, a Canteen and 6 Firewood
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
@@ -75,6 +76,11 @@ public class TimeDebugControls : MonoBehaviour
             SurvivalManager.Instance.Cure();
             SurvivalManager.Instance.DebugSetWarmth(100f, 0f);
             Show("Survival stats refilled, warmed and dried, sickness cured", time);
+        }
+        else if (keyboard.f10Key.wasPressedThisFrame && keyboard.shiftKey.isPressed && SurvivalManager.Instance != null)
+        {
+            SurvivalManager.Instance.DebugSet(SurvivalManager.Instance.Hydration, SurvivalManager.Instance.Hunger, 0f);
+            Show("Health set to 0 — collapse", time);
         }
         else if (keyboard.f10Key.wasPressedThisFrame && SurvivalManager.Instance != null)
         {

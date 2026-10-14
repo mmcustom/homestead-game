@@ -15,6 +15,12 @@ public struct SurvivalSaveData
     // older build can read a new save). A real core temperature is never below 28, so 20 or less means "not saved yet".
     public float coreTempC;
     public float damp;
+    // Player Collapse (Health_System.md): recent collapses and the day their forgiveness clock started, and the Weakened
+    // state left after waking. Saves from before it load all of these as 0, which is no collapses and not weakened.
+    public int collapseCount;
+    public int collapseClockDay;
+    public float weakenedHours;
+    public float weakenedStamina;
 }
 
 // Core_Survival_System.md's Health, Hydration and Hunger (Unity_Architecture.md: player survival stats).
@@ -209,6 +215,10 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     float fireHeat;      // 0-1, how close to a lit fire the player was last step
     float symptomHours; // in-game hours until the next grumble or vomit
     bool collapsed;
+    int collapseCount;      // recent collapses: +1 each, -1 per 3 collapse-free in-game days (RegisterCollapse)
+    int collapseClockDay;   // the in-game day of the last collapse, where those free days are counted from
+    float weakenedHours;    // in-game hours of Weakened left after waking from a collapse
+    float weakenedStamina = 1f;
     PlayerController player;
     float nextPlayerSearch;
 
@@ -239,6 +249,9 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     // Severe cold slows movement.
     public float MovementMultiplier => WarmthMovement[(int)WarmthTier];
     public bool IsSick => illnessHours > 0f;
+    public bool IsWeakened => weakenedHours > 0f;
+    public float WeakenedHoursLeft => weakenedHours;
+    public int RecentCollapses => collapseCount;
 
     // Set by SleepManager while the player sleeps (Building_Housing_System.md's Sleep System): how much of the cold the
     // bedding and shelter keep off (0-1, cutting heat loss), how much rain and wind the shelter blocks, and how much
@@ -261,7 +274,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     // Multiplies the player's maximum stamina and recovery rate.
     public float StaminaMultiplier => Mathf.Min(Mathf.Min(HydrationStamina[(int)HydrationTier], HungerStamina[(int)HungerTier]),
                                                 Mathf.Min(WarmthStamina[(int)WarmthTier], ShiverStaminaFactor)) *
-                                      ByLevel(1f, mildStamina, severeStamina);
+                                      ByLevel(1f, mildStamina, severeStamina) * (IsWeakened ? weakenedStamina : 1f);
 
     // For work actions (chopping, harvesting, building) once they exist: 1 = full speed.
     public float WorkEfficiency => Mathf.Min(HydrationEfficiency[(int)HydrationTier], HungerEfficiency[(int)HungerTier]) *
@@ -378,6 +391,8 @@ public class SurvivalManager : MonoBehaviour, ISaveable
                            ByLevel(0f, mildHealthLoss, severeHealthLoss) +
                            ColdLoss(WarmthTier) +
                            HeatLoss(HeatLevel);
+        if (weakenedHours > 0f)
+            weakenedHours = Mathf.Max(0f, weakenedHours - hours);
         if (IsSick)
         {
             illnessHours = Mathf.Max(0f, illnessHours - hours);
@@ -569,8 +584,61 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     public void Cure() => illnessHours = symptomHours = 0f;
 
     // Pulls core temperature into a band — for waking from a collapse (Player Collapse: no lower than 35 °C, no higher
-    // than 37.5 °C). Nothing calls it yet.
+    // than 37.5 °C). WakeFromCollapse does its own version of this, a hair above the floor.
     public void ClampCoreTemperature(float minC = 35f, float maxC = 37.5f) => coreC = Mathf.Clamp(coreC, minC, maxC);
+
+    // --- Player Collapse (Health_System.md, "wake weakened") ---
+    // Health reaching 0 raises Collapsed whatever the cause; SleepManager runs the fade, the skipped hours and the waking
+    // (CollapseRoutine), asking this for the numbers and to apply the waking state.
+
+    public struct CollapsePlan
+    {
+        public int count;              // recent collapses, including this one
+        public float skipHours;        // in-game hours the world runs on while the player is out
+        public float weakenedHours;    // how long the Weakened state lasts after waking
+        public float staminaMultiplier;
+        public float wakeHealth;
+        public bool dropsItem;         // 4th and later: one carried item is left where the player fell
+    }
+
+    // The scale for the Nth recent collapse (Health_System.md's "Repeated collapses"; 4 and up share the last row).
+    public static CollapsePlan PlanFor(int count)
+    {
+        switch (Mathf.Max(1, count))
+        {
+            case 1: return new CollapsePlan { count = count, skipHours = 8f, weakenedHours = 4f, staminaMultiplier = 0.7f, wakeHealth = 20f };
+            case 2: return new CollapsePlan { count = count, skipHours = 12f, weakenedHours = 6f, staminaMultiplier = 0.6f, wakeHealth = 15f };
+            case 3: return new CollapsePlan { count = count, skipHours = 16f, weakenedHours = 8f, staminaMultiplier = 0.5f, wakeHealth = 10f };
+            default: return new CollapsePlan { count = count, skipHours = 16f, weakenedHours = 12f, staminaMultiplier = 0.5f, wakeHealth = 10f, dropsItem = true };
+        }
+    }
+
+    // Counts a collapse on the given in-game day and returns how many are recent: the count falls by 1 for every 3
+    // collapse-free days since the last one, then this one adds 1.
+    public int RegisterCollapse(int today)
+    {
+        int free = Mathf.Max(0, (today - collapseClockDay) / 3);
+        collapseCount = Mathf.Max(0, collapseCount - free) + 1;
+        collapseClockDay = today;
+        return collapseCount;
+    }
+
+    // The waking state: wet clothes dry, sickness gone, Hunger, Hydration and Warmth lifted to at least 50 (never lowered),
+    // core temperature kept inside 35-37.5 °C (above that, back to 37.2 — the hot side's hook), Health set by the plan,
+    // and the Weakened timer started. Hunger, Hydration and the rest did not tick while the player was out.
+    public void WakeFromCollapse(CollapsePlan plan)
+    {
+        wetness = 0f;
+        Cure();
+        hydration = Mathf.Max(hydration, 50f);
+        hunger = Mathf.Max(hunger, 50f);
+        // Warmth 50 is 35.0 °C exactly, the edge of the Reduced tier; a hair over keeps it clear of the cost to Health.
+        coreC = coreC > 37.5f ? 37.2f : Mathf.Max(coreC, BodyHeat.WarmthToCore(50f) + 0.05f);
+        shiver = visibleShiver = workLevel = 0f;
+        weakenedHours = plan.weakenedHours;
+        weakenedStamina = plan.staminaMultiplier;
+        SetHealth(plan.wakeHealth);
+    }
 
     static float Restore(ref float stat, float amount)
     {
@@ -590,7 +658,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         else if (!collapsed)
         {
             collapsed = true;
-            Debug.LogWarning("[Survival] Player collapsed (Health 0). Death mechanics are TBD in Core_Survival_System.md.");
+            Debug.Log("[Survival] Player collapsed (Health 0): SleepManager handles the wake-weakened sequence.");
             Collapsed?.Invoke();
         }
     }
@@ -604,6 +672,9 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         totalMet = 1f;
         smoothedReady = false;
         collapsed = false;
+        collapseCount = collapseClockDay = 0;
+        weakenedHours = 0f;
+        weakenedStamina = 1f;
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -625,7 +696,9 @@ public class SurvivalManager : MonoBehaviour, ISaveable
 #endif
 
     public SurvivalSaveData CaptureState() => new SurvivalSaveData { health = health, hydration = hydration, hunger = hunger, illnessHours = illnessHours,
-                                                                  chill = MaxValue - Warmth, wetness = wetness, coreTempC = coreC, damp = damp };
+                                                                  chill = MaxValue - Warmth, wetness = wetness, coreTempC = coreC, damp = damp,
+                                                                  collapseCount = collapseCount, collapseClockDay = collapseClockDay,
+                                                                  weakenedHours = weakenedHours, weakenedStamina = weakenedStamina };
 
     public void RestoreState(SurvivalSaveData data)
     {
@@ -642,6 +715,10 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         smoothedReady = false; // dress for the weather as it is on loading
         symptomHours = grumbleEveryHours * 0.5f;
         collapsed = health <= 0f;
+        collapseCount = Mathf.Max(0, data.collapseCount);
+        collapseClockDay = Mathf.Max(0, data.collapseClockDay);
+        weakenedHours = Mathf.Max(0f, data.weakenedHours);
+        weakenedStamina = weakenedHours > 0f ? Mathf.Clamp(data.weakenedStamina, 0.1f, 1f) : 1f;
     }
 
     // Save_Data_Model.md's Player Block: survival stats.

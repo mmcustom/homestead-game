@@ -106,14 +106,17 @@ public class DroppedItems : MonoBehaviour, ISaveable
     // Leaves a pile of an item on the ground near a spot, for what a taken-down structure holds when the pack is full.
     // The structure's own colliders (ignore) don't count as ground, so the pile lands where the structure stood rather
     // than on top of it. Like any dropped pile it stays until picked up and is saved with the world.
-    public static void Place(string itemId, int quantity, Vector3 near, Transform ignore = null)
+    // probeHeight is how far above the spot the ground probe starts. A pile left where a player stood under a roof (a
+    // collapse inside the Small Cabin) passes a small one, so the probe starts inside the building and finds its floor
+    // rather than the roof above it.
+    public static void Place(string itemId, int quantity, Vector3 near, Transform ignore = null, int day = -1, float probeHeight = 3f)
     {
         ItemDefinition item = ItemDatabase.Get(itemId);
         if (item == null || quantity <= 0)
             return;
 
         Vector3 spot = near;
-        RaycastHit[] below = Physics.RaycastAll(near + Vector3.up * 3f, Vector3.down, 8f, ~0, QueryTriggerInteraction.Ignore);
+        RaycastHit[] below = Physics.RaycastAll(near + Vector3.up * probeHeight, Vector3.down, probeHeight + 5f, ~0, QueryTriggerInteraction.Ignore);
         Array.Sort(below, (a, b) => a.distance.CompareTo(b.distance));
         foreach (RaycastHit hit in below)
         {
@@ -123,8 +126,8 @@ public class DroppedItems : MonoBehaviour, ISaveable
             break;
         }
 
-        spot = ClearOfOtherPiles(spot, Vector3.right, item, -1);
-        Spawn(item, quantity, -1, spot, UnityEngine.Random.Range(0f, 360f), true);
+        spot = ClearOfOtherPiles(spot, Vector3.right, item, day);
+        Spawn(item, quantity, day, spot, UnityEngine.Random.Range(0f, 360f), true);
     }
 
     // A spot on the ground a short way in front of the player, pulled in if something solid is in the way.

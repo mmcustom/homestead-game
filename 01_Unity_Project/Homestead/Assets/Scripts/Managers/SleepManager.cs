@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -63,6 +64,8 @@ public class SleepManager : MonoBehaviour
 
     void OnDestroy()
     {
+        if (watched != null)
+            watched.Collapsed -= OnCollapsed;
         if (Instance == this)
             Instance = null;
     }
@@ -205,6 +208,180 @@ public class SleepManager : MonoBehaviour
         if (wokeEarly != null)
             wokeEarly += $"  (slept {slept:0.#} h)";
         return slept;
+    }
+
+    // --- Player Collapse (Health_System.md, "wake weakened") ---
+    //
+    // Health reaching 0, whatever drained it, fades the screen out, runs the world on for 8-16 hours (fires, wood and
+    // weather; the player's own Hunger, Hydration, Warmth and Health do not tick), and wakes the player at the nearest
+    // placed Tent, Lean-To or finished Small Cabin at any distance — or where they fell if there is none — weakened.
+    // SurvivalManager holds the numbers and the waking state. Polled here rather than run from the Collapsed event, which
+    // fires inside SurvivalManager's per-tick Step; polling also catches a save loaded at Health 0. Not while asleep:
+    // the sleep ends first. No autosave.
+
+    float nextCollapseCheck;
+    bool collapsePending;
+    SurvivalManager watched;
+
+    // Latched from the Collapsed event as well as polled: with nothing else draining Health (the Shift+F10 debug collapse,
+    // or any cause that stops the moment Health hits 0) the next survival tick regenerates Health above 0 and clears
+    // IsCollapsed before this Update sees it, and the collapse would be lost with no fade.
+    void OnCollapsed() => collapsePending = true;
+
+    void Update()
+    {
+        SurvivalManager survival = SurvivalManager.Instance;
+        if (survival != null && watched != survival)
+        {
+            if (watched != null)
+                watched.Collapsed -= OnCollapsed;
+            watched = survival;
+            watched.Collapsed += OnCollapsed;
+        }
+
+        GameManager game = GameManager.Instance;
+        if (survival == null || !(collapsePending || survival.IsCollapsed) || IsSleeping || game == null || game.State != GameState.Playing)
+            return;
+        if (Time.unscaledTime < nextCollapseCheck)
+            return;
+
+        nextCollapseCheck = Time.unscaledTime + 0.5f;
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        if (player != null && TimeManager.Instance != null)
+        {
+            collapsePending = false;
+            StartCoroutine(CollapseRoutine(player));
+        }
+    }
+
+    IEnumerator CollapseRoutine(PlayerController player)
+    {
+        IsSleeping = true; // blocks pausing and the other sleep-time rules, same as SleepRoutine
+        GameManager game = GameManager.Instance;
+        bool openedMenu = game != null && game.State == GameState.Playing && game.OpenMenu();
+        SurvivalManager survival = SurvivalManager.Instance;
+        TimeManager time = TimeManager.Instance;
+
+        SurvivalManager.CollapsePlan plan = SurvivalManager.PlanFor(survival.RegisterCollapse(time.TotalDays));
+        Vector3 fell = player.transform.position;
+
+        yield return Fade(1f, "…");
+
+        string dropped = plan.dropsItem ? DropOneCarriedItem(fell, player.transform) : null;
+
+        WoodPileState shelter = NearestWakeShelter(fell);
+        if (shelter != null)
+        {
+            FindWakeSpot(shelter, out Vector3 spot, out float yaw);
+            player.Teleport(spot, yaw);
+        }
+
+        // The world carries on; the player's own stats do not.
+        const float Step = 0.25f;
+        for (float passed = 0f; passed < plan.skipHours - 0.001f; passed += Step)
+        {
+            float step = Mathf.Min(Step, plan.skipHours - passed);
+            if (FireManager.Instance != null)
+                FireManager.Instance.PassHours(step);
+            if (WoodManager.Instance != null)
+                WoodManager.Instance.PassHours(step);
+            time.AdvanceMinutes(step * 60f);
+        }
+
+        survival.WakeFromCollapse(plan);
+        player.Rest();
+
+        string message = "You collapsed and woke hours later, weak.";
+        if (plan.count >= 2)
+            message += $"\nYou have collapsed {plan.count} times recently.";
+        if (dropped != null)
+            message += $"\n{dropped} was left where you fell.";
+        overlayText.text = message;
+        yield return new WaitForSecondsRealtime(holdSeconds + 1.2f);
+        yield return Fade(0f, message);
+
+        if (openedMenu && game != null)
+            game.CloseMenu();
+        IsSleeping = false;
+        collapsePending = false; // the Health set on waking is not a new collapse
+    }
+
+    // The nearest Tent, Lean-To or finished Small Cabin, at any distance. A Sleeping Bag, a Tarp Shelter and an unfinished
+    // cabin site are not wake points.
+    static WoodPileState NearestWakeShelter(Vector3 from)
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null)
+            return null;
+
+        WoodPileState best = null;
+        float bestDistance = float.MaxValue;
+        foreach (WoodPileState pile in wood.Piles)
+        {
+            if (pile.kind != PileKind.Tent && pile.kind != PileKind.LeanTo && pile.kind != PileKind.Cabin)
+                continue;
+            Vector3 d = pile.position - from;
+            d.y = 0f;
+            if (d.sqrMagnitude < bestDistance)
+            {
+                bestDistance = d.sqrMagnitude;
+                best = pile;
+            }
+        }
+        return best;
+    }
+
+    // Where the player wakes: on the floor of a Small Cabin, otherwise on clear ground beside a Tent or Lean-To (the
+    // first of eight spots around it with room to stand), facing it.
+    static void FindWakeSpot(WoodPileState shelter, out Vector3 spot, out float yaw)
+    {
+        yaw = shelter.yaw;
+        spot = shelter.position + Vector3.up * (Shelter.FloorHeight + 0.3f);
+        if (shelter.kind == PileKind.Cabin)
+            return;
+
+        float radius = shelter.kind == PileKind.Tent ? 1.9f : 2.1f;
+        for (int i = 0; i < 8; i++)
+        {
+            Vector3 dir = Quaternion.Euler(0f, shelter.yaw + i * 45f, 0f) * Vector3.forward;
+            Vector3 from = shelter.position + dir * radius + Vector3.up * 4f;
+            if (!Physics.Raycast(from, Vector3.down, out RaycastHit hit, 10f, ~0, QueryTriggerInteraction.Ignore))
+                continue;
+            Vector3 feet = hit.point + Vector3.up * 0.05f;
+            if (Physics.CheckCapsule(feet + Vector3.up * 0.4f, feet + Vector3.up * 1.5f, 0.3f, ~0, QueryTriggerInteraction.Ignore))
+                continue;
+            spot = feet;
+            yaw = Mathf.Atan2(-dir.x, -dir.z) * Mathf.Rad2Deg;
+            return;
+        }
+    }
+
+    // 4th and later recent collapse: one unit of one randomly chosen kind of carried item, never the equipped tool, is left
+    // on the ground where the player fell. Returns its name, or null when nothing qualifies.
+    static string DropOneCarriedItem(Vector3 at, Transform player)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null)
+            return null;
+
+        string equipped = inventory.EquippedTool != null ? inventory.EquippedTool.Id : null;
+        var options = new List<string>();
+        foreach (ItemStack stack in inventory.Player.Stacks)
+            if (stack.quantity > 0 && stack.itemId != equipped && !options.Contains(stack.itemId))
+                options.Add(stack.itemId);
+        if (options.Count == 0)
+            return null;
+
+        string itemId = options[Random.Range(0, options.Count)];
+        int day = -1;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval(); // not an item dropped by hand
+        if (inventory.Player.RemoveBatches(itemId, 1, (batchDay, count) => day = batchDay) <= 0)
+            return null;
+        // The player's own collider isn't ground, and the probe starts just above the feet so a collapse under a roof (the
+        // Small Cabin, a Tarp Shelter) lands on the floor, not on the roof overhead.
+        DroppedItems.Place(itemId, 1, at, player, day, 0.4f);
+        return $"1 {ItemDatabase.Get(itemId)?.DisplayName ?? itemId}";
     }
 
     IEnumerator Fade(float to, string text)
