@@ -4,12 +4,22 @@ using UnityEngine.UI;
 // Weather_System.md's Weather Information and Instruments, Layer 2: the free Weather tab (K). A short list of labelled rows in plain
 // words. It reads the same player-facing name and feels-like text as the pause date line, and never names a Heat Wave: the
 // player works it out from the temperature, the feels-like line and the strong sun. Nothing changes while it is open (the
-// clock is paused), so the rows are filled once per OnShow.
+// clock is paused), so the rows are filled once per OnShow. Phase 2: while a Weather Station is in the player's inventory
+// (the backpack container; hotbar slots only point at items in it) five numeric rows follow the free ones, and they come
+// and go as the inventory changes. They show data only, so a Heat Wave still never gets a name.
 public class WeatherScreen : GameScreen
 {
-    const float RowHeight = 62f;
+    public const string WeatherStationId = "weather_station";
+
+    // The content area is 740 high; twelve rows with a Weather Station must sit inside it with a margin, so the rows are
+    // 52 high with 4 between (668 plus the top gap), and the free seven simply leave more room.
+    const float RowHeight = 52f;
+    const float RowSpacing = 4f;
 
     Text conditions, precipitation, temperature, wind, sunlight, date, daylight;
+    Text humidity, dewPoint, windSpeed, windBearing, sunValue;
+    GameObject[] stationRows;
+    InventoryContainer watched;
 
     public override string Title => "Weather";
 
@@ -19,10 +29,12 @@ public class WeatherScreen : GameScreen
         column.anchorMin = new Vector2(0.5f, 1f);
         column.anchorMax = new Vector2(0.5f, 1f);
         column.pivot = new Vector2(0.5f, 1f);
-        column.sizeDelta = new Vector2(1000f, 7 * RowHeight + 6 * 6f);
-        column.anchoredPosition = new Vector2(0f, -24f);
+        column.sizeDelta = new Vector2(1000f, 7 * RowHeight + 6 * RowSpacing);
+        var fitter = column.gameObject.AddComponent<ContentSizeFitter>();
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        column.anchoredPosition = new Vector2(0f, -16f);
         var layout = column.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 6f;
+        layout.spacing = RowSpacing;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
@@ -35,6 +47,16 @@ public class WeatherScreen : GameScreen
         sunlight = Row(column, "Sunlight");
         date = Row(column, "Date");
         daylight = Row(column, "Daylight");
+
+        humidity = Row(column, "Humidity");
+        dewPoint = Row(column, "Dew point");
+        windSpeed = Row(column, "Wind speed");
+        windBearing = Row(column, "Wind bearing");
+        sunValue = Row(column, "Sunlight value");
+        stationRows = new[] { humidity.transform.parent.gameObject, dewPoint.transform.parent.gameObject, windSpeed.transform.parent.gameObject,
+            windBearing.transform.parent.gameObject, sunValue.transform.parent.gameObject };
+        foreach (GameObject row in stationRows)
+            row.SetActive(false);
     }
 
     static Text Row(RectTransform column, string label)
@@ -58,6 +80,14 @@ public class WeatherScreen : GameScreen
 
     public override void OnShow()
     {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory != null && watched != inventory.Player)
+        {
+            Unwatch();
+            watched = inventory.Player;
+            watched.Changed += RefreshStation;
+        }
+
         WeatherManager weather = WeatherManager.Instance;
         TimeManager time = TimeManager.Instance;
         SurvivalManager survival = SurvivalManager.Instance;
@@ -88,6 +118,40 @@ public class WeatherScreen : GameScreen
         {
             date.text = daylight.text = "—";
         }
+
+        RefreshStation();
+    }
+
+    public override void OnHide() => Unwatch();
+
+    void Unwatch()
+    {
+        if (watched != null)
+            watched.Changed -= RefreshStation;
+        watched = null;
+    }
+
+    // Shows or hides the Weather Station rows to match the inventory, and fills them from the live weather.
+    void RefreshStation()
+    {
+        bool owned = watched != null && watched.Has(WeatherStationId);
+        foreach (GameObject row in stationRows)
+            row.SetActive(owned);
+        if (!owned)
+            return;
+
+        WeatherManager weather = WeatherManager.Instance;
+        if (weather == null)
+            return;
+
+        humidity.text = $"{weather.RelativeHumidity:0}%";
+        // The raw dew point (the one humidity and the body model use), never shown above the air temperature.
+        float shownDewC = Mathf.Min(weather.DewPointC, weather.TemperatureC);
+        dewPoint.text = $"{shownDewC * 9f / 5f + 32f:0}°F";
+        windSpeed.text = $"{weather.WindSpeedMph:0} mph";
+        windBearing.text = $"{Mathf.Repeat(weather.WindDirection, 360f):0}° ({weather.WindFromWords})";
+        SurvivalManager survival = SurvivalManager.Instance;
+        sunValue.text = survival != null ? $"{survival.SunStrength01 * 100f:0}%" : "—";
     }
 
     // None at night (or under a roof), then Dim under 0.25, Moderate under 0.55, Strong under 0.80, Intense above.

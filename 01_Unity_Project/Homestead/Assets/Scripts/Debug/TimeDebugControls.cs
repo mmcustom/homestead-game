@@ -18,7 +18,7 @@ using UnityEngine.InputSystem;
 //   F10 drop Hydration, Hunger and Warmth to 20, into the Severe tier, to check the warnings and Health loss
 //   Shift+F10 set Health to 0, to test Player Collapse (SleepManager.CollapseRoutine)
 //   F11 give the starting kit to older saves: Flint and Steel, a Bucket, the Axe, a Cooking Pot, a Sleeping Bag, a Tent,
-//       a Knife, a Canteen and 6 Firewood
+//       a Knife, a Canteen, a Weather Station and 6 Firewood
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -136,8 +136,10 @@ public class TimeDebugControls : MonoBehaviour
                 inventory.AddToPlayer(Knife.Id, 1);
             if (!inventory.Player.Has(WaterQualities.CanteenId))
                 inventory.AddToPlayer(WaterQualities.CanteenId, 1);
+            if (!inventory.Player.Has(WeatherScreen.WeatherStationId))
+                inventory.AddToPlayer(WeatherScreen.WeatherStationId, 1);
             int firewood = inventory.AddToPlayer(FireManager.FirewoodId, 6);
-            Show($"Fire, water and wood kit given ({firewood} Firewood fit)", time);
+            Show($"Fire, water, wood and weather kit given ({firewood} Firewood fit)", time);
         }
         else if (keyboard.f12Key.wasPressedThisFrame && InventoryManager.Instance != null)
         {

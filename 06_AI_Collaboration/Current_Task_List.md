@@ -1451,3 +1451,104 @@ Also pending after Mike's hard reset (2026-10-14/15): verify the working tree is
 - Not reported: items 1-2 (setup, assumed done) and item 5 (HUD line fades or hides with the minimap), still open and low risk.
 - Docs updated: Weather_System.md ("PHASE 1 BUILT ... PLAY-TESTED") and the roadmap line.
 - Next: Claude Code commits Phase 1 (code plus the new WeatherScreen.cs / WeatherHudLine.cs and their .meta files, InputSystem_Actions.inputactions, and the docs; leave out ProjectSettings.asset and AudioManager.cs; no push until Mike says). Then Phase 2, the Weather Station.
+
+
+### 2026-10-17 - Weather panel Phase 1 committed locally (fdae23f), NOT yet pushed
+- Claude Code committed fdae23f, "Weather panel Phase 1: HUD line, K Weather tab, sunlight strength" (14 files): WeatherManager.cs, PauseMenuController.cs, SurvivalManager.cs, MinimapHud.cs, GameScreens.cs, InputSystem_Actions.inputactions, new WeatherScreen.cs and WeatherHudLine.cs with their .meta files, Weather_System.md, Development_Roadmap.md, Current_Task_List.md, new Weather_Panel_Phase1_Playtest_Checklist.md. Local master is one commit ahead of origin/master (cc51b09). ProjectSettings.asset and AudioManager.cs remain uncommitted by choice.
+- Open: checklist item 5 (HUD line fades with the minimap) to glance at; waiting on Mike to say push; Phase 2 (Weather Station) is next.
+- Task-list entries added after fdae23f are uncommitted doc edits.
+
+
+### 2026-10-17 - fdae23f PUSHED (Weather panel Phase 1)
+- origin/master moved from cc51b09 to fdae23f; it was the only commit pushed. ProjectSettings.asset and the AudioManager.cs null guard remain local and uncommitted by choice. Task-list entries added after fdae23f are uncommitted doc edits.
+- Weather Information panel Phase 1 is DONE: built, play-tested (items 3, 4, 6-18), committed and pushed. Open: checklist item 5 (HUD line fades with the minimap) and items 1-2 (setup, assumed done).
+- Next: Phase 2, the Weather Station item (Trading Post $25, carried, adds humidity %, dew point, wind speed number, exact bearing and sun % to the Weather tab). Waiting on Mike to say go.
+
+
+### 2026-10-17 - Weather panel PHASE 2 (Weather Station) BUILT (Claude Code), compile-checked (no code errors), NOT Play Mode tested, UNCOMMITTED
+- Item: weather_station ("Weather Station"), category Tool, 0.5 kg, asset Resources/Items/Tools/weather_station.asset (+ .meta). Carried, not equipped, not craftable. Trading Post: added at the end of the stock list, $25, unlimited stock; sells back $10 by the existing 40% rule (no special case).
+- Weather tab (WeatherScreen): five extra rows below the free ones while a station is in the player's own inventory: Humidity %, Dew point F, Wind speed mph, Wind bearing (degrees plus compass point), Sunlight value %. Hidden entirely without a station (no placeholders). The tab listens to the inventory while open, so rows appear and disappear on buy, sell or drop; a layout fitter resizes the page (up to 12 rows; not yet seen on screen). Heat Wave shows numbers only, no label.
+- "In the inventory" = Player.Has("weather_station") on the player's inventory container only (hotbar slots point at items already there). Home Storage and ground items do not count.
+- WeatherManager: new top-level tunable windSpeedMphAtFull (40) under a "Weather Station readout" header, and a WindSpeedMph property. F11 now also grants one station if missing (message "Fire, water, wood and weather kit given"). No new save fields.
+- Notes from Claude Code: RelativeHumidity already returns 0-100 (caught before a 6300% display). DewPointC is shown raw, without the Homesteader/Pioneer temperature shift, per the spec; Claude Code offered to apply the shift if wanted (checklist item 9 checks dew point never exceeds the shown air temperature). A partial edit of WeatherScreen.cs briefly left two compile errors, fixed and recompiled clean.
+- Docs: Item_Data.md has the new weather_station row (Claude). Play Mode checklist written: Weather_Panel_Phase2_Playtest_Checklist.md (18 items, all OPEN). Mike to back up Slot1 first, then run it.
+- Files changed (Claude Code): WeatherManager.cs, WeatherScreen.cs, TradingPost.cs, TimeDebugControls.cs, plus the new weather_station.asset and .meta.
+
+
+### 2026-10-17 - Weather Station dew point: Mike says apply the difficulty shift (message to Claude Code pending)
+- Mike: "apply the shift". Scope Claude set for Claude Code: DISPLAY ONLY on the Weather Station Dew point row (shown dew point = DewPointC + the same difficulty shift, never shown above the shown air temperature). Do NOT change DewPointC itself, RelativeHumidity, wet-bulb, heat index or the body model without asking first, because changing the source would change heat-stress behaviour on Homesteader and Pioneer that was already play-tested.
+- Known side effect to report back: on Homesteader and Pioneer the Humidity % row is computed from the raw dew point and the shifted air temperature, so the three rows can disagree slightly (about 1-3 percent humidity). Claude Code to say how large, and whether a deeper fix (shift the dew point at the source) is worth proposing; that is a separate decision for Mike.
+- Phase 2 checklist item 9 (dew point never above the shown air temperature, on Settler and on a Homesteader or Pioneer copy) stays the test. Phase 2 is still uncommitted and not yet play-tested.
+
+
+### 2026-10-17 - Dew point shift applied to the Weather Station display (Claude Code), compile-checked (0 errors, 0 warnings), NOT play-tested, UNCOMMITTED
+- WeatherScreen.cs only: the Dew point row now shows min(DewPointC + DifficultyShiftC, TemperatureC) in F. DewPointC, RelativeHumidity, wet-bulb, heat index and the body model are untouched.
+- Claude Code's finding: the Humidity row (and the body model) use the RAW dew point against the SHIFTED air temperature. So with the shift applied to the dew point display, humidity, dew point and air temperature no longer agree on Homesteader and Pioneer. Illustrative sizes (sample raw dew points, not game data): about 8-10 humidity points at 30 C and 15-19 points at 0 C. Settler is unaffected. Before this change the three rows were self-consistent and honest to the model (humidity = f(shifted air, raw dew point)).
+- Claude Code did NOT shift the dew point at the source: that would change heat stress on Homesteader and Pioneer (Pioneer hot spell muggier, Homesteader drier), undoing play-tested tuning. It would be a deliberate rebalance.
+- Loose end noticed (not acted on): in hot weather the existing humidity behaviour partly works against the tiers (Pioneer is hotter but a bit drier, so it sweats more effectively; Homesteader is cooler but muggier). Candidate for a later deliberate rebalance, not a bug fix.
+- Also noted: in snow or at the 46 C cap the shown air temperature can differ from base plus shift, so the dew point row can be about a degree off there.
+- DECISION PENDING (Mike): keep the shifted dew point display (rows disagree on non-Settler tiers), or go back to the raw dew point clamped to the air temperature (rows agree and match the body model). Claude's recommendation: clamp-only.
+
+
+### 2026-10-17 - Dew point display: DECIDED (Mike: "go back") - raw dew point clamped to the shown air temperature, no shift
+- Mike chose to undo the shifted dew point display. The Weather Station Dew point row shows min(DewPointC, TemperatureC) in F: honest to the body model and consistent with the Humidity and Temperature rows on every tier. The shifted version (min(DewPointC + DifficultyShiftC, TemperatureC)) is withdrawn.
+- Hot-weather humidity vs difficulty tier remains a logged loose end (candidate for a later deliberate rebalance), not changed.
+- Claude Code message sent to Mike to submit; compile-check only, no commit. Phase 2 is still uncommitted and not yet play-tested.
+
+
+### 2026-10-17 - Dew point display reverted (Claude Code), compile-checked (0 errors, 0 warnings), UNCOMMITTED
+- WeatherScreen.cs only: the Dew point row is back to min(DewPointC, TemperatureC) in F. The shifted version and its comment are gone. Nothing else touched.
+- Weather Station Phase 2 is ready for its Play Mode checklist (Weather_Panel_Phase2_Playtest_Checklist.md, 18 items, all OPEN; note added under item 9). Mike to back up Slot1 first, then run it.
+
+
+### 2026-10-17 - Weather Station Phase 2: first Play Mode screenshots (Mike, no comment): two issues found
+- Layout bug: with the station carried, the Weather tab shows 12 rows but the last row (Sunlight value) hangs below the panel's bottom edge; the panel does not grow to fit. The numbers shown look right: 56% humidity, dew point 65F at 82F air (agrees with the humidity), wind 8 mph with Light breeze, bearing 4 degrees (north) matching the free "from the north" line, sunlight 71% matching "Strong".
+- Spec deviation: the Weather Station is equippable (Key slot, "Equipped Tool: Weather Station") but the spec and Claude Code's own report say carried, not equipped, like Tarp/Tent/Sleeping Bag. Equipping does nothing.
+- Both to be fixed by Claude Code (message to Mike to submit), then re-test. Phase 2 still uncommitted. Checklist updated (item 5 FAIL, items 8 and 9 PASS on the tier shown).
+
+
+### 2026-10-17 - Weather Station test: storage does not count (PASS); open question whether equipped matters
+- Mike stored the station in the Tool Rack: free rows only (item 7 storage half PASS). With it equipped, more rows showed. Unresolved: whether the rows need the station EQUIPPED or just CARRIED in the inventory. Claude Code's report says carried (Player.Has), but Mike's wording leaves it open and the station is about to become non-equippable, so Claude Code must verify the gate is "in the inventory", equipped or not. The earlier Weather tab screenshot with only free rows may have been taken with the station carried but unequipped; unknown.
+- Message to Claude Code updated to include that check (layout fix, non-equippable, and verifying the gate). Phase 2 still uncommitted.
+
+
+### 2026-10-17 - Weather Station layout and carried-only fixes BUILT (Claude Code), compile-checked (0 errors, 0 warnings), NOT Play Mode tested, UNCOMMITTED
+- Layout: the panel is a fixed 1500x880 with a 740 px content area. 12 rows at 62 px with 6 px gaps needed about 810 px. Rows are now 52 px with 4 px gaps: measured in Edit Mode on a throwaway screen, 12 rows are 668 px plus a 16 px top gap, ending 56 px above the bottom; "Esc to close" is in its own strip. Not yet seen on screen.
+- Carried only: new InventoryManager.IsCarriedOnly(id) for Sleeping Bag, Tent and Weather Station. Previously only InventoryScreen special-cased the Sleeping Bag and Tent by id; now Equip and SetHotkey refuse carried-only items, the Inventory screen shows no Key button and the row is not clickable, and loading a save drops any hotkey for it and un-equips it.
+- Gate: the extra rows depend only on watched.Has("weather_station") (the player's backpack container), not on EquippedTool. Carried but unequipped shows the rows; Tool Rack or Home Storage does not.
+- Files changed: WeatherScreen.cs, InventoryManager.cs, InventoryScreen.cs.
+- Correction (Claude's mistake): I told Claude Code that the Tarp, Tent and Sleeping Bag have no Key slot. Only the Tent and Sleeping Bag do not; the Tarp and Canteen are ordinary tools with Key slots (equipping does nothing). I had read the Inventory screenshots wrongly (no Tarp was in the list). Decision (Mike): leave the Tarp and Canteen alone.
+- Checklist: re-test items added (19-22). Mike to run from item 5. Phase 2 uncommitted.
+
+
+### 2026-10-17 - Weather Station re-test screenshot: layout (19) and carried-but-unequipped (21) PASS
+- Mike posted the Weather tab with all 12 rows, captioned "weather station in inventory, not equipped". All rows fit inside the panel with margin, "Esc to close" is clear, and the five extra rows show for a carried, unequipped station. That closes the layout overflow and the equipped-vs-carried question.
+- Values agree with each other: 84F, dew point 65F, humidity 52% (matches), wind 8 mph = Light breeze, bearing 4 degrees (north) = "from the north", sunlight 78% = Strong.
+- Still open on the Phase 2 checklist: 1-2, 4-6, 7 (drop/pick up), 10-18, 20, 22, and item 9 on a Homesteader or Pioneer copy. Phase 2 still uncommitted (ProjectSettings.asset and the AudioManager.cs null guard stay out of the commit).
+
+
+### 2026-10-17 - Weather Station Phase 2 checklist: Trading Post, carried-only, drop/pick up, F11, live updates, saves PASS
+- Mike reported pass on: Trading Post (items 4-6), carried-only (20), drop and pick up (7), F11 (15), live updates (13), saves (16). Cold Front screenshot (79F): Humidity 40%, Dew point 52F, Wind speed 20 mph, bearing 4 degrees (north), Sunlight value 66%, all consistent with each other and with the free rows.
+- Still open: 1-2 setup, 9 on another difficulty tier, 10 (Calm/Gale), 11 (bearing after F5), 12 (night/indoors/shade), 14 (Heat Wave numbers only), 17 (performance), 18 (clean Console), 22 (old save with the station equipped/hotkeyed).
+- Phase 2 still uncommitted (ProjectSettings.asset and the AudioManager.cs null guard stay out of the commit).
+
+
+### 2026-10-17 - Weather Station Phase 2: wind, bearing and sunlight screenshots (items 10, 11, 12)
+- Four screenshots: Gale 32 mph (Intense, 82%), Clear day 0% "None" and the same day 90% "Intense", Cold Front 20 mph (Strong, 73%). Item 11 PASS (bearing changed 4 to 83 to 78 degrees over Summer 4, 8, 9, each matching the "from the ..." word). Item 10 PASS except Calm (Gale, Windy and Light breeze all seen). Item 12 PASS on the values (None 0%, Strong, Intense match the word bands); whether the 0% shot was indoors or at night is not recorded.
+- Humidity, dew point and temperature agree on all four shots.
+- Still open: 1-2 setup, 9 on another tier, 10 Calm, 12 confirm context, 14 Heat Wave numbers only, 17 performance, 18 clean Console, 22 old save with the station equipped or hotkeyed. Phase 2 still uncommitted.
+
+
+### 2026-10-17 - Item 12 confirmed: the 0% sunlight shot was inside the small cabin
+- Mike confirmed the Sunlight "None" / 0% screenshot was taken inside the small cabin, so the roof-means-no-sun rule works. Item 12 PASS.
+- Still open: 1-2 setup, 9 on another tier, 10 Calm, 14 Heat Wave numbers only, 17 performance, 18 clean Console, 22 old save with the station equipped or hotkeyed.
+
+
+### 2026-10-17 - Weather Station item 14 (Heat Wave) PASS
+- Mike said the last two screenshots were during and after a Heat Wave. During: free row "Clear", extra rows numbers only (humidity 46%, dew point 61F, sunlight 90%), no "Heat Wave" text. After: "Cold Front", 79F, humidity 42%, dew point 54F, sunlight 73%. Item 14 PASS.
+- Still open: 1-2 setup, 22 old save with the station equipped or hotkeyed, 17 performance, 18 clean Console; optional 9 on another tier and 10 Calm. Phase 2 still uncommitted.
+
+
+### 2026-10-17 - Weather Station Phase 2 items 17 and 18 PASS
+- Mike: frame rate fine with the Weather tab open, Console clean. Items 17 and 18 PASS.
+- Only item 22 (old save with the station equipped or hotkeyed) remains from the required list; optional 9 (another tier) and 10 (Calm). Phase 2 still uncommitted.

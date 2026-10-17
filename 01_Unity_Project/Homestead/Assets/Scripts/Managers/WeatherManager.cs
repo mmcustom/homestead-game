@@ -147,6 +147,10 @@ public class WeatherManager : MonoBehaviour, ISaveable
     [Tooltip("...and reversed (hotter for Pioneer) at or above this one, easing through zero in between.")]
     [SerializeField] float offsetHotAboveC = 26f;
 
+    [Header("Weather Station readout")]
+    [Tooltip("First pass: the Weather Station shows wind speed in mph as WindStrength (0-1) times this.")]
+    [SerializeField] float windSpeedMphAtFull = 40f;
+
     [Header("Late Fall snow")]
     [Tooltip("Weather_System.md: light snow can occasionally occur late in Fall. Snow's share of the time " +
              "(same scale as the season weights) once Fall is this far through.")]
@@ -306,6 +310,9 @@ public class WeatherManager : MonoBehaviour, ISaveable
             return sectors[Mathf.RoundToInt(Mathf.Repeat(windDirection, 360f) / 45f) % 8];
         }
     }
+
+    // The Weather Station's number (Weather panel Phase 2): WindStrength scaled to mph.
+    public float WindSpeedMph => WindStrength * windSpeedMphAtFull;
 
     // Compass bearing the wind blows from, 0–360 (0 = from the north).
     public float WindDirection => windDirection;

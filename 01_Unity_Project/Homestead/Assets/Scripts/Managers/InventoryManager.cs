@@ -161,10 +161,15 @@ public class InventoryManager : MonoBehaviour, ISaveable
     public bool RemoveStorage(string storageId) => storageId != null && storage.Remove(storageId);
 
     // Only tools the player is carrying can be equipped.
+    // Tools by category that are carried, not held: they never go in hand or on a hotkey (the Inventory screen shows no
+    // Key slot for them). The category alone can't say so, since the Sleeping Bag, Tent and Weather Station are all Tools.
+    public static bool IsCarriedOnly(string itemId) =>
+        itemId == SleepManager.SleepingBagId || itemId == WoodManager.TentId || itemId == WeatherScreen.WeatherStationId;
+
     public bool Equip(string itemId)
     {
         ItemDefinition item = ItemDatabase.Get(itemId);
-        if (item == null || item.Category != ItemCategory.Tool || !Player.Has(itemId))
+        if (item == null || item.Category != ItemCategory.Tool || IsCarriedOnly(itemId) || !Player.Has(itemId))
             return false;
 
         SetEquipped(item);
@@ -202,7 +207,7 @@ public class InventoryManager : MonoBehaviour, ISaveable
         if (!string.IsNullOrEmpty(itemId))
         {
             ItemDefinition item = ItemDatabase.Get(itemId);
-            if (item == null || item.Category != ItemCategory.Tool)
+            if (item == null || item.Category != ItemCategory.Tool || IsCarriedOnly(itemId))
                 return;
             int old = HotkeySlotOf(itemId);
             if (old >= 0)
@@ -332,7 +337,7 @@ public class InventoryManager : MonoBehaviour, ISaveable
             for (int i = 0; i < HotkeySlots && i < data.hotkeys.Count; i++)
             {
                 ItemDefinition item = string.IsNullOrEmpty(data.hotkeys[i]) ? null : ItemDatabase.Get(data.hotkeys[i]);
-                hotkeys[i] = item != null && item.Category == ItemCategory.Tool ? item.Id : null;
+                hotkeys[i] = item != null && item.Category == ItemCategory.Tool && !IsCarriedOnly(item.Id) ? item.Id : null;
             }
         }
         HotkeysChanged?.Invoke();

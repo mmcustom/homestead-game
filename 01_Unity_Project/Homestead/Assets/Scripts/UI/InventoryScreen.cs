@@ -287,7 +287,7 @@ public class InventoryScreen : GameScreen
         inventoryHasLantern = InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(PortableLight.LanternId);
         bool isTool = item.Category == ItemCategory.Tool;
         UnityEngine.Events.UnityAction click = item.Id == SleepManager.SleepingBagId ? SleepHere
-                                             : item.Id == WoodManager.TentId ? null
+                                             : InventoryManager.IsCarriedOnly(item.Id) ? null
                                              : isTool ? () => ToggleEquip(item)
                                              : item.IsFood ? () => Food.Consume(item)
                                              : (UnityEngine.Events.UnityAction)null;
@@ -336,8 +336,8 @@ public class InventoryScreen : GameScreen
             cookColors.highlightedColor = new Color(0.5f, 0.34f, 0.16f, 1f);
             cook.colors = cookColors;
         }
-        // Only Tools that clicking equips: the Sleeping Bag (sleeps) and Tent (placed) are Tools by category but aren't held.
-        bool hotkeyable = isTool && item.Id != SleepManager.SleepingBagId && item.Id != WoodManager.TentId;
+        // Only Tools that clicking equips: the Sleeping Bag (sleeps), Tent (placed) and Weather Station (carried) are Tools by category but aren't held.
+        bool hotkeyable = isTool && !InventoryManager.IsCarriedOnly(item.Id);
         if (hotkeyable)
             nameRight = 0.36f; // room for the hotkey button
         Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, nameRight,
