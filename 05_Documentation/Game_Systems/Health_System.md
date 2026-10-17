@@ -504,3 +504,20 @@ Standalone real seconds from Warmth 50 to 90 (75 s per game hour, continuous act
 Standalone numbers (75 real s per game hour, continuous activity, winter clothing, Hunger 80, 1.5 m/s wind), seconds from Warmth 50 to 90, BEFORE the boost: Settler -1 C dry: rest never (plateau 70), walk 64, work 33, sprint 14. Pioneer 2 C dawn: rest never (plateau 68), walk 98, work 40, sprint 16. Soaked Settler 4 C: never for rest, walk and work, sprint 28. Soaked Pioneer 4 C: sprint 49 only. AFTER: Settler -1 C walk 43, work 17, sprint 6; Pioneer 2 C walk 66, work 20, sprint 6; soaked Settler sprint 11, soaked Pioneer sprint 20; soaked walking and working still never rewarm (net flow stays negative, as designed). Resting plateaus unchanged (70 and 68). Finding: walking in cool air (a minute to a minute and a half) was the slow case; working and sprinting dry were already fast; the real problem for soaked players is net-negative heat flow, which this boost deliberately does not fix. Seasonal clothing, damp and sweat chill, sleeping insulation, Pioneer x1.3 loss, saves and the visible shiver ramp were not separately re-simulated (the boost multiplies positive body net only), but Mike's Play Mode test passed.
 
 **CONFIRMED 2026-10-10 (Mike, Play Mode, checks 7-17 all pass):** visible shiver threshold (onset 35.5 C, full 34.5 C; dry rests including a Winter night in full clothing show no shivering, soaked shows it after about 15-20 minutes and fades when very cold; Mike accepts the Winter-night result and the Inspector onset field adjusts it), shivering stamina penalty on the visible ramp (none without visible shivering, toward 70% when visibly shivering), and the warmth rewarming boost (walking, working and sprinting rewarm faster; resting unchanged; stops at 100 with no Overheating; soaked players still lose warmth).
+
+## Body temperature meter (replaces the Warmth bar), 2026-10-16
+
+**Decided (Mike, 2026-10-16):** during Heat Wave Phase 1 testing the rate of heat gain was hard to judge, because the Warmth meter reads full from comfortable up through overheating. Mike asked for a meter with too cold, too hot and a middle comfort zone, and chose to replace the Warmth bar outright. This supersedes the earlier first-pass rule "Warmth stays a cold-side meter; heat gets only a status word" (items 6 and 9 above; Weather_System.md's HUD note).
+
+**Design (Claude, first pass, numbers unconfirmed):**
+- One bar, drawn from core temperature (still the only stored value; `Warmth` stays a derived getter for tiers, sleep and debug keys, nothing else changes).
+- The fill starts at the centre (normal core, 37.0 C). Cold fills to the left in blue, heat fills to the right in orange shading to red. At rest the fill is empty, so any gain or loss is visible straight away.
+- Position along the bar (core C -> 0-1): 28 -> 0, 32 -> 0.12, 35 -> 0.25, 36.5 -> 0.42, 37.0 -> 0.5, 37.5 -> 0.58, 38 -> 0.66, 39 -> 0.8, 40 -> 0.9, 41 -> 1.0. The cold half keeps Warmth's tiers (35 C = Warmth 50, 32 C = Warmth 25); the hot half spreads 37.5 to 41 C.
+- Tick marks at 32, 35, 37 (brighter), 37.5, 38, 39 and 40 C. The label reads "Body".
+- Pulses in the warning colour in the Severe cold tier (Warmth under 25) and from severe heat exhaustion upward, as the other meters do below 25.
+- The status-line words (Shivering, Hot, Heat exhaustion, ...) are unchanged.
+- No prefab or scene edit: SurvivalHud reuses the existing Warmth row and adds the ticks in code.
+
+**Debug aid (dev builds only):** F3 toggles a live readout under the debug message line: core temperature and its smoothed change per game hour, heat stage, Warmth, air temperature, humidity, dew point, wind, sun watts, sweat watts and evaporation, wetness.
+
+**Status:** built by Claude Code, COMPILED CLEAN in the Unity editor 2026-10-16 (0 errors, 0 warnings; one first attempt failed on newline escapes in the F3 text, fixed), NOT Play Mode tested, UNCOMMITTED.

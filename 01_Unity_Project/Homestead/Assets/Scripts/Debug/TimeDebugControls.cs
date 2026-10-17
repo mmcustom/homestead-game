@@ -6,6 +6,9 @@ using UnityEngine.InputSystem;
 // (Season_System.md: 30-minute days, 28-day seasons). The whole file is compiled out of release builds, and it creates
 // itself at startup, so nothing is added to any scene. Works only while playing (not paused, not in menus).
 //
+//   F3  toggle a live body readout (core temperature and its change per game hour, air, humidity, sun and sweat watts)
+//   F4  start a Heat Wave (+6 C at its peak, 96 h; Shift+F4 a strong one, +12 C); pressed during a wave, ends it. Works in any
+//       season: set the season to Summer first for the real temperatures, or the wave is added to Winter's cold
 //   F5  skip 1 day
 //   F6  skip to the start of the next season
 //   F7  cycle fast-forward: x1, x10, x60 (a day in 30s), x360 (a day in 5s) — calendar only, not movement
@@ -23,6 +26,9 @@ public class TimeDebugControls : MonoBehaviour
     const float MessageSeconds = 2.5f;
 
     int speedIndex;
+    bool showBody;
+    double lastHours = -1.0;
+    float lastCore, coreRate;
     string message;
     float messageUntil;
     GUIStyle style;
@@ -50,7 +56,24 @@ public class TimeDebugControls : MonoBehaviour
         if (time == null || keyboard == null || !playing)
             return;
 
-        if (keyboard.f5Key.wasPressedThisFrame)
+        UpdateBodyReadout(time, keyboard);
+
+        if (keyboard.f4Key.wasPressedThisFrame && WeatherManager.Instance != null)
+        {
+            WeatherManager weather = WeatherManager.Instance;
+            if (weather.IsHeatWave)
+            {
+                weather.DebugEndHeatWave();
+                Show("Heat Wave ended", time);
+            }
+            else
+            {
+                bool strong = keyboard.shiftKey.isPressed;
+                weather.DebugStartHeatWave(strong ? 12f : 6f, 96);
+                Show(strong ? "Strong Heat Wave started (+12 C peak, 96 h)" : "Heat Wave started (+6 C peak, 96 h)", time);
+            }
+        }
+        else if (keyboard.f5Key.wasPressedThisFrame)
         {
             time.DebugSkipDays(1);
             Show("Skipped 1 day", time);
@@ -127,6 +150,45 @@ public class TimeDebugControls : MonoBehaviour
         }
     }
 
+    // Core temperature's change per game hour, smoothed, so the rate of heat gain can be read off while testing.
+    void UpdateBodyReadout(TimeManager time, Keyboard keyboard)
+    {
+        if (keyboard.f3Key.wasPressedThisFrame)
+            showBody = !showBody;
+
+        SurvivalManager survival = SurvivalManager.Instance;
+        if (survival == null)
+            return;
+
+        double hours = time.TotalHours;
+        float core = survival.CoreTemperatureC;
+        if (lastHours < 0.0 || hours < lastHours)
+        {
+            lastHours = hours;
+            lastCore = core;
+            coreRate = 0f;
+        }
+        else if (hours - lastHours > 0.02)
+        {
+            coreRate = Mathf.Lerp(coreRate, (core - lastCore) / (float)(hours - lastHours), 0.3f);
+            lastHours = hours;
+            lastCore = core;
+        }
+    }
+
+    string BodyText()
+    {
+        SurvivalManager survival = SurvivalManager.Instance;
+        WeatherManager weather = WeatherManager.Instance;
+        if (survival == null)
+            return "";
+        string text = $"Core {survival.CoreTemperatureC:0.00} C ({coreRate:+0.00;-0.00;0.00} C/h)  {survival.HeatLevel}  Warmth {survival.Warmth:0}";
+        if (weather != null)
+            text += $"\nAir {weather.TemperatureC:0.0} C ({weather.TemperatureF:0} F)  RH {weather.RelativeHumidity:0}%  dew {weather.DewPointC:0.0} C  wind {weather.WindStrength:0.00}";
+        text += $"\nSun {survival.SolarWatts:0} W  sweat {survival.SweatWatts:0} W (evap {survival.SweatEvaporation:0.00})  wet {survival.Wetness:0.00}";
+        return text;
+    }
+
     void SetSpeed(TimeManager time, int index)
     {
         speedIndex = index;
@@ -145,6 +207,9 @@ public class TimeDebugControls : MonoBehaviour
         TimeManager time = TimeManager.Instance;
         bool fast = time != null && speedIndex != 0;
         bool recent = Time.unscaledTime < messageUntil;
+        style ??= new GUIStyle(GUI.skin.label) { fontSize = 18, normal = { textColor = Color.yellow } };
+        if (showBody && GameManager.Instance != null && GameManager.Instance.InGame)
+            GUI.Label(new Rect(12f, 84f, 1100f, 100f), BodyText(), style);
         if (!fast && !recent)
             return;
 

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// The survival meters, bottom-left of the HUD, always shown (top to bottom): Health, Stamina, Warmth, Hydration,
+// The survival meters, bottom-left of the HUD, always shown (top to bottom): Health, Stamina, Body temperature (was Warmth: centred, cold fills left, heat fills right), Hydration,
 // Hunger and Load (Core_Survival_System.md, Health_System.md's Exposure System, First_Person_Controller.md,
 // Inventory_System.md). Load is carried weight against the most the player can carry, with a tick at the Encumbered
 // threshold — green below it, amber past it, red at the limit, the same numbers as the Inventory screen. Each fill is sized by anchoring rather than an Image fill,
@@ -35,6 +35,16 @@ public class SurvivalHud : MonoBehaviour
 
     [SerializeField, Min(0.1f)] float fillSmoothing = 8f;
 
+    // The body-temperature meter that replaced Warmth: centred on normal core temperature, cold fills left, heat fills right.
+    // Core °C -> position along the track (0-1); the cold stretch keeps Warmth's tiers (35 °C = 50, 32 °C = 25).
+    static readonly float[] TempCore = { 28f, 32f, 35f, 36.5f, 37f, 37.5f, 38f, 39f, 40f, 41f };
+    static readonly float[] TempPos = { 0f, 0.12f, 0.25f, 0.42f, 0.5f, 0.58f, 0.66f, 0.8f, 0.9f, 1f };
+    static readonly float[] TempTicks = { 32f, 35f, 37f, 37.5f, 38f, 39f, 40f };
+    [SerializeField] Color coldColor = new Color(0.42f, 0.66f, 0.88f);
+    [SerializeField] Color hotColor = new Color(0.94f, 0.69f, 0.44f);
+    [SerializeField] Color scorchColor = new Color(0.88f, 0.26f, 0.2f);
+    float shownCore = 37f;
+
     Image hydrationImage, hungerImage, healthImage, staminaImage, warmthImage, loadImage;
     Text hydrationLabel, hungerLabel, healthLabel, warmthLabel;
     Color labelColor;
@@ -53,6 +63,9 @@ public class SurvivalHud : MonoBehaviour
         warmthImage = warmthFill.GetComponent<Image>();
         loadImage = loadFill.GetComponent<Image>();
         warmthLabel = LabelOf(warmthFill);
+        if (warmthLabel != null)
+            warmthLabel.text = "Body";
+        BuildTemperatureTicks();
         hydrationLabel = LabelOf(hydrationFill);
         hungerLabel = LabelOf(hungerFill);
         healthLabel = LabelOf(healthFill);
@@ -91,6 +104,7 @@ public class SurvivalHud : MonoBehaviour
             shownHunger = survival.Hunger / SurvivalManager.MaxValue;
             shownHealth = survival.Health / SurvivalManager.MaxValue;
             shownWarmth = survival.Warmth / SurvivalManager.MaxValue;
+            shownCore = survival.CoreTemperatureC;
         }
     }
 
@@ -120,6 +134,7 @@ public class SurvivalHud : MonoBehaviour
         shownHunger = Mathf.Lerp(shownHunger, survival.Hunger / SurvivalManager.MaxValue, k);
         shownHealth = Mathf.Lerp(shownHealth, survival.Health / SurvivalManager.MaxValue, k);
         shownWarmth = Mathf.Lerp(shownWarmth, survival.Warmth / SurvivalManager.MaxValue, k);
+        shownCore = Mathf.Lerp(shownCore, survival.CoreTemperatureC, k);
         if (player != null)
         {
             // Stamina moves fast (sprints, jumps), so it follows more tightly than the slow survival stats.
@@ -133,13 +148,64 @@ public class SurvivalHud : MonoBehaviour
         Apply(hungerFill, hungerImage, hungerLabel, shownHunger, hungerColor, survival.Hunger < 25f, pulse);
         Apply(healthFill, healthImage, healthLabel, shownHealth, healthColor, survival.Health < 25f, pulse);
         Apply(staminaFill, staminaImage, null, shownStamina, staminaColor, false, pulse);
-        Apply(warmthFill, warmthImage, warmthLabel, shownWarmth, warmthColor, survival.Warmth < 25f, pulse);
+        ApplyTemperature(survival, pulse);
         UpdateLoad(k);
 
         UpdateStatus(survival, pulse);
 
         staminaCap.anchorMin = new Vector2(Mathf.Clamp01(shownCap), 0f);
         staminaCap.gameObject.SetActive(shownCap < 0.995f);
+    }
+
+    // Fill runs from the centre (normal core temperature) to the shown core temperature: blue to the left when cold, orange to
+    // red to the right when overheating. The label and fill pulse in the warning colour in the Severe cold tier and from severe heat.
+    void ApplyTemperature(SurvivalManager survival, float pulse)
+    {
+        float centre = Position(37f);
+        float at = Position(shownCore);
+        warmthFill.anchorMin = new Vector2(Mathf.Min(centre, at), 0f);
+        warmthFill.anchorMax = new Vector2(Mathf.Max(centre, at), 1f);
+
+        bool cold = shownCore < 37f;
+        bool alarm = survival.Warmth < 25f || survival.HeatLevel >= SurvivalManager.HeatStage.Severe;
+        Color warning = Color.Lerp(warningColor, Color.Lerp(warningColor, Color.white, 0.35f), pulse);
+        Color normal = cold ? coldColor : Color.Lerp(hotColor, scorchColor, Mathf.InverseLerp(37.5f, 40f, shownCore));
+        warmthImage.color = alarm ? warning : normal;
+        if (warmthLabel != null)
+            warmthLabel.color = alarm ? warning : labelColor;
+    }
+
+    static float Position(float coreC)
+    {
+        if (coreC <= TempCore[0])
+            return TempPos[0];
+        for (int i = 1; i < TempCore.Length; i++)
+        {
+            if (coreC <= TempCore[i])
+                return Mathf.Lerp(TempPos[i - 1], TempPos[i], Mathf.InverseLerp(TempCore[i - 1], TempCore[i], coreC));
+        }
+        return TempPos[TempPos.Length - 1];
+    }
+
+    // Thin marks on the track: the tier boundaries, with the centre (37 °C) brighter.
+    void BuildTemperatureTicks()
+    {
+        Transform track = warmthFill.parent;
+        if (track == null)
+            return;
+        foreach (float core in TempTicks)
+        {
+            bool centre = Mathf.Approximately(core, 37f);
+            Image tick = UiKit.Image(track, centre ? "Temp Centre" : "Temp Tick", new Color(1f, 1f, 1f, centre ? 0.8f : 0.4f));
+            tick.raycastTarget = false;
+            RectTransform rt = tick.rectTransform;
+            float x = Position(core);
+            rt.anchorMin = new Vector2(x, 0f);
+            rt.anchorMax = new Vector2(x, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(centre ? 3f : 2f, 0f);
+            rt.anchoredPosition = Vector2.zero;
+        }
     }
 
     // Sickness, then being wet and warming by a fire, on the line above the meters.
@@ -160,6 +226,22 @@ public class SurvivalHud : MonoBehaviour
             parts.Add("<color=#9CC4E4>Shivering</color>");
         else if (survival.IsWorkingUpHeat)
             parts.Add("<color=#F0B070>Working up some heat</color>");
+        // Overheating (core temperature above 37.5 °C): its own indicator, also shown on the Body temperature meter's right side.
+        switch (survival.HeatLevel)
+        {
+            case SurvivalManager.HeatStage.Hot:
+                parts.Add("<color=#F0B070>Hot</color>");
+                break;
+            case SurvivalManager.HeatStage.Exhaustion:
+                parts.Add("<color=#F09A50>Heat exhaustion</color>  <size=16>stamina reduced — find shade and water</size>");
+                break;
+            case SurvivalManager.HeatStage.Severe:
+                parts.Add("<color=#E8704A>Severe heat exhaustion</color>  <size=16>losing health — cool down now</size>");
+                break;
+            case SurvivalManager.HeatStage.Stroke:
+                parts.Add("<color=#E04A3A>Heat stroke</color>  <size=16>losing health fast</size>");
+                break;
+        }
         if (survival.Damp > 0.25f)
             parts.Add("<color=#8FB8D8>Damp</color>");
         if (survival.NearFire && survival.Warmth < SurvivalManager.MaxValue - 0.5f)

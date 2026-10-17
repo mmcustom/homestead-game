@@ -144,4 +144,6 @@ Early Homestead, Established Homestead, and Modern Homestead (per the GDD's Prog
 
 **Status 2026-10-14: Player Collapse is BUILT and CONFIRMED in Play Mode (cold side and all non-heat causes; two bugs found, fixed and confirmed; clean Console). Commit pending.** The hot side will reuse it with no change.
 
-**Next step:** commit Player Collapse (done building and confirmed 2026-10-14; it closed the Warmth 0 / core 24 C no-rescue gap), then pick the next item. Candidates in Claude's suggested order (not confirmed): Lumber at the Trading Post (small, already confirmed), hot side and Heat Waves (reuses Player Collapse), spoilage plus smoking/drying and Winter water pressure (Mike wants these later), Rainwater Collection, Large Cabin, Power_System/Flashlight.
+**Done 2026-10-14:** Player Collapse (3bb16cb) and Lumber at the Trading Post (ac2eb37), both confirmed in Play Mode and pushed.
+
+**Next step (2026-10-14, Mike):** hot side of the temperature model and Heat Waves, approved to build in two phases (Phase 1 the dangerous core; Phase 2 feels-like, wading, wave-ending storm, difficulty weighting, pond drying). Spec: Weather_System.md "Heat Inputs for the Core Temperature Model". After it, candidates (not confirmed): spoilage plus smoking/drying and Winter water pressure (Mike wants these later), Rainwater Collection, Large Cabin, Power_System/Flashlight.

@@ -54,6 +54,56 @@ public static class OverheadCover
         return covered / (float)Samples.Length;
     }
 
+    // Heights above the ground at which a tree crown is tested along the sun's line (a tall tree shades from low to high).
+    static readonly float[] SunCrownHeights = { 4f, 8f, 12f };
+    const float MaxSunOffset = 40f; // a very low sun is tested no further than this along the ground
+
+    // How much of the DIRECT sun is kept off the player at a point, 0 (open sky) to 1, for a sun at the given elevation and
+    // azimuth (degrees; azimuth is a Unity yaw, 90 = east). Unlike At, which looks straight up, this probes toward the sun,
+    // because a low sun (Winter noon, every dawn and dusk) is blocked by what stands to its side, not overhead.
+    //   - Anything solid on the line to the sun other than the terrain (whose collider includes tree trunks), a roof or a wall
+    //     or a Tent, blocks it entirely; roofed is then true (no sky or ground glare is left either).
+    //   - Tree crowns block canopyBlock of it with leaves on, bareBlock with them off, scaled by leafAmount (0 in Winter), over
+    //     the share of a small patch around the point that the crowns cover along that line.
+    // The terrain itself is ignored, so a hill doesn't hide a low sun. Presentation-grade, like the rest of this class.
+    public static float SunBlocked(Vector3 position, float elevationDeg, float azimuthDeg, float leafAmount,
+                                   float canopyBlock, float bareBlock, out bool roofed)
+    {
+        roofed = false;
+        if (elevationDeg <= 0.5f)
+            return 1f;
+
+        float el = elevationDeg * Mathf.Deg2Rad, az = azimuthDeg * Mathf.Deg2Rad;
+        var toSun = new Vector3(Mathf.Sin(az) * Mathf.Cos(el), Mathf.Sin(el), Mathf.Cos(az) * Mathf.Cos(el));
+        if (Physics.Raycast(position + toSun * 0.1f, toSun, out RaycastHit hit, ProbeHeight, ~0, QueryTriggerInteraction.Ignore) &&
+            !(hit.collider is TerrainCollider))
+        {
+            roofed = true;
+            return 1f;
+        }
+
+        if (!Index())
+            return 0f;
+
+        float block = Mathf.Lerp(bareBlock, canopyBlock, Mathf.Clamp01(leafAmount));
+        float alongPerMetre = 1f / Mathf.Tan(el);
+        var toward = new Vector2(Mathf.Sin(az), Mathf.Cos(az));
+        int covered = 0;
+        foreach (Vector2 offset in Samples)
+        {
+            var start = new Vector2(position.x + offset.x, position.z + offset.y);
+            foreach (float height in SunCrownHeights)
+            {
+                if (UnderCanopy(start + toward * Mathf.Min(height * alongPerMetre, MaxSunOffset)))
+                {
+                    covered++;
+                    break;
+                }
+            }
+        }
+        return Mathf.Clamp01(block * covered / Samples.Length);
+    }
+
     static bool UnderCanopy(Vector2 point)
     {
         var cell = new Vector2Int(Mathf.FloorToInt(point.x / CellSize), Mathf.FloorToInt(point.y / CellSize));

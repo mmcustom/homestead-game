@@ -41,6 +41,13 @@ public class SleepManager : MonoBehaviour
     [Header("Wake early if")]
     [SerializeField] float wakeBelowWarmth = 20f;
     [SerializeField] float wakeBelowHealth = 15f;
+    [Tooltip("Core temperature (°C) above which the player wakes too hot to sleep (heat exhaustion starts at 38).")]
+    [SerializeField] float wakeAboveCoreC = 38f;
+
+    [Header("Collapse from heat")]
+    [Tooltip("A heat collapse doesn't end after its 8-16 hours at the hottest part of the day: the skip runs on to the next " +
+             "dusk or dawn that falls after those hours.")]
+    [SerializeField] bool heatCollapseWakesAtDuskOrDawn = true;
 
     CanvasGroup overlay;
     Text overlayText;
@@ -153,6 +160,7 @@ public class SleepManager : MonoBehaviour
             wind = cabin ? 1f : tent ? 0.9f : tarp ? 0.5f : 0.6f;
             recovery = cabin ? 2.5f : tarp ? 1.5f : 2f;
         }
+        float shelterInsulation = insulation; // without the bag's quarter: SurvivalManager drops the bag in warm air
         if (CarryingBag)
         {
             insulation = 1f - (1f - insulation) * 0.75f;
@@ -166,6 +174,7 @@ public class SleepManager : MonoBehaviour
         if (survival != null)
         {
             survival.SleepInsulation = insulation;
+            survival.SleepShelterInsulation = shelterInsulation;
             survival.SleepRainShelter = rain;
             survival.SleepWindShelter = wind;
             survival.SleepRecovery = recovery;
@@ -189,6 +198,8 @@ public class SleepManager : MonoBehaviour
                 continue;
             if (survival.Warmth < wakeBelowWarmth)
                 wokeEarly = "You wake shivering — too cold to sleep.";
+            else if (survival.CoreTemperatureC > wakeAboveCoreC)
+                wokeEarly = "You wake drenched in sweat — too hot to sleep.";
             else if (survival.Hydration <= 0f)
                 wokeEarly = "You wake parched — you need water.";
             else if (survival.Hunger <= 0f)
@@ -202,7 +213,7 @@ public class SleepManager : MonoBehaviour
 
         if (survival != null)
         {
-            survival.SleepInsulation = survival.SleepRainShelter = survival.SleepWindShelter = 0f;
+            survival.SleepInsulation = survival.SleepShelterInsulation = survival.SleepRainShelter = survival.SleepWindShelter = 0f;
             survival.SleepRecovery = 1f;
         }
         if (wokeEarly != null)
@@ -276,11 +287,15 @@ public class SleepManager : MonoBehaviour
             player.Teleport(spot, yaw);
         }
 
+        // A morning heat collapse would wake the player at the hottest hour: that one runs on to the next dusk or dawn.
+        bool fromHeat = survival.CollapseCause == SurvivalManager.LossCause.Heat;
+        float skipHours = fromHeat && heatCollapseWakesAtDuskOrDawn ? HoursToDuskOrDawn(time, plan.skipHours) : plan.skipHours;
+
         // The world carries on; the player's own stats do not.
         const float Step = 0.25f;
-        for (float passed = 0f; passed < plan.skipHours - 0.001f; passed += Step)
+        for (float passed = 0f; passed < skipHours - 0.001f; passed += Step)
         {
-            float step = Mathf.Min(Step, plan.skipHours - passed);
+            float step = Mathf.Min(Step, skipHours - passed);
             if (FireManager.Instance != null)
                 FireManager.Instance.PassHours(step);
             if (WoodManager.Instance != null)
@@ -291,7 +306,7 @@ public class SleepManager : MonoBehaviour
         survival.WakeFromCollapse(plan);
         player.Rest();
 
-        string message = "You collapsed and woke hours later, weak.";
+        string message = fromHeat ? "The heat overcame you. You woke hours later, weak." : "You collapsed and woke hours later, weak.";
         if (plan.count >= 2)
             message += $"\nYou have collapsed {plan.count} times recently.";
         if (dropped != null)
@@ -304,6 +319,23 @@ public class SleepManager : MonoBehaviour
             game.CloseMenu();
         IsSleeping = false;
         collapsePending = false; // the Health set on waking is not a new collapse
+    }
+
+    // In-game hours from now until the first sunrise or sunset that is at least minHours away.
+    static float HoursToDuskOrDawn(TimeManager time, float minHours)
+    {
+        float now = time.HourOfDay;
+        float best = minHours + 24f;
+        foreach (float hour in new[] { time.SunriseHour, time.SunsetHour })
+        {
+            for (int day = 0; day < 2; day++)
+            {
+                float ahead = Mathf.Repeat(hour - now, 24f) + day * 24f;
+                if (ahead >= minHours && ahead < best)
+                    best = ahead;
+            }
+        }
+        return best;
     }
 
     // The nearest Tent, Lean-To or finished Small Cabin, at any distance. A Sleeping Bag, a Tarp Shelter and an unfinished

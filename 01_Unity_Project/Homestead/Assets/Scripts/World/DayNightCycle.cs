@@ -29,12 +29,13 @@ public class DayNightCycle : MonoBehaviour
 
     [Header("Weather")]
     [Tooltip("Sunlight multiplier per weather type, in WeatherType order: " +
-             "Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind.")]
-    [SerializeField] float[] weatherSunlight = { 1f, 0.5f, 0.35f, 0.2f, 0.15f, 0.8f, 0.35f, 0.9f };
+             "Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind, HeatWave. The body's sun load " +
+             "reads these too (SunlightFor), so the heat matches what the sky shows.")]
+    [SerializeField] float[] weatherSunlight = { 1f, 0.5f, 0.35f, 0.2f, 0.15f, 0.8f, 0.35f, 0.9f, 1f };
     [Tooltip("Fog attenuation distance per weather type, in metres, in WeatherType order. Shorter = thicker fog.")]
-    [SerializeField] float[] weatherFogDistance = { 400f, 300f, 200f, 120f, 80f, 350f, 150f, 400f };
+    [SerializeField] float[] weatherFogDistance = { 400f, 300f, 200f, 120f, 80f, 350f, 150f, 400f, 380f };
     [Tooltip("Cloud cover (0–1) per weather type, in WeatherType order.")]
-    [SerializeField] float[] weatherCloudCover = { 0f, 0.9f, 0.9f, 1f, 1f, 0.5f, 1f, 0.3f };
+    [SerializeField] float[] weatherCloudCover = { 0f, 0.9f, 0.9f, 1f, 1f, 0.5f, 1f, 0.3f, 0.1f };
     [Tooltip("How much of the sun's weather dimming shows on screen. Auto exposure would otherwise brighten a " +
              "stormy day back to look like a clear one; 0 lets it, 1 shows the full dimming.")]
     [SerializeField, Range(0f, 1f)] float weatherDarkening = 0.7f;
@@ -50,7 +51,7 @@ public class DayNightCycle : MonoBehaviour
     [SerializeField, Range(0f, 24f)] float fallbackHour = 12f;
 
     const int SeasonCount = 4;
-    const int WeatherTypeCount = 8;
+    const int WeatherTypeCount = 9;
     const float SunriseAzimuth = 90f; // east; the sun crosses south (180°) to set in the west (270°)
 
     float weatherFactor = 1f;
@@ -115,16 +116,48 @@ public class DayNightCycle : MonoBehaviour
 
     void Update() => Apply();
 
+    // Built-in values, for the Heat Wave entry a scene saved before it lacks (Inspector arrays never pick up C# defaults).
+    static readonly float[] DefaultSunlight = { 1f, 0.5f, 0.35f, 0.2f, 0.15f, 0.8f, 0.35f, 0.9f, 1f };
+    static readonly float[] DefaultFogDistance = { 400f, 300f, 200f, 120f, 80f, 350f, 150f, 400f, 380f };
+    static readonly float[] DefaultCloudCover = { 0f, 0.9f, 0.9f, 1f, 1f, 0.5f, 1f, 0.3f, 0.1f };
+
+    // The scene's live instance, so the body model can read the same per-weather sunlight the sky uses without going
+    // through the frame-updated sun elevation (which is stale during sleep and collapse time skips).
+    static DayNightCycle active;
+
+    void OnEnable() => active = this;
+
+    void OnDisable()
+    {
+        if (active == this)
+            active = null;
+    }
+
+    // Sunlight multiplier (0-1) for a weather type: what the sun's light uses, so heat and visuals agree.
+    public static float SunlightFor(WeatherType weather)
+    {
+        float[] values = active != null && active.weatherSunlight != null ? active.weatherSunlight : DefaultSunlight;
+        return Mathf.Clamp01(PerWeather(values, weather, DefaultSunlight[Mathf.Min((int)weather, DefaultSunlight.Length - 1)]));
+    }
+
+    static void Grow(ref float[] values, float[] defaults)
+    {
+        int had = values != null ? values.Length : 0;
+        System.Array.Resize(ref values, WeatherTypeCount);
+        for (int i = had; i < WeatherTypeCount; i++)
+            values[i] = defaults[i];
+    }
+
     void OnValidate()
     {
         if (middayElevation == null || middayElevation.Length != SeasonCount)
             System.Array.Resize(ref middayElevation, SeasonCount);
         if (weatherSunlight == null || weatherSunlight.Length != WeatherTypeCount)
-            System.Array.Resize(ref weatherSunlight, WeatherTypeCount);
+            Grow(ref weatherSunlight, DefaultSunlight);
         if (weatherFogDistance == null || weatherFogDistance.Length != WeatherTypeCount)
-            System.Array.Resize(ref weatherFogDistance, WeatherTypeCount);
+            Grow(ref weatherFogDistance, DefaultFogDistance);
         if (weatherCloudCover == null || weatherCloudCover.Length != WeatherTypeCount)
-            System.Array.Resize(ref weatherCloudCover, WeatherTypeCount);
+            Grow(ref weatherCloudCover, DefaultCloudCover);
     }
 
     void Apply()

@@ -13,6 +13,10 @@ using UnityEngine;
 // Material slots on the tree prefabs: 0 bark, 1 leaves, 2 snow on the crown, 3 snow on the branches.
 public class SeasonalTrees : MonoBehaviour
 {
+    // 0-1: how much of their leaves deciduous trees have right now (0 in Winter), for the sun's canopy shade
+    // (OverheadCover.SunBlocked). 1 when no SeasonalTrees is running.
+    public static float LeafAmount { get; private set; } = 1f;
+
     [Tooltip("Season progress through Fall over which leaves change colour.")]
     [SerializeField] Vector2 colourChangeInFall = new Vector2(0f, 0.55f);
     [Tooltip("Season progress through Fall over which leaves drop (matches SeasonalGround's leaf litter).")]
@@ -112,6 +116,7 @@ public class SeasonalTrees : MonoBehaviour
         Season season = time != null ? time.CurrentSeason : Season.Summer;
         float progress = time != null ? time.SeasonProgress : 0.5f;
         float snow = ground != null ? ground.Amount : 0f;
+        LeafAmount = LeavesFor(season, progress);
 
         foreach (Prototype prototype in prototypes)
         {

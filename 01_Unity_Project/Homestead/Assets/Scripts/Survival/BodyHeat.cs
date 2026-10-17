@@ -38,13 +38,51 @@ public static class BodyHeat
         public float shiverPeakMet = 4.9f;
         public float shiverFuelHunger = 25f; // below this much Hunger, shivering weakens
 
-        // Placeholder until the hot side exists: above the normal core temperature the body sheds heat (blood flow and
-        // sweat) at this many watts per degree, so hard work in the cold settles a little above 37 °C instead of running away.
+        // Above the normal core temperature the body sheds heat (blood flow and sweat) at this many watts per degree, so hard
+        // work in the cold settles a little above 37 °C instead of running away. In warm air the sweat glands add to it (the
+        // hot side, Weather_System.md's Heat Inputs): the rate rises from the first figure to the second as the air warms from
+        // hotSweatFromAirC to hotSweatFullAirC, so the cold side's tuning is untouched. All of it is scaled by how well sweat
+        // evaporates (the caller's sweatEfficiency: wet-bulb, wind, Hydration), then capped at maxSweatWatts.
         public float normalCoreC = 37f;
         public float dissipationWattsPerC = 400f;
+        public float hotSweatWattsPerC = 1000f;
+        public float hotSweatFromAirC = 18f;
+        public float hotSweatFullAirC = 26f;
+        public float maxSweatWatts = 1000f;
+        // Heat stroke: sweating fades rather than stopping (a stop would be a runaway). Full at strokeFromC, down to
+        // strokeSweatFloor of itself by strokeFloorAtC.
+        public float strokeFromC = 40f;
+        public float strokeFloorAtC = 41.5f;
+        public float strokeSweatFloor = 0.25f;
 
         public float minCoreC = 24f;
         public float maxCoreC = 41f;
+    }
+
+    // --- Air and sweat (the hot side) ---
+
+    // Saturation vapour pressure in hPa (Magnus).
+    public static float SaturationHPa(float tempC) => 6.112f * (float)Math.Exp(17.62f * tempC / (243.12f + tempC));
+
+    // Relative humidity, 0-100, of air at tempC whose dew point is dewC.
+    public static float RelativeHumidity(float tempC, float dewC) =>
+        Math.Min(100f, Math.Max(1f, 100f * SaturationHPa(Math.Min(dewC, tempC)) / SaturationHPa(tempC)));
+
+    // Wet-bulb temperature (Stull 2011), good for 5-99 % humidity and -20 to 50 °C: inputs are clamped to that.
+    public static float WetBulbC(float tempC, float humidity)
+    {
+        float t = Math.Min(50f, Math.Max(-20f, tempC));
+        float rh = Math.Min(99f, Math.Max(5f, humidity));
+        return (float)(t * Math.Atan(0.151977 * Math.Sqrt(rh + 8.313659)) + Math.Atan(t + rh) - Math.Atan(rh - 1.676331)
+                       + 0.00391838 * Math.Pow(rh, 1.5) * Math.Atan(0.023101 * rh) - 4.686035);
+    }
+
+    // The fraction of sweat that actually cools (0-1): full at or below fullC of wet-bulb, none at or above zeroC (about 35 °C,
+    // the physical survival limit where sweat cools no one), straight between. Wind raises it (never from zero).
+    public static float EvaporationFactor(float wetBulbC, float fullC, float zeroC, float wind01, float windBoost)
+    {
+        float f = Clamp01((zeroC - wetBulbC) / Math.Max(0.01f, zeroC - fullC));
+        return Clamp01(f * (1f + windBoost * Clamp01(wind01)));
     }
 
     // Warmth 0, 25, 50, 75, 100 ↔ core temperature (straight lines between).
@@ -78,6 +116,8 @@ public static class BodyHeat
         public float lossMultiplier;      // difficulty: heat loss scaled in the harmful direction
         public float rewarmMultiplier;    // game-feel boost on the body's own net heat gain; 0 or 1 = none
         public float rewarmBelowC;        // the boost applies only while core temperature is below this
+        public float solarWatts;          // heat gained from the sun, after cloud and shade
+        public float sweatEfficiency;     // 0-1: evaporation factor × the sweat Hydration can supply (see SweatEfficiency)
     }
 
     public struct Result
@@ -88,6 +128,7 @@ public static class BodyHeat
         public float productionWatts;
         public float lossWatts;
         public float netWatts;
+        public float sweatWatts;   // heat shed by sweat and blood flow above the normal core temperature
     }
 
     // Seasonal clothing until a clothing system exists: the player dresses for the recent temperature.
@@ -142,17 +183,22 @@ public static class BodyHeat
 
             float dry = s.areaM2 * (s.skinC - c.airC) / resistance;
             float loss = dry > 0f ? dry * c.lossMultiplier : dry; // heat gained from warm air isn't scaled
-            float dissipation = Math.Max(0f, coreC - s.normalCoreC) * s.dissipationWattsPerC;
+            float perDegree = s.dissipationWattsPerC + (s.hotSweatWattsPerC - s.dissipationWattsPerC) *
+                              Clamp01((c.airC - s.hotSweatFromAirC) / Math.Max(0.01f, s.hotSweatFullAirC - s.hotSweatFromAirC));
+            float strokeFade = 1f - (1f - s.strokeSweatFloor) * Clamp01((coreC - s.strokeFromC) / Math.Max(0.01f, s.strokeFloorAtC - s.strokeFromC));
+            float dissipation = Math.Min(Math.Max(0f, coreC - s.normalCoreC) * perDegree * Clamp01(c.sweatEfficiency) * strokeFade,
+                                         s.maxSweatWatts);
             // Rewarming boost (Health_System.md, Warmth Regeneration, Mike 2026-10-10): only the body's OWN net gain is
             // multiplied, and only while below the ceiling. A net loss is never touched (so cooling and the resting
             // plateaus are unchanged, because a plateau is net zero), and a campfire's radiant watts are added after.
             float body = production - loss - dissipation;
             if (body > 0f && c.rewarmMultiplier > 1f && coreC < c.rewarmBelowC)
                 body *= c.rewarmMultiplier;
-            float net = body + c.radiantWatts;
+            float net = body + c.radiantWatts + c.solarWatts;
 
             coreC = Math.Min(s.maxCoreC, Math.Max(s.minCoreC, coreC + net / s.heatCapacityWhPerC * dt));
-            r = new Result { coreC = coreC, shiver = shiver, totalMet = totalMet, productionWatts = production, lossWatts = loss, netWatts = net };
+            r = new Result { coreC = coreC, shiver = shiver, totalMet = totalMet, productionWatts = production, lossWatts = loss, netWatts = net,
+                             sweatWatts = dissipation };
         }
         return r;
     }

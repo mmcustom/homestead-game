@@ -3,7 +3,8 @@ using UnityEngine;
 
 // Weather_System.md's weather types. Wind also has a standing direction/strength (see WindDirection),
 // since Hunting_System.md uses wind direction regardless of the current weather type.
-public enum WeatherType { Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind }
+// HeatWave is appended, never inserted: saves store the type as an integer.
+public enum WeatherType { Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind, HeatWave }
 
 [Serializable]
 public struct WeatherSaveData
@@ -16,6 +17,11 @@ public struct WeatherSaveData
     public int dryDays;
     public bool rainedToday;
     public int seed;
+    // Heat Waves (Weather_System.md's Heat Inputs): this wave's peak strength and full length, and the hours of humidity left
+    // from recent rain. Saves from before them load 0: no wave, no recent rain.
+    public float heatWaveStrengthC;
+    public int heatWaveTotalHours;
+    public float rainRecentHours;
 }
 
 // Weather, temperature, seasonal conditions (Unity_Architecture.md, Weather_System.md).
@@ -26,7 +32,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
     public class SeasonClimate
     {
         [Tooltip("Relative share of the season's time spent in each weather type, in WeatherType order: " +
-                 "Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind. " +
+                 "Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind, HeatWave. " +
                  "Roll chances are adjusted for each type's duration, so long types don't crowd out short ones.")]
         public float[] weights = new float[WeatherTypeCount];
 
@@ -51,7 +57,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
         [Range(0f, 1f)] public float minWindStrength;
     }
 
-    const int WeatherTypeCount = 8;
+    const int WeatherTypeCount = 9;
     const int SeasonCount = 4;
     const float PeakTemperatureHour = 15f;
 
@@ -62,13 +68,14 @@ public class WeatherManager : MonoBehaviour, ISaveable
     [SerializeField] SeasonClimate[] seasons =
     {
         // Spring: frequent rain, unpredictable conditions.
-        new SeasonClimate { weights = new float[] { 30, 30, 22, 10, 3, 2, 0, 3 }, highC = 18f, lowC = 5f, windStrength = 0.3f },
-        // Summer: heat, occasional thunderstorms, drought risk in dry stretches.
-        new SeasonClimate { weights = new float[] { 64, 25, 3, 1, 2, 0, 0, 5 }, highC = 30f, lowC = 18f, windStrength = 0.2f },
+        new SeasonClimate { weights = new float[] { 30, 30, 22, 10, 3, 2, 0, 3, 0 }, highC = 18f, lowC = 5f, windStrength = 0.3f },
+        // Summer: heat, occasional thunderstorms, drought risk in dry stretches. Heat Wave 15 (Clear came down by the same 15)
+        // is about one a Summer: weights are shares of time, and a wave averages 108 h of a 28-day (672 h) Summer.
+        new SeasonClimate { weights = new float[] { 49, 25, 3, 1, 2, 0, 0, 5, 15 }, highC = 30f, lowC = 18f, windStrength = 0.2f },
         // Fall: cooling trends, increasing wind.
-        new SeasonClimate { weights = new float[] { 40, 28, 10, 4, 1, 7, 0, 10 }, highC = 17f, lowC = 5f, windStrength = 0.4f },
+        new SeasonClimate { weights = new float[] { 40, 28, 10, 4, 1, 7, 0, 10, 0 }, highC = 17f, lowC = 5f, windStrength = 0.4f },
         // Winter: snow and cold fronts dominate.
-        new SeasonClimate { weights = new float[] { 20, 25, 3, 0, 0, 15, 30, 7 }, highC = 5f, lowC = -6f, windStrength = 0.35f },
+        new SeasonClimate { weights = new float[] { 20, 25, 3, 0, 0, 15, 30, 7, 0 }, highC = 5f, lowC = -6f, windStrength = 0.35f },
     };
 
     [Header("Weather types (WeatherType order)")]
@@ -82,7 +89,40 @@ public class WeatherManager : MonoBehaviour, ISaveable
         new WeatherTypeSettings { minHours = 24, maxHours = 48, temperatureOffsetC = -8f, minWindStrength = 0.5f },  // ColdFront
         new WeatherTypeSettings { minHours = 4, maxHours = 18, temperatureOffsetC = -2f, minWindStrength = 0.2f },  // Snow
         new WeatherTypeSettings { minHours = 4, maxHours = 12, temperatureOffsetC = -1f, minWindStrength = 0.8f },  // Wind
+        // HeatWave: the heat comes from the per-wave strength and envelope under "Heat Waves", so this constant stays 0.
+        new WeatherTypeSettings { minHours = 72, maxHours = 144, temperatureOffsetC = 0f, minWindStrength = 0f },   // HeatWave
     };
+
+    [Header("Heat Waves (Summer only; weights above)")]
+    [Tooltip("An ordinary wave's peak rise over the day's normal, in °C, plus or minus the variation. No design ceiling.")]
+    [SerializeField] float heatWaveBaseC = 6f;
+    [SerializeField, Min(0f)] float heatWaveVariationC = 1.5f;
+    [Tooltip("Chance that a wave is a strong one, and the extra °C it adds (a random figure between the two).")]
+    [SerializeField, Range(0f, 1f)] float heatWaveStrongChance = 0.2f;
+    [SerializeField] Vector2 heatWaveStrongExtraC = new Vector2(4f, 10f);
+    [Tooltip("In-game hours a wave takes to build to its peak, and to ease off at its end.")]
+    [SerializeField, Min(1f)] float heatWaveBuildHours = 24f;
+    [SerializeField, Min(1f)] float heatWaveEaseHours = 24f;
+    [Tooltip("Warm nights: at the peak, the daily swing between the low and the high shrinks by this share (0.5 halves the night cooling).")]
+    [SerializeField, Range(0f, 1f)] float heatWaveNightCoolingCut = 0.5f;
+    [Tooltip("Whether the dry days of a wave count toward a Summer drought (nothing reads IsDrought yet; ponds don't dry).")]
+    [SerializeField] bool heatWaveCountsAsDry;
+
+    [Header("Humidity (dew point, derived to relative humidity from the air temperature)")]
+    [Tooltip("The typical dew point in °C at midseason, Spring, Summer, Fall, Winter; blended toward the neighbouring season like the temperature.")]
+    [SerializeField] float[] seasonDewPointC = { 6f, 17f, 7f, -4f };
+    [SerializeField, Min(0f)] float dailyDewPointVariationC = 3f;
+    [Tooltip("Added to the dew point while each weather type is active, in WeatherType order.")]
+    [SerializeField] float[] weatherDewPointC = { 0f, 1.5f, 3f, 4f, 4f, -4f, 0f, -2f, 0f };
+    [Tooltip("While precipitation falls the air is nearly saturated: the dew point sits this far under the air temperature.")]
+    [SerializeField, Min(0f)] float precipitationDewDepressionC = 1f;
+    [Tooltip("After rain the air stays humid: this much extra dew point, falling to nothing over the hours below.")]
+    [SerializeField] float rainRecentDewPointC = 3f;
+    [SerializeField, Min(1f)] float rainRecentHoursMax = 24f;
+    [Tooltip("A Heat Wave raises the dew point by this much at its ordinary and its strongest (+12 °C) strength.")]
+    [SerializeField] Vector2 heatWaveDewPointC = new Vector2(3f, 5f);
+    [Tooltip("The dew point never gets closer than this to the air temperature outside precipitation.")]
+    [SerializeField, Min(0f)] float minDewDepressionC = 0.5f;
 
     [Header("Variation")]
     [Tooltip("Each day's temperature shifts by up to ± this many °C, so no two years feel identical.")]
@@ -92,6 +132,9 @@ public class WeatherManager : MonoBehaviour, ISaveable
     [Tooltip("Fastest the temperature can move toward its target, in °C per in-game hour — " +
              "a cold front arrives over a few hours rather than instantly.")]
     [SerializeField, Min(0.1f)] float maxTemperatureChangePerHour = 3f;
+    [Tooltip("A code guard, not a design limit (real extremes run higher): nothing, Homesteader's offset included, " +
+             "takes the air above this. Applied last.")]
+    [SerializeField] float maxTemperatureC = 46f;
 
     [Header("Difficulty temperature offset")]
     [Tooltip("Difficulty's ±°C offset applies in full (colder for Pioneer) at or below this temperature...")]
@@ -118,6 +161,11 @@ public class WeatherManager : MonoBehaviour, ISaveable
     bool rainedToday;
     int seed;
     bool subscribed;
+    float heatWaveStrengthC;   // this wave's peak rise in °C (0 outside a wave)
+    int heatWaveTotalHours;    // this wave's full length
+    float rainRecentHours;     // hours of humid air left from recent rain
+    int dewDay = -1;
+    float dewDayVariation;
 
     public event Action<WeatherType> WeatherChanged;
 
@@ -142,6 +190,56 @@ public class WeatherManager : MonoBehaviour, ISaveable
                              dryDays >= droughtDryDays;
     public int DryDays => dryDays;
 
+    public bool IsHeatWave => current == WeatherType.HeatWave;
+    // 0-1: how far into its build and ease-off the current wave is (0 outside a wave).
+    public float HeatWaveIntensity
+    {
+        get
+        {
+            if (current != WeatherType.HeatWave || heatWaveTotalHours <= 0)
+                return 0f;
+            float elapsed = heatWaveTotalHours - hoursRemaining;
+            float t = Mathf.Min(Mathf.Clamp01((elapsed + 1f) / heatWaveBuildHours), Mathf.Clamp01(hoursRemaining / heatWaveEaseHours));
+            return t * t * (3f - 2f * t);
+        }
+    }
+    public float HeatWaveRiseC => heatWaveStrengthC * HeatWaveIntensity;
+
+    // Humidity (Weather_System.md's Heat Inputs): a dew point for the day and hour, from the season, the day's random shift,
+    // the weather, recent rain and any Heat Wave; relative humidity then follows from the air temperature (Magnus), so it
+    // is lowest in the afternoon and highest near dawn without any extra curve.
+    public float DewPointC
+    {
+        get
+        {
+            TimeManager time = TimeManager.Instance;
+            if (time == null)
+                return temperature - 5f;
+
+            int season = (int)time.CurrentSeason;
+            float progress = time.SeasonProgress;
+            int neighbour = progress < 0.5f ? (season + SeasonCount - 1) % SeasonCount : (season + 1) % SeasonCount;
+            float dew = Mathf.Lerp(seasonDewPointC[season], seasonDewPointC[neighbour], Mathf.Abs(progress - 0.5f));
+
+            if (dewDay != time.TotalDays)
+            {
+                dewDay = time.TotalDays;
+                dewDayVariation = (float)new System.Random(unchecked(seed * 73856093 ^ dewDay * 19349663 ^ 5 * 2654435)).NextDouble() * 2f - 1f;
+            }
+            dew += dewDayVariation * dailyDewPointVariationC;
+            dew += weatherDewPointC[(int)current];
+            dew += rainRecentDewPointC * Mathf.Clamp01(rainRecentHours / rainRecentHoursMax);
+            dew += Mathf.Lerp(heatWaveDewPointC.x, heatWaveDewPointC.y, Mathf.InverseLerp(6f, 12f, heatWaveStrengthC)) * HeatWaveIntensity;
+
+            if (IsPrecipitating)
+                dew = Mathf.Max(dew, temperature - precipitationDewDepressionC);
+            return Mathf.Min(dew, temperature - minDewDepressionC);
+        }
+    }
+
+    // 1-100 percent.
+    public float RelativeHumidity => BodyHeat.RelativeHumidity(temperature, DewPointC);
+
     // Updated hourly, easing toward the target for the current season, time of day and weather.
     public float TemperatureC => temperature;
     public float TemperatureF => TemperatureC * 9f / 5f + 32f;
@@ -164,6 +262,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        EnsureArrays();
     }
 
     void Start()
@@ -206,21 +305,61 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
     void OnValidate()
     {
-        if (seasons == null || seasons.Length != SeasonCount)
-            Array.Resize(ref seasons, SeasonCount);
-        if (weatherTypes == null || weatherTypes.Length != WeatherTypeCount)
-            Array.Resize(ref weatherTypes, WeatherTypeCount);
-
-        foreach (SeasonClimate climate in seasons)
-        {
-            if (climate != null && (climate.weights == null || climate.weights.Length != WeatherTypeCount))
-                Array.Resize(ref climate.weights, WeatherTypeCount);
-        }
+        EnsureArrays();
 
         foreach (WeatherTypeSettings settings in weatherTypes)
         {
             if (settings != null)
                 settings.maxHours = Mathf.Max(settings.maxHours, settings.minHours);
+        }
+    }
+
+    // Inspector-serialized arrays keep what the scene saved and never pick up the C# defaults, so a scene saved before Heat
+    // Waves has 8-entry arrays. Grow them to the current size here (at startup and on validate) with the new entries'
+    // defaults, rather than with zeros and nulls: a missing weatherTypes entry would be null, and Summer would never roll a
+    // Heat Wave. When Summer's weights grow, Clear gives up the Heat Wave's share, as in the C# defaults.
+    void EnsureArrays()
+    {
+        if (seasons == null || seasons.Length != SeasonCount)
+            Array.Resize(ref seasons, SeasonCount);
+
+        if (weatherTypes == null || weatherTypes.Length != WeatherTypeCount)
+        {
+            int had = weatherTypes != null ? weatherTypes.Length : 0;
+            Array.Resize(ref weatherTypes, WeatherTypeCount);
+            for (int i = had; i < WeatherTypeCount; i++)
+                weatherTypes[i] = i == (int)WeatherType.HeatWave
+                    ? new WeatherTypeSettings { minHours = 72, maxHours = 144 }
+                    : new WeatherTypeSettings();
+        }
+        for (int i = 0; i < weatherTypes.Length; i++)
+            weatherTypes[i] ??= new WeatherTypeSettings();
+
+        for (int s = 0; s < seasons.Length; s++)
+        {
+            SeasonClimate climate = seasons[s] ??= new SeasonClimate();
+            if (climate.weights != null && climate.weights.Length == WeatherTypeCount)
+                continue;
+
+            int had = climate.weights != null ? climate.weights.Length : 0;
+            Array.Resize(ref climate.weights, WeatherTypeCount);
+            if (s == (int)Season.Summer && had > 0 && had <= (int)WeatherType.HeatWave)
+            {
+                const float HeatWaveShare = 15f;
+                climate.weights[(int)WeatherType.HeatWave] = HeatWaveShare;
+                climate.weights[(int)WeatherType.Clear] = Mathf.Max(0f, climate.weights[(int)WeatherType.Clear] - HeatWaveShare);
+            }
+        }
+
+        if (seasonDewPointC == null || seasonDewPointC.Length != SeasonCount)
+            seasonDewPointC = new[] { 6f, 17f, 7f, -4f };
+        if (weatherDewPointC == null || weatherDewPointC.Length != WeatherTypeCount)
+        {
+            float[] old = weatherDewPointC;
+            weatherDewPointC = new[] { 0f, 1.5f, 3f, 4f, 4f, -4f, 0f, -2f, 0f };
+            if (old != null)
+                for (int i = 0; i < Mathf.Min(old.Length, WeatherTypeCount); i++)
+                    weatherDewPointC[i] = old[i];
         }
     }
 
@@ -230,6 +369,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
         seed = Environment.TickCount;
         dryDays = 0;
         rainedToday = false;
+        rainRecentHours = 0f;
+        dewDay = -1;
 
         System.Random rng = Rng(0);
         windDirection = (float)rng.NextDouble() * 360f;
@@ -242,7 +383,14 @@ public class WeatherManager : MonoBehaviour, ISaveable
     void OnHourChanged(int hour)
     {
         if (IsRaining)
+        {
             rainedToday = true;
+            rainRecentHours = rainRecentHoursMax;
+        }
+        else
+        {
+            rainRecentHours = Mathf.Max(0f, rainRecentHours - 1f);
+        }
 
         if (--hoursRemaining <= 0)
             RollNextWeather(Rng(1), notify: true);
@@ -253,7 +401,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
     void OnDayChanged()
     {
-        dryDays = rainedToday ? 0 : dryDays + 1;
+        // A Heat Wave is dry but not an ordinary dry stretch unless the Inspector says so (it would trip the drought every time).
+        dryDays = rainedToday ? 0 : current == WeatherType.HeatWave && !heatWaveCountsAsDry ? dryDays : dryDays + 1;
         rainedToday = IsRaining;
 
         System.Random rng = Rng(2);
@@ -279,11 +428,56 @@ public class WeatherManager : MonoBehaviour, ISaveable
         ResolvePrecipitationType(notify: false);
 
         if (IsRaining)
+        {
             rainedToday = true;
+            rainRecentHours = rainRecentHoursMax;
+        }
+
+        if (current == WeatherType.HeatWave)
+        {
+            heatWaveTotalHours = hoursRemaining;
+            heatWaveStrengthC = RollHeatWaveStrength(rng);
+        }
+        else
+        {
+            heatWaveTotalHours = 0;
+            heatWaveStrengthC = 0f;
+        }
 
         if (notify && current != previous)
             WeatherChanged?.Invoke(current);
     }
+
+    // An ordinary wave is about +6 °C; a rarer strong one adds more, with no design ceiling.
+    float RollHeatWaveStrength(System.Random rng)
+    {
+        float strength = heatWaveBaseC + ((float)rng.NextDouble() * 2f - 1f) * heatWaveVariationC;
+        if (rng.NextDouble() < heatWaveStrongChance)
+            strength += Mathf.Lerp(heatWaveStrongExtraC.x, heatWaveStrongExtraC.y, (float)rng.NextDouble());
+        return Mathf.Max(0f, strength);
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Testing only (TimeDebugControls, F4): starts a wave now, or ends the one under way.
+    public void DebugStartHeatWave(float strengthC, int hours)
+    {
+        current = WeatherType.HeatWave;
+        heatWaveStrengthC = strengthC;
+        heatWaveTotalHours = hoursRemaining = Mathf.Max(1, hours);
+        WeatherChanged?.Invoke(current);
+    }
+
+    public void DebugEndHeatWave()
+    {
+        if (current != WeatherType.HeatWave)
+            return;
+        current = WeatherType.Clear;
+        hoursRemaining = 12;
+        heatWaveStrengthC = 0f;
+        heatWaveTotalHours = 0;
+        WeatherChanged?.Invoke(current);
+    }
+#endif
 
     // Weather_System.md's Precipitation Type by Temperature: rain at or below freezing falls as Snow instead, in any
     // season, and Snow's gameplay effects apply. Checked when weather is rolled, every hour as the temperature
@@ -362,17 +556,21 @@ public class WeatherManager : MonoBehaviour, ISaveable
         float high = Mathf.Lerp(seasons[season].highC, seasons[neighbour].highC, blend);
         float low = Mathf.Lerp(seasons[season].lowC, seasons[neighbour].lowC, blend);
 
+        // A Heat Wave adds its per-wave rise and shrinks the daily swing (warm nights): at 0 intensity this is exactly the
+        // plain lerp(low, high, dayCurve).
+        float wave = HeatWaveIntensity;
         float dayCurve = (Mathf.Cos((time.HourOfDay - PeakTemperatureHour) / 24f * 2f * Mathf.PI) + 1f) * 0.5f;
-        float temperature = Mathf.Lerp(low, high, dayCurve)
+        float temperature = high - (high - low) * (1f - dayCurve) * (1f - heatWaveNightCoolingCut * wave)
                             + dailyTemperatureOffset
-                            + weatherTypes[(int)current].temperatureOffsetC;
+                            + weatherTypes[(int)current].temperatureOffsetC
+                            + heatWaveStrengthC * wave;
         temperature += DifficultyOffsetC(temperature);
 
         // Snow pulls the temperature to freezing or below (reached over the next few hours).
         if (current == WeatherType.Snow)
             temperature = Mathf.Min(temperature, 0f);
 
-        return temperature;
+        return Mathf.Min(temperature, maxTemperatureC);
     }
 
     // Difficulty's temperature offset in the harmful direction (Core Temperature Model): Pioneer is colder in cold weather
@@ -399,6 +597,9 @@ public class WeatherManager : MonoBehaviour, ISaveable
         dryDays = dryDays,
         rainedToday = rainedToday,
         seed = seed,
+        heatWaveStrengthC = heatWaveStrengthC,
+        heatWaveTotalHours = heatWaveTotalHours,
+        rainRecentHours = rainRecentHours,
     };
 
     // Restores silently — no change events fire, so listeners should re-read state after a load.
@@ -412,6 +613,11 @@ public class WeatherManager : MonoBehaviour, ISaveable
         dryDays = Mathf.Max(0, data.dryDays);
         rainedToday = data.rainedToday;
         seed = data.seed;
+        // Saves from before Heat Waves carry no wave strength: a HeatWave type with none just reads as no wave.
+        heatWaveStrengthC = current == WeatherType.HeatWave ? Mathf.Max(0f, data.heatWaveStrengthC) : 0f;
+        heatWaveTotalHours = current == WeatherType.HeatWave ? Mathf.Max(hoursRemaining, data.heatWaveTotalHours) : 0;
+        rainRecentHours = Mathf.Clamp(data.rainRecentHours, 0f, rainRecentHoursMax);
+        dewDay = -1;
         ResolvePrecipitationType(notify: false); // saves from before this rule can hold rain below freezing
     }
 
