@@ -19,7 +19,7 @@ Chop down a tree
 ↓
 Sticks + Branches + Logs
 ↓
-Build (Logs) or burn (Logs, Branches) or craft (Sticks)
+Build (Logs) or burn (Logs, Branches, and from 2026-10-17 Sticks too, as direct fuel, no split needed; see Core_Survival_System.md "Wood as Direct Fuel") or craft (Sticks)
 
 ---
 

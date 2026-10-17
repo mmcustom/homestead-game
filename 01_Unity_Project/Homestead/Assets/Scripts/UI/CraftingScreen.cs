@@ -563,12 +563,13 @@ public class CraftingScreen : GameScreen
                 category = BuildCategories[2],
                 help = Capitalize(CampfireHelp),
                 info = "Placed just in front of you.",
-                cost = $"{fires.FirewoodToBuild} Firewood",
+                cost = $"{fires.FirewoodToBuild} Firewood / {fires.CampfireSticksCost} Sticks",
                 actionLabel = "Build",
                 failHeading = "Can't build a Campfire",
             };
             e.can = fires.CanBuild(player, out _, out e.reason);
             e.sets.Add(new List<Req> { new Req { label = ItemName(FireManager.FirewoodId), have = inventory != null ? inventory.Player.Count(FireManager.FirewoodId) : 0, need = fires.FirewoodToBuild } });
+            e.sets.Add(new List<Req> { new Req { label = ItemName(WoodManager.SticksId), have = inventory != null ? inventory.Player.Count(WoodManager.SticksId) : 0, need = fires.CampfireSticksCost } });
             e.act = () => DoBuildCampfire(fires);
             entries.Add(e);
         }

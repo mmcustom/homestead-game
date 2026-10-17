@@ -69,8 +69,15 @@ public class FireManager : MonoBehaviour, ISaveable
 
     [Header("Fuel")]
     [SerializeField, Min(1)] int firewoodToBuild = 3;
+    [Tooltip("Or build a Campfire from this many Sticks instead of the Firewood. A convenience number, not a weight or burn-time match.")]
+    [SerializeField, Min(1)] int campfireSticksCost = 6;
     [Tooltip("In-game hours of burning each piece of Firewood adds.")]
     [SerializeField, Min(0.1f)] float hoursPerFirewood = 2f;
+    [Tooltip("Wood as direct fuel (Core_Survival_System.md): unsplit wood burns as long as the Firewood it splits into. " +
+             "One Log splits into 5 Firewood, 2 Branches into 1. Stick is a first-pass number to tune by feel.")]
+    [SerializeField, Min(0.01f)] float hoursPerLog = 10f;
+    [SerializeField, Min(0.01f)] float hoursPerBranch = 1f;
+    [SerializeField, Min(0.01f)] float hoursPerStick = 0.15f;
     [Tooltip("A campfire can't hold more fuel than this, in in-game hours.")]
     [SerializeField, Min(1f)] float maxFuelHours = 12f;
 
@@ -93,6 +100,28 @@ public class FireManager : MonoBehaviour, ISaveable
 
     public IReadOnlyList<CampfireState> Fires => fires;
     public int FirewoodToBuild => firewoodToBuild;
+    public int CampfireSticksCost => campfireSticksCost;
+
+    // What a Campfire would be paid for with right now: 3 Firewood if the player has them, else 6 Sticks, else null.
+    // The Build tab lists the alternatives in the same order.
+    public string BuildPayment(out int count)
+    {
+        count = 0;
+        InventoryContainer carried = Carried;
+        if (carried == null)
+            return null;
+        if (carried.Count(FirewoodId) >= firewoodToBuild)
+        {
+            count = firewoodToBuild;
+            return FirewoodId;
+        }
+        if (carried.Count(WoodManager.SticksId) >= campfireSticksCost)
+        {
+            count = campfireSticksCost;
+            return WoodManager.SticksId;
+        }
+        return null;
+    }
     public float HoursPerFirewood => hoursPerFirewood;
     public float MaxFuelHours => maxFuelHours;
 
@@ -177,9 +206,9 @@ public class FireManager : MonoBehaviour, ISaveable
             return false;
         }
 
-        if (carried.Count(FirewoodId) < firewoodToBuild)
+        if (BuildPayment(out _) == null)
         {
-            reason = Crafting.NeedsText(new[] { (FirewoodId, firewoodToBuild - carried.Count(FirewoodId)) });
+            reason = $"Needs {firewoodToBuild} Firewood or {campfireSticksCost} Sticks.";
             return false;
         }
 
@@ -224,13 +253,14 @@ public class FireManager : MonoBehaviour, ISaveable
         if (!CanBuild(player, out Vector3 position, out _))
             return false;
 
-        Carried.Remove(FirewoodId, firewoodToBuild);
+        string payment = BuildPayment(out int paid);
+        Carried.Remove(payment, paid);
         var fire = new CampfireState
         {
             id = nextId++,
             position = position,
             yaw = player.transform.eulerAngles.y,
-            fuelHours = Mathf.Min(maxFuelHours, firewoodToBuild * hoursPerFirewood),
+            fuelHours = Mathf.Min(maxFuelHours, paid * BurnHours(payment)),
             lit = false,
         };
         fires.Add(fire);
@@ -295,10 +325,88 @@ public class FireManager : MonoBehaviour, ISaveable
     public static bool HasIgnition => Carried != null && Carried.Has(IgnitionId);
     public static int FirewoodCarried => Carried != null ? Carried.Count(FirewoodId) : 0;
 
+    // --- Fuel choice (Core_Survival_System.md, Wood as Direct Fuel) ---
+
+    // Default order of the fuels the player can pick between; Logs last. The pick itself is not saved.
+    public static readonly string[] FuelIds = { FirewoodId, WoodManager.BranchesId, WoodManager.SticksId, WoodManager.LogsId };
+    static string selectedFuel;
+
+    // In-game hours of burning one of this item adds to a fire; 0 if it is not fuel.
+    public float BurnHours(string itemId)
+    {
+        if (itemId == FirewoodId) return hoursPerFirewood;
+        if (itemId == WoodManager.LogsId) return hoursPerLog;
+        if (itemId == WoodManager.BranchesId) return hoursPerBranch;
+        if (itemId == WoodManager.SticksId) return hoursPerStick;
+        return 0f;
+    }
+
+    // "a Log", "a Branch", "a Stick", "Firewood".
+    public static string FuelName(string itemId, bool withArticle = true)
+    {
+        if (itemId == WoodManager.LogsId) return withArticle ? "a Log" : "Log";
+        if (itemId == WoodManager.BranchesId) return withArticle ? "a Branch" : "Branch";
+        if (itemId == WoodManager.SticksId) return withArticle ? "a Stick" : "Stick";
+        return "Firewood";
+    }
+
+    // How many of the fuel kinds (Firewood, Branches, Sticks, Logs) the player is carrying.
+    public static int CarriedFuelKinds
+    {
+        get
+        {
+            if (Carried == null)
+                return 0;
+            int kinds = 0;
+            foreach (string id in FuelIds)
+                if (Carried.Count(id) > 0)
+                    kinds++;
+            return kinds;
+        }
+    }
+
+    // The fuel E adds: the player's pick if still carried, else the first carried in default order, else null.
+    public static string SelectedFuel
+    {
+        get
+        {
+            if (Carried == null)
+                return null;
+            if (selectedFuel != null && Carried.Count(selectedFuel) > 0)
+                return selectedFuel;
+            foreach (string id in FuelIds)
+                if (Carried.Count(id) > 0)
+                    return id;
+            return null;
+        }
+    }
+
+    // Steps the pick to the next fuel kind the player is carrying. Returns the new pick, or null with nothing to cycle.
+    public static string CycleFuel()
+    {
+        string current = SelectedFuel;
+        if (current == null)
+            return null;
+        int start = System.Array.IndexOf(FuelIds, current);
+        for (int step = 1; step <= FuelIds.Length; step++)
+        {
+            string id = FuelIds[(start + step) % FuelIds.Length];
+            if (Carried.Count(id) > 0)
+            {
+                selectedFuel = id;
+                return id;
+            }
+        }
+        return current;
+    }
+
+    // True when a whole piece of this fuel fits under the cap (0.01 h of tolerance).
+    public bool Fits(CampfireState fire, string itemId) =>
+        fire != null && itemId != null && fire.fuelHours + BurnHours(itemId) <= maxFuelHours + 0.01f;
+
     public bool CanLight(CampfireState fire) => fire != null && !fire.lit && fire.fuelHours > 0f && HasIgnition;
 
-    public bool CanAddFuel(CampfireState fire) =>
-        fire != null && FirewoodCarried > 0 && fire.fuelHours + hoursPerFirewood <= maxFuelHours + 0.01f;
+    public bool CanAddFuel(CampfireState fire) => Fits(fire, SelectedFuel);
 
     public bool Light(CampfireState fire) => CanLight(fire) && Ignite(fire);
 
@@ -327,15 +435,31 @@ public class FireManager : MonoBehaviour, ISaveable
         return true;
     }
 
-    public bool AddFuel(CampfireState fire)
-    {
-        if (!CanAddFuel(fire))
-            return false;
+    // Adds one of the selected fuel, only if its whole burn time fits. Otherwise says so and consumes nothing.
+    public bool AddFuel(CampfireState fire) => AddFuelPieces(fire, 1) > 0;
 
-        Carried.Remove(FirewoodId, 1);
-        fire.fuelHours = Mathf.Min(maxFuelHours, fire.fuelHours + hoursPerFirewood);
+    // Shift: adds as many of the selected fuel as fit under the cap.
+    public int AddFuelUpTo(CampfireState fire) => AddFuelPieces(fire, int.MaxValue);
+
+    int AddFuelPieces(CampfireState fire, int most)
+    {
+        string id = SelectedFuel;
+        if (fire == null || id == null)
+            return 0;
+
+        float burn = BurnHours(id);
+        int room = Mathf.FloorToInt((maxFuelHours + 0.01f - fire.fuelHours) / burn);
+        int count = Mathf.Min(most, Mathf.Min(room, Carried.Count(id)));
+        if (count <= 0)
+        {
+            ToolStatus.Flash($"Not enough room for {FuelName(id)} (needs {burn:0.##} h)");
+            return 0;
+        }
+
+        Carried.Remove(id, count);
+        fire.fuelHours = Mathf.Min(maxFuelHours, fire.fuelHours + count * burn);
         Changed(fire);
-        return true;
+        return count;
     }
 
     // For Cooking and Water Purification: the closest burning campfire within range, or null.

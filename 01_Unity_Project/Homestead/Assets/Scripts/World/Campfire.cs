@@ -177,12 +177,27 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
                          ? "Light Fire  — equip the Bow Drill and hold click"
                          : "Light Fire  — needs Flint and Steel (or a Bow Drill)";
             string cook = state.lit && CarryingCookables ? "  · Cook or boil from Inventory (I)" : "";
+            string pick = FireManager.SelectedFuel;
+            string change = FireManager.CarriedFuelKinds > 1 ? "  · F: change fuel" : "";
             if (fires.CanAddFuel(state))
-                return state.lit ? $"Add Firewood  (burning, {fuel}){cook}" : "Add Firewood";
+            {
+                string add = $"Add {FireManager.FuelName(pick, false)} (+{fires.BurnHours(pick):0.##} h)";
+                return (state.lit ? $"{add}  · burning, {fuel}" : add) + change + cook;
+            }
             if (state.lit)
-                return (FireManager.FirewoodCarried > 0 ? $"Burning  ({fuel}, full)" : $"Burning  ({fuel})") + cook;
-            return "Burnt out  — add Firewood to rebuild it";
+                return (pick != null ? $"Burning  ({fuel}, no room for {FireManager.FuelName(pick)})" : $"Burning  ({fuel})") + change + cook;
+            return pick != null ? $"Burnt out  — add wood to rebuild it  (no room for {FireManager.FuelName(pick)})" + change
+                                : "Burnt out  — add wood to rebuild it";
         }
+    }
+
+    // F while looking at the fire: choose which carried fuel E adds.
+    public void CycleFuel()
+    {
+        string id = FireManager.CycleFuel();
+        FireManager fires = FireManager.Instance;
+        if (id != null && fires != null)
+            ToolStatus.Flash($"Fuel: {FireManager.FuelName(id, false)} (+{fires.BurnHours(id):0.##} h each)", 2f);
     }
 
     // Raw meat, fish or water that could be cooked or boiled here.
@@ -209,7 +224,13 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (state == null || fires == null)
             return;
 
-        if (!fires.Light(state))
+        if (fires.Light(state))
+            return;
+
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        if (keyboard != null && keyboard.shiftKey.isPressed)
+            fires.AddFuelUpTo(state);
+        else
             fires.AddFuel(state);
     }
 
@@ -222,9 +243,9 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (state == null || fires == null)
                 return "";
             if (state.lit)
-                return "Put Out Fire  (keeps the Firewood left)";
+                return "Put Out Fire  (keeps the fuel left)";
             if (state.fuelHours > 0f && fires.CanAddFuel(state))
-                return "Add Firewood";
+                return $"Add {FireManager.FuelName(FireManager.SelectedFuel, false)} (+{fires.BurnHours(FireManager.SelectedFuel):0.##} h)";
             return "";
         }
     }

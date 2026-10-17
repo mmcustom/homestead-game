@@ -251,6 +251,9 @@ public class PlayerController : MonoBehaviour, ISaveable
         UpdateHeight(dt);
         UpdateFocus();
 
+        if (focus is Campfire fire && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+            fire.CycleFuel();
+
         if (focus != null && interactAction.WasPressedThisFrame())
             focus.Interact(this);
         else if (focus is ISecondaryInteractable secondary && interactAltAction != null &&
