@@ -190,7 +190,7 @@ public class TimeDebugControls : MonoBehaviour
             return "";
         string text = $"Core {survival.CoreTemperatureC:0.00} C ({coreRate:+0.00;-0.00;0.00} C/h)  {survival.HeatLevel}  Warmth {survival.Warmth:0}";
         if (weather != null)
-            text += $"\nAir {weather.TemperatureC:0.0} C ({weather.TemperatureF:0} F)  RH {weather.RelativeHumidity:0}%  dew {weather.DewPointC:0.0} C  wind {weather.WindStrength:0.00}";
+            text += $"\nAir {weather.TemperatureC:0.0} C ({weather.TemperatureF:0} F)  RH {weather.RelativeHumidity:0}%  dew {weather.DewPointC:0.0} C  wind {weather.WindStrength:0.00}  difficulty shift {weather.DifficultyShiftC:+0.0;-0.0;0.0} C ({DifficultyManager.Tier})";
         text += $"\nSun {survival.SolarWatts:0} W  sweat {survival.SweatWatts:0} W (evap {survival.SweatEvaporation:0.00})  wet {survival.Wetness:0.00}";
         if (survival.WadeShare > 0f || survival.WaterCoolingWatts > 0f)
             text += $"\nWading {survival.WadeShare:0.00}  water {survival.WaterTakenWatts:0} W taken = {survival.WaterCoolingWatts:0} W raw x taper {survival.WaterTaper:0.00}";

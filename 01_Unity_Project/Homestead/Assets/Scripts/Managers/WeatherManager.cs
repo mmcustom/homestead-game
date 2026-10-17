@@ -159,6 +159,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
     WeatherType current;
     int hoursRemaining;
     float temperature;
+    float difficultyShiftC; // not saved: refreshed every time the target temperature is computed
     float dailyTemperatureOffset;
     float windDirection;
     int dryDays;
@@ -248,6 +249,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
     public float TemperatureC => temperature;
     public float TemperatureF => TemperatureC * 9f / 5f + 32f;
     public bool IsFreezing => TemperatureC <= 0f;
+    // The difficulty shift in °C that the latest target temperature carries (for the F3 readout; TemperatureC already includes it).
+    public float DifficultyShiftC => difficultyShiftC;
     // The NWS heat index in °F, for display (the pause screen, later the Weather panel); the body model does not use it.
     public float HeatIndexF => BodyHeat.HeatIndexF(TemperatureF, RelativeHumidity);
 
@@ -596,7 +599,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
                             + dailyTemperatureOffset
                             + weatherTypes[(int)current].temperatureOffsetC
                             + heatWaveStrengthC * wave;
-        temperature += DifficultyOffsetC(temperature);
+        difficultyShiftC = DifficultyOffsetC(temperature);
+        temperature += difficultyShiftC;
 
         // Snow pulls the temperature to freezing or below (reached over the next few hours).
         if (current == WeatherType.Snow)

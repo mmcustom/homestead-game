@@ -1379,3 +1379,34 @@ Also pending after Mike's hard reset (2026-10-14/15): verify the working tree is
 ### 2026-10-17 - Roadmap updated for Heat Wave Phase 1 and Phase 2
 - Development_Roadmap.md has a new "Status Update 2026-10-17" section (supersedes the 2026-10-10 "Next step"): Phase 1 and Phase 2 built, tested, committed and pushed (0dfad80, 54a9a33); the "Clear" label; the new-tunables rule; what is still designed-not-built; loose ends; next-step candidates.
 - Claude Code asked whether to commit the roadmap and task list together. Roadmap edited by Claude (docs owner); Mike to tell Claude Code to commit both (no push until Mike says so). ProjectSettings.asset and the AudioManager.cs guard stay out.
+
+
+### 2026-10-17 - Roadmap and task list committed locally (ddf4a8d), NOT yet pushed
+- Claude Code committed Development_Roadmap.md and Current_Task_List.md as ddf4a8d, "Roadmap and task list: Heat Wave Phase 1 and 2 complete" (2 files, 35 insertions). Local master is one commit ahead of origin/master (54a9a33). ProjectSettings.asset and AudioManager.cs remain modified and uncommitted by choice.
+- Waiting on Mike to say push. This entry and the previous ones were added after ddf4a8d, so Current_Task_List.md will show as modified again.
+
+
+### 2026-10-17 - ddf4a8d PUSHED
+- origin/master moved from 54a9a33 to ddf4a8d; local master matches origin. ProjectSettings.asset and the AudioManager.cs null guard remain uncommitted locally by choice. Task-list entries added after ddf4a8d are still uncommitted doc edits.
+- Heat Wave Phase 1 and 2 are fully closed out. Next step: Mike to pick from the roadmap candidates (Homesteader +3 C fix, Weather Information panel, pond drying design, spoilage and smoking/drying with Winter water pressure, Rainwater Collection, Large Cabin, Power_System/Flashlight).
+
+
+### 2026-10-17 - Homesteader temperature-offset fix PICKED (Mike), spec written, not yet built
+- Mike chose the Homesteader +3 C fix as the next item. Spec added to Difficulty_System.md under "Temperature Offset Fix" (Claude, not yet confirmed): the flat +3 / -3 C shift becomes a shift toward comfort that never overshoots. Comfort point 20 C, max shift 3 C. Homesteader shift = clamp(C - T, -3, +3); Pioneer shift = clamp(T - C, -3, +3); Settler none. Examples: Homesteader 38 C becomes 35 C, -10 C becomes -7 C; Pioneer 38 C becomes 41 C, -10 C becomes -13 C.
+- Consequence: Pioneer's free Summer cooling goes away too (Pioneer Summers get hotter). If Mike wants Pioneer unchanged, apply the new function to Homesteader only.
+- Tunables go on DifficultyManager, not a nested serialized class. F3 shows the shift being applied.
+- Claude Code message to send; compile-check only, no commit; then Mike Play Mode tests on a Homesteader copy.
+
+
+### 2026-10-17 - Homesteader temperature-offset "fix" WITHDRAWN: the premise was wrong (Claude's error)
+- Claude Code's read-only step found the offset is NOT flat: WeatherManager.DifficultyOffsetC = TemperatureOffsetC x Lerp(1, -1, InverseLerp(14, 26, baseC)), called once from TargetTemperatureC(). Homesteader is +3 C at or below 14 C, 0 at 20 C, -3 C at or above 26 C; Pioneer is the reverse. Homesteader is already cooled in Summer and in Heat Waves (38 C becomes 35 C). Everything reads the shifted value; nothing disagrees. The 14 and 26 are WeatherManager fields offsetColdBelowC / offsetHotAboveC.
+- The loose end "Homesteader's +3 C makes Summer hotter" was wrong. It came from the Survival Severity table wording and was carried forward unchecked. Corrected: the Difficulty_System.md table rows and a new "Correction" section, the withdrawn "Temperature Offset Fix" heading, and the roadmap (loose end and next-step candidate removed).
+- Claude Code recommended option A: keep the existing function and ramp, add only an F3 shift readout (and DifficultyManager owning comfort/max-shift tunables). Waiting on Mike to confirm A in Claude Code. The spec's steeper ramp is not adopted; it differs by at most 1.5 C (at about 17 C and 23 C).
+- No code changed yet. Nothing committed.
+
+
+### 2026-10-17 - F3 difficulty-shift readout BUILT (compile-checked, UNCOMMITTED, not yet seen in Play Mode)
+- Claude Code (option A): WeatherManager.TargetTemperatureC() now stores the shift in a private, unsaved difficultyShiftC field and exposes it as public DifficultyShiftC. TimeDebugControls F3 Air line now ends with "difficulty shift +3.0 C (Homesteader)"; Settler reads "0.0 C (Settler)". Compile: zero errors, zero warnings, edit mode throughout. No change to the 14/26 C ramp, its tunables, or how the shift is applied. No scene, prefab, ProjectSettings.asset or AudioManager.cs changes.
+- Notes from Claude Code: the shift belongs to the TARGET temperature, and air moves toward the target at up to 3 C per hour, so during a fast swing the readout can run a few degrees ahead of the displayed air value. The Snow cap (0 C) and the 46 C clamp apply after the shift, so when one binds, the shown temperature is not base plus shift.
+- Claude Code asked about modified docs: Development_Roadmap.md, Difficulty_System.md and Current_Task_List.md were edited by Claude (Cowork) in this session (the offset-fix correction, roadmap loose-end removal, task log), not by Claude Code.
+- To do: quick Play Mode look at the F3 line on a Homesteader or Pioneer copy, then Claude Code commits the code plus those three docs (no push until Mike says).

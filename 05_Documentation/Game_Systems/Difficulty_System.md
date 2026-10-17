@@ -33,9 +33,9 @@ How forgiving the existing survival systems are: Health_System.md's Hunger/Hydra
 
 | | Hunger/Hydration/Warmth drain | Temperature | Storm odds | Wildlife alertness |
 |---|---|---|---|---|
-| Homesteader | ×0.75 | +3°C | ×0.6 | ×0.85 |
+| Homesteader | ×0.75 | +3°C at or below 14°C, easing to −3°C at or above 26°C (see Correction below) | ×0.6 | ×0.85 |
 | Settler | ×1 | — | ×1 | ×1 |
-| Pioneer | ×1.3 | −3°C | ×1.5 | ×1.2 |
+| Pioneer | ×1.3 | −3°C at or below 14°C, easing to +3°C at or above 26°C (see Correction below) | ×1.5 | ×1.2 |
 
 **Claude Code's own note on Wildlife:** no animal is dangerous yet (Wildlife_System.md has no aggression mechanic built), so this axis scales how easily game hears the player instead — making hunting itself harder on higher tiers rather than making wildlife more dangerous. **Claude Code's own note on Spoilage:** a stored multiplier exists (0.75/1/1.3, matching the drain column) but nothing reads it yet, since Core_Survival_System.md's Spoilage System isn't built — it's wired up and waiting for that system to exist.
 
@@ -128,3 +128,37 @@ Nothing left — the tier count/names/contents question and the New-Game-lock qu
 
 
 **Pioneer fire gap found and resolved 2026-10-07 (Mike, playtest):** Pioneer could gather Sticks and Firewood but had no ignition source (Flint and Steel is $8 at the Trading Post on a $0 start). A craftable Bow Drill (2 Sticks + 1 Cordage, unreliable) is added in Core_Survival_System.md so the hardest tier has a free path to fire. The kit itself is unchanged.
+
+---
+
+# Temperature Offset Fix — WITHDRAWN 2026-10-17 (the premise was wrong; see "Correction" at the end of this doc. Text below kept for the record only. Do not build it.)
+
+**The problem.** The Survival Severity table's Temperature column is a flat shift: Homesteader +3 C, Pioneer -3 C, applied to every temperature all year. That is only "easier" or "harder" in Winter. In Summer, and especially in a Heat Wave, it runs the wrong way: the easiest tier is 3 C hotter than Settler (and a Heat Wave on Homesteader is the most dangerous one in the game), while Pioneer gets 3 C of free cooling. Found during Heat Wave Phase 2 testing; Heat Wave chance already follows the difficulty correctly (Homesteader x0.6, Pioneer x1.5), so only the temperature offset is backwards.
+
+**First-pass fix: shift toward comfort, never past it.** The difficulty temperature shift becomes a function of the air temperature instead of a flat number:
+
+- Comfort point C = 20 C (68 F). Maximum shift S = 3 C.
+- Homesteader (easier): shift = clamp(C - T, -S, +S). Cold air is warmed by up to 3 C, hot air is cooled by up to 3 C, and the shift ramps to zero as T approaches C, so it never overshoots into the opposite extreme.
+- Pioneer (harder): shift = clamp(T - C, -S, +S). Cold air is made colder by up to 3 C, hot air hotter by up to 3 C, again ramping to zero at C (no jump at the comfort point).
+- Settler: no shift (unchanged). Existing saves load as Settler, so they are unaffected.
+
+Examples (Homesteader / Pioneer): -10 C becomes -7 / -13; 10 C becomes 13 / 7; 20 C stays 20 / 20; 30 C becomes 27 / 33; a 38 C Heat Wave afternoon becomes 35 / 41.
+
+**Consequence to know about:** this also changes Pioneer. Today Pioneer's -3 C quietly makes its Summers cooler; after the fix Pioneer Summers and Heat Waves are hotter, which matches its x1.5 storm/Heat Wave weighting and the "harder" intent. If Mike wants Pioneer left exactly as it is, apply the new function to Homesteader only (flag this to Claude Code before building).
+
+**Build notes for Claude Code.** Find every place the difficulty temperature offset is read today (air temperature for the body model, rain-vs-snow decisions, freezing, pause line, F3) and make them all use the same shifted temperature through one function, so nothing disagrees. Keep the displayed temperature and feels-like consistent with what the body model uses. Put the two tunables (comfort point, maximum shift) on the DifficultyManager component, not inside a nested serialized class. F3 should show the shift being applied, for testing.
+
+
+---
+
+# Correction (2026-10-17, from Claude Code reading the code)
+
+The "Temperature Offset Fix" section above was based on a wrong premise and is withdrawn. The Survival Severity table's "+3C / -3C" wording read like a flat shift, and the "Homesteader makes Summer hotter" loose end was carried forward from it without being checked against the code. The real behaviour, as built and already correct:
+
+- DifficultyManager.TemperatureOffsetC is +3 (Homesteader), 0 (Settler), -3 (Pioneer). It is read in ONE place, WeatherManager.DifficultyOffsetC, called once from TargetTemperatureC() (WeatherManager.cs near line 599).
+- The offset is NOT flat. It is multiplied by Lerp(1, -1, InverseLerp(14, 26, baseTemperatureC)). Homesteader gets +3 C at or below 14 C, easing through 0 at 20 C to -3 C at or above 26 C; Pioneer is the reverse. So Homesteader is already warmed in the cold and cooled in the heat, and Pioneer is already colder in the cold and hotter in the heat.
+- The 14 and 26 are the WeatherManager fields offsetColdBelowC and offsetHotAboveC (saved in the Bootstrap scene).
+- The shift is applied after the daily curve, daily variation, weather offset and Heat Wave rise, before the Snow cap (at or below 0 C) and the 46 C clamp. A 38 C Heat Wave afternoon is already 35 C on Homesteader.
+- Everything reads the shifted value (body model, pause line and feels-like, F3, IsFreezing, rain-versus-snow, humidity and heat index, SeasonalGround melt, fishing heat check); nothing reads the unshifted one.
+
+**Proposed 2026-10-17 (Claude Code's option A; waiting on Mike to confirm):** keep the existing function and ramp. Only add a shift readout to the F3 Air line so the shift being applied is visible when testing. The spec's steeper ramp (full +/-3 C within 3 C of 20 C) is NOT adopted; the biggest difference from it is 1.5 C at about 17 C and 23 C.
