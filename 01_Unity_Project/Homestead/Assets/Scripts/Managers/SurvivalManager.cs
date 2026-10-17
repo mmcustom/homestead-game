@@ -309,6 +309,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     float sunlight = 1f;        // the sky's dimming of the sun, eased toward the weather's
     bool sunlightReady;
     float solarWatts;           // sun heat on the player as of the last step
+    float sunStrength01;        // 0-1: the sun that reaches the player (height x sky x shade), as of the last step; for the Weather panel
     float evaporation;          // 0-1, how well sweat cools as of the last step
     float sweatWatts;           // heat shed by sweating as of the last step
     float wadeShare;            // 0-1: how much of the body is in water as of the last step
@@ -352,6 +353,8 @@ public class SurvivalManager : MonoBehaviour, ISaveable
                                 : coreC > 38f ? HeatStage.Exhaustion : coreC > 37.5f ? HeatStage.Hot : HeatStage.None;
     // For the HUD and debugging: sun heat on the player (W), how well sweat cools (0-1), heat shed by sweat (W).
     public float SolarWatts => solarWatts;
+    // sin(sun elevation) x the sky's clearness x (1 - cover): 0 at night and under a roof, low in canopy shade. Cached with the sun probe.
+    public float SunStrength01 => sunStrength01;
     public float SweatEvaporation => evaporation;
     public float SweatWatts => sweatWatts;
     // Wading (Phase 2): how much of the body is in water (0-1) and the heat the water and the wet skin are taking (W).
@@ -750,7 +753,10 @@ public class SurvivalManager : MonoBehaviour, ISaveable
 
         SunNow(time, out float elevation, out float azimuth);
         if (elevation <= 0.5f)
+        {
+            sunStrength01 = 0f;
             return 0f;
+        }
 
         // The sky's dimming eases in over a couple of hours, as the visible light does, whatever the speed of the clock.
         float target = DayNightCycle.SunlightFor(weather != null ? weather.Current : WeatherType.Clear);
@@ -775,6 +781,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         bool roofed = sunRoofed || SleepRainShelter >= 0.99f;
 
         float strength = Mathf.Sin(elevation * Mathf.Deg2Rad) * sunlight;
+        sunStrength01 = strength * (1f - (roofed ? 1f : cover));
         float watts = strength * (sunWattsFull * (1f - cover) + (roofed ? 0f : shadeWattsFull * cover));
         float coldScale = Mathf.Lerp(sunColdScale, 1f, Mathf.InverseLerp(sunColdAirC, sunWarmAirC, airC));
         float posture = SleepManager.Instance != null && SleepManager.Instance.IsSleeping ? sunLyingScale : 1f;
@@ -932,7 +939,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         totalMet = 1f;
         smoothedReady = false;
         sunlightReady = sunCoverReady = false;
-        sweatWatts = solarWatts = 0f;
+        sweatWatts = solarWatts = sunStrength01 = 0f;
         wadeShare = waterCoolWatts = waterTakenWatts = waterTaper = tailShare = tailHoursLeft = 0f;
         lastLossCause = collapseCause = LossCause.Unknown;
         collapsed = false;
@@ -979,7 +986,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         totalMet = 1f;
         smoothedReady = false; // dress for the weather as it is on loading
         sunlightReady = sunCoverReady = false;
-        sweatWatts = solarWatts = 0f;
+        sweatWatts = solarWatts = sunStrength01 = 0f;
         wadeShare = waterCoolWatts = waterTakenWatts = waterTaper = tailShare = tailHoursLeft = 0f;
         lastLossCause = collapseCause = LossCause.Unknown;
         symptomHours = grumbleEveryHours * 0.5f;

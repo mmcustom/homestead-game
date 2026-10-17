@@ -1410,3 +1410,44 @@ Also pending after Mike's hard reset (2026-10-14/15): verify the working tree is
 - Notes from Claude Code: the shift belongs to the TARGET temperature, and air moves toward the target at up to 3 C per hour, so during a fast swing the readout can run a few degrees ahead of the displayed air value. The Snow cap (0 C) and the 46 C clamp apply after the shift, so when one binds, the shown temperature is not base plus shift.
 - Claude Code asked about modified docs: Development_Roadmap.md, Difficulty_System.md and Current_Task_List.md were edited by Claude (Cowork) in this session (the offset-fix correction, roadmap loose-end removal, task log), not by Claude Code.
 - To do: quick Play Mode look at the F3 line on a Homesteader or Pioneer copy, then Claude Code commits the code plus those three docs (no push until Mike says).
+
+
+### 2026-10-17 - F3 shift readout committed locally (cc51b09), NOT yet pushed
+- Claude Code committed cc51b09, "F3 shows difficulty temperature shift; docs: offset-fix correction" (5 files, 76 insertions, 7 deletions): WeatherManager.cs, TimeDebugControls.cs, Development_Roadmap.md, Difficulty_System.md, Current_Task_List.md. Local master is one commit ahead of origin/master (ddf4a8d). ProjectSettings.asset and AudioManager.cs remain modified and uncommitted by choice.
+- Homesteader/Pioneer temperature offset item is CLOSED: the original premise was wrong, existing ramp kept, F3 readout added. This entry and the earlier ones after the commit are uncommitted doc edits.
+- Waiting on Mike to say push, and to pick the next item (Weather Information panel, pond drying design, spoilage plus smoking/drying with Winter water pressure, Rainwater Collection, Large Cabin, Power_System/Flashlight).
+
+
+### 2026-10-17 - cc51b09 PUSHED
+- origin/master moved from ddf4a8d to cc51b09; local master matches origin. ProjectSettings.asset and the AudioManager.cs null guard remain uncommitted locally by choice. Task-list entries added after cc51b09 are still uncommitted doc edits.
+- Waiting on Mike to pick the next item.
+
+
+### 2026-10-17 - Weather Information panel APPROVED TO BUILD (Mike), spec written, not yet built
+- Mike: "Weather Information panel is next". Build spec added to Weather_System.md at the end of "Weather Information and Instruments" (Claude first pass, not yet confirmed), in two phases.
+- Phase 1: one shared player-facing weather name helper (HeatWave = "Clear", used by the pause line and the panel); Layer 1 HUD line "14:30 . 54 F" under the minimap (not top-left, F3 lives there); Layer 2 sixth GameScreens tab on key K with free rows (conditions, precipitation, temperature and feels-like, wind word plus direction in words, sunlight word from a new SurvivalManager.SunStrength01, season/day/sunrise/sunset). No wind chill yet (no mph value exists).
+- Phase 2: Weather Station item ($25, sells $10, 0.5 kg, carried) unlocks extra rows (humidity %, dew point, wind speed number, exact bearing, sun %). Barometer stays Future.
+- Roadmap line updated to "approved to build". Claude Code message to send; compile-check only, no commit.
+
+
+### 2026-10-17 - Weather panel PHASE 1 BUILT (Claude Code), compile-checked (0 errors, 0 warnings), NOT Play Mode tested, UNCOMMITTED
+- WeatherManager: PlayerWeatherName() (HeatWave = "Clear"), FeelsLikeText() (pause logic moved here, with NWS band), plus precipitation, wind and wind-direction word helpers. PauseMenuController.DescribeNow now uses them (its old SplitWords and Regex using removed). Debug text keeps the real name.
+- HUD: new WeatherHudLine shows "14:30 . 54 F" (22 pt cream, 75% alpha, faint shadow), centred 6 px under the 250x250 minimap, top-right. MinimapHud.Awake adds it to the minimap object, so it fades with the minimap; HUD prefab untouched. Uses WeatherManager.TemperatureF (the shifted value).
+- Weather tab: new WeatherScreen, sixth GameScreens tab (150 px) on key K. Player/Weather action with a <Keyboard>/k binding added to InputSystem_Actions.inputactions (K was free, action resolves in the Editor). Rows: conditions, precipitation, temperature + feels-like, wind word + "from the north-west" (direction omitted when Calm), sunlight, date, sunrise/sunset. No wind chill.
+- SurvivalManager.SunStrength01 = sin(elevation) x sunlight x (1 - cover), cached in the existing sun probe (no extra raycast), cleared on new game and load; a roof counts as full cover (0 indoors). Words: None, Dim under 0.25, Moderate under 0.55, Strong under 0.80, Intense above. Thresholds are plain constants. No new save fields.
+- Answers: time since last rain is NOT tracked (rainRecentHours is only a 24 h humidity countdown, dryDays is whole days), so that row is skipped. Sunrise/sunset come from TimeManager SunriseHour/SunsetHour (set per season in the Inspector); they step at a season change and do not ease.
+- Commit note: WeatherScreen.cs and WeatherHudLine.cs have new .meta files that must be staged when committing.
+- Play Mode checklist written: Weather_Panel_Phase1_Playtest_Checklist.md (18 items, all OPEN). Mike to back up Slot1 first, then run it. Phase 2 (Weather Station) waits until Phase 1 is tested.
+
+
+### 2026-10-17 - Weather panel Phase 1: first Play Mode screenshots (Mike, no comment)
+- Evidence recorded in Weather_Panel_Phase1_Playtest_Checklist.md. PASS: 3 (HUD line under the minimap, "14:39 . 86F"), 10 hot side (feels-like 85F with Caution at 86F), 14 (no last-rain row, expected). PARTIAL: 4, 6, 7, 11, 12, 13 (tab opens and fits, six tabs; Light breeze from the north-west; Sunlight Intense outdoors in a Summer afternoon and None inside the cabin; Summer sunrise 04:30, sunset 21:30).
+- Open: 1, 2, 5, 8, 9, 15 (Heat Wave must read Clear), 16, 17, 18, plus the partial items' remaining halves.
+- Still uncommitted.
+
+
+### 2026-10-17 - Weather panel Phase 1 PLAY-TESTED (Mike: seven grouped checks all pass), UNCOMMITTED
+- Passed: HUD line, K tab, six tabs and the other five still working, pause line match, weather types and precipitation, Heat Wave reads "Clear" everywhere, wind words and direction, sunlight words, seasons' sunrise/sunset, save/reload, performance, clean Console (checklist items 3, 4, 6-18).
+- Not reported: items 1-2 (setup, assumed done) and item 5 (HUD line fades or hides with the minimap), still open and low risk.
+- Docs updated: Weather_System.md ("PHASE 1 BUILT ... PLAY-TESTED") and the roadmap line.
+- Next: Claude Code commits Phase 1 (code plus the new WeatherScreen.cs / WeatherHudLine.cs and their .meta files, InputSystem_Actions.inputactions, and the docs; leave out ProjectSettings.asset and AudioManager.cs; no push until Mike says). Then Phase 2, the Weather Station.

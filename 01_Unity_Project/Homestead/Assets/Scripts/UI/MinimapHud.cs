@@ -33,6 +33,7 @@ public class MinimapHud : MonoBehaviour
     void Awake()
     {
         group = GetComponent<CanvasGroup>();
+        gameObject.AddComponent<WeatherHudLine>(); // Weather Layer 1: the time and temperature line under the minimap
         mask.sprite = MapIcons.Circle;
         backdrop.sprite = MapIcons.Circle;
         rim.sprite = MapIcons.Ring;

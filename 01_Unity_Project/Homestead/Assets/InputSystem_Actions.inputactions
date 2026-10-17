@@ -141,6 +141,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "Weather",
+                    "type": "Button",
+                    "id": "bb5f64c4-8d3b-4447-88cb-3c22dbf155fc",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Aim",
                     "type": "Button",
                     "id": "217d54f1-c956-4e96-8494-c13ef7d4423e",
@@ -577,6 +586,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Crafting",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5c4709fd-c54a-4b0a-8bc3-e4385f852e04",
+                    "path": "<Keyboard>/k",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Weather",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

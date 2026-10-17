@@ -16,9 +16,9 @@ public abstract class GameScreen : MonoBehaviour
     public virtual void OnHide() { }
 }
 
-// The full-screen game screens: World Map (M), Inventory (I), Journal (J), Trading Post (T) and Craft and Build (B) —
+// The full-screen game screens: World Map (M), Inventory (I), Journal (J), Trading Post (T), Craft and Build (B) and Weather (K) —
 // Discovery_System.md's World Map and Journal Screen sections, Inventory_System.md's Inventory Screen,
-// Difficulty_System.md's Trading Post and Crafting_System.md's Craft and Build screen. They share one window with a tab per screen.
+// Difficulty_System.md's Trading Post, Crafting_System.md's Craft and Build screen and Weather_System.md's Weather panel. They share one window with a tab per screen.
 // A screen's key opens it, switches to it from another screen, or closes it if it's already showing; Esc also closes.
 // While a screen is open GameManager is in the Menu state: the clock, survival drain and player stop, the cursor is
 // free, and world audio keeps playing. Everything is built in code in the HUD's look, so the prefab only holds this.
@@ -28,14 +28,14 @@ public abstract class GameScreen : MonoBehaviour
 // pile, targeting whichever one they looked at. The other four tabs stay reachable while it's open, same as always.
 public class GameScreens : MonoBehaviour
 {
-    enum Kind { None = -1, Map, Inventory, Journal, TradingPost, Crafting, Storage }
+    enum Kind { None = -1, Map, Inventory, Journal, TradingPost, Crafting, Weather, Storage }
 
-    static readonly string[] ActionNames = { "Player/Map", "Player/Inventory", "Player/Journal", "Player/TradingPost", "Player/Crafting" };
-    static readonly string[] KeyHints = { "M", "I", "J", "T", "B" };
+    static readonly string[] ActionNames = { "Player/Map", "Player/Inventory", "Player/Journal", "Player/TradingPost", "Player/Crafting", "Player/Weather" };
+    static readonly string[] KeyHints = { "M", "I", "J", "T", "B", "K" };
 
-    readonly GameScreen[] screens = new GameScreen[6];
-    readonly Button[] tabs = new Button[5];
-    readonly InputAction[] actions = new InputAction[5];
+    readonly GameScreen[] screens = new GameScreen[7];
+    readonly Button[] tabs = new Button[6];
+    readonly InputAction[] actions = new InputAction[6];
 
     [Tooltip("The HUD canvas, hidden while a screen is open so the minimap and compass don't sit over the window.")]
     [SerializeField] Canvas hud;
@@ -203,8 +203,8 @@ public class GameScreens : MonoBehaviour
         titleLabel.rectTransform.offsetMin = new Vector2(32f, -70f);
         titleLabel.rectTransform.offsetMax = new Vector2(0f, -14f);
 
-        string[] names = { "Map", "Inventory", "Journal", "Trading Post", "Craft & Build" };
-        float[] widths = { 150f, 170f, 150f, 190f, 210f };
+        string[] names = { "Map", "Inventory", "Journal", "Trading Post", "Craft & Build", "Weather" };
+        float[] widths = { 150f, 170f, 150f, 190f, 210f, 150f };
         for (int i = 0; i < names.Length; i++)
         {
             var kind = (Kind)i;
@@ -242,6 +242,7 @@ public class GameScreens : MonoBehaviour
         screens[(int)Kind.Journal] = CreateScreen<JournalScreen>(p, "Journal");
         screens[(int)Kind.TradingPost] = CreateScreen<TradingPostScreen>(p, "Trading Post");
         screens[(int)Kind.Crafting] = CreateScreen<CraftingScreen>(p, "Craft and Build");
+        screens[(int)Kind.Weather] = CreateScreen<WeatherScreen>(p, "Weather");
         screens[(int)Kind.Storage] = CreateScreen<StorageTransferScreen>(p, "Storage");
     }
 

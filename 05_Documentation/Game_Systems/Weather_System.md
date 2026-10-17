@@ -308,7 +308,7 @@ All numbers stay first-pass and tuned by feel in Play Mode. Open items still unc
 
 # Weather Information and Instruments
 
-**Added 2026-10-14 (Mike asked whether the HUD should show weather information; Claude's layered suggestion, Mike: "i like your suggestion"). Design Draft, Claude first pass, not yet confirmed in detail, NOT approved to build.** The Heat Wave Play Mode test comes first. Goal: the player reads the world by feel and by observation, with better information earned through gear, not handed over by a crowded HUD. This also fits "no forecasting in Alpha 0.1" and "a Heat Wave arrives with no warning".
+**Added 2026-10-14 (Mike asked whether the HUD should show weather information; Claude's layered suggestion, Mike: "i like your suggestion"). Design Draft, Claude first pass, not yet confirmed in detail. APPROVED TO BUILD 2026-10-17 (see the build spec at the end of this section).** The Heat Wave Play Mode test came first and is finished. Goal: the player reads the world by feel and by observation, with better information earned through gear, not handed over by a crowded HUD. This also fits "no forecasting in Alpha 0.1" and "a Heat Wave arrives with no warning".
 
 **Layer 1: always on the HUD, small.** Outdoor temperature (a number) and time of day. Nothing else. Claude Code to check what the HUD already shows before adding anything.
 
@@ -353,7 +353,28 @@ All numbers stay first-pass and tuned by feel in Play Mode. Open items still unc
 - Layer 3 Weather Station still adds the raw numbers (humidity %, dew point, wind speed number, sun value).
 - DECIDED 2026-10-15 (Mike: "yes"): wind direction is FREE in words at Layer 2 (for example "wind from the north-west"), because it is already used for scent, rain drift and tree fall and is a useful hunting and tree-felling aid. The exact bearing and the wind speed number stay behind the Weather Station (Layer 3). Panel still not approved to build.
 
-Per the GDD Development Rule this stays unbuilt until Mike approves a build; it follows the Heat Wave testing.
+**APPROVED TO BUILD 2026-10-17 (Mike: "Weather Information panel is next"), in two phases. The Heat Wave testing that this waited on is finished. Everything below in this block is Claude's first pass (not yet confirmed); Mike confirms by feel in Play Mode.**
+
+**Phase 1 (build first): Layers 1 and 2, the free part.**
+1. **One shared player-facing weather name.** A single helper (on WeatherManager) returns the word the player sees, with HeatWave mapped to "Clear" (the 2026-10-17 decision). The pause date line (PauseMenuController.DescribeNow) and the new panel both call it, so they cannot disagree. Debug text may keep the real name.
+2. **Layer 1, HUD element:** one small, semi-transparent text line, "14:30 . 54 F" (24-hour time as on the pause line, outdoor temperature in Fahrenheit from the same shifted value the rest of the game uses). Place it under the minimap (top-right); NOT top-left, because the F3 debug readout lives there. Built in code with UiKit.Text like the Sick label.
+3. **Layer 2, Weather tab:** sixth GameScreens tab, key K (new Player/Weather action in InputSystem_Actions.inputactions), opened like Map and Inventory (Menu state, clock paused, Esc closes). Free contents, each a labelled row:
+   - Conditions: the shared player-facing name; precipitation word (None, Light, Heavy, Snow); time since it last rained only if the code already tracks it (skip the row if not).
+   - Temperature and feels-like: reuse the pause-screen feels-like (heat index from 80 F with the NWS band name). Wind chill is NOT in this phase (needs a wind speed in mph, which does not exist yet).
+   - Wind: a word from WindStrength 0 to 1 (Calm under 0.10, Light breeze under 0.30, Breezy under 0.50, Windy under 0.75, Gale at 0.75 and above), plus the direction in words from the existing bearing (0 = wind from the north, eight 45-degree sectors: "from the north-west"). The exact bearing stays behind the Weather Station.
+   - Sunlight here: a word from a NEW public SurvivalManager property SunStrength01 = sin(elevation) x sunlight x (1 - cover). None at 0 or below (night), Dim under 0.25, Moderate under 0.55, Strong under 0.80, Intense at 0.80 and above. This is what reaches the player (shade and roofs count), not a UV index.
+   - Season, day, and sunrise and sunset times (only if the day/night code already has them; compute them from the existing sun curve if not, and say so).
+   - A Heat Wave is never labelled: the panel shows only the data (hot, strong sun, high feels-like).
+4. **Rules:** no new save fields. Any Inspector tunables (the word thresholds) go on WeatherManager or SurvivalManager themselves, not inside a nested serialized class; plain constants are fine too. Compile-check only, no Play Mode while compiling.
+
+**PHASE 1 BUILT 2026-10-17 (Claude Code) and PLAY-TESTED 2026-10-17 (Mike: all checks pass; HUD-line fade with the minimap not yet reported).** Built as specced: WeatherManager.PlayerWeatherName(), FeelsLikeText() and the precipitation, wind and wind-direction word helpers; WeatherHudLine (under the minimap, added in MinimapHud.Awake); WeatherScreen as the sixth GameScreens tab on K (Player/Weather action); SurvivalManager.SunStrength01 (roof counts as full cover, so 0 indoors; no extra raycast). No new save fields. The "time since last rain" row is skipped because the code does not track it. Sunrise and sunset come from TimeManager.SunriseHour/SunsetHour and step at a season change.
+
+**Phase 2 (next): Layer 3, the Weather Station.**
+- New carried (not equipped) item, Weather Station: Trading Post $25, sells back $10 (40% rule), 0.5 kg, an Item_Data.md entry. Not craftable until the metal chain exists.
+- While one is in the inventory, the Weather tab gains extra rows: relative humidity %, dew point (F), wind speed as a number (first pass: mph = WindStrength x 40), the exact wind bearing in degrees, and the SunStrength01 value as a percentage. The free word rows stay.
+- A Barometer remains Future (needs a forecasting mechanic). No separate Thermometer.
+
+**Play Mode checks for Mike after Phase 1 (Claude to turn into a checklist once built):** HUD line shows time and temperature and does not overlap the minimap or F3; K opens and Esc closes the Weather tab and pauses the clock; the five other tabs still work; conditions match the pause line; a Heat Wave (F4) reads "Clear" on both; wind word and direction change over days (F5); sunlight word is None at night, higher in sun, lower in shade, a cabin and rain; the Console is clean.
 
 ---
 

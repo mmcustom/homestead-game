@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 // Weather_System.md's weather types. Wind also has a standing direction/strength (see WindDirection),
@@ -253,6 +254,58 @@ public class WeatherManager : MonoBehaviour, ISaveable
     public float DifficultyShiftC => difficultyShiftC;
     // The NWS heat index in °F, for display (the pause screen, later the Weather panel); the body model does not use it.
     public float HeatIndexF => BodyHeat.HeatIndexF(TemperatureF, RelativeHumidity);
+
+    // Player-facing text (the pause date line and the Weather panel both read these, so they cannot disagree). A Heat Wave is
+    // never named: it reads as Clear, and the player works it out from the heat and the feels-like line. Debug text uses Current.
+    public static string PlayerWeatherName(WeatherType type) =>
+        Regex.Replace((type == WeatherType.HeatWave ? WeatherType.Clear : type).ToString(), "(?<=[a-z])(?=[A-Z])", " ");
+    public string PlayerWeatherName() => PlayerWeatherName(current);
+
+    // "feels like 100°F (Danger)" from 80 °F up (the NWS heat index with its band; display only), otherwise empty.
+    public string FeelsLikeText()
+    {
+        if (TemperatureF < 80f)
+            return "";
+        float feels = HeatIndexF;
+        string band = BodyHeat.HeatIndexBand(feels);
+        return $"feels like {feels:0}°F" + (band.Length > 0 ? $" ({band})" : "");
+    }
+
+    // What falls from the sky: None, Light, Heavy or Snow.
+    public string PrecipitationWord
+    {
+        get
+        {
+            switch (PrecipitationWeather)
+            {
+                case WeatherType.LightRain: return "Light";
+                case WeatherType.HeavyRain:
+                case WeatherType.Thunderstorm: return "Heavy";
+                case WeatherType.Snow: return "Snow";
+                default: return "None";
+            }
+        }
+    }
+
+    // WindStrength (0-1) as a word: Calm under 0.10, Light breeze under 0.30, Breezy under 0.50, Windy under 0.75, then Gale.
+    public string WindWord
+    {
+        get
+        {
+            float wind = WindStrength;
+            return wind < 0.10f ? "Calm" : wind < 0.30f ? "Light breeze" : wind < 0.50f ? "Breezy" : wind < 0.75f ? "Windy" : "Gale";
+        }
+    }
+
+    // WindDirection is the bearing the wind blows FROM (0 = north); eight 45-degree sectors, e.g. "north-west".
+    public string WindFromWords
+    {
+        get
+        {
+            string[] sectors = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" };
+            return sectors[Mathf.RoundToInt(Mathf.Repeat(windDirection, 360f) / 45f) % 8];
+        }
+    }
 
     // Compass bearing the wind blows from, 0–360 (0 = from the north).
     public float WindDirection => windDirection;
