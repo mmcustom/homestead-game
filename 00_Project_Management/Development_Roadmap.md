@@ -147,3 +147,26 @@ Early Homestead, Established Homestead, and Modern Homestead (per the GDD's Prog
 **Done 2026-10-14:** Player Collapse (3bb16cb) and Lumber at the Trading Post (ac2eb37), both confirmed in Play Mode and pushed.
 
 **Next step (2026-10-14, Mike):** hot side of the temperature model and Heat Waves, approved to build in two phases (Phase 1 the dangerous core; Phase 2 feels-like, wading, wave-ending storm, difficulty weighting, pond drying). Spec: Weather_System.md "Heat Inputs for the Core Temperature Model". After it, candidates (not confirmed): spoilage plus smoking/drying and Winter water pressure (Mike wants these later), Rainwater Collection, Large Cabin, Power_System/Flashlight.
+
+
+---
+
+# Status Update — 2026-10-17 (supersedes the 2026-10-10 "Next step" above)
+
+**Heat Wave Phase 1 and Phase 2 are built, Play Mode tested by Mike, committed and pushed (Phase 1 0dfad80; Phase 2 54a9a33; master matches origin/master). `ProjectSettings.asset` runInBackground and the AudioManager.cs null guard remain local and uncommitted by choice.**
+
+- **Phase 1 (hot side of the temperature model), confirmed 2026-10-16:** HeatWave weather type (Summer only), dew point and humidity, sun load, sweat and wet-bulb model, Overheating tiers (Hot 37.5 C, Heat exhaustion 38, Severe 39, Stroke above 40), heat collapse reusing Player Collapse, too-hot sleep wake-up, two-sided Body temperature meter replacing the Warmth bar. Debug keys F3 (body readout) and F4 / Shift+F4 (start or end a wave).
+- **Phase 2, confirmed 2026-10-17 (checklist 22 of 23 items passed; item 11 deferred as an untested edge case):**
+  - Feels-like (NWS heat index) with NWS band names on the pause date line, from 80 F. Display only.
+  - Wading cooling: submersion from the Water layer, up to 250 W, scaled by a water-temperature stand-in (24 h smoothed air minus 4 C), a 30-minute evaporative tail after leaving the water, and a core-temperature taper (full at 37.0 C and above, none at 36.5 C and below) so wading cannot drive core temperature down without limit. Wet/damp insulation penalty removed only in air above 28 C (ramp 28 to 30 C); cold-side behaviour unchanged.
+  - Relief storm: a wave that runs out its natural length forces a Thunderstorm (70%) or Cold Front (30%). Not forced on F4 debug end or at the end of Summer. F2 jumps a wave to its natural end.
+  - Difficulty weighting: Heat Wave chance now follows DifficultyManager.StormMultiplier (Homesteader x0.6, Settler x1, Pioneer x1.5).
+  - Player-facing weather text shows "Clear" during a Heat Wave (Mike's decision, 2026-10-17): the player works it out from the heat and the feels-like line. Debug readouts keep the name.
+  - Two bugs found in testing and fixed: the taper bounds loaded as 0 from a nested serialized class (moved onto SurvivalManager), and the evaporative tail counted while still in the water.
+- **Rule going forward:** put new tunables on the component itself (SurvivalManager, WeatherManager, SleepManager), not inside a nested serialized class that is already saved in the scene.
+
+**Still designed, not built:** Pond drying in Heat Waves (Water_System.md, not yet designed), the Weather Information and Instruments panel (design settled, NOT approved to build: free Weather panel with wind direction in words, a Weather Station item for raw numbers; it must also show "Clear" during a Heat Wave), Power_System, Flashlight, Maple_Sugaring, Rainwater Collection, Lumber Mill, Large Cabin and higher tiers, Livestock, Mining/Metalworking.
+
+**Known gaps and loose ends:** Homesteader's +3 C offset still makes Summer hotter on the easiest tier (harmful-direction fix not done); item 11 (overheated wade in air under 28 C) untested; spoilage and smoking/drying not built; Winter water pressure and surface freezing; Livestock feed quantities; a performance review of the placed ground objects in World.unity; real mouse/keyboard input untested; optional untested Player Collapse items (starvation collapse, forgiveness count); contents of commit cc5f555 not reviewed.
+
+**Next step (Mike to pick):** candidates are the Weather Information panel, pond drying (design first), the Homesteader temperature-offset fix, spoilage plus smoking/drying with Winter water pressure (Mike wants these later), Rainwater Collection, Large Cabin, Power_System/Flashlight.

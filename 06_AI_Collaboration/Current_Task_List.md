@@ -1367,3 +1367,15 @@ Also pending after Mike's hard reset (2026-10-14/15): verify the working tree is
 - Item 19 PASS: save during a Heat Wave and reload works, and an older save with no Heat Wave fields loads cleanly.
 - Final checklist status: PASS 1-10, 12 (supported), 13 (supported), 14-23. Item 11 (overheated wade in air under 28 C) deferred as an untested edge case.
 - NEXT: Claude Code commits Heat Wave Phase 2 plus doc updates (no push yet). ProjectSettings.asset and the AudioManager.cs null guard stay out of the commit. After the commit, update Development_Roadmap.md for Phase 2 if Claude Code has not.
+
+### 2026-10-17 - Heat Wave Phase 2 COMMITTED and PUSHED (Claude Code)
+- COMMITTED 54a9a33 "Heat Wave Phase 2: feels-like, wading cooling, relief storm, Clear label" (8 files: TimeDebugControls.cs, SurvivalManager.cs, WeatherManager.cs, BodyHeat.cs, PauseMenuController.cs, Weather_System.md, this log, Heat_Wave_Phase2_Playtest_Checklist.md). PUSHED to origin/master (Mike approved; normal push, a991a02..54a9a33).
+- Includes the Clear label change: the pause date line shows a Heat Wave as "Clear" (PauseMenuController.DescribeNow); no other player-facing place prints a weather name. Debug readouts keep "Heat Wave"; the feels-like line and NWS band are unchanged.
+- Audit result (read-only): the seven Phase 1 BodyHeat.Settings fields (maxSweatWatts, stroke*, hotSweat*) load with their defaults from the saved Bootstrap, checked in the Editor, so they were not moved. Rule going forward (Mike): put new tunables on the component itself (SurvivalManager, WeatherManager, SleepManager), not inside a nested serialized class.
+- Left uncommitted on purpose: ProjectSettings.asset (runInBackground) and the AudioManager.cs null guard.
+- Open: item 11 (overheated wade in air under 28 C) deferred; Development_Roadmap.md not yet updated for Phase 2; Weather Information panel not approved to build.
+
+
+### 2026-10-17 - Roadmap updated for Heat Wave Phase 1 and Phase 2
+- Development_Roadmap.md has a new "Status Update 2026-10-17" section (supersedes the 2026-10-10 "Next step"): Phase 1 and Phase 2 built, tested, committed and pushed (0dfad80, 54a9a33); the "Clear" label; the new-tunables rule; what is still designed-not-built; loose ends; next-step candidates.
+- Claude Code asked whether to commit the roadmap and task list together. Roadmap edited by Claude (docs owner); Mike to tell Claude Code to commit both (no push until Mike says so). ProjectSettings.asset and the AudioManager.cs guard stay out.
