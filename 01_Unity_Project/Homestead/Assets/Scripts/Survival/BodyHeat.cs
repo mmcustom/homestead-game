@@ -77,6 +77,32 @@ public static class BodyHeat
                        + 0.00391838 * Math.Pow(rh, 1.5) * Math.Atan(0.023101 * rh) - 4.686035);
     }
 
+    // Heat index in °F (the NWS "feels like"): the Steadman simple formula, and above about 80 °F the Rothfusz regression with the
+    // NWS low-humidity (RH under 13 % at 80-112 °F) and high-humidity (RH over 85 % at 80-87 °F) adjustments. For display only: the body model
+    // never reads it. Below 80 °F the air temperature itself is returned.
+    public static float HeatIndexF(float tempF, float humidity)
+    {
+        double t = tempF, rh = Math.Min(100.0, Math.Max(0.0, humidity));
+        if (t < 80.0)
+            return tempF;
+
+        double hi = 0.5 * (t + 61.0 + (t - 68.0) * 1.2 + rh * 0.094);
+        if ((hi + t) / 2.0 >= 80.0)
+        {
+            hi = -42.379 + 2.04901523 * t + 10.14333127 * rh - 0.22475541 * t * rh - 0.00683783 * t * t - 0.05481717 * rh * rh
+                 + 0.00122874 * t * t * rh + 0.00085282 * t * rh * rh - 0.00000199 * t * t * rh * rh;
+            if (rh < 13.0 && t <= 112.0)
+                hi -= (13.0 - rh) / 4.0 * Math.Sqrt((17.0 - Math.Abs(t - 95.0)) / 17.0);
+            else if (rh > 85.0 && t <= 87.0)
+                hi += (rh - 85.0) / 10.0 * ((87.0 - t) / 5.0);
+        }
+        return (float)hi;
+    }
+
+    // The NWS band for a heat index in °F; empty under 80.
+    public static string HeatIndexBand(float heatIndexF) =>
+        heatIndexF >= 130f ? "Extreme Danger" : heatIndexF >= 105f ? "Danger" : heatIndexF >= 90f ? "Extreme Caution" : heatIndexF >= 80f ? "Caution" : "";
+
     // The fraction of sweat that actually cools (0-1): full at or below fullC of wet-bulb, none at or above zeroC (about 35 °C,
     // the physical survival limit where sweat cools no one), straight between. Wind raises it (never from zero).
     public static float EvaporationFactor(float wetBulbC, float fullC, float zeroC, float wind01, float windBoost)
@@ -118,6 +144,12 @@ public static class BodyHeat
         public float rewarmBelowC;        // the boost applies only while core temperature is below this
         public float solarWatts;          // heat gained from the sun, after cloud and shade
         public float sweatEfficiency;     // 0-1: evaporation factor × the sweat Hydration can supply (see SweatEfficiency)
+        public float waterCoolingWatts;   // heat taken by wading and the damp skin after it (0 = none: everything else is unchanged)
+        // Water never chills a body that is already cool: its watts are multiplied by 1 at waterTaperFullC and above, 0 at
+        // waterTaperNoneC and below. They come from the caller (not Settings): a field added to a serialized class that a saved
+        // scene already holds loads as 0, which silently turned this taper off.
+        public float waterTaperFullC;
+        public float waterTaperNoneC;
     }
 
     public struct Result
@@ -129,6 +161,8 @@ public static class BodyHeat
         public float lossWatts;
         public float netWatts;
         public float sweatWatts;   // heat shed by sweat and blood flow above the normal core temperature
+        public float waterWatts;   // water cooling actually taken on the last step (after the taper)
+        public float waterTaper;   // the taper factor on the last step, 0-1
     }
 
     // Seasonal clothing until a clothing system exists: the player dresses for the recent temperature.
@@ -195,10 +229,13 @@ public static class BodyHeat
             if (body > 0f && c.rewarmMultiplier > 1f && coreC < c.rewarmBelowC)
                 body *= c.rewarmMultiplier;
             float net = body + c.radiantWatts + c.solarWatts;
+            float waterTaper = Clamp01((coreC - c.waterTaperNoneC) / Math.Max(0.01f, c.waterTaperFullC - c.waterTaperNoneC));
+            float waterWatts = c.waterCoolingWatts > 0f ? c.waterCoolingWatts * waterTaper : 0f;
+            net -= waterWatts;
 
             coreC = Math.Min(s.maxCoreC, Math.Max(s.minCoreC, coreC + net / s.heatCapacityWhPerC * dt));
             r = new Result { coreC = coreC, shiver = shiver, totalMet = totalMet, productionWatts = production, lossWatts = loss, netWatts = net,
-                             sweatWatts = dissipation };
+                             sweatWatts = dissipation, waterWatts = waterWatts, waterTaper = waterTaper };
         }
         return r;
     }

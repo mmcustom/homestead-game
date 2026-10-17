@@ -171,6 +171,32 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0f)] float heatSevereLoss = 1f;
     [SerializeField, Min(0f)] float heatStrokeLoss = 4f;
 
+    [Header("Heat: wading into water (Weather_System.md, Phase 2)")]
+    [Tooltip("Water depth (m above the feet) at which wading starts to count, and the share of the body's cooling reached at an " +
+             "ankle, a knee and a waist (waist or deeper, and swimming, is the whole effect). Straight lines between.")]
+    [SerializeField, Min(0f)] float wadeStartDepth = 0.05f;
+    [SerializeField, Min(0.01f)] float wadeAnkleDepth = 0.15f, wadeKneeDepth = 0.5f, wadeWaistDepth = 0.9f;
+    [SerializeField, Range(0f, 1f)] float wadeAnkleShare = 0.3f, wadeKneeShare = 0.7f;
+    [Tooltip("Heat the water takes from a body in it to the waist or deeper, in watts, with water at least 'Full Effect' colder " +
+             "than the skin (about 3.7 °C per game hour of core cooling at the 67 Wh/°C heat capacity).")]
+    [SerializeField, Min(0f)] float waterCoolingMaxWatts = 250f;
+    [Tooltip("Water (and the wet-skin tail) never chills a cool body: its watts are multiplied by 1 at the first core temperature (°C) " +
+             "and above, 0 at the second and below, straight between.")]
+    [SerializeField] float waterTaperFullCoreC = 37f;
+    [SerializeField] float waterTaperNoneCoreC = 36.5f;
+    [Tooltip("The water-temperature factor is 1 when the water is this many °C under the skin, and 0 when it is as warm as the skin.")]
+    [SerializeField, Min(0.1f)] float waterFullEffectBelowSkinC = 10f;
+    [Tooltip("No water temperature exists in the game, so the water is the recent (24 h smoothed) air temperature minus this.")]
+    [SerializeField] float waterBelowRecentAirC = 4f;
+    [Tooltip("Wading's cooling is NOT gated by this. Wet and damp clothes stop costing insulation only in air warmer than the first figure (gone at the second). " +
+             "At or below the first, Wet, Soaked and Damp behave exactly as before: the cold side is untouched.")]
+    [SerializeField] float hotWetFromAirC = 28f;
+    [SerializeField] float hotWetFullAirC = 30f;
+    [Tooltip("After leaving the water the wet skin keeps cooling by evaporation for this many in-game hours, fading to nothing, at up to " +
+             "this many watts (scaled by the wading depth reached and by how well sweat evaporates in this air).")]
+    [SerializeField, Min(0.01f)] float evaporativeTailHours = 0.5f;
+    [SerializeField, Min(0f)] float evaporativeTailWatts = 60f;
+
     [Header("Sleeping in the heat")]
     [Tooltip("A Sleeping Bag's own insulation fades out between these two air temperatures (°C): ignored above the second.")]
     [SerializeField] float bagIgnoredFromC = 20f;
@@ -285,6 +311,12 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     float solarWatts;           // sun heat on the player as of the last step
     float evaporation;          // 0-1, how well sweat cools as of the last step
     float sweatWatts;           // heat shed by sweating as of the last step
+    float wadeShare;            // 0-1: how much of the body is in water as of the last step
+    float waterCoolWatts;       // heat the water and the evaporative tail would take as of the last step, before the core taper
+    float waterTakenWatts;      // what was actually taken after the taper
+    float waterTaper;           // the taper factor, 0-1
+    float tailShare;            // 0-1: the wading depth reached, kept for the evaporative tail
+    float tailHoursLeft;        // in-game hours of tail left after leaving the water
     float sunCover;             // cached: share of the direct sun kept off by trees (OverheadCover.SunBlocked)
     bool sunRoofed;             // cached: a roof or wall on the line to the sun
     bool sunCoverReady;
@@ -322,6 +354,11 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     public float SolarWatts => solarWatts;
     public float SweatEvaporation => evaporation;
     public float SweatWatts => sweatWatts;
+    // Wading (Phase 2): how much of the body is in water (0-1) and the heat the water and the wet skin are taking (W).
+    public float WadeShare => wadeShare;
+    public float WaterCoolingWatts => waterCoolWatts;      // raw, before the core taper
+    public float WaterTakenWatts => waterTakenWatts;       // after the taper: what actually left the body
+    public float WaterTaper => waterTaper;
     // What was draining Health when the player last collapsed (SleepManager wakes a heat collapse at dusk or dawn).
     public LossCause CollapseCause => collapseCause;
     // Severe cold slows movement.
@@ -592,6 +629,26 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         float humidity = weather != null ? weather.RelativeHumidity : 50f;
         evaporation = BodyHeat.EvaporationFactor(BodyHeat.WetBulbC(tempC, humidity), evaporationFullWetBulbC, evaporationZeroWetBulbC,
                                                  wind * (1f - windShelter), windEvaporationBoost);
+        // Wading: water takes heat at any air temperature (limited by its temperature and the core taper). Wet clothes stop costing insulation only in hot air; at or below Hot Wet From Air C
+        // rain, Wet, Soaked and Damp are exactly as they were.
+        float hotWet = Mathf.Clamp01(Mathf.InverseLerp(hotWetFromAirC, hotWetFullAirC, tempC));
+        wadeShare = placed ? Submersion(position) : 0f;
+        if (wadeShare > 0f)
+        {
+            tailShare = wadeShare;
+            tailHoursLeft = evaporativeTailHours;
+        }
+        else
+        {
+            tailHoursLeft = Mathf.Max(0f, tailHoursLeft - hours);
+        }
+        float waterC = smoothedTempC - waterBelowRecentAirC;
+        float waterFactor = Mathf.Clamp01((body.skinC - waterC) / waterFullEffectBelowSkinC);
+        // The tail is the wet skin drying after the water: it adds nothing while the player is still in it (the water term is the
+        // whole of the cooling there, and counting both double-counted it).
+        float tail = wadeShare > 0f ? 0f : tailShare * Mathf.Clamp01(tailHoursLeft / evaporativeTailHours);
+        waterCoolWatts = wadeShare * waterCoolingMaxWatts * waterFactor + tail * evaporativeTailWatts * evaporation;
+
         float sweatSupply = Mathf.Lerp(sweatSupplyAtEmpty, 1f, Mathf.Clamp01(hydration / sweatFullHydration));
         solarWatts = SunWatts(position, placed, hours, tempC);
 
@@ -602,8 +659,11 @@ public class SurvivalManager : MonoBehaviour, ISaveable
             sweatEfficiency = evaporation * sweatSupply,
             windMetersPerSecond = wind * windMetersPerSecondAtFull * (1f - windShelter),
             clo = BodyHeat.Clo(smoothedTempC, winterClo, summerClo, clothingColdC, clothingWarmC),
-            wetness = wetness,
-            damp = damp,
+            wetness = wetness * (1f - hotWet),
+            damp = damp * (1f - hotWet),
+            waterCoolingWatts = waterCoolWatts,
+            waterTaperFullC = waterTaperFullCoreC,
+            waterTaperNoneC = waterTaperNoneCoreC,
             extraResistance = bedReferenceResistance * cut / (1f - cut),
             activityMet = ActivityMet(activity),
             radiantWatts = fireRadiantWatts * fireHeat,
@@ -615,6 +675,8 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         BodyHeat.Result result = BodyHeat.Advance(body, coreC, conditions, hours);
         coreC = result.coreC;
         sweatWatts = result.sweatWatts;
+        waterTakenWatts = result.waterWatts;
+        waterTaper = result.waterTaper;
         shiver = result.shiver;
         visibleShiver = BodyHeat.VisibleShiver(body, coreC, hunger, visibleShiverOnsetC, visibleShiverFullC);
         totalMet = result.totalMet;
@@ -632,6 +694,24 @@ public class SurvivalManager : MonoBehaviour, ISaveable
             damp -= clear * hours;
         }
         damp = Mathf.Clamp01(damp);
+    }
+
+    // How much of the body is in water where the player stands (0-1), from the depth of the Water layer's surface above their
+    // feet: ankle, knee and waist figures from the Inspector, straight lines between, and the whole of it at waist depth or more.
+    float Submersion(Vector3 feet)
+    {
+        if (!Animal.IsOverWater(feet, out float surface))
+            return 0f;
+        float depth = surface - feet.y;
+        if (depth <= wadeStartDepth)
+            return 0f;
+        if (depth < wadeAnkleDepth)
+            return wadeAnkleShare * Mathf.InverseLerp(wadeStartDepth, wadeAnkleDepth, depth);
+        if (depth < wadeKneeDepth)
+            return Mathf.Lerp(wadeAnkleShare, wadeKneeShare, Mathf.InverseLerp(wadeAnkleDepth, wadeKneeDepth, depth));
+        if (depth < wadeWaistDepth)
+            return Mathf.Lerp(wadeKneeShare, 1f, Mathf.InverseLerp(wadeKneeDepth, wadeWaistDepth, depth));
+        return 1f;
     }
 
     // The sun's height and bearing now, from the clock, the season and the day's sunrise and sunset (the same path as
@@ -853,6 +933,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         smoothedReady = false;
         sunlightReady = sunCoverReady = false;
         sweatWatts = solarWatts = 0f;
+        wadeShare = waterCoolWatts = waterTakenWatts = waterTaper = tailShare = tailHoursLeft = 0f;
         lastLossCause = collapseCause = LossCause.Unknown;
         collapsed = false;
         collapseCount = collapseClockDay = 0;
@@ -899,6 +980,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         smoothedReady = false; // dress for the weather as it is on loading
         sunlightReady = sunCoverReady = false;
         sweatWatts = solarWatts = 0f;
+        wadeShare = waterCoolWatts = waterTakenWatts = waterTaper = tailShare = tailHoursLeft = 0f;
         lastLossCause = collapseCause = LossCause.Unknown;
         symptomHours = grumbleEveryHours * 0.5f;
         collapsed = health <= 0f;

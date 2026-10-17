@@ -108,6 +108,10 @@ public class WeatherManager : MonoBehaviour, ISaveable
     [Tooltip("Whether the dry days of a wave count toward a Summer drought (nothing reads IsDrought yet; ponds don't dry).")]
     [SerializeField] bool heatWaveCountsAsDry;
 
+    [Tooltip("When a wave runs out its natural length (not a debug end, not the end of Summer), the next weather is forced: this " +
+             "chance of a Thunderstorm, otherwise a Cold Front, whatever the season's weights say.")]
+    [SerializeField, Range(0f, 1f)] float heatWaveReliefThunderstormChance = 0.7f;
+
     [Header("Humidity (dew point, derived to relative humidity from the air temperature)")]
     [Tooltip("The typical dew point in °C at midseason, Spring, Summer, Fall, Winter; blended toward the neighbouring season like the temperature.")]
     [SerializeField] float[] seasonDewPointC = { 6f, 17f, 7f, -4f };
@@ -244,6 +248,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
     public float TemperatureC => temperature;
     public float TemperatureF => TemperatureC * 9f / 5f + 32f;
     public bool IsFreezing => TemperatureC <= 0f;
+    // The NWS heat index in °F, for display (the pause screen, later the Weather panel); the body model does not use it.
+    public float HeatIndexF => BodyHeat.HeatIndexF(TemperatureF, RelativeHumidity);
 
     // Compass bearing the wind blows from, 0–360 (0 = from the north).
     public float WindDirection => windDirection;
@@ -393,7 +399,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
         }
 
         if (--hoursRemaining <= 0)
-            RollNextWeather(Rng(1), notify: true);
+            RollAfterExpiry(notify: true);
 
         temperature = Mathf.MoveTowards(temperature, TargetTemperatureC(), maxTemperatureChangePerHour);
         ResolvePrecipitationType(notify: true);
@@ -418,10 +424,21 @@ public class WeatherManager : MonoBehaviour, ISaveable
             RollNextWeather(Rng(3), notify: true);
     }
 
-    void RollNextWeather(System.Random rng, bool notify)
+    // A weather type has run out its time. A Heat Wave that does so ends with relief (a Thunderstorm or a Cold Front), forced
+    // past the season's weights; anything else rolls as usual.
+    void RollAfterExpiry(bool notify)
+    {
+        System.Random rng = Rng(1);
+        WeatherType? forced = null;
+        if (current == WeatherType.HeatWave)
+            forced = rng.NextDouble() < heatWaveReliefThunderstormChance ? WeatherType.Thunderstorm : WeatherType.ColdFront;
+        RollNextWeather(rng, notify, forced);
+    }
+
+    void RollNextWeather(System.Random rng, bool notify, WeatherType? forced = null)
     {
         WeatherType previous = current;
-        current = PickWeather(rng, CurrentWeights());
+        current = forced ?? PickWeather(rng, CurrentWeights());
 
         WeatherTypeSettings settings = weatherTypes[(int)current];
         hoursRemaining = rng.Next(settings.minHours, settings.maxHours + 1);
@@ -465,6 +482,19 @@ public class WeatherManager : MonoBehaviour, ISaveable
         heatWaveStrengthC = strengthC;
         heatWaveTotalHours = hoursRemaining = Mathf.Max(1, hours);
         WeatherChanged?.Invoke(current);
+    }
+
+    // Testing only (TimeDebugControls, F2): the wave runs out its natural length now, so the forced Thunderstorm or Cold Front
+    // follows as it would after a real one. Returns false when there is no wave.
+    public bool DebugExpireHeatWave()
+    {
+        if (current != WeatherType.HeatWave)
+            return false;
+        hoursRemaining = 0;
+        RollAfterExpiry(notify: true);
+        temperature = Mathf.MoveTowards(temperature, TargetTemperatureC(), maxTemperatureChangePerHour);
+        ResolvePrecipitationType(notify: true);
+        return true;
     }
 
     public void DebugEndHeatWave()
@@ -532,7 +562,9 @@ public class WeatherManager : MonoBehaviour, ISaveable
         float weight = Mathf.Max(0f, weights[type]) / ((settings.minHours + settings.maxHours) * 0.5f);
         // Difficulty's weather severity: the rough weather comes more or less often (DifficultyManager).
         var kind = (WeatherType)type;
-        if (kind == WeatherType.HeavyRain || kind == WeatherType.Thunderstorm || kind == WeatherType.ColdFront || kind == WeatherType.Snow)
+        // Heat Waves are on the same list as the storms (Difficulty_System.md's Storm odds: Homesteader x0.6, Settler x1, Pioneer x1.5).
+        if (kind == WeatherType.HeavyRain || kind == WeatherType.Thunderstorm || kind == WeatherType.ColdFront || kind == WeatherType.Snow ||
+            kind == WeatherType.HeatWave)
             weight *= DifficultyManager.StormMultiplier;
         return weight;
     }

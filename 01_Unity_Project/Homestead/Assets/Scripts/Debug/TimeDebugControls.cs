@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 //   F3  toggle a live body readout (core temperature and its change per game hour, air, humidity, sun and sweat watts)
 //   F4  start a Heat Wave (+6 C at its peak, 96 h; Shift+F4 a strong one, +12 C); pressed during a wave, ends it. Works in any
 //       season: set the season to Summer first for the real temperatures, or the wave is added to Winter's cold
+//   F2  jump a Heat Wave to its natural end now (not the F4 end): the forced Thunderstorm (70%) or Cold Front (30%) follows
 //   F5  skip 1 day
 //   F6  skip to the start of the next season
 //   F7  cycle fast-forward: x1, x10, x60 (a day in 30s), x360 (a day in 5s) — calendar only, not movement
@@ -72,6 +73,11 @@ public class TimeDebugControls : MonoBehaviour
                 weather.DebugStartHeatWave(strong ? 12f : 6f, 96);
                 Show(strong ? "Strong Heat Wave started (+12 C peak, 96 h)" : "Heat Wave started (+6 C peak, 96 h)", time);
             }
+        }
+        else if (keyboard.f2Key.wasPressedThisFrame && WeatherManager.Instance != null)
+        {
+            bool ended = WeatherManager.Instance.DebugExpireHeatWave();
+            Show(ended ? $"Heat Wave ran its course: {WeatherManager.Instance.Current}" : "No Heat Wave to end", time);
         }
         else if (keyboard.f5Key.wasPressedThisFrame)
         {
@@ -186,6 +192,8 @@ public class TimeDebugControls : MonoBehaviour
         if (weather != null)
             text += $"\nAir {weather.TemperatureC:0.0} C ({weather.TemperatureF:0} F)  RH {weather.RelativeHumidity:0}%  dew {weather.DewPointC:0.0} C  wind {weather.WindStrength:0.00}";
         text += $"\nSun {survival.SolarWatts:0} W  sweat {survival.SweatWatts:0} W (evap {survival.SweatEvaporation:0.00})  wet {survival.Wetness:0.00}";
+        if (survival.WadeShare > 0f || survival.WaterCoolingWatts > 0f)
+            text += $"\nWading {survival.WadeShare:0.00}  water {survival.WaterTakenWatts:0} W taken = {survival.WaterCoolingWatts:0} W raw x taper {survival.WaterTaper:0.00}";
         return text;
     }
 

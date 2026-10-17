@@ -139,7 +139,19 @@ public class PauseMenuController : MonoBehaviour
 
         WeatherManager weather = WeatherManager.Instance;
         if (weather != null)
-            text += $" · {SplitWords(weather.Current.ToString())}, {weather.TemperatureF:0}°F";
+        {
+            // A Heat Wave reads as plain Clear: the player works it out from the heat (and the feels-like line below).
+            WeatherType shown = weather.Current == WeatherType.HeatWave ? WeatherType.Clear : weather.Current;
+            text += $" · {SplitWords(shown.ToString())}, {weather.TemperatureF:0}°F";
+
+            // Feels-like from 80 °F up (NWS heat index with its band; display only).
+            if (weather.TemperatureF >= 80f)
+            {
+                float feels = weather.HeatIndexF;
+                string band = BodyHeat.HeatIndexBand(feels);
+                text += $", feels like {feels:0}°F" + (band.Length > 0 ? $" ({band})" : "");
+            }
+        }
 
         return text;
     }
