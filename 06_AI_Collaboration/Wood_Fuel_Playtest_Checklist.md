@@ -55,10 +55,12 @@ Result format: PASS / FAIL / NOTE, with a screenshot for anything odd. Claude lo
 - 2026-10-17 (Mike, later): "everything plays good, the cap, shift+E, hearth, everything works normally." Logged as a blanket PASS for sections A-G (items 1-24: basics, choosing fuel, Shift+E, cap and tolerance, fire starting, hearth and dismantle, regression) as reported in one line, not itemised. Item 25 (clean Console) was not explicitly mentioned, so it stays NOT CONFIRMED. Item 20 (dismantle refund feel), 26 (Branch 1 h and Log 10 h) and 28 (prompt readability) were not specifically commented on. Verdict: play-tested, ready to commit once Mike says so.
 - 2026-10-17 (Mike): "yes, clean console." Item 25 PASS. Items 1-25 now all PASS (blanket report plus Console). Still uncommented: 20 (dismantle refund feel), 26 (Branch 1 h, Log 10 h), 28 (prompt readability).
 
-## I. Campfire recipe: 3 Firewood OR 6 Sticks (written 2026-10-17, compile pending, not play-tested)
+## I. Campfire recipe: 3 Firewood OR 6 Sticks (written 2026-10-17, compiled clean, committed in 65c9cb7 and pushed, NOT yet play-tested)
 29. Firewood only: with 3 Firewood and no Sticks, the Build tab Campfire entry shows Firewood 3/3 green and Sticks 0/6 red. Building spends 3 Firewood; the fire starts at 6 h.
 30. Sticks only: with 6 Sticks and no Firewood, it builds, spends 6 Sticks; the fire starts at 0.9 h (unless Mike changes it to 6 h).
 31. Both: spends Firewood, leaves the Sticks.
 32. Neither: 2 Firewood and 5 Sticks leaves Build disabled; red reason "Needs 3 Firewood or 6 Sticks."
 33. Counts refresh after building; building too close to another fire still gives the spacing error.
 34. A Stick-built fire still takes F, E and Shift+E fuel and lights with the Bow Drill; Console clean.
+
+- 2026-10-17 (Mike, pass/fail run): items 20, 26, 28, 29, 30, 31, 32, 33, 34 all PASS (no notes). Item 20 (dismantle refunds Firewood, not Logs) accepted as fair; item 26 Branch 1 h and Log 10 h CONFIRMED with Stick 0.15 h; item 28 prompt readable. Campfire recipe (3 Firewood OR 6 Sticks, Stick-built fire starts at 0.9 h) is PLAY-TESTED and already pushed in 65c9cb7. Every item in this checklist is now PASS; wood as direct fuel and the Campfire Sticks recipe are DONE.
