@@ -21,10 +21,9 @@ public class SaveManager : MonoBehaviour
     const string MetaFile = "meta";
     const string SlotInfoFile = "slotinfo";
     const string ActiveSlotFile = "slots.json";
-    const string CopyTempFolder = ".copy_tmp";
 
-    public const int ManualSlotCount = 10;
-    public const string AutosaveId = "autosave";
+    public const int ManualSlotCount = SlotSwap.ManualSlotCount;
+    public const string AutosaveId = SlotSwap.AutosaveId;
 
     [Serializable]
     class SaveSection
@@ -115,7 +114,7 @@ public class SaveManager : MonoBehaviour
     public static IEnumerable<string> AllSlotIds() => ManualSlotIds().Append(AutosaveId);
 
     // Guards every slot id that reaches a file path (slots.json is a file the player could edit).
-    public static bool IsValidSlot(string id) => !string.IsNullOrEmpty(id) && (id == AutosaveId || ManualSlotIds().Contains(id));
+    public static bool IsValidSlot(string id) => SlotSwap.IsValidSlot(id);
 
     // 1 to 10 for a manual slot, 0 for the autosave.
     public static int SlotNumber(string id) => id != null && id.StartsWith("slot") && int.TryParse(id.Substring(4), out int n) ? n : 0;
@@ -134,6 +133,18 @@ public class SaveManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         SavesRoot = Path.Combine(Application.persistentDataPath, "Saves");
+
+        // Finish or discard any save, copy or delete a crash interrupted, before anything reads a slot.
+        try
+        {
+            foreach (string line in SlotSwap.RecoverAll(SavesRoot))
+                Debug.LogWarning($"[SaveManager] Slot recovery: {line}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Slot recovery failed: {e}");
+        }
+
         activeSlot = ReadActiveSlot();
     }
 
@@ -163,7 +174,7 @@ public class SaveManager : MonoBehaviour
         try
         {
             WaitForPendingWrite();
-            WriteFiles(SlotFolder(AutosaveId), CaptureFiles(AutosaveId));
+            SlotSwap.Save(SavesRoot, AutosaveId, CaptureFiles(AutosaveId));
         }
         catch (Exception e)
         {
@@ -219,13 +230,15 @@ public class SaveManager : MonoBehaviour
             string slot = slotId;
             while (slot != null)
             {
-                string folder = SlotFolder(slot);
+                string root = SavesRoot;
+                string target = slot;
                 Dictionary<string, string> files = CaptureFiles(slot);
-                currentWrite = Task.Run(() => WriteFiles(folder, files));
+                currentWrite = Task.Run(() => SlotSwap.Save(root, target, files));
                 await currentWrite;
 
-                if (slot != AutosaveId)
-                    SetActiveSlot(slot); // a manual save makes its slot the active one
+                // A manual save makes its slot the active one, unless a Delete ran while this write was finishing.
+                if (slot != AutosaveId && SlotExists(slot))
+                    SetActiveSlot(slot);
                 SaveCompleted?.Invoke();
                 slot = pendingSaves.Count > 0 ? pendingSaves.Dequeue() : null;
             }
@@ -292,12 +305,10 @@ public class SaveManager : MonoBehaviour
         if (!IsValidSlot(slotId))
             return false;
 
-        WaitForPendingWrite();
+        DrainPendingSaves();
         try
         {
-            string folder = SlotFolder(slotId);
-            if (Directory.Exists(folder))
-                Directory.Delete(folder, true);
+            SlotSwap.Delete(SavesRoot, slotId);
             if (activeSlot == slotId)
                 SetActiveSlot(null);
             return true;
@@ -310,7 +321,7 @@ public class SaveManager : MonoBehaviour
     }
 
     // Copies one slot onto a manual slot, replacing whatever was there (the caller asks first). The copy is built in a
-    // temporary folder and moved into place, and its slotinfo takes the target's name.
+    // temporary folder and swapped into place (SlotSwap), and its slotinfo takes the target's name.
     public bool CopySlot(string fromId, string toId, out string error)
     {
         error = null;
@@ -320,7 +331,7 @@ public class SaveManager : MonoBehaviour
             return false;
         }
 
-        WaitForPendingWrite();
+        DrainPendingSaves();
         if (!SlotExists(fromId))
         {
             error = "There is nothing in that slot to copy.";
@@ -329,26 +340,16 @@ public class SaveManager : MonoBehaviour
 
         try
         {
-            string temp = Path.Combine(SavesRoot, CopyTempFolder);
-            if (Directory.Exists(temp))
-                Directory.Delete(temp, true);
-            Directory.CreateDirectory(temp);
-
-            foreach (string path in Directory.GetFiles(SlotFolder(fromId), "*.json"))
-                File.Copy(path, Path.Combine(temp, Path.GetFileName(path)));
-
-            string infoPath = FilePath(temp, SlotInfoFile);
-            if (File.Exists(infoPath))
+            SlotSwap.Copy(SavesRoot, fromId, toId, temp =>
             {
-                SlotInfoData info = JsonUtility.FromJson<SlotInfoData>(File.ReadAllText(infoPath));
-                info.name = DefaultName(toId);
-                File.WriteAllText(infoPath, JsonUtility.ToJson(info, true));
-            }
-
-            string target = SlotFolder(toId);
-            if (Directory.Exists(target))
-                Directory.Delete(target, true);
-            Directory.Move(temp, target);
+                string infoPath = FilePath(temp, SlotInfoFile);
+                if (File.Exists(infoPath))
+                {
+                    SlotInfoData info = JsonUtility.FromJson<SlotInfoData>(File.ReadAllText(infoPath));
+                    info.name = DefaultName(toId);
+                    SlotSwap.WriteFlushed(infoPath, JsonUtility.ToJson(info, true));
+                }
+            });
             return true;
         }
         catch (Exception e)
@@ -361,10 +362,19 @@ public class SaveManager : MonoBehaviour
 
     // --- Slot information ---
 
-    public bool SlotExists(string slotId) => IsValidSlot(slotId) && File.Exists(FilePath(SlotFolder(slotId), MetaFile));
+    // Waits for a write in flight: during its swap the slot folder briefly doesn't exist.
+    public bool SlotExists(string slotId)
+    {
+        if (!IsValidSlot(slotId))
+            return false;
+
+        WaitForPendingWrite();
+        return File.Exists(FilePath(SlotFolder(slotId), MetaFile));
+    }
 
     public SlotInfo GetSlotInfo(string slotId)
     {
+        WaitForPendingWrite();
         var info = new SlotInfo { Id = slotId, Name = DefaultName(slotId) };
         if (!SlotExists(slotId))
             return info;
@@ -404,6 +414,7 @@ public class SaveManager : MonoBehaviour
     // The slot whose save is newest (by the time it was written), or null when no slot has a save. Continue loads this.
     public string NewestSlot()
     {
+        WaitForPendingWrite();
         string newest = null;
         DateTime newestTime = DateTime.MinValue;
         foreach (string id in AllSlotIds())
@@ -427,7 +438,7 @@ public class SaveManager : MonoBehaviour
         try
         {
             Directory.CreateDirectory(SavesRoot);
-            File.WriteAllText(Path.Combine(SavesRoot, ActiveSlotFile), JsonUtility.ToJson(new ActiveSlotData { activeSlot = activeSlot ?? "" }));
+            SlotSwap.WriteFileAtomic(Path.Combine(SavesRoot, ActiveSlotFile), JsonUtility.ToJson(new ActiveSlotData { activeSlot = activeSlot ?? "" }));
         }
         catch (Exception e)
         {
@@ -465,6 +476,29 @@ public class SaveManager : MonoBehaviour
         }
     }
 
+    // Finishes the write in flight and then every save queued behind it, on the main thread, so a Delete or Copy that follows
+    // can't have a queued save start afterwards and recreate the slot.
+    void DrainPendingSaves()
+    {
+        WaitForPendingWrite();
+        while (pendingSaves.Count > 0)
+        {
+            string slot = pendingSaves.Dequeue();
+            try
+            {
+                SlotSwap.Save(SavesRoot, slot, CaptureFiles(slot));
+                if (slot != AutosaveId)
+                    SetActiveSlot(slot);
+                SaveCompleted?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SaveManager] Save failed: {e}");
+                SaveFailed?.Invoke(e);
+            }
+        }
+    }
+
     Dictionary<string, string> CaptureFiles(string slotId)
     {
         var files = new Dictionary<string, SaveFileData>();
@@ -487,7 +521,6 @@ public class SaveManager : MonoBehaviour
             version = SaveVersion,
             savedAtUtc = savedAt,
         }, true);
-        // Part of what a save produces, so the writer's cleanup of unproduced files leaves it alone.
         json[SlotInfoFile] = JsonUtility.ToJson(BuildSlotInfo(slotId, savedAt), true);
         return json;
     }
@@ -512,41 +545,6 @@ public class SaveManager : MonoBehaviour
             info.season = time.CurrentSeason.ToString();
         }
         return info;
-    }
-
-    // Runs off the main thread — no Unity API calls in here.
-    static void WriteFiles(string folder, Dictionary<string, string> files)
-    {
-        Directory.CreateDirectory(folder);
-
-        foreach (KeyValuePair<string, string> file in files)
-        {
-            if (file.Key != MetaFile)
-                WriteAtomic(FilePath(folder, file.Key), file.Value);
-        }
-
-        // Meta last: its presence marks a completed save.
-        WriteAtomic(FilePath(folder, MetaFile), files[MetaFile]);
-
-        // Drop files from an earlier save that no system wrote this time, so a load never mixes old and new state.
-        // slotinfo is in `files` too, so it counts as written.
-        foreach (string path in Directory.GetFiles(folder, "*.json"))
-        {
-            if (!files.ContainsKey(Path.GetFileNameWithoutExtension(path)))
-                File.Delete(path);
-        }
-    }
-
-    // Write to a temp file then swap it in, so a crash mid-write can't leave a half-written file.
-    static void WriteAtomic(string path, string contents)
-    {
-        string temp = path + ".tmp";
-        File.WriteAllText(temp, contents);
-
-        if (File.Exists(path))
-            File.Replace(temp, path, null);
-        else
-            File.Move(temp, path);
     }
 
     string SlotFolder(string slotId) => Path.Combine(SavesRoot, slotId);
