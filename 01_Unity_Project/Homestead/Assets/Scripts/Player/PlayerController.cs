@@ -231,8 +231,8 @@ public class PlayerController : MonoBehaviour, ISaveable
 
     void Update()
     {
-        // Esc while typing a journal note belongs to the text field, not the pause menu.
-        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping)
+        // Esc while typing a journal note belongs to the text field, and Esc in the slot panel to the panel, not the pause menu.
+        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping && !SlotPanel.IsOpen)
             GameManager.Instance.TogglePause();
 
         if (!CanAct || moveAction == null)

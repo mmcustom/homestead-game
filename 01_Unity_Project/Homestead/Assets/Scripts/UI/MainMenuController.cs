@@ -13,14 +13,15 @@ public class MainMenuController : MonoBehaviour
     [SerializeField] Button newGameButton;
     [SerializeField] Button quitButton;
 
-    [Header("New game confirmation")]
-    [Tooltip("Shown when starting a new game would overwrite an existing save.")]
+    [Header("New game confirmation (no longer used: the slot panel's New Game mode asks before overwriting a slot)")]
+    [Tooltip("Formerly shown when starting a new game would overwrite the one save.")]
     [SerializeField] GameObject confirmPanel;
     [SerializeField] Button confirmYesButton;
     [SerializeField] Button confirmNoButton;
 
     [SerializeField] Text versionLabel;
 
+    Button loadGameButton; // built in code beside Continue
     GameObject difficultyPanel;
     readonly Button[] tierButtons = new Button[3];
     Button bowButton, rifleButton, startButton, backButton;
@@ -39,14 +40,16 @@ public class MainMenuController : MonoBehaviour
             return;
         }
 
+        BuildLoadGameButton();
         continueButton.onClick.AddListener(OnContinue);
+        loadGameButton.onClick.AddListener(OnLoadGame);
         newGameButton.onClick.AddListener(OnNewGame);
         quitButton.onClick.AddListener(OnQuit);
         confirmYesButton.onClick.AddListener(ShowDifficulty);
         confirmNoButton.onClick.AddListener(CloseConfirm);
 
         // Audio_System.md: click for choices, back for cancelling out.
-        foreach (Button button in new[] { continueButton, newGameButton, quitButton, confirmYesButton })
+        foreach (Button button in new[] { continueButton, loadGameButton, newGameButton, quitButton, confirmYesButton })
             button.onClick.AddListener(() => PlaySound(SoundCue.UiClick));
         confirmNoButton.onClick.AddListener(() => PlaySound(SoundCue.UiBack));
     }
@@ -74,26 +77,44 @@ public class MainMenuController : MonoBehaviour
         confirmPanel.SetActive(false);
         BuildDifficultyPanel();
         SetInteractable(continueButton, GameManager.Instance.HasSaveGame);
+        SetInteractable(loadGameButton, GameManager.Instance.HasSaveGame);
         Select(continueButton.interactable ? continueButton : newGameButton);
     }
 
+    // A second button under Continue, cloned from it so it matches the scene's look and sits in its layout group.
+    void BuildLoadGameButton()
+    {
+        loadGameButton = Instantiate(continueButton, continueButton.transform.parent);
+        loadGameButton.name = "Load Game";
+        loadGameButton.onClick.RemoveAllListeners();
+        loadGameButton.GetComponentInChildren<Text>().text = "Load Game";
+        loadGameButton.transform.SetSiblingIndex(continueButton.transform.GetSiblingIndex() + 1);
+
+        // Room for the extra button in the column's fixed-size rect.
+        var column = (RectTransform)continueButton.transform.parent;
+        var layout = column.GetComponent<VerticalLayoutGroup>();
+        float step = ((RectTransform)loadGameButton.transform).sizeDelta.y + (layout != null ? layout.spacing : 0f);
+        column.sizeDelta += new Vector2(0f, step);
+    }
+
+    // Continue loads the newest save across every slot, the Autosave included.
     void OnContinue() => GameManager.Instance.ContinueGame();
 
-    // Save_System.md: never lose progress silently — the first auto-save of a new game would replace the
-    // existing save, so ask first.
-    void OnNewGame()
+    // Any slot, picked in the slot panel. Backing out returns to the main menu.
+    void OnLoadGame()
     {
-        if (GameManager.Instance.HasSaveGame)
-        {
-            confirmPanel.SetActive(true);
-            SetMainButtonsInteractable(false);
-            Select(confirmNoButton);
-        }
-        else
-        {
-            ShowDifficulty();
-        }
+        SetMainButtonsInteractable(false);
+        SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.Load, allowModeSwitch: false, warnUnsavedOnLoad: false, onPick: null,
+                       onClosed: () =>
+                       {
+                           SetMainButtonsInteractable(true);
+                           Select(loadGameButton);
+                       });
     }
+
+    // Save_System.md: New Game picks its slot up front (StartNewGame, after the difficulty step), so it never touches
+    // another slot and there is no overwrite surprise at the first save.
+    void OnNewGame() => ShowDifficulty();
 
     // --- Choosing a difficulty ---
 
@@ -130,12 +151,18 @@ public class MainMenuController : MonoBehaviour
         UiKit.SetSelected(rifleButton, weapon == StartingWeapon.Rifle);
     }
 
+    // After the difficulty step: pick the slot this game will use, then start. Backing out returns to the difficulty panel.
     void StartNewGame()
     {
         difficultyPanel.SetActive(false);
         confirmPanel.SetActive(false);
-        SetMainButtonsInteractable(false);
-        GameManager.Instance.StartNewGame(chosenTier, chosenWeapon);
+        SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.NewGame, allowModeSwitch: false, warnUnsavedOnLoad: false,
+                       onPick: slotId => GameManager.Instance.StartNewGame(chosenTier, chosenWeapon, slotId),
+                       onClosed: () =>
+                       {
+                           difficultyPanel.SetActive(true);
+                           Select(startButton);
+                       });
     }
 
     void BuildDifficultyPanel()
@@ -218,6 +245,7 @@ public class MainMenuController : MonoBehaviour
     void SetMainButtonsInteractable(bool value)
     {
         SetInteractable(continueButton, value && GameManager.Instance.HasSaveGame);
+        SetInteractable(loadGameButton, value && GameManager.Instance.HasSaveGame);
         SetInteractable(newGameButton, value);
         SetInteractable(quitButton, value);
     }

@@ -12,6 +12,7 @@ public class PauseMenuController : MonoBehaviour
     [SerializeField] Button saveButton;
     [SerializeField] Button mainMenuButton;
     [SerializeField] Button quitButton;
+    Button slotsButton; // "Save / Load..." — built in code beside Save Game, which writes the active slot
 
     [Tooltip("Current in-game date, time and weather.")]
     [SerializeField] Text dateLabel;
@@ -25,13 +26,15 @@ public class PauseMenuController : MonoBehaviour
 
     void Awake()
     {
+        BuildSlotsButton();
         resumeButton.onClick.AddListener(() => GameManager.Instance?.ResumeGame());
         saveButton.onClick.AddListener(OnSave);
         mainMenuButton.onClick.AddListener(() => GameManager.Instance?.ReturnToMainMenu());
         quitButton.onClick.AddListener(() => GameManager.Instance?.QuitGame());
 
         // Resume's sound comes from the menu closing (OnStateChanged), which also covers closing it with Esc.
-        foreach (Button button in new[] { saveButton, mainMenuButton, quitButton })
+        slotsButton.onClick.AddListener(() => OpenSlotPanel(SlotPanel.Mode.Save));
+        foreach (Button button in new[] { saveButton, slotsButton, mainMenuButton, quitButton })
             button.onClick.AddListener(() => PlaySound(SoundCue.UiClick));
     }
 
@@ -90,21 +93,69 @@ public class PauseMenuController : MonoBehaviour
 
         SetStatus("");
         saveButton.interactable = SaveManager.Instance != null;
+        RefreshSaveLabel();
         dateLabel.text = DescribeNow();
 
         if (EventSystem.current != null)
             EventSystem.current.SetSelectedGameObject(resumeButton.gameObject);
     }
 
-    // Save_System.md: manual save, player-initiated at any time.
+    // "Save to Slot N" names where Save Game writes (the slot panel's number); with no active slot it opens the panel,
+    // so the label says so. Refreshed on every open and whenever the panel closes (copy, delete or a save may change it).
+    void RefreshSaveLabel()
+    {
+        Text label = saveButton != null ? saveButton.GetComponentInChildren<Text>() : null;
+        if (label == null)
+            return;
+
+        string active = SaveManager.Instance != null ? SaveManager.Instance.ActiveSlot : null;
+        int number = SaveManager.SlotNumber(active);
+        label.text = number > 0 ? $"Save to Slot {number}" : "Save Game…";
+    }
+
+    // A second button under Save Game, cloned from it so it matches the prefab's look and sits in its layout group.
+    void BuildSlotsButton()
+    {
+        slotsButton = Instantiate(saveButton, saveButton.transform.parent);
+        slotsButton.name = "Save Load Game";
+        slotsButton.onClick.RemoveAllListeners();
+        slotsButton.GetComponentInChildren<Text>().text = "Save / Load…";
+        slotsButton.transform.SetSiblingIndex(saveButton.transform.GetSiblingIndex() + 1);
+
+        // Room for the extra button in the column's fixed-size rect.
+        var column = (RectTransform)saveButton.transform.parent;
+        var layout = column.GetComponent<VerticalLayoutGroup>();
+        float step = ((RectTransform)slotsButton.transform).sizeDelta.y + (layout != null ? layout.spacing : 0f);
+        column.sizeDelta += new Vector2(0f, step);
+    }
+
+    // Save_System.md: manual save, player-initiated at any time. Writes the active slot; with none (a new game not yet
+    // placed, or one loaded from the Autosave) it opens the slot panel in Save mode instead.
     void OnSave()
     {
         if (SaveManager.Instance == null)
             return;
 
+        string active = SaveManager.Instance.ActiveSlot;
+        if (active == null)
+            OpenSlotPanel(SlotPanel.Mode.Save);
+        else
+            SaveToSlot(active);
+    }
+
+    void SaveToSlot(string slotId)
+    {
         saveRequested = true;
         SetStatus("Saving…");
-        SaveManager.Instance.SaveGame();
+        SaveManager.Instance.SaveGame(slotId);
+    }
+
+    void OpenSlotPanel(SlotPanel.Mode mode)
+    {
+        if (SaveManager.Instance == null)
+            return;
+
+        SlotPanel.Open(menuRoot.transform, mode, allowModeSwitch: true, warnUnsavedOnLoad: true, onPick: SaveToSlot, onClosed: RefreshSaveLabel);
     }
 
     void OnSaveCompleted()
