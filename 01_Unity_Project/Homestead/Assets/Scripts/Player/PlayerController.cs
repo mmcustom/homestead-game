@@ -127,7 +127,18 @@ public class PlayerController : MonoBehaviour, ISaveable
     // Scales mouse and stick look — lowered while a scope is zoomed in, so aiming stays steady.
     public float LookScale { get; set; } = 1f;
     // Equipped tools (rod, bow, rifle, traps) only work during gameplay, not in menus or while paused.
-    public bool CanUseTools => CanAct && !PlacementMode.Active;
+    public bool CanUseTools => CanAct && !PlacementMode.Active && !CreekCrossing.InputLocked;
+
+    public float SprintStaminaPerSecond => sprintStaminaPerSecond;
+
+    // Stamina lost to something other than a sprint or a tool (the creek's current). Never below 0; recovery waits as after a sprint.
+    public void LoseStamina(float amount)
+    {
+        if (amount <= 0f)
+            return;
+        stamina = CrossingMath.StaminaAfterLoss(stamina, amount);
+        lastSprintTime = Time.time;
+    }
 
     // A night's sleep: stamina back to as full as Hydration, Hunger and the rest allow.
     public void Rest() => stamina = EffectiveMaxStamina;
@@ -246,7 +257,9 @@ public class PlayerController : MonoBehaviour, ISaveable
         float dt = Time.deltaTime;
         Look(dt);
 
-        if (crouchAction.WasPressedThisFrame())
+        // Knocked down by a flash flood (CreekCrossing): no crouching or interacting until the player can move again.
+        bool knockedDown = CreekCrossing.InputLocked;
+        if (crouchAction.WasPressedThisFrame() && !knockedDown)
             SetCrouched(!crouched);
 
         Move(dt);
@@ -254,7 +267,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         UpdateFocus();
 
         // While choosing where to build (PlacementMode) nothing is interacted with, so a click or key can't do two things.
-        bool placing = PlacementMode.Active;
+        bool placing = PlacementMode.Active || knockedDown;
         if (!placing && focus is Campfire fire && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
             fire.CycleFuel();
 
@@ -291,6 +304,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         horizontalVelocity = Vector3.zero;
         verticalVelocity = 0f;
+        CreekCrossing.ResetCrossing(); // a load or a collapse's move: no lockout or immunity carries over
     }
 
     void Look(float dt)
@@ -309,7 +323,9 @@ public class PlayerController : MonoBehaviour, ISaveable
 
     void Move(float dt)
     {
-        Vector2 input = Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
+        // The creek (CreekCrossing): slower and tiring at High water; in a flash flood also pushed, and knocked down (input locked).
+        CreekEffect creek = CreekCrossing.Evaluate(this, dt);
+        Vector2 input = creek.locked ? Vector2.zero : Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
         bool moving = input.sqrMagnitude > 0.01f;
 
         float encumbrance = InventoryManager.Instance != null ? InventoryManager.Instance.Encumbrance : 0f;
@@ -326,7 +342,8 @@ public class PlayerController : MonoBehaviour, ISaveable
                          (State == MovementState.Sprinting || stamina >= minStaminaToSprint);
 
         UpdateStamina(sprinting, dt);
-        TryJump(encumbrance);
+        if (!creek.locked)
+            TryJump(encumbrance);
 
         State = jumping ? MovementState.Jumping
               : !moving ? MovementState.Idle
@@ -338,6 +355,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         speed *= Mathf.Lerp(1f, fullyEncumberedSpeedMultiplier, encumbrance);
         if (SurvivalManager.Instance != null)
             speed *= SurvivalManager.Instance.MovementMultiplier; // severe cold (Warmth)
+        speed *= creek.speedFactor;
 
         // In the air the take-off momentum carries on; steering is only slight.
         Vector3 desired = (transform.right * input.x + transform.forward * input.y) * speed;
@@ -349,7 +367,8 @@ public class PlayerController : MonoBehaviour, ISaveable
             verticalVelocity = -2f; // keep a slight downward push so the controller stays grounded on slopes
         verticalVelocity -= gravity * dt;
 
-        controller.Move((horizontalVelocity + Vector3.up * verticalVelocity) * dt);
+        // The creek's push goes through the controller like any move, so terrain and colliders stop it.
+        controller.Move((horizontalVelocity + creek.push + Vector3.up * verticalVelocity) * dt);
     }
 
     bool GroundJustBelow()

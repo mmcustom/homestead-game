@@ -11,12 +11,12 @@ public class WeatherScreen : GameScreen
 {
     public const string WeatherStationId = "weather_station";
 
-    // The content area is 740 high; twelve rows with a Weather Station must sit inside it with a margin, so the rows are
-    // 52 high with 4 between (668 plus the top gap), and the free seven simply leave more room.
-    const float RowHeight = 52f;
+    // The content area is 740 high; thirteen rows (eight free, with the Creek row, and five Weather Station rows) must sit inside
+    // it with a margin, so the rows are 48 high with 4 between (672 plus the top gap of 16 is 688).
+    const float RowHeight = 48f;
     const float RowSpacing = 4f;
 
-    Text conditions, precipitation, temperature, wind, sunlight, date, daylight;
+    Text conditions, precipitation, temperature, wind, sunlight, date, daylight, creek;
     Text humidity, dewPoint, windSpeed, windBearing, sunValue;
     GameObject[] stationRows;
     InventoryContainer watched;
@@ -29,7 +29,7 @@ public class WeatherScreen : GameScreen
         column.anchorMin = new Vector2(0.5f, 1f);
         column.anchorMax = new Vector2(0.5f, 1f);
         column.pivot = new Vector2(0.5f, 1f);
-        column.sizeDelta = new Vector2(1000f, 7 * RowHeight + 6 * RowSpacing);
+        column.sizeDelta = new Vector2(1000f, 8 * RowHeight + 7 * RowSpacing);
         var fitter = column.gameObject.AddComponent<ContentSizeFitter>();
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         column.anchoredPosition = new Vector2(0f, -16f);
@@ -47,6 +47,7 @@ public class WeatherScreen : GameScreen
         sunlight = Row(column, "Sunlight");
         date = Row(column, "Date");
         daylight = Row(column, "Daylight");
+        creek = Row(column, "Creek");
 
         humidity = Row(column, "Humidity");
         dewPoint = Row(column, "Dew point");
@@ -118,6 +119,8 @@ public class WeatherScreen : GameScreen
         {
             date.text = daylight.text = "—";
         }
+
+        creek.text = StreamManager.CreekRowText();
 
         RefreshStation();
     }

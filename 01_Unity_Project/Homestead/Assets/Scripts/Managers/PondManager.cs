@@ -9,6 +9,7 @@ public struct PondSaveData
 {
     public string[] names;
     public float[] levels;
+    public float[] overflowHours; // parallel to names; absent in saves from before floods
 }
 
 // Water_System.md's "Rainwater Collection and Pond Drying", Part 2. Each pond has a Pond Level from 0 (dry) to 1 (full), keyed
@@ -63,10 +64,18 @@ public class PondManager : MonoBehaviour, ISaveable
     [Tooltip("...and by this at a Very Low pond.")]
     public float trapChanceMultiplierVeryLow = 0.4f;
 
+    [Header("Overflow (a full pond while the creek is at High water or worse)")]
+    [Tooltip("An overflowing pond is one tier worse, and stays so this many game hours after the overflow ends while it is still full.")]
+    public float overflowMurkHours = 12f;
+    [Tooltip("Tiers worse an overflowing (or still murky) full pond is.")]
+    public int overflowTiersWorse = 1;
+    [Tooltip("A pond at or above this level counts as full.")]
+    public float fullLevel = 0.999f;
+
     readonly Dictionary<string, float> levels = new Dictionary<string, float>();
+    readonly Dictionary<string, float> overflowHours = new Dictionary<string, float>();
     bool linked;
     TimeManager linkedTime;
-    WeatherManager linkedWeather;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() => Instance = null;
@@ -100,16 +109,15 @@ public class PondManager : MonoBehaviour, ISaveable
             Link();
     }
 
-    // The clock, the weather and the save system may start after this does, so keep trying until all three exist.
+    // The clock and the save system may start after this does, so keep trying until both exist. The rain hour comes from
+    // StreamManager (HourPassed, then ApplyOverflow), which is the one subscriber to the weather's HourEnded.
     void Link()
     {
-        if (Instance != this || TimeManager.Instance == null || WeatherManager.Instance == null || SaveManager.Instance == null)
+        if (Instance != this || TimeManager.Instance == null || SaveManager.Instance == null)
             return;
 
         linkedTime = TimeManager.Instance;
-        linkedWeather = WeatherManager.Instance;
         linkedTime.DayChanged += OnDayChanged;
-        linkedWeather.HourEnded += OnHourEnded;
         SaveManager.Instance.Register(this);
         linked = true;
     }
@@ -123,8 +131,6 @@ public class PondManager : MonoBehaviour, ISaveable
         {
             if (linkedTime != null)
                 linkedTime.DayChanged -= OnDayChanged;
-            if (linkedWeather != null)
-                linkedWeather.HourEnded -= OnHourEnded;
             if (SaveManager.Instance != null)
                 SaveManager.Instance.Unregister(this);
         }
@@ -139,7 +145,30 @@ public class PondManager : MonoBehaviour, ISaveable
         ApplyDay(TimeManager.Instance.CurrentSeason, WeatherManager.Instance != null && WeatherManager.Instance.IsHeatWave);
     }
 
-    void OnHourEnded(WeatherType precipitation) => ApplyHour(precipitation);
+    // Called by StreamManager once per game hour, before it updates the stream.
+    public void HourPassed(WeatherType precipitation) => ApplyHour(precipitation);
+
+    // Called by StreamManager right after it updates the stage, with the new state. A pond that is full while the creek is at
+    // High water or worse is overflowing: its overflow hours are set to overflowMurkHours, and they count down hour by hour
+    // when it isn't. Kept per pond, so a pond that wasn't full never carries a flood's murk.
+    public void ApplyOverflow(StreamState state)
+    {
+        if (state >= StreamState.HighWater)
+            RefreshKnownPonds(); // a pond nobody has looked at yet still overflows
+
+        foreach (string pond in new List<string>(levels.Keys))
+        {
+            bool overflowing = state >= StreamState.HighWater && levels[pond] >= fullLevel;
+            if (overflowing)
+                overflowHours[pond] = overflowMurkHours;
+            else if (overflowHours.TryGetValue(pond, out float hours))
+                overflowHours[pond] = Mathf.Max(0f, hours - 1f);
+        }
+    }
+
+    // A full pond that is overflowing, or is still murky from an overflow and is still full.
+    public bool IsOverflowing(string pond) =>
+        pond != null && overflowHours.TryGetValue(pond, out float hours) && hours > 0f && LevelOf(pond) >= fullLevel;
 
     // Every pond zone of the property's water gets a level (full), so a pond nobody has looked at still dries.
     void RefreshKnownPonds()
@@ -226,7 +255,22 @@ public class PondManager : MonoBehaviour, ISaveable
         return level >= veryLowBelow ? PondState.Low : PondState.VeryLow;
     }
 
-    public void ResetPonds() => levels.Clear();
+    public void ResetPonds()
+    {
+        levels.Clear();
+        overflowHours.Clear();
+    }
+
+    // Tiers worse a zone's water is from its pond: Low is one tier, Very Low reaches Unsafe from anywhere, and an overflowing
+    // full pond adds overflowTiersWorse. 0 for anything that isn't a pond. WaterSource.QualityAt adds this to the creek's.
+    public static int TiersWorse(string pond)
+    {
+        if (Instance == null || !IsPondZone(pond))
+            return 0;
+        PondState state = Instance.StateOfLevel(Instance.LevelOf(pond));
+        int tiers = state == PondState.VeryLow ? 3 : state == PondState.Low ? 1 : 0;
+        return Instance.IsOverflowing(pond) ? tiers + Instance.overflowTiersWorse : tiers;
+    }
 
     // The one shared answer everything asks. Anything that isn't a pond (null, the spring, the creek) is Normal.
     public static PondState State(string pond) =>
@@ -267,7 +311,7 @@ public class PondManager : MonoBehaviour, ISaveable
         {
             case PondState.Low: return "Pond water (low)";
             case PondState.VeryLow: return "Pond water (very low)";
-            default: return "";
+            default: return Instance != null && Instance.IsOverflowing(pond) ? "Pond water (overflowing)" : "";
         }
     }
 
@@ -302,18 +346,28 @@ public class PondManager : MonoBehaviour, ISaveable
     {
         var names = new List<string>(levels.Keys);
         var values = new float[names.Count];
+        var overflow = new float[names.Count];
         for (int i = 0; i < names.Count; i++)
+        {
             values[i] = levels[names[i]];
-        return new PondSaveData { names = names.ToArray(), levels = values };
+            overflow[i] = overflowHours.TryGetValue(names[i], out float hours) ? hours : 0f;
+        }
+        return new PondSaveData { names = names.ToArray(), levels = values, overflowHours = overflow };
     }
 
     void ISaveable.RestoreState(string json)
     {
         levels.Clear();
+        overflowHours.Clear();
         PondSaveData data = JsonUtility.FromJson<PondSaveData>(json);
         if (data.names == null || data.levels == null)
             return;
         for (int i = 0; i < data.names.Length && i < data.levels.Length; i++)
+        {
             levels[data.names[i]] = Mathf.Clamp01(data.levels[i]);
+            // Saves from before floods carry no overflow hours: calm.
+            if (data.overflowHours != null && i < data.overflowHours.Length && data.overflowHours[i] > 0f)
+                overflowHours[data.names[i]] = data.overflowHours[i];
+        }
     }
 }

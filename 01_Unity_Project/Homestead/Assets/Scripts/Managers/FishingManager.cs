@@ -55,6 +55,10 @@ public class FishingManager : MonoBehaviour
     [SerializeField, Min(0f)] float coverRange = 30f;
     [SerializeField] string coverSiteName = "Bass Hole";
 
+    [Header("Floods")]
+    [Tooltip("Rod and Cane Pole bite wait in the creek (not ponds) is multiplied by this while the creek is at High water or worse.")]
+    public float creekBiteWaitMultiplier = 2f;
+
     void Awake()
     {
         if (Instance != null && Instance != this)
@@ -141,7 +145,7 @@ public class FishingManager : MonoBehaviour
     }
 
     // Seconds until the next bite, by season, time of day, weather and gear.
-    public float BiteWait(bool canePole, string pondName = null)
+    public float BiteWait(bool canePole, string pondName = null, bool creekWater = false)
     {
         float wait = baseWaitSeconds;
         TimeManager time = TimeManager.Instance;
@@ -166,6 +170,8 @@ public class FishingManager : MonoBehaviour
         if (canePole)
             wait *= 1.25f;
         wait *= PondManager.BiteWaitMultiplier(pondName); // a low pond bites slowly (1 for any other water)
+        if (creekWater && StreamManager.State != StreamState.Normal)
+            wait *= creekBiteWaitMultiplier; // a high creek bites slowly; ponds are not affected by floods
         return wait * UnityEngine.Random.Range(0.4f, 1.6f);
     }
 

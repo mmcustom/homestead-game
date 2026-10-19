@@ -121,6 +121,9 @@ public class GameManager : MonoBehaviour
             PortableLight.Instance.ResetLight();
         if (PondManager.Instance != null)
             PondManager.Instance.ResetPonds();
+        if (StreamManager.Instance != null)
+            StreamManager.Instance.ResetStream();
+        CreekCrossing.ResetCrossing();
     }
 
     // Continue: the newest save across every slot, the Autosave included.

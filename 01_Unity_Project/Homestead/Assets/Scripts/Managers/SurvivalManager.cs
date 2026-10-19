@@ -913,6 +913,24 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         return stat - before;
     }
 
+    // Injury floor (a creek flood's knock-down): Health is never taken below this by Injure, and Injure does nothing when Health is
+    // already at or below it, so an injury alone can never collapse the player. At least 1 whatever the Inspector says.
+    [Header("Injury")]
+    [Tooltip("Injure never takes Health below this (and does nothing if Health is already lower).")]
+    [Min(1f)] public float injuryHealthFloor = 10f;
+
+    // A one-off wound. Returns the Health actually lost (0 when collapsed, already at the floor, or amount is 0).
+    public float Injure(float amount)
+    {
+        if (collapsed)
+            return 0f;
+        float before = health;
+        float after = CrossingMath.HealthAfterInjury(health, amount, Mathf.Max(1f, injuryHealthFloor));
+        if (after < before)
+            SetHealth(after);
+        return before - health;
+    }
+
     void SetHealth(float value)
     {
         health = Mathf.Clamp(value, 0f, MaxValue);

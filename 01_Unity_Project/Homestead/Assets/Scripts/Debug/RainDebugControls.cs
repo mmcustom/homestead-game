@@ -11,7 +11,10 @@ using UnityEngine.InputSystem;
 //   Numpad 3            fill the Rain Barrel nearest you (within 6 m) to the top; Shift+Numpad 3 empties it
 //   Numpad 4            lower the nearest pond's level by 10 points; Numpad 5 raises it by 10
 //   Numpad 6            set the nearest pond's level to 20 percent (below the Bass Hole floor, to test Very Low)
-//   Numpad 7            show the nearest Rain Barrel's litres, today's weather, the dry-day count, and the nearest pond's level and state
+//   Numpad 7            show the nearest Rain Barrel's litres, today's weather, the dry-day count, the nearest pond's level and state,
+//                       and the creek's stage, state and murk hours
+//   Numpad 8            step the creek's Stream Stage: Normal, High water, Flash flood, Normal...
+//   Numpad 9            show the creek's stage, state and murk hours, and whether you are in the creek, its flow direction and your speed factor
 public class RainDebugControls : MonoBehaviour
 {
     static readonly WeatherType[] Cycle = { WeatherType.Clear, WeatherType.LightRain, WeatherType.HeavyRain, WeatherType.Thunderstorm };
@@ -80,7 +83,21 @@ public class RainDebugControls : MonoBehaviour
             string weatherText = weather != null
                 ? $"{weather.Current} ({weather.RainMmPerHour(weather.PrecipitationWeather):0.#} mm/h), dry days {weather.DryDays}"
                 : "no weather";
-            ToolStatus.Flash($"{barrelText}  |  {weatherText}  |  {PondText()}", 6f);
+            ToolStatus.Flash($"{barrelText}  |  {weatherText}  |  {PondText()}  |  {StreamText()}", 6f);
+        }
+        else if (keyboard.numpad8Key.wasPressedThisFrame && StreamManager.Instance != null)
+        {
+            // 0 mm, then High water, then a flash flood, then calm again (a rise announces itself and sweeps creek traps, as an hour would).
+            float stage = StreamManager.Instance.StageMm;
+            float next = stage >= StreamManager.Instance.flashFloodAtMm ? 0f
+                       : stage >= StreamManager.Instance.highWaterAtMm ? StreamManager.Instance.flashFloodAtMm + FloodMargin
+                       : StreamManager.Instance.highWaterAtMm + FloodMargin;
+            StreamManager.Instance.DebugSetStage(next);
+            ToolStatus.Flash(StreamText(), 3f);
+        }
+        else if (keyboard.numpad9Key.wasPressedThisFrame)
+        {
+            ToolStatus.Flash(StreamText() + "  |  " + CreekCrossing.DebugText(), 5f);
         }
         else if (keyboard.numpad4Key.wasPressedThisFrame)
         {
@@ -114,6 +131,10 @@ public class RainDebugControls : MonoBehaviour
         ponds.SetLevel(pond, setTo ?? ponds.LevelOf(pond) + delta);
         ToolStatus.Flash(PondText(), 3f);
     }
+
+    const float FloodMargin = 3f; // Numpad 8 sets the stage this far above a threshold
+
+    static string StreamText() => StreamManager.Instance != null ? StreamManager.Instance.DebugText() : "no stream";
 
     static string PondText()
     {

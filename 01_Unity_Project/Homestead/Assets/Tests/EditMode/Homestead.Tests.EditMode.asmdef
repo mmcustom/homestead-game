@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Homestead.SlotSwap"
+        "Homestead.SlotSwap",
+        "Homestead.CreekCrossing"
     ],
     "includePlatforms": [
         "Editor"

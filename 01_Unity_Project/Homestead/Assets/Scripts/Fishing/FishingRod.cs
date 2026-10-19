@@ -120,6 +120,11 @@ public class FishingRod : MonoBehaviour
             ToolStatus.Report("Too shallow for fish here");
             return;
         }
+        if (kind == FishWater.Creek && StreamManager.State == StreamState.FlashFlood)
+        {
+            ToolStatus.Report("The water is too high and fast to fish.");
+            return;
+        }
 
         ToolStatus.Report($"Click to cast  ({(kind == FishWater.Pond ? "pond" : "creek")})");
         if (!pressed)
@@ -142,13 +147,19 @@ public class FishingRod : MonoBehaviour
     {
         state = State.Waiting;
         string pond = waterKind == FishWater.Pond && water != null ? water.ZoneAt(bobberRest) : null;
-        float wait = FishingManager.Instance != null ? FishingManager.Instance.BiteWait(cane, pond) : 10f;
+        float wait = FishingManager.Instance != null ? FishingManager.Instance.BiteWait(cane, pond, waterKind == FishWater.Creek) : 10f;
         stateUntil = Time.time + wait;
     }
 
     void UpdateWaiting(bool pressed)
     {
         Bob(0.015f, 1.5f);
+        if (waterKind == FishWater.Creek && StreamManager.State == StreamState.FlashFlood)
+        {
+            ToolStatus.Flash("The creek is in flood — reeled the line in");
+            EndCast();
+            return;
+        }
         if (TooFar())
         {
             ToolStatus.Flash("Walked too far — reeled the line in");

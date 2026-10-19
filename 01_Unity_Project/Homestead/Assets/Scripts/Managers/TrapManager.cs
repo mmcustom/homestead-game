@@ -70,6 +70,10 @@ public class TrapManager : MonoBehaviour, ISaveable
     [Tooltip("Condition lost when an animal damages the trap.")]
     [SerializeField, Range(0f, 1f)] float damageWear = 0.5f;
 
+    [Header("Floods")]
+    [Tooltip("Once per flash flood, the chance each Fish Trap set in the creek (not a pond) is swept away with what it holds.")]
+    [Range(0f, 1f)] public float trapSweepChance = 0.25f;
+
     public static readonly string[] BaitItems = { "wild_apples", "blackberries", "raspberries", "pawpaw", "wild_onion", "dandelion" };
 
     readonly List<TrapState> traps = new List<TrapState>();
@@ -90,6 +94,7 @@ public class TrapManager : MonoBehaviour, ISaveable
         Instance = this;
         DontDestroyOnLoad(gameObject);
         SceneManager.sceneLoaded += OnSceneLoaded;
+        StreamManager.FlashFloodStarted += OnFlashFlood;
     }
 
     void Start()
@@ -111,6 +116,7 @@ public class TrapManager : MonoBehaviour, ISaveable
             return;
 
         SceneManager.sceneLoaded -= OnSceneLoaded;
+        StreamManager.FlashFloodStarted -= OnFlashFlood;
         if (subscribed && TimeManager.Instance != null)
             TimeManager.Instance.HourChanged -= OnHour;
         if (SaveManager.Instance != null)
@@ -472,6 +478,30 @@ public class TrapManager : MonoBehaviour, ISaveable
             return false;
 
         traps.Remove(trap);
+        if (views.TryGetValue(trap.id, out Trap view) && view != null)
+            Destroy(view.gameObject);
+        views.Remove(trap.id);
+        return true;
+    }
+
+    // The creek has just risen into a flash flood (never a load): each Fish Trap in the creek may be swept away, once.
+    void OnFlashFlood()
+    {
+        int swept = 0;
+        foreach (TrapState trap in new List<TrapState>(traps))
+        {
+            if (trap.type == TrapType.FishTrap && FishWaterAt(trap.position) == FishWater.Creek &&
+                UnityEngine.Random.value < trapSweepChance && Sweep(trap))
+                swept++;
+        }
+        StreamManager.ReportSweptTraps(swept);
+    }
+
+    // A trap carried off by a flood: removed with its contents. The same removal as PickUp, without the pack.
+    public bool Sweep(TrapState trap)
+    {
+        if (!traps.Remove(trap))
+            return false;
         if (views.TryGetValue(trap.id, out Trap view) && view != null)
             Destroy(view.gameObject);
         views.Remove(trap.id);

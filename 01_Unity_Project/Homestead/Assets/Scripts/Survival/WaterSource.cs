@@ -39,7 +39,8 @@ public class WaterSource : MonoBehaviour, IInteractable
         {
             Vector3 at = lastPlayer != null ? lastPlayer.transform.position : transform.position;
             WaterQuality quality = QualityAt(at);
-            string pond = PondManager.PromptNote(ZoneAt(at));
+            string zone = ZoneAt(at);
+            string pond = PondManager.PromptNote(zone) + StreamManager.PromptNote(zone); // at most one is ever non-empty
             pond = pond.Length > 0 ? "  —  " + pond : "";
             int fill = FillableLitres();
             if (fill > 0)
@@ -97,8 +98,10 @@ public class WaterSource : MonoBehaviour, IInteractable
                 found = zone.name;
             }
         }
-        // A drying pond's water is worse (Pond Drying): the one place every drink and fill reads its quality from.
-        return PondManager.Adjust(found, quality);
+        // A drying or overflowing pond's water is worse (Pond Drying, floods), and so is a high or flooded creek's (zone null):
+        // the one place every drink and fill reads its quality from. The tiers add, capped at Unsafe.
+        int tiersWorse = PondManager.TiersWorse(found) + StreamManager.TiersWorse(found);
+        return (WaterQuality)Mathf.Min((int)quality + tiersWorse, (int)WaterQuality.Unsafe);
     }
 
     public QualityZone[] Zones => zones;

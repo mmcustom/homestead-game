@@ -813,3 +813,114 @@ Every tunable goes on the components as new public fields.
 ### PLAYTEST RESULT 2026-10-19 (Mike)
 
 Pond Drying (Water Phase 2): Pond_Drying_Playtest_Checklist.md all 36 items PASS in Play Mode. Playtested; commit is Mike's call in Claude Code. Flash Floods are now unblocked once Pond Drying is committed (confirmed order, 2026-10-18).
+
+
+## FLASH FLOODS PHASES 1-4 BUILT 2026-10-19 (Claude Code report, reconciled by Claude)
+
+Phases 1-4 of the Flash Floods plan: StreamManager core, water quality, warnings, fishing and traps. NOT Play Mode tested. UNCOMMITTED (the last commit, 5f3762a, holds Rainwater, Placement Preview and Pond Drying). Phase 5 (creek crossing danger) is NOT built, so the creek is walkable at every stage. Numbers are first-pass (Claude, not yet confirmed).
+
+**What I have from the report.** The pasted report showed the diff summary (13 files changed, +156 -23, as far as the screenshot showed) and the second half of Claude Code's summary (Phase 4, touched-outside-the-list, edit-mode results, not tested, notes). The top of the report (Phase 1-3 summaries, the tunable list with defaults, and the checklist path) was scrolled out of the paste, so it is NOT recorded here yet. Files visible in the diff list: `Debug/RainDebugControls.cs`, `Fishing/FishingRod.cs`, `Managers/FishingManager.cs`, `Managers/GameManager.cs`, `Managers/PondManager.cs`, `Managers/StreamManager.cs` (new) with its .meta, `Managers/TrapManager.cs`, plus 5 more not shown.
+
+**Phase 4 (fishing and traps).**
+- `FishingManager.BiteWait(canePole, pondName, creekWater)` multiplies the wait by `creekBiteWaitMultiplier` for creek water at High water or worse. Ponds unchanged.
+- `FishingRod.UpdateIdle` refuses a creek cast in a flash flood with "The water is too high and fast to fish." `UpdateWaiting` reels in on a flood.
+- `StreamManager.FlashFloodStarted` is a static event raised only on a rise into Flash flood. `TrapManager` rolls `trapSweepChance` for each Fish Trap where `FishWaterAt` is Creek (ponds are safe). The new `Sweep(TrapState)` is `PickUp` minus the inventory. Message: "A flood swept away a Fish Trap." (or a count), held for the wake summary if the player is asleep.
+- Debug keys: Numpad 8 steps the stage through 0, 18 and 28 mm and back (28 = flash flood threshold 25 + a small margin), announcing rises and rolling traps as a real hour would. Numpad 9 and the Numpad 7 overlay show stage, state and murk hours.
+
+**Touched outside the list.** `GameManager.ResetManagers` (one reset line). `PondManager` lost its own `HourEnded` subscription (it is now called from StreamManager, so event order never matters) and gained the overflow code. `PondSaveData` gained one new array (overflow). `RainDebugControls` keys 8 and 9.
+
+**Edit-mode results.**
+- Crossings: Heavy Rain reaches High water at hour 3 and flood at hour 5 (continuous 2.25 h and 4.41 h). A Thunderstorm reaches High water at hour 2 and flood at hour 3 (continuous 2.56 h to flood). Light Rain levels off at 9.0 mm.
+- Decay: from 28.3 mm (what a Thunderstorm reaches after about 3 hours) the stage falls below 25 mm in about 44 minutes and below 15 mm in about **3.8 hours**. **The design said about 3 hours; that was my arithmetic slip** (the correct figure is 6 x ln(28.3 / 15) = about 3.8 h). Corrected here; the design draft line "below High water in about 3 hours" should read about 3.8 hours.
+- Murk holds at 12 while in flood and reaches 0 about 12 hours after the flood ends.
+- Rising edge: a flood event fires once per rise and never on a load.
+- Overflow: a pond at full level during High water overflows; a pond at 0.9 does not. A full pond stays murky after the flood and clears when it drops.
+- Saves: round trips for both stream and pond data. An old pond save has no overflow; the stream defaults to 0.
+
+**NOT tested.** Everything in Play Mode: the real hourly events, sleep, collapse and load suppression; the prompt, banner and Weather row text, and whether 13 rows look right; cast refusal, mid-cast reel-in, and the sweep and its message; the "creek" zone boundaries on the real map (which water counts as creek, and whether the null-zone stretch is easy to find). If no WaterSource exists, `FishWaterAt` falls back to Creek, but that only happens outside the World scene.
+
+**Notes.** Pond Drying's rain hook changed (now called from StreamManager), so it needs a regression pass; the checklist is said to include one. Several files in this build were part of commit 5f3762a, so the next diff is clean.
+
+
+### PLAYTEST RESULT 2026-10-19 (Mike)
+
+Flash Floods phases 1-4: Flood_Playtest_Checklist.md all 55 items PASS in Play Mode (including the Pond Drying, Rain Barrel and Placement Preview regression items 51-54). Playtested; commit is Mike's call in Claude Code. Phase 5 (creek crossing danger) remains the next flood item; the water surface still does not move.
+
+
+## FLASH FLOODS PHASE 5: CREEK CROSSING DANGER (build spec, 2026-10-19)
+
+Design decision 3 was CONFIRMED earlier (2026-10-18, "Yes, use all six"): creek crossing is slower and tiring at High water; in a flash flood the player is pushed downstream and can be knocked down; no item loss; a flood must never cause a collapse (Claude Code recommendation, confirmed). Claude Code's read-only findings (section "1. Creek crossing") supply the code plan. Mike chose to build it next ("lets go with Creek crossing danger"). Numbers below are first-pass (Claude, not yet confirmed) and every one is a public tunable.
+
+**Real-world basis.** About 6 inches (0.15 m) of fast-moving water can knock an adult down (Army / NWS "Turn Around, Don't Drown"). In the game that is the ankle threshold (0.15 m), so a flash flood is dangerous at ANY depth in the channel, not only deep water.
+
+**Rules.**
+1. **Where it applies.** Only water that counts as creek (`WaterSource.ZoneAt == null`), the same definition as quality, fishing and traps. The 14 m spring zone and 32 m pond zone do not apply.
+2. **High water.** While wading at ankle depth or deeper in creek water: movement speed x0.85 and extra stamina drain (about half the sprint drain rate). No push, no knock-down. A one-time flash line when first entering: "The creek is running high."
+3. **Flash flood.** While wading at ankle depth or deeper in creek water: movement speed x0.6, strong extra stamina drain, and a steady push downstream (about 1.5 m/s along the flow direction). Staying in the water for about 1.5 s (tunable) knocks the player down: input locked for about 1.5 s, carried downstream during the lockout, stamina hit, a small injury, "The current knocks you off your feet!" Then a short immunity (about 4 s) so the player can scramble out instead of being chain-knocked. A one-time warning line when entering: "The water is too fast to cross."
+4. **Injury.** New public `SurvivalManager.Injure(amount)` (about 5 health per knock-down). It has a health FLOOR (default 10, tunable): it never takes health below the floor, and does nothing if health is already below it. A flood can therefore never cause a collapse.
+5. **No item loss, no drowning, no new save fields.** Lockout, immunity and warnings are transient. "Wet and cold" already comes from the existing wading cold model.
+6. **Safe cases.** No push or knock-down while sleeping, collapsed, in a menu or screen, in Placement Mode (do not cancel it), or when the game state is not Playing. Do not push the player through terrain or out of the world (use `CharacterController.Move` with the push vector).
+7. **Flow direction.** A small runtime table copied from the `CreekControl` control points in `PropertyTerrainBuilder` (spring, (-35,92), (-62,70), (-88,42), (-104,8), (-118,-30), (-136,-68), (-155,-102), (-172,-128), pond centre (-185,-150)); flow = direction of the nearest segment, downstream toward the pond. If the player's position is not within the channel width (0.9 m upstream to 1.8 m downstream, plus a margin), they are not "in the creek".
+8. **Debug.** Numpad 8 already sets the stream stage; no new keys needed. A debug toggle to see "in creek / flow direction / state" in the Numpad 9 overlay is welcome.
+9. **Not in this phase:** visible water rising, items swept away, drowning, boats, bridges, stepping stones, animals swept away, rescue mechanics.
+
+
+---
+
+## FLASH FLOODS PHASE 5 BUILT 2026-10-19 (Creek Crossing Danger)
+
+**Status: BUILT, edit-mode tested only. UNCOMMITTED. Never played.** Claude Code reported compile clean and all 62 edit-mode tests passing (13 of them new). Nothing has been run in Play Mode yet.
+
+### Files
+- New: `Homestead.CreekCrossing.asmdef`, `CreekFlow.cs` (flow table built from the CreekControl control points, curved Catmull-Rom like the terrain builder, channel width widening near the pond), `CreekCrossingTimer.cs`, `Scripts/Managers/CreekCrossing.cs` (self-creating, holds the tunables), `CreekCrossingTests.cs`.
+- Edited: `PlayerController.cs` (speed factor, stamina drain, push, input lockout in Move, `LoseStamina`, CanUseTools, Teleport, crouch and interact gating), `SurvivalManager.cs` (`Injure`, health floor), `RainDebugControls.cs`, `Homestead.Tests.EditMode.asmdef`, `GameManager.cs` (ResetManagers).
+- Checklist: `06_AI_Collaboration/Creek_Crossing_Playtest_Checklist.md` (55 items).
+
+### Tunables (all first-pass numbers, Claude, not yet confirmed)
+| Tunable | Value |
+|---|---|
+| creekEffectMinDepthMetres | 0.15 |
+| creekEffectChannelMarginMetres | 1 |
+| highWaterWadeSpeedFactor | 0.85 |
+| highWaterWadeDrainShareOfSprint | 0.5 (sprint drain is 15/s) |
+| floodWadeSpeedFactor | 0.6 |
+| floodWadeDrainShareOfSprint | 1.2 |
+| floodPushMetresPerSecond | 1.5 |
+| floodKnockDownAfterSeconds | 1.5 |
+| floodLockoutSeconds | 1.5 |
+| floodLockoutCarryMetresPerSecond | 2.5 |
+| floodImmunitySeconds | 4 |
+| floodKnockDownStaminaLoss | 25 |
+| floodKnockDownInjury | 5 |
+| creekLeaveGraceSeconds | 1 |
+| creekMessageSeconds | 3 |
+| SurvivalManager.injuryHealthFloor | 10 (minimum 1) |
+
+### How it works
+- Push is added to the `controller.Move` vector, so colliders (trees, banks) stop it.
+- Lockout blocks movement, jump, sprint, crouch, interaction and tools. Looking still works.
+- `SurvivalManager.Injure` never takes health below the floor, so a flood never causes a collapse.
+- Sleeping, collapsed, menu, Placement Mode and non-Playing states reset all clocks.
+- Reset points: `PlayerController.Teleport` and `GameManager.ResetManagers`.
+
+### Claude Code's choices to check
+- Curved flow path (Catmull-Rom) rather than straight segments.
+- "In creek" depth test uses `Animal.IsOverWater`.
+- Placement Mode resets the clocks, so placing makes a flood crossing unhindered.
+- Immunity (4 s after a knock-down) still applies push and slowdown; only the knock-down is suppressed.
+- Lockout scope (everything except looking).
+- Numpad 9 overlay shows `in creek: yes/no, flow <deg>, speed x<factor>`.
+
+### Not tested yet
+Feel and fairness of the 1.5 s knock-down; whether channel width plus margin matches the real water edge; toast text; live sleep, collapse, save/load and placement behaviour; pinning against trees or banks; and whether the carved banks are climbable under flood slowdown. That last one is the one remaining "feel stuck" risk Claude Code could not rule out.
+
+### Next
+Mike runs `Creek_Crossing_Playtest_Checklist.md` in Play Mode (back up `slot1` first, restart Play Mode, clear the Console), then reports pass/fail.
+
+
+**PLAYTEST RESULT (Flash Floods phase 5, creek crossing danger, 2026-10-19): 55/55 PASS** (Mike, Play Mode). First-pass numbers confirmed by play: 1.5 s knock-down timer feels right, 4 s immunity lets you escape, push is felt but never a trap, and the channel edge matches the visible water. Two open comments: (1) Mike disagrees with the 5 Health lost per knock-down (item 18); the stamina loss (25) was not objected to. (2) Item 52, his note on the "while you slept, the creek flooded" wake-up message was cut off, so what he wants changed is not yet known. Flood phases 1-5 are all still UNCOMMITTED.
+
+**DECISION (2026-10-19, Mike):** flood knock-down Health loss gets SMALLER (not removed, not kept at 5). Mike did not give a number, so the working value is 2 (Claude, not yet confirmed); he can change it. Stamina loss stays 25, lockout stays 1.5 s, Health floor stays 10. Field to be renamed (floodKnockDownInjury to floodKnockDownHealthLoss) because the old one is already serialized. Checklist items 18 and 25-28 need their numbers updated. Not built yet.
+
+
+**BUILT 2026-10-19: flood knock-down Health loss reduced to 2.** Field `floodKnockDownInjury` (default 5) renamed to `floodKnockDownHealthLoss` (default 2, Claude, not yet confirmed; Mike gave no number). Renamed rather than re-defaulted because the old field was already serialized. Only reader was the `Injure(...)` call in `CreekCrossing.cs`. Unchanged: stamina loss 25, lockout 1.5 s, immunity 4 s, `SurvivalManager.injuryHealthFloor` 10. Compile clean, 62 of 62 edit-mode tests pass (same count: three assertions added inside `HealthAfterInjuryNeverGoesBelowTheFloor`: 100 to 98, 11 to 10 clamp, 12 to 10). Files touched: `CreekCrossing.cs`, `CreekCrossingTests.cs`, `Creek_Crossing_Playtest_Checklist.md`. Checklist items 18, 25 (now starts from Health about 20), 28 (now uses Health 11) updated; item 27 unchanged. **Items 18, 25, 27, 28 need a Play Mode re-check.** UNCOMMITTED. Item 52 (wake-up message comment) still open.
