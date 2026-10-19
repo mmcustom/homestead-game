@@ -928,3 +928,6 @@ Mike runs `Creek_Crossing_Playtest_Checklist.md` in Play Mode (back up `slot1` f
 
 **COMMITTED AND PUSHED 2026-10-19: Flash Floods phases 1-5 in commit c3d3e0f** ("Add flash floods: rising creek, pond overflow, creek crossing danger", 28 files, +1736 -30). Playtested in Play Mode before commit: flood phases 1-4 55/55, creek crossing 55/55 (including the 2-Health knock-down re-check). 62 edit-mode tests pass. Two flood edits not named in the plan went in because they are flood work: `Survival/WaterSource.cs` (creek quality hook) and `UI/WeatherScreen.cs` (Creek row, row height 48). Earlier commit 5f3762a was reworded (message only, tree identical) and is now 6fd820a ("Rain Barrel, Placement Preview and Pond Drying"). origin/master and local master are both at c3d3e0f. Still uncommitted by Mike's choice: AudioManager.cs null guard, ProjectSettings.asset (runInBackground), Homestead.slnx, 08_Backups/.
 **OPEN:** Mike thinks the "while you slept, the creek flooded" wake-up message is not needed. Not removed; waiting for his firm yes.
+
+
+**DECISION 2026-10-19 (Mike):** the "while you slept, the creek flooded" wake-up message stays as built, for now. Earlier "OPEN" notes about removing it are closed (he can revisit it later).

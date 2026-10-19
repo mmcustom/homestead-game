@@ -196,3 +196,6 @@ Early Homestead, Established Homestead, and Modern Homestead (per the GDD's Prog
 **Known gaps and loose ends:** the "while you slept, the creek flooded" wake-up message (Mike leans toward removing it; waiting for a firm yes); Campfire can still be placed on a roof or rock, no spacing ring on Placement Preview, no gamepad; spoilage and smoking/drying; Winter water pressure and surface freezing; Livestock feed quantities; humidity-vs-difficulty hot-weather rebalance; wind chill; a performance review of the placed ground objects in World.unity; real mouse/keyboard input untested; Power_System and Flashlight.
 
 **Next step (Mike, 2026-10-19):** Placement Preview phase 6 (traps), then Mike picks from the "still designed, not built" list.
+
+
+**Update 2026-10-19 (later):** Placement Preview phase 6 (traps) is built, playtested (44/44, plus a 5/5 re-check of right-click-puts-the-trap-away) and pushed as 9b42d4c, so Placement Preview phases 1-6 are all done. Rabbit Snare, Box Trap and Fish Trap show a live ghost as soon as they are equipped, one click sets the trap, and a right click puts it away. The "Next step" line above is superseded: Mike picks the next item from the "still designed, not built" list (placement gaps remain: Campfire on roof or rock, no spacing ring, lake wording, no gamepad).
