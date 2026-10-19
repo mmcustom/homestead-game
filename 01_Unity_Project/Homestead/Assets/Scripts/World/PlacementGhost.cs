@@ -27,8 +27,20 @@ public sealed class PlacementGhost
     public static PlacementGhost ForPile(PileKind kind)
     {
         var ghost = new PlacementGhost("Placement Ghost: " + WoodManager.PileName(kind));
-        var state = new WoodPileState { id = -1, kind = kind }; // id -1: never a real pile
+        // A staged site (Well, Outhouse, Water Barrel, Rain Barrel, Food Cache) aims with the outline of the structure it will become;
+        // once placed the site draws its plot (PlacedStructure) until it is completed. Every other kind aims as itself.
+        PileKind drawn = WellsAndOuthouses.IsStagedSite(kind) ? WellsAndOuthouses.FinishedKind(kind) : kind;
+        var state = new WoodPileState { id = -1, kind = drawn, builtDay = WellsAndOuthouses.Today }; // id -1: never a real pile
         Material bark = WoodManager.Instance != null ? WoodManager.Instance.SharedBark : null;
+
+        if (state.IsPlacedStructure)
+        {
+            // The Well and the Outhouse are plain meshes from StructureVisuals (no component, no interaction box, no water-disc script),
+            // and Finish() strips colliders and tints, so the ghost registers with nothing and cannot be aimed at or collided with.
+            StructureVisuals.Build(ghost.root.transform, state, bark, null, out _, out _);
+            ghost.Finish();
+            return ghost;
+        }
 
         if (state.IsShelter)
         {

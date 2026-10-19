@@ -27,8 +27,12 @@ public class FelledTree
 // TarpShelter is a pitched Tarp (Mike, 2026-10-09): a shelter like the Tent, but the cheapest tier.
 // RainBarrel is a Water Barrel stood at a Small Cabin's long-wall eave that fills itself from that roof slope in rain
 // (Water_System.md's Rainwater Collection; WoodManager.CollectRain).
+// WellSite, Well and Outhouse are Structures Slice 1 (WellsAndOuthouses, PlacedStructure): a WellSite is a staged build (dig, line,
+// cap) that turns into a Well in place, like CabinSite into Cabin; an OuthouseSite is a staged site too (materials over trips, no dig)
+// that turns into an Outhouse, a shack with a pit that fills. Any build over ~15 kg of materials is staged (WellsAndOuthouses.IsStagedSite):
+// that now includes the WaterBarrelSite, RainBarrelSite and FoodCacheSite, which turn into the (unchanged) WaterBarrel, RainBarrel and FoodCache.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite }
 
 [Serializable]
 public class WoodPileState
@@ -38,6 +42,14 @@ public class WoodPileState
     public Vector3 position;
     public float yaw;
     public List<WoodStack> contents = new List<WoodStack>();
+    // Structures Slice 1 (appended, so older saves load these as 0): a Well's litres in its buffer and the hours its water stays
+    // Unsafe after a flood; a Well site's dig progress (0-1); the in-game day an Outhouse's pit was dug.
+    public int litres;
+    public float contaminatedHours;
+    public float digProgress;
+    public int builtDay;
+    // A staged site pounded with the Hammer (0-1; WellsAndOuthouses.BuildBlow). Above 0 its delivered materials are locked in. Appended, so older saves load 0.
+    public float buildProgress;
 
     public int Count(string itemId)
     {
@@ -104,6 +116,8 @@ public class WoodPileState
     public bool IsRock => kind == PileKind.RockStorage;
     public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo || kind == PileKind.Cabin || kind == PileKind.TarpShelter;
     public bool IsWoodPile => kind == PileKind.Felled || kind == PileKind.WoodStorage;
+    // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsBuilt => kind != PileKind.Felled;
     // Both barrels hold water by the litre under one shared cap (WoodManager.CapacityOf).
     public bool IsWaterBarrel => kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel;
@@ -125,6 +139,13 @@ public class WoodPileState
             case PileKind.CabinSite:
                 return WoodManager.Instance != null && Array.IndexOf(WoodManager.CabinMaterialIds, itemId) >= 0 &&
                        Count(itemId) < WoodManager.Instance.CabinRequired(itemId);
+            case PileKind.WellSite:
+            case PileKind.OuthouseSite:
+            case PileKind.WaterBarrelSite:
+            case PileKind.RainBarrelSite:
+            case PileKind.FoodCacheSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
+            case PileKind.Well:
+            case PileKind.Outhouse:
             case PileKind.Tent:
             case PileKind.LeanTo:
             case PileKind.TarpShelter:
@@ -633,6 +654,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         }
         if (pileViews.TryGetValue(pile.id, out GameObject view) && view != null && view.TryGetComponent(out WoodPile woodPile))
             woodPile.Rebuild();
+        else if (view != null && view.TryGetComponent(out PlacedStructure structure))
+            structure.Rebuild();
         PileChanged?.Invoke(pile);
     }
 
@@ -651,7 +674,8 @@ public class WoodManager : MonoBehaviour, ISaveable
     // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
-        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.RainBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite };
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
+          PileKind.WellSite, PileKind.OuthouseSite };
 
     public const string TentId = "tent";
     // The Tarp Shelter's stakes and ridgeline: 2 Sticks and 1 Cordage, plus the Tarp itself. Taking it down returns the
@@ -673,6 +697,13 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.LeanTo: return "Lean-To";
             case PileKind.Cabin: return "Small Cabin";
             case PileKind.CabinSite: return "Small Cabin Site";
+            case PileKind.WellSite: return "Well Site";
+            case PileKind.Well: return "Well";
+            case PileKind.Outhouse: return "Outhouse";
+            case PileKind.OuthouseSite: return "Outhouse Site";
+            case PileKind.WaterBarrelSite: return "Water Barrel Site";
+            case PileKind.RainBarrelSite: return "Rain Barrel Site";
+            case PileKind.FoodCacheSite: return "Food Cache Site";
             default: return "Wood Pile";
         }
     }
@@ -699,6 +730,11 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.Cabin: return new[] { new WoodStack { itemId = LogsId, count = cabinLogs }, new WoodStack { itemId = BranchesId, count = cabinBranches },
                                                 new WoodStack { itemId = TallGrassId, count = cabinTallGrass }, new WoodStack { itemId = StoneId, count = cabinStone },
                                                 new WoodStack { itemId = ClayId, count = cabinClay } };
+            // A Well Site is free to mark out (like a Cabin Site); PileKind.Well holds what the finished Well takes in total, delivered
+            // to the site over several trips (WellsAndOuthouses.WellSiteAccepts) and halved by Dismantle.
+            // (an Outhouse Site is free to mark out the same way; PileKind.Outhouse holds its total.)
+            case PileKind.Well: return WellsAndOuthouses.WellCost();
+            case PileKind.Outhouse: return WellsAndOuthouses.OuthouseCost();
             default: return new WoodStack[0];
         }
     }
@@ -715,6 +751,11 @@ public class WoodManager : MonoBehaviour, ISaveable
     // e.g. "3 Logs" or "free".
     public string CostText(PileKind kind)
     {
+        if (WellsAndOuthouses.IsStagedSite(kind))
+        {
+            PileKind finished = WellsAndOuthouses.FinishedKind(kind);
+            return $"free to mark out; the {PileName(finished)} then takes " + CostText(finished) + " over several trips";
+        }
         WoodStack[] cost = CostOf(kind);
         if (cost.Length == 0)
             return "free";
@@ -738,6 +779,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         // Placing a CabinSite is free and needs no tool — the Hammer only gates CompleteCabin, once it's fully stocked.
         bool cabin = kind == PileKind.CabinSite;
 
+
         // One site in progress at a time (Mike placed two by accident, 2026-10-04). A finished cabin isn't a site, so
         // another can be started once the first is built — only an unfinished one blocks it.
         if (cabin)
@@ -747,7 +789,7 @@ public class WoodManager : MonoBehaviour, ISaveable
                 if (other.kind == PileKind.CabinSite)
                 {
                     float away = Vector3.Distance(other.position, player.transform.position);
-                    reason = $"You already have a Small Cabin site, {away:0} m away — finish it (go within {cabinCompleteReach:0} m), or take it down first.";
+                    reason = $"You already have a Small Cabin site, {away:0} m away — finish it (stock it and pound it with the Hammer), or take it down first.";
                     return false;
                 }
             }
@@ -842,18 +884,23 @@ public class WoodManager : MonoBehaviour, ISaveable
             }
         }
         // A Rain Barrel only goes at the eave of a finished Small Cabin's long wall.
-        bool rainBarrel = kind == PileKind.RainBarrel;
+        bool rainBarrel = IsRainBarrel(kind);
         if (rainBarrel && !AtAnEave(spot.point, out _, out _))
         {
             reason = NotAtAnEaveReason;
             return false;
         }
+        // A Well and an Outhouse keep their real-world distances from water, each other and buildings, off floodplain and out of
+        // hollows (WellsAndOuthouses.CanPlace); the refusal names what it is too close to.
+        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite) && WellsAndOuthouses.Instance != null &&
+            !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
+            return false;
         foreach (WoodPileState other in piles)
         {
             if (rainBarrel && other.kind == PileKind.Cabin)
                 continue; // the eave band already keeps it off the wall; the 3.2 m cabin clearance would rule out every eave
             bool otherIsCabin = other.kind == PileKind.Cabin || other.kind == PileKind.CabinSite;
-            float clearance = rainBarrel && other.kind == PileKind.RainBarrel
+            float clearance = rainBarrel && IsRainBarrel(other.kind)
                 ? rainBarrelSpacing
                 : Mathf.Max(spacing, otherIsCabin ? cabinFootprint : minSpacing);
             if (Vector3.Distance(other.position, spot.point) < clearance)
@@ -868,8 +915,45 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
         }
 
+        // The Hammer does the building (Mike's rule): the ghost shows without it, but red, and the click builds nothing. Last, so a
+        // bad spot still says what is wrong with the spot first. Staged sites and the Tent, Lean-To and Tarp are not on this list.
+        if (NeedsHammerToBuild(kind) && !HammerEquipped)
+        {
+            reason = WellsAndOuthouses.EquipHammerToBuild;
+            return false;
+        }
+
         reason = "";
         return true;
+    }
+
+    // The single-step structures on the Build screen: the click that builds them takes the Hammer in hand. (A staged site is placed
+    // and stocked freely and finished with the Hammer; the Craft tab never needs it.)
+    public static bool NeedsHammerToBuild(PileKind kind)
+    {
+        switch (kind)
+        {
+            case PileKind.WoodStorage:
+            case PileKind.RockStorage:
+            case PileKind.StorageBin:
+            case PileKind.ToolRack:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    // A Rain Barrel or its staged site: both stand at an eave and keep the barrel spacing from each other.
+    public static bool IsRainBarrel(PileKind kind) => kind == PileKind.RainBarrel || kind == PileKind.RainBarrelSite;
+
+    // Drops a pile's view and draws it again as whatever its kind is now (a completed staged site that becomes a WoodPile).
+    public void Respawn(WoodPileState pile)
+    {
+        if (pileViews.TryGetValue(pile.id, out GameObject oldView) && oldView != null)
+            Destroy(oldView);
+        pileViews.Remove(pile.id);
+        SpawnPile(pile);
+        PileChanged?.Invoke(pile);
     }
 
     // Builds it in front of the player (the fixed probe), facing the way the player does.
@@ -883,7 +967,8 @@ public class WoodManager : MonoBehaviour, ISaveable
     // Builds it at a chosen spot and facing, spending the materials only now.
     public bool BuildPile(PileKind kind, PlayerController player, BuildSpot spot, float yaw)
     {
-        if (kind == PileKind.Felled || kind == PileKind.Cabin || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
+        if (kind == PileKind.Felled || kind == PileKind.Cabin || kind == PileKind.Well || kind == PileKind.Outhouse ||
+            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
             return false;
 
         foreach (WoodStack c in CostOf(kind))
@@ -894,6 +979,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             kind = kind,
             position = spot.point,
             yaw = yaw,
+            builtDay = 0, // an Outhouse's pit starts when its site is completed (WellsAndOuthouses.FinishSite)
         };
         piles.Add(pile);
         SpawnPile(pile);
@@ -1125,6 +1211,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             site.Remove(itemId, CabinRequired(itemId));
         site.contents.Clear(); // nothing else should be left — Accepts() caps every material at what's required
         site.kind = PileKind.Cabin;
+        site.buildProgress = 0f; // the Hammer finished it (AxeTool.UpdateHammering)
 
         if (pileViews.TryGetValue(site.id, out GameObject oldView) && oldView != null)
             Destroy(oldView);
@@ -1245,6 +1332,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         go.transform.SetPositionAndRotation(pile.position, Quaternion.Euler(0f, pile.yaw, 0f));
         if (pile.IsShelter)
             go.AddComponent<Shelter>().Bind(pile, BarkMaterial());
+        else if (pile.IsPlacedStructure)
+            go.AddComponent<PlacedStructure>().Bind(pile, BarkMaterial());
         else
             go.AddComponent<WoodPile>().Bind(pile, BarkMaterial());
         pileViews[pile.id] = go;

@@ -129,6 +129,11 @@ public class AxeTool : MonoBehaviour
             UpdateDigging(equipped == PickAxeId);
             return;
         }
+        if (equipped == WoodManager.HammerId)
+        {
+            UpdateHammering();
+            return;
+        }
         if (equipped != AxeId && equipped != PrimitiveAxeId)
             return;
 
@@ -180,6 +185,17 @@ public class AxeTool : MonoBehaviour
         {
             point = hit.point;
             target = pick ? (Object)hit.collider.GetComponentInParent<RockDeposit>() : hit.collider.GetComponentInParent<Stump>();
+            // A Well Site whose shaft is not dug yet (WellsAndOuthouses): the Shovel digs it, blow by blow.
+            if (!pick && target == null)
+            {
+                PlacedStructure site = hit.collider.GetComponentInParent<PlacedStructure>();
+                if (site != null && site.State != null && site.State.kind == PileKind.WellSite && site.State.digProgress < 1f)
+                    target = site;
+                // A full Outhouse pit: the Shovel digs the new one the shack moves onto (WellsAndOuthouses.PitDigBlow).
+                else if (site != null && site.State != null && site.State.kind == PileKind.Outhouse && WellsAndOuthouses.Instance != null &&
+                         WellsAndOuthouses.Instance.PitFull(site.State))
+                    target = site;
+            }
             // A felled tree's wood pile sits right beside its stump and can be in the way: take a stump just behind it.
             if (!pick && target == null)
                 foreach (Collider nearby in Physics.OverlapSphere(hit.point, 0.8f, ~0, QueryTriggerInteraction.Ignore))
@@ -218,8 +234,123 @@ public class AxeTool : MonoBehaviour
             MineStone(point);
         else if (target is Stump stump)
             DigStump(stump, point);
+        else if (target is PlacedStructure site && site.State.kind == PileKind.Outhouse)
+            DigPit(site, point);
+        else if (target is PlacedStructure well)
+            DigWell(well, point);
         else
             DigClay(point);
+    }
+
+    // The Hammer on a fully stocked staged site (Well, Outhouse, Water Barrel, Rain Barrel or Food Cache Site, or the Small Cabin site):
+    // hold click and each blow advances the site a little (WellsAndOuthouses.BuildBlow), the way the Shovel digs the
+    // Well shaft. At the end the site becomes the finished structure in place. Progress is saved on the site, so walking away and
+    // coming back (or saving) keeps it. It uses the same swing timing, stamina and Efficiency as the other tools, with the chop sound.
+    void UpdateHammering()
+    {
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        WoodManager wood = WoodManager.Instance;
+        if (rules == null || wood == null)
+            return;
+
+        WoodPileState state = null;
+        Vector3 point = Vector3.zero;
+        if (player.AimRaycast(reach, out RaycastHit hit))
+        {
+            point = hit.point;
+            PlacedStructure placed = hit.collider.GetComponentInParent<PlacedStructure>();
+            WoodPile pile = placed == null ? hit.collider.GetComponentInParent<WoodPile>() : null;
+            if (placed != null && placed.State != null && WellsAndOuthouses.IsStagedSite(placed.State.kind))
+                state = placed.State;
+            else if (pile != null && pile.State != null && pile.State.kind == PileKind.CabinSite)
+                state = pile.State;
+        }
+        if (state == null)
+        {
+            ToolStatus.Report("Hammer - stock a building site with its materials, then hold click on it to build it");
+            return;
+        }
+
+        bool cabin = state.kind == PileKind.CabinSite;
+        string name = WoodManager.PileName(state.kind);
+        string needs = cabin ? wood.SiteNeeds(state) : WellsAndOuthouses.SiteNeeds(state);
+        if (needs != null)
+        {
+            ToolStatus.Report($"{name} - still needs {needs}");
+            return;
+        }
+
+        ToolStatus.Report(state.buildProgress > 0f ? $"Building the {name}" : $"{name} - hold click with the Hammer to build it", state.buildProgress > 0f ? state.buildProgress : -1f);
+        if (!Swing(point))
+            return;
+
+        bool finished = rules.BuildBlow(state, Efficiency);
+        if (!finished)
+            return; // the prompts read the saved progress directly
+
+        if (cabin)
+        {
+            if (wood.CompleteCabin(player))
+                ToolStatus.Flash("Small Cabin built — you can sleep in it, and its hearth is ready for Firewood.");
+            else
+                state.buildProgress = 0.99f; // CompleteCabin refused (the site is out of its own reach): try again next blow
+            return;
+        }
+        string message = WellsAndOuthouses.FinishedMessage(state.kind);
+        if (rules.FinishSite(state))
+            ToolStatus.Flash(message);
+    }
+
+    // The Shovel on a full Outhouse pit: hold click, a blow every interval (real time only, the usual swing stamina) until the new pit is
+    // dug, then the shack moves onto it. Progress is saved on the Outhouse, so walking away keeps it. Only where a new pit is allowed.
+    void DigPit(PlacedStructure outhouse, Vector3 point)
+    {
+        WoodPileState state = outhouse.State;
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        if (rules == null || state == null)
+            return;
+        if (!outhouse.FindNewPitSpot(out Vector3 chosen))
+        {
+            ToolStatus.Report("No room to dig a new pit here - dismantle it and build the outhouse somewhere else");
+            return;
+        }
+
+        ToolStatus.Report(state.digProgress > 0f ? "Digging a new pit" : "Outhouse - hold click to dig a new pit", state.digProgress > 0f ? state.digProgress : -1f);
+        if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
+            return;
+
+        if (rules.PitDigBlow(state, Efficiency))
+        {
+            otherTarget = null;
+            outhouse.MoveToNewPit(chosen);
+            ToolStatus.Flash("Dug a new pit and moved the outhouse over it - good for another season", 4f);
+        }
+    }
+
+    // The Shovel on a Well Site's shaft: each blow advances the dig (WellsAndOuthouses.DigBlow). It takes real time only, no clock jump,
+    // and a half-dug shaft stays half dug (saved on the site).
+    void DigWell(PlacedStructure site, Vector3 point)
+    {
+        WoodPileState state = site.State;
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        if (rules == null || state == null)
+            return;
+
+        ToolStatus.Report(state.digProgress > 0f ? "Digging the well shaft" : "Well site - hold click to dig the shaft", state.digProgress > 0f ? state.digProgress : -1f);
+        if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
+            return;
+
+        bool finished = rules.DigBlow(state, Efficiency);
+        otherTarget = finished ? null : otherTarget;
+        if (finished)
+        {
+            ToolStatus.Banner("The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+        else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - Efficiency / Mathf.Max(1, rules.wellDigBlows)) * 10f))
+        {
+            WoodManager.Instance.NotifyChanged(state); // the visible shaft deepens a tenth at a time
+        }
     }
 
     // Dry ground close enough to the water's edge in some direction to count as a bank, but not the water itself.

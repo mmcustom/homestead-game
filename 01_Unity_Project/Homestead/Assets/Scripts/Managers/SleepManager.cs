@@ -108,6 +108,12 @@ public class SleepManager : MonoBehaviour
     IEnumerator SleepRoutine(WoodPileState shelter)
     {
         IsSleeping = true;
+        // Where the player sleeps is the homestead's heart for the sanitary-homestead test (WellsAndOuthouses).
+        PlayerController sleeper = FindAnyObjectByType<PlayerController>();
+        if (shelter != null)
+            WellsAndOuthouses.NoteSleepPlace(shelter.position);
+        else if (sleeper != null)
+            WellsAndOuthouses.NoteSleepPlace(sleeper.transform.position);
         GameManager game = GameManager.Instance;
         bool openedMenu = game != null && game.State == GameState.Playing && game.OpenMenu();
 
@@ -177,7 +183,7 @@ public class SleepManager : MonoBehaviour
             survival.SleepShelterInsulation = shelterInsulation;
             survival.SleepRainShelter = rain;
             survival.SleepWindShelter = wind;
-            survival.SleepRecovery = recovery;
+            survival.SleepRecovery = recovery + WellsAndOuthouses.SleepRecoveryBonus; // a sanitary homestead rests a little better
         }
 
         const float Step = 0.25f;

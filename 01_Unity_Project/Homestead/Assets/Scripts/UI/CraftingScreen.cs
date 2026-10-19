@@ -10,7 +10,7 @@ using UnityEngine.UI;
 //   Craft — every recipe in Crafting.Recipes, grouped into six categories, the ones makeable right now listed first.
 //     Arrows and Cordage have a x1 / x5 / Max quantity. Crafting stays instant, with no timer, skill or station.
 //   Build — what the Inventory screen's Build area held: the Campfire (FireManager), the shelters and storage piles
-//     (WoodManager.Buildable), and the Small Cabin site, which becomes "Complete Small Cabin" once a site is in reach.
+//     (WoodManager.Buildable), and the Small Cabin site, which you finish by pounding it with the Hammer at the site.
 //     Costs, the Hammer requirement, placement and the CanBuildPile / CanCompleteCabin reasons are unchanged — this
 //     screen only asks them. Build closes the screen and starts Placement Mode (PlacementMode), which shows a ghost where the
 //     structure will go and builds it only when the player confirms.
@@ -590,30 +590,6 @@ public class CraftingScreen : GameScreen
             failHeading = $"Can't build {WoodManager.PileName(kind)}",
         };
 
-        // The Small Cabin site's entry does double duty: place an (empty, free) site normally, or — with an unfinished
-        // site in reach — complete it into the real thing. While a site is in reach it's the completion entry even when
-        // it can't be used yet, so the screen says what's still missing; "you already have a site" is only for one that's
-        // out of reach.
-        WoodPileState site = kind == PileKind.CabinSite ? wood.SiteInReach(player) : null;
-        if (site != null)
-        {
-            e.name = "Complete Small Cabin";
-            e.actionLabel = "Complete Small Cabin";
-            e.failHeading = "Can't complete Small Cabin";
-            e.info = "Finishes the site you are standing by.";
-            e.can = wood.CanCompleteCabin(player, out _, out e.reason);
-            e.cost = e.can ? "fully stocked" : "still needs " + (wood.SiteNeeds(site) ?? "the Hammer");
-            var reqs = new List<Req>();
-            foreach (string itemId in WoodManager.CabinMaterialIds)
-                reqs.Add(new Req { label = ItemName(itemId), have = site.Count(itemId), need = wood.CabinRequired(itemId) });
-            e.sets.Add(reqs);
-            e.notes.Add(("Deposited at the site (R); the figures above are what it holds.", 0));
-            bool hammer = WoodManager.HammerEquipped;
-            e.notes.Add((hammer ? "Hammer equipped" : "Equip the Hammer to build it", hammer ? 1 : 2));
-            e.act = () => DoCompleteCabin(wood);
-            return e;
-        }
-
         e.can = wood.CanStartBuild(kind, player, out e.reason);
         if (kind == PileKind.CabinSite)
         {
@@ -627,6 +603,17 @@ public class CraftingScreen : GameScreen
                 e.notes.Add(($"{r.label}   {r.need}", 0));
             e.notes.Insert(0, ("The cabin needs, in total:", 0));
         }
+        else if (WellsAndOuthouses.IsStagedSite(kind))
+        {
+            // Too heavy for one trip: free to place, then stocked over as many trips as it takes and pounded into shape with the Hammer.
+            e.actionLabel = "Place Site";
+            e.info = "Free to place, no Hammer. Then deliver the materials at the site (R), over as many trips as it takes.";
+            PileKind finished = WellsAndOuthouses.FinishedKind(kind);
+            e.notes.Add(($"The {WoodManager.PileName(finished)} needs, in total:", 0));
+            foreach (WoodStack c in WellsAndOuthouses.FinishedCost(kind))
+                e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
+            e.notes.Add(("Then " + (WellsAndOuthouses.RequiresDig(kind) ? "dig the shaft (Shovel) and " : "") + $"pound it with the Hammer (hold click) to build the {WoodManager.PileName(finished)}.", 0));
+        }
         else
         {
             var reqs = new List<Req>();
@@ -634,6 +621,12 @@ public class CraftingScreen : GameScreen
                 reqs.Add(new Req { label = ItemName(c.itemId), have = inventory != null ? inventory.Player.Count(c.itemId) : 0, need = c.count });
             if (reqs.Count > 0)
                 e.sets.Add(reqs);
+        }
+        if (WoodManager.NeedsHammerToBuild(kind))
+        {
+            // The ghost shows either way; without the Hammer it stays red and the click builds nothing.
+            bool hammer = WoodManager.HammerEquipped;
+            e.notes.Add((hammer ? "Hammer equipped" : "Equip the Hammer to build it (the ghost shows, but stays red)", hammer ? 1 : 2));
         }
         e.act = () => DoBuildPile(wood, kind);
         return e;
@@ -663,20 +656,6 @@ public class CraftingScreen : GameScreen
         banner.Hide();
         Close();
         PlacementMode.Begin(kind);
-    }
-
-    void DoCompleteCabin(WoodManager wood)
-    {
-        if (!wood.CanCompleteCabin(player, out _, out string why))
-        {
-            banner.NotifyCant("Can't complete Small Cabin", why);
-            return;
-        }
-        if (!wood.CompleteCabin(player))
-            return;
-        banner.Hide();
-        ToolStatus.Flash("Small Cabin built — you can sleep in it, and its hearth is ready for Firewood.");
-        Close();
     }
 
     void OnAction()
@@ -719,7 +698,12 @@ public class CraftingScreen : GameScreen
             case PileKind.TarpShelter: return "sleep under it (E), take it down for the Tarp and half the Sticks back (R). Keeps off most rain and half the wind, and a little cold. No Hammer needed.";
             case PileKind.LeanTo: return "sleep in it (E), take it down (R). Keeps off most rain and wind, and some cold.";
             case PileKind.Cabin: return "sleep in it (E) — permanent, the best shelter yet. Comes with a hearth to warm up and cook at.";
-            case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, come back here and Complete Small Cabin (needs the Hammer equipped). Placed one by mistake? E on it when it's empty, or R with nothing to store, takes it down — no Hammer needed.";
+            case PileKind.WellSite: return "a hand-dug well, built in stages. Mark the site out (free, no Hammer), dig the shaft with the Shovel (hold click; it takes game time), then deliver 10 Stone for the lining and 2 Logs and 4 Branches for the cap with R over as many trips as it takes (no Hammer). Fully stocked, equip the Hammer and hold click on the site until the Well is built. Gives a steady supply that recovers by the hour, Good water when clear of the outhouse. Needs high, dry ground 30 m from any outhouse.";
+            case PileKind.WaterBarrelSite: return "a hollowed-log barrel, built in stages because its Logs are heavy. Mark the site out (free, no Hammer), deliver 3 Logs with R over as many trips as it takes (no Hammer; E takes them back), then equip the Hammer and hold click on the site until the barrel is built (once you start, the Logs are built in). Holds 40 L.";
+            case PileKind.RainBarrelSite: return "a rain barrel, built in stages because its Logs are heavy. Mark the site out under a Small Cabin's eave (it snaps there; free, no Hammer), deliver 3 Logs and 2 Branches with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the barrel is built (once you start, the wood is built in). The finished barrel stands where the site is and fills from the roof in rain. Holds 80 L.";
+            case PileKind.FoodCacheSite: return "a lidded food cache, built in stages because its Logs are heavy. Mark the site out (free, no Hammer; turn it with the wheel), deliver 2 Logs and 4 Branches with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the cache is built (once you start, the wood is built in).";
+            case PileKind.OuthouseSite: return "a pit privy, built in stages because its Logs are heavy. Mark the site out (free, no Hammer; turn it with the wheel so the door faces where you want), deliver 2 Logs, 6 Branches and 3 Tall Grass with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the shack is built (once you start, the wood is built in). A working outhouse within 60 m of where you sleep makes the homestead sanitary: a little less illness and a little better rest. The pit fills over about a season; then dig a new one with the Shovel (E). Must stand 30 m from water and any well, 7.5 m from buildings, below any well.";
+            case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, equip the Hammer and hold click on the site until the cabin is built (once you start, the materials are built in). Placed one by mistake? With the Hammer equipped, E on it when it's empty, or R with nothing to store, takes it down.";
             default: return "store wood (R), take it back (E).";
         }
     }

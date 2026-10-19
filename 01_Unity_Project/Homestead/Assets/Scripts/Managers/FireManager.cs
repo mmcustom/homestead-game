@@ -21,8 +21,6 @@ public class BowDrillSettings
     [Min(0.5f)] public float drillSeconds = 6f;
     [Tooltip("Stamina one attempt costs.")]
     [Min(0f)] public float staminaCost = 15f;
-    [Tooltip("In-game minutes one attempt takes off the clock.")]
-    [Min(0f)] public float minutesPerAttempt = 10f;
     [Tooltip("How close to the Campfire you must be, metres.")]
     [Min(0.5f)] public float reach = 3f;
 

@@ -14,6 +14,8 @@ using UnityEngine.InputSystem;
 //   Numpad 7            show the nearest Rain Barrel's litres, today's weather, the dry-day count, the nearest pond's level and state,
 //                       and the creek's stage, state and murk hours
 //   Numpad 8            step the creek's Stream Stage: Normal, High water, Flash flood, Normal...
+//   Numpad 0            the nearest Well (within 8 m) to 0 L; Shift fills it, Ctrl makes it Unsafe (flood water)
+//   Numpad .            the nearest Outhouse's pit to full; Shift empties it
 //   Numpad 9            show the creek's stage, state and murk hours, and whether you are in the creek, its flow direction and your speed factor
 public class RainDebugControls : MonoBehaviour
 {
@@ -99,6 +101,14 @@ public class RainDebugControls : MonoBehaviour
         {
             ToolStatus.Flash(StreamText() + "  |  " + CreekCrossing.DebugText(), 5f);
         }
+        else if (keyboard.numpad0Key.wasPressedThisFrame)
+        {
+            DebugWell(shift, keyboard.ctrlKey.isPressed);
+        }
+        else if (keyboard.numpadPeriodKey.wasPressedThisFrame)
+        {
+            DebugPit(shift);
+        }
         else if (keyboard.numpad4Key.wasPressedThisFrame)
         {
             ChangePond(-PondStep, null);
@@ -130,6 +140,39 @@ public class RainDebugControls : MonoBehaviour
         }
         ponds.SetLevel(pond, setTo ?? ponds.LevelOf(pond) + delta);
         ToolStatus.Flash(PondText(), 3f);
+    }
+
+    // Numpad 0: the nearest Well (within 8 m) to 0 L; Shift fills it; Ctrl contaminates it (Unsafe for the flood hours).
+    // Numpad . : the nearest Outhouse's pit to full; Shift empties it (a fresh pit).
+    const float StructureReach = 8f;
+
+    static void DebugWell(bool fill, bool contaminate)
+    {
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        WoodPileState well = player != null && rules != null ? rules.DebugNearest(PileKind.Well, player.transform.position, StructureReach) : null;
+        if (well == null)
+        {
+            ToolStatus.Flash($"No finished Well within {StructureReach:0} m", 2.5f);
+            return;
+        }
+        rules.DebugSetWell(well, contaminate ? 2 : fill ? 1 : 0);
+        ToolStatus.Flash($"Well: {well.litres} of {rules.wellBufferLitres} L, {rules.WellQuality(well, out _)} water" +
+                         (well.contaminatedHours > 0f ? $" ({well.contaminatedHours:0} h of flood water)" : ""), 3f);
+    }
+
+    static void DebugPit(bool empty)
+    {
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        WoodPileState outhouse = player != null && rules != null ? rules.DebugNearest(PileKind.Outhouse, player.transform.position, StructureReach) : null;
+        if (outhouse == null)
+        {
+            ToolStatus.Flash($"No Outhouse within {StructureReach:0} m", 2.5f);
+            return;
+        }
+        rules.DebugSetPit(outhouse, !empty);
+        ToolStatus.Flash($"Outhouse pit {rules.PitFill(outhouse) * 100f:0}% full; sanitary homestead: {(rules.IsSanitary() ? "yes" : "no")}", 3f);
     }
 
     const float FloodMargin = 3f; // Numpad 8 sets the stage this far above a threshold

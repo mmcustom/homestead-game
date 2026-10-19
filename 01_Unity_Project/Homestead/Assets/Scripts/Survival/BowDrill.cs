@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 
 // The Bow Drill (Core_Survival_System.md, 2026-10-07): a primitive fire starter for a player with no Flint and Steel.
 // Crafted from 2 Sticks + 1 Cordage; reusable, no durability. Equip it, face a built Campfire that has fuel and hold
-// click: a progress bar fills over a few seconds (an attempt), which costs stamina and moves the clock on about ten
-// minutes, and then the ember either catches (the Campfire lights exactly as with Flint and Steel) or dies. A failure
+// click: a progress bar fills over a few seconds of real time (an attempt; the clock simply keeps running, nothing is
+// skipped), which costs stamina, and then the ember either catches (the Campfire lights exactly as with Flint and Steel) or dies. A failure
 // loses nothing else. The chance depends on the weather, is cut by rain and snow unless the Campfire is under a roof,
 // and grows with each failed attempt at the same Campfire (a growing ember) until it catches or the player has been away
 // about an hour. Flint and Steel is untouched and still never fails. All numbers are BowDrillSettings on FireManager.
@@ -204,19 +204,7 @@ public class BowDrill : MonoBehaviour
             return;
         }
 
-        // Ten minutes go by: the clock, the player's own needs, the fires and the wood, as in a night's sleep.
         TimeManager time = TimeManager.Instance;
-        float hours = s.minutesPerAttempt / 60f;
-        if (time != null && hours > 0f)
-        {
-            if (SurvivalManager.Instance != null)
-                SurvivalManager.Instance.PassHours(hours, MovementState.Idle);
-            if (FireManager.Instance != null)
-                FireManager.Instance.PassHours(hours);
-            if (WoodManager.Instance != null)
-                WoodManager.Instance.PassHours(hours);
-            time.AdvanceMinutes(s.minutesPerAttempt);
-        }
 
         if (Random.value < chance && FireManager.Instance.Ignite(fire))
         {

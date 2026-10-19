@@ -53,9 +53,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (UsesTransferScreen)
                 return $"Open {Name}  ({Describe(state)})";
             if (state.IsEmpty)
-                return IsCabinSite ? WithSiteNeeds($"Remove {Name}  (empty — nothing to take back)") : $"{Name}  (empty)";
+                return IsCabinSite ? WithSiteNeeds($"Remove {Name}  (empty — {(WoodManager.HammerEquipped ? "nothing to take back" : "equip the Hammer to take it down")})")
+                                   : $"{Name}  (empty)";
             string contents = Describe(state);
             string verb = state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
+            if (IsCabinSite && WellsAndOuthouses.MaterialsLocked(state))
+                return WithSiteNeeds($"{Name}  ({contents})"); // the Hammer has begun: nothing can be taken back
             return WithSiteNeeds(AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more");
         }
     }
@@ -68,8 +71,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (!IsCabinSite || wood == null)
             return prompt;
         string needs = wood.SiteNeeds(state);
-        string done = WoodManager.HammerEquipped ? "Fully stocked - open Inventory and press Complete Small Cabin"
-                                                 : "Fully stocked - equip the Hammer, open Inventory and press Complete Small Cabin";
+        // Fully stocked: the Hammer finishes it (hold click, AxeTool.UpdateHammering); once begun the materials are built in.
+        string percent = $"{state.buildProgress * 100f:0}%";
+        string done = (WoodManager.HammerEquipped ? $"Hold click with the Hammer to build ({percent})" : $"Fully stocked - equip the Hammer to build ({percent})") +
+                      (WellsAndOuthouses.MaterialsLocked(state) ? "\nThe materials are built in - E no longer takes them back" : "");
         return prompt + "\n" + (needs != null ? $"Still needs: {needs}" : done);
     }
 
@@ -93,6 +98,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         {
             if (IsCabinSite)
                 ToolStatus.Flash(RemoveStructure());
+            return;
+        }
+
+        if (IsCabinSite && WellsAndOuthouses.MaterialsLocked(state))
+        {
+            ToolStatus.Flash("The materials are built in now - keep hammering to finish it.", 3f);
             return;
         }
 
@@ -233,8 +244,11 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             int carried = CarriedStorable(out string what);
             // R stores what the site still takes; with nothing to store it takes the site down, like the Lean-To's
             // pack-up — the one key left over on the site, since E takes materials back.
+            if (carried <= 0 && IsCabinSite && WellsAndOuthouses.MaterialsLocked(state))
+                return "";
             if (carried <= 0)
-                return IsCabinSite ? "Remove Site  (everything stocked comes back to you)" : "";
+                return IsCabinSite ? (WoodManager.HammerEquipped ? "Remove Site  (everything stocked comes back to you)"
+                                                                 : "Remove Site  (equip the Hammer to take it down)") : "";
             if (IsBarrel)
             {
                 int room = WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(state.kind) - state.Total : 0;
@@ -281,7 +295,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             WoodManager.Instance.NotifyChanged(state);
         // The deposit that supplied the last missing material: a big notice, so the next step isn't missed.
         if (IsCabinSite && !wasComplete && WoodManager.Instance != null && WoodManager.Instance.SiteNeeds(state) == null)
-            ToolStatus.Banner("Small Cabin site fully stocked - equip the Hammer, open Inventory and press Complete Small Cabin", 10f);
+            ToolStatus.Banner("Small Cabin site fully stocked - equip the Hammer and hold click on it to build it", 10f);
     }
 
     void OpenScreen()
@@ -312,7 +326,21 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (state == null || Inventory == null)
             return false;
         if (IsCabinSite)
-            return true; // no Hammer: placing one doesn't need it
+        {
+            // Placing a site and delivering to it are free; taking the site itself down is the Hammer's (Mike's rule), and not once
+            // the Hammer has begun building it.
+            if (WellsAndOuthouses.MaterialsLocked(state))
+            {
+                reason = "the Hammer has begun building it";
+                return false;
+            }
+            if (!WoodManager.HammerEquipped)
+            {
+                reason = "equip the Hammer";
+                return false;
+            }
+            return true;
+        }
         if (!UsesTransferScreen)
         {
             reason = "can't be taken down";

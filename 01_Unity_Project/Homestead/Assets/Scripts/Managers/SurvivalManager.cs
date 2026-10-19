@@ -814,6 +814,8 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     // Rolls a chance of falling ill (eating raw meat, drinking unpurified water). Returns whether it happened.
     public bool RollIllness(float chance)
     {
+        // A sanitary homestead (a working outhouse near where the player sleeps) is a little safer; WellsAndOuthouses owns the number.
+        chance *= WellsAndOuthouses.IllnessMultiplier;
         if (chance <= 0f || UnityEngine.Random.value >= chance)
             return false;
         MakeSick();

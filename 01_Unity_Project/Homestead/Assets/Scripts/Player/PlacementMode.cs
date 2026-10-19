@@ -75,8 +75,9 @@ public class PlacementMode : MonoBehaviour
             case PileKind.TarpShelter:
             case PileKind.ToolRack:
             case PileKind.StorageBin:
-            case PileKind.FoodCache:
+            case PileKind.FoodCacheSite:
             case PileKind.CabinSite:
+            case PileKind.OuthouseSite:
                 return true;
             default:
                 return false;
@@ -238,7 +239,7 @@ public class PlacementMode : MonoBehaviour
             };
         }
 
-        if (!campfire && kind == PileKind.RainBarrel && TrySnapToEave(hit ? aim.point : player.transform.position, out spot, out valid, out reason, out note))
+        if (!campfire && WoodManager.IsRainBarrel(kind) && TrySnapToEave(hit ? aim.point : player.transform.position, out spot, out valid, out reason, out note))
         {
             haveSpot = true;
             return;
@@ -257,7 +258,7 @@ public class PlacementMode : MonoBehaviour
             reason = TooFarText;
             return;
         }
-        if (!campfire && kind == PileKind.RainBarrel)
+        if (!campfire && WoodManager.IsRainBarrel(kind))
         {
             reason = WoodManager.NotAtAnEaveReason; // nothing snapped: no cabin eave within reach of the aim
             return;
@@ -271,7 +272,7 @@ public class PlacementMode : MonoBehaviour
 
     bool TooFar(Vector3 point) => Vector3.Distance(player.transform.position, point) > reach;
 
-    // The Rain Barrel ghost jumps to the nearest eave spot along a finished cabin's long walls, preferring one that is allowed.
+    // The Rain Barrel (and Rain Barrel Site) ghost jumps to the nearest eave spot along a finished cabin's long walls, preferring one that is allowed.
     bool TrySnapToEave(Vector3 around, out BuildSpot spot, out bool valid, out string reason, out string note)
     {
         spot = default;
@@ -295,7 +296,7 @@ public class PlacementMode : MonoBehaviour
             }
             else
             {
-                ok = WoodManager.Instance.CanBuildPileAt(PileKind.RainBarrel, player, ground, yaw, true, out why);
+                ok = WoodManager.Instance.CanBuildPileAt(kind, player, ground, yaw, true, out why);
             }
 
             float distance = Vector3.Distance(candidate, around);
