@@ -707,3 +707,38 @@ Status of phase A: BUILT and PLAYTESTED. Code and docs remain UNCOMMITTED and UN
 Not covered by the checklist (tuning later): natural 28-day pit fill, a full season of Well recharge, and feel of first-pass blow counts and the 15 kg cutoff. Unsanitary multiplier stays 1.0 unless Mike sets 1.25.
 
 Next: phase B (Wood Shed + wet/dry wood), then phase C (Covered Outdoor Kitchen), each as a staged site with Hammer pounding.
+
+
+---
+
+## PHASE B BUILT - Wood Shed + wet/dry wood (2026-10-19, NOT played, NOT committed)
+
+Phase A was committed and pushed first (code f7f7787, docs d772648). Phase B is built on top of it. 113/113 edit-mode tests pass (22 new, WoodShedTests.cs). Checklist: Wood_Shed_Playtest_Checklist.md (73 items). Where this section differs from section 3 (Wood Shed) above, this section wins.
+
+**Final rules as built**
+- **Wood Shed is a staged site**, not a single-step build. PileKind WoodShedSite 20 and WoodShed 21 (appended). Cost 2 Logs + 8 Branches (24 kg). Free: ghost, placing the site, delivering, taking materials back. Hammer: pounding (25 blows, tuning field), taking an empty site down, Dismantle (shed must be empty; half refund rounded down = 1 Log + 4 Branches, and the refund is dry). Ghost shows the finished shed.
+- **Placement:** not on water, not steep, not in the floodplain, at least 3 m from the Small Cabin. Wheel rotates; the open front starts facing away from the wind and the prompt says which way it opens and whether that is into the wind. Facing into the wind is allowed (advice only).
+- **Capacity:** no limit, same as the Wood Pile (the Wood Pile has no cap in code).
+- **Wet/dry:** the batch day means "the day this batch was last made wet". A batch is dry once one season (28 days, about 14 real hours, `seasoningSeasons`) has passed since that day; day 0 means dry. Wet wood burns 0.7 as long (`wetBurnFraction`); dry as before. Felling and windthrow stamp wood wet; each hour of rain or snow re-wets wood in open Wood Piles; wood in a finished shed is protected, so it dries. The campfire burns the driest batch first; splitting carries the wettest source batch's day onto the Firewood.
+- **No daily seasoning pass:** seasoning is the stamp compared with today's date. (This replaces item 3 and the "daily seasoning pass" in the phase B plan above.)
+- **Old saves:** wood in old piles has day 0 and reads dry; wood already in a pack carries its pickup day and reads wet until a season passes.
+- **No new save keys.** `keepsBatchDay` flag on logs, branches, sticks and firewood.
+- **Debug keys:** Numpad + wet (Shift dry), nearest shed first then carried wood, Ctrl forces carried wood; Numpad - advances all wood one season.
+- **No time jumps** in any shed work.
+
+**Answer for phase C:** rain does not affect a lit fire (no weather check in FireManager.PassHours); weather changes only the chance of catching when lighting, and a covered fire ignores that penalty. The Kitchen's gain is therefore lighting reliability, shelter from rain and shade, and the sheltered-meal comfort bonus.
+
+**Untested:** all of it in Play Mode (shed look and facing, labels, real rain re-wetting, burn times against the clock, the five carry sites, saves).
+
+
+---
+
+## PHASE B PLAYTESTED - all 73 checklist items pass (2026-10-19)
+
+Mike played Wood_Shed_Playtest_Checklist.md in Play Mode: items 1-73 all pass, no notes. This covers the Wood Shed ghost and refusals, staged delivery, Hammer pounding, the finished shed and transfer screen, wet/dry labels, seasoning, rain and snow re-wetting of open piles, shed protection, wet vs dry burn time, Dismantle, the wet/dry day at every carry place, splitting, regression for every fire and the cabin, and saves.
+
+Status of phase B: BUILT and PLAYTESTED. Code and docs remain UNCOMMITTED and UNPUSHED (baseline d772648).
+
+Not covered (tuning later): natural-time seasoning (28 game days tested via Numpad - and day skips), natural-weather re-wetting over a real season, a real winter of fuel use from a stocked shed, and the feel of the first-pass numbers (25 blows, wet burn 0.7, one-season seasoning, no capacity limit, wind-facing as advice only).
+
+Next: phase C (Covered Outdoor Kitchen), staged in two stages with Hammer pounding.

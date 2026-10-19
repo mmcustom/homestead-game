@@ -1906,3 +1906,108 @@ Waiting on Mike: (1) commit and push decision (Claude Code does it; keep Project
 ### 2026-10-19 - DECISION (Mike): commit and push Slice 1 phase A
 
 Mike said yes to committing and pushing everything since 9b42d4c (phase A code, Hammer/Shovel rule, staged sites, pounding, ghosts, no time jumps, Bow Drill real time, and the docs). Message sent to Claude Code. Keep ProjectSettings.asset (runInBackground), the AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out of the commit. Commit message states: playtested, all 58 checklist items pass. Phase B (Wood Shed + wet/dry wood) NOT started; waiting for Mike's go-ahead after the push is confirmed.
+
+
+---
+
+### 2026-10-19 - Slice 1 phase A COMMITTED and PUSHED (Claude Code report)
+
+Claude Code ran the 91 edit-mode tests (91/91 pass), then pushed two commits to master. Local master equals origin/master at d772648 (checked after a fetch).
+
+- Code commit f7f7787: 23 files (Setbacks helper and asmdef, WellsAndOuthouses.cs, PlacedStructure.cs, edits to existing scripts, SetbacksTests.cs, tests asmdef, .meta files). Message says playtested in Play Mode, all 58 checklist items pass (the claim rests on Mike's playtest; Claude Code ran no Play Mode tests).
+- Docs commit d772648: 8 files (Structures_Slice1_Dry_And_Clean.md, Structures_Roadmap.md, Well_Outhouse_Playtest_Checklist.md, Current_Task_List.md, Development_Roadmap.md, Building/Housing, Water and Core Survival docs).
+
+Left uncommitted on purpose: AudioManager.cs null guard, Homestead.slnx, ProjectSettings/ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Last pushed baseline is now d772648 (was 9b42d4c). Docs written after this entry (including this one) are uncommitted until the next docs commit.
+
+Phase B (Wood Shed + wet/dry wood) NOT started. Claude Code's prompt box held an unsubmitted suggestion "Start phase B: Wood Shed and wet/dry wood"; treated as a suggestion only, awaiting Mike's go-ahead.
+
+
+---
+
+### 2026-10-19 - DECISION (Mike): start phase B, Wood Shed + wet/dry wood
+
+Mike chose "Yes, start phase B". Build message sent to Claude Code. Scope: Wood Shed as a staged site (2 Logs + 8 Branches = 24 kg, over the 15 kg cutoff, so it uses the staged-site rows, Hammer pounding, finished-structure ghost, Hammer take-down when empty, Hammer Dismantle); wet/dry wood state (wet burns about 70 percent as long, dry as today); seasoning pass in the shed, open Wood Pile re-wetted by rain; `keepsBatchDay` flag; no new save keys; debug Numpad + (wet, Shift dry) and Numpad - (advance seasoning a season); no time jumps in any work; new playtest checklist with regression items for every fire and the cabin hearth. Claude Code reports back and does NOT commit. Phase C (Covered Outdoor Kitchen) follows after phase B is playtested.
+
+
+---
+
+### 2026-10-19 - Slice 1 phase B BUILT (Claude Code report): Wood Shed + wet/dry wood. NOT played, NOT committed.
+
+Claude Code built phase B. Compiles clean; 113/113 edit-mode tests pass (91 earlier + 22 new in WoodShedTests.cs). Nothing committed or pushed. Nothing played in Play Mode.
+
+**Wood Shed (staged site, same mechanism as the Outhouse)**
+- PileKind.WoodShedSite = 20, WoodShed = 21 (appended), a row in each of the four staged-site data methods.
+- Cost 2 Logs + 8 Branches (24 kg). Place, deliver and take back are free; pounding (25 blows, tuning field) and taking down an EMPTY site need the Hammer; Dismantle needs the Hammer and an empty shed, refunds half rounded down (1 Log + 4 Branches).
+- Ghost shows the finished shed; placed site shows plot stakes.
+- Refuses water, steep ground, floodplain ("This ground floods.") and anything within 3 m of the cabin ("Too close to the Small Cabin: 3 m needed.").
+- Wheel rotates it; open front starts facing away from the wind; the prompt says which way it opens and whether that is into the wind.
+- Finished shed is drawn by WoodPile, same transfer screen as other storage, wet/dry labels on rows.
+
+**Wet/dry wood**
+- The batch day stamp means "the day this batch was last made wet". A batch is dry once one season (28 days, about 14 real hours; `seasoningSeasons`, scaled from TimeManager.DaysPerSeason) has passed since the stamp. Day 0 means dry, so old wood is dry.
+- `keepsBatchDay` flag set on logs, branches, sticks and firewood (four item assets).
+- Felling and windthrow stamp wood wet; every hour of rain or snow re-wets wood in OPEN Wood Piles (this is what stops open piles finishing).
+- Campfire burns the driest batch first; each batch adds its own burn time (wet = 0.7, `wetBurnFraction`). Same for build payment, add prompts, Shift-add under the 12 h cap, and the hearth.
+- Splitting carries the wettest source batch's day onto the Firewood.
+- Batch day now carried at: Wood Pile store/take, structure refund (including leftover ground piles), staged-site deliveries and take-backs, drop and pickup, splitting (collapse drop already did).
+- No new save keys.
+
+**Debug keys:** Numpad + marks the nearest shed's wood wet (or carried wood if no shed in reach); Shift = dry; Ctrl = always carried wood. Numpad - advances all wood one season.
+
+**Checklist:** 06_AI_Collaboration/Wood_Shed_Playtest_Checklist.md, 73 items numbered from 1, setup and weights at top, regression section covers every fire and the cabin hearth.
+
+**Changes from my message (Claude Code's calls; all acceptable, flagged for Mike):**
+1. No daily seasoning pass. Seasoning is the stamp compared with today's date, so nothing runs daily; rain restamps open piles each rainy hour.
+2. Refunds come back dry (half-cost refunds from a dismantled shed or cabin; the timber was a structure).
+3. Old pack wood may read wet: wood already in a pack in an old save carries its pickup day, so it reads wet until a season passes. Wood in old piles has day 0 and reads dry, so existing fires behave as before.
+4. Numpad + prefers a shed in reach, then carried wood; Ctrl forces carried wood.
+5. Facing into the wind is allowed (advice only, not refused). Mike can ask for a refusal.
+
+**Open choices (defaults stand unless Mike says otherwise):** capacity is NO LIMIT (the Wood Pile has no cap in code, only the water barrel does; a real limit on both is possible); wind-facing rule stays advice-only.
+
+**Phase C input (answered):** rain does NOT affect a lit fire today. FireManager.PassHours has no weather check, so a lit fire burns fuel at the same rate in any weather. Weather only changes the chance of catching when you light it, and a covered fire ignores that penalty. So the Covered Outdoor Kitchen's cooking benefit is the lighting penalty plus shelter and shade comfort, not "cooking through rain".
+
+**Untested (everything, in Play Mode):** shed look and which way it opens; transfer-screen labels; real rain re-wetting; burn times against the clock; the five carry sites; save/load items. Edit-mode tests cover the maths, kinds, costs, placement rule, JSON round trips, batch handling and the pure fuel-fit function, not the singletons or UI.
+
+Note: the Current_Task_List.md change Claude Code saw in git status is my edits, not its own.
+
+Waiting on Mike: play Wood_Shed_Playtest_Checklist.md and report pass/fail per item. Then commit decision. Phase C after phase B passes.
+
+
+---
+
+### 2026-10-19 - Wood Shed playtest: ALL 73 ITEMS PASS (Mike)
+
+Mike played Wood_Shed_Playtest_Checklist.md in Play Mode and reported "pass" for every item, 1 through 73, no notes and no failures.
+
+Now PLAYTESTED (no longer "Untested"):
+- Placement ghost and refusals: finished-shed ghost, wheel rotation, wind-facing prompt, cabin 3 m, water, steep, floodplain, other pile, fire, free placement (A, 1-9)
+- Staged-site delivery in two trips, take-back, save with a half-stocked site (B, 10-15)
+- Hammer pounding (25 blows), materials locked after first blow, saved percentage, finish in place, no clock jump, taking an empty site down (C, 16-23)
+- Finished shed, transfer screen, wet/dry labels, mixed batches, splitting in the shed (D, 24-32)
+- Seasoning with Numpad -, open-pile seasoning, rain and snow re-wetting of open piles, shed protection (E, 33-41)
+- Wet vs dry burn times, driest-first, Shift-add under the 12 h cap, Campfire build payment, cabin hearth, no rain effect on a lit fire (F, 42-49)
+- Dismantle and surplus piles (G, 50-52)
+- Wet/dry day kept at all carry places and on collapse (H, 53-58)
+- Splitting keeps the day (I, 59-61)
+- Regression: every fire, old wood, build payments, cabin, crafting, inventory rows, other staged sites (J, 62-69)
+- Saves: round trip, old save, quit and continue (K, 70-72); Console clean (73)
+
+Not covered (stays untested, tuning later):
+- Natural-time seasoning: a full 28 game days (about 14 real hours) was tested with Numpad - and day skips, not by waiting
+- Natural-weather rain re-wetting over a real season (tested with forced weather keys)
+- Feel of first-pass numbers: 25 blows, wet burn 0.7, one-season seasoning, unlimited capacity, wind-facing as advice only
+- Winter play with a stocked shed (snow wetting was tested, but not a real winter of fuel use)
+
+Status: Slice 1 phase B (Wood Shed + wet/dry wood) = BUILT and PLAYTESTED. UNCOMMITTED and UNPUSHED. Last pushed baseline is d772648.
+
+Waiting on Mike: (1) commit and push decision for phase B (code + docs; keep ProjectSettings.asset, the AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out; message should say playtested, all 73 items pass); (2) go-ahead for phase C (Covered Outdoor Kitchen: hearth stage 4 Stone + 2 Clay, roof stage 2 Logs + 6 Branches + 4 Tall Grass, both staged with Hammer pounding; hearth weight to decide).
+
+
+---
+
+### 2026-10-19 - DECISION (Mike): commit and push Slice 1 phase B
+
+Mike said yes to committing phase B (Wood Shed + wet/dry wood; all 73 checklist items pass). Message sent to Claude Code. Keep ProjectSettings.asset (runInBackground), the AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out of the commit. Commit message states: playtested, all 73 items pass. Baseline before this commit: d772648. Phase C NOT started; waiting for Mike's go-ahead after the push is confirmed.
