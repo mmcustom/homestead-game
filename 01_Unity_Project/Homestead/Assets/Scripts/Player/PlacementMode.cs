@@ -59,7 +59,6 @@ public class PlacementMode : MonoBehaviour
     public static void Begin(PileKind pileKind) => Ensure().StartPlacing(pileKind, false);
 
     public static void BeginCampfire() => Ensure().StartPlacing(PileKind.Felled, true);
-
     public static void Cancel()
     {
         if (instance != null && instance.placing)
@@ -170,6 +169,9 @@ public class PlacementMode : MonoBehaviour
         if (player == null || WoodManager.Instance == null || !WoodManager.Instance.InWorld)
             return false;
         if (campfire && FireManager.Instance == null)
+            return false;
+        SurvivalManager survival = SurvivalManager.Instance;
+        if (survival != null && survival.IsCollapsed)
             return false;
         SleepManager sleep = SleepManager.Instance;
         return sleep == null || !sleep.IsSleeping;

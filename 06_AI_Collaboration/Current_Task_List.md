@@ -1794,3 +1794,34 @@ Also pending after Mike's hard reset (2026-10-14/15): verify the working tree is
 - Mike: "everything else passes", so the Play Mode re-check of the 2-Health knock-down (items 18, 25, 27, 28) is taken as passed. Creek Crossing now 55/55 with the Health loss at 2.
 - Item 52: Mike thinks the "while you slept, the creek flooded" message is not needed ("I don't think"). NOT removed yet. Recommended: remove it as a separate small change AFTER the commit, so the committed state matches what was tested. Needs Mike's firm yes first.
 - Mike asked to commit and push everything that has not been: flood phases 1-5 (uncommitted) and 5f3762a (local only, origin/master at 903c72d). Still excluded by his standing choice: ProjectSettings.asset (runInBackground) and the AudioManager.cs null guard; Homestead.slnx and 08_Backups/ also stay out. Message for Claude Code drafted; result pending.
+
+### 2026-10-19: Flood phases 1-5 COMMITTED and PUSHED
+- c3d3e0f "Add flash floods: rising creek, pond overflow, creek crossing danger" (28 files, +1736 -30), pushed to origin/master with no rejection. Previous commit 5f3762a reworded to 6fd820a (message only, tree identical; now says Rainwater 26/26, Placement Preview 40/40, Pond Drying 36/36 were playtested). Log: c3d3e0f, 6fd820a, 903c72d.
+- Claude Code also staged WaterSource.cs and WeatherScreen.cs (flood edits not on my list) and the four docs/checklists that existed at the time. This note and the one in Water_System.md were written AFTER the commit, so those two docs have new uncommitted changes.
+- Still uncommitted by Mike's choice: AudioManager.cs null guard, ProjectSettings.asset, Homestead.slnx, 08_Backups/.
+- The prompt-box line "Update Water_System.md with the phase 5 build note" was already done earlier; this entry covers the commit. Can be cleared.
+- OPEN: remove the "while you slept, the creek flooded" wake-up message? Mike leans yes ("I don't think it's needed"); waiting for a firm yes.
+- Next candidates: Placement Preview phase 6 (traps), lowered pond surface and rising creek visuals, Rain Barrel freezing with Winter, Development_Roadmap.md update (Rainwater, Placement Preview, Pond Drying, Floods built, tested, pushed).
+
+### 2026-10-19: Roadmap updated; Placement Preview phase 6 (traps) specced
+- Development_Roadmap.md: header refreshed and a "Status Update 2026-10-19" section appended (Rainwater 26/26, Placement Preview 1-5 40/40, Pond Drying 36/36, Flash Floods 1-4 55/55 and phase 5 55/55, all pushed at c3d3e0f; save slots step 2 committed; known gaps and the open wake-up message listed).
+- Placement Preview phase 6 spec written in Building_Housing_System.md ("PLACEMENT PREVIEW PHASE 6: TRAPS"). Message for Claude Code drafted: read the trap placement code first, build only if it fits the plan, compile-check only, no commit. Result pending.
+
+### 2026-10-19: Placement Preview phase 6 (traps) BUILT, awaiting playtest
+- Claude Code built it: Rabbit Snare, Box Trap and Fish Trap now use Placement Mode (ghost, green/red with reason, 6 m reach, click to confirm, Esc or right mouse to cancel, no wheel rotation). Trap rules, costs, catch chances, sweep and saves unchanged. Compile clean; 62/62 edit-mode tests pass. UNCOMMITTED. Never played.
+- Side effect to watch: placement now also cancels on collapse for ALL placement, including Build-tab (small change to phases 1-5).
+- Edited: TrapSetter.cs, PlacementMode.cs, PlacementGhost.cs, TrapManager.cs (accessor `PrefabFor`). Checklist: `06_AI_Collaboration/Trap_Placement_Preview_Checklist.md` (44 items).
+- Mike's next action: back up `slot1`, run the 44 items in Play Mode, report. Then commit decision (Mike's); ProjectSettings.asset and the AudioManager.cs null guard stay out.
+- Prompt box of the Claude Code report was empty this time.
+
+- 2026-10-19 phase 6 first playtest: ghost works (green, "excellent spot") but only appears AFTER the first click. Mike wants it to show on equip, with a single click to set. Change message for Claude Code drafted; checklist sections A, C, E need rewording afterward. Rest of the 44-item run is on hold until that is built (sections B, D, F-H are mostly unaffected).
+
+- 2026-10-19 phase 6 revised and BUILT: trap ghost now shows on equip and one click sets (no separate Placement Mode or Esc cancel for traps; Esc still pauses). Build-tab Placement Mode untouched except the collapse cancel. Compile clean, 62/62 edit-mode tests pass, UNCOMMITTED, not played. Files: TrapSetter.cs, PlacementMode.cs, Trap_Placement_Preview_Checklist.md (reworded, still 44 items). Mike's next action: back up `slot1`, run the 44 items, report. Commit decision is Mike's (ProjectSettings.asset and the AudioManager.cs null guard stay out).
+
+- 2026-10-19 Placement Preview phase 6 (traps) playtested: 44/44 PASS (Mike). Notes: 6 m reach right, ghost readable on all three traps, red-click flash feels right. OPEN: item 19, Mike thinks right click should cancel with a trap equipped; meaning of "cancel" undecided. UNCOMMITTED (the phase 6 trap code, the collapse-cancel in PlacementMode.cs, checklist, and the post-commit doc edits); commit decision is Mike's. ProjectSettings.asset and the AudioManager.cs null guard stay out.
+
+- 2026-10-19 DECISION (Mike): with a trap equipped, right click puts the trap away (unequips; the trap stays in the pack; ghost goes away). Message for Claude Code drafted; Claude Code is to check how tool unequipping works first. Not built yet.
+
+- 2026-10-19 BUILT: right click with a trap equipped now puts it away (reuses `InventoryManager.Unequip()`; trap stays in the pack). TrapSetter.cs and the checklist (item 19) edited. Compile clean, 62/62 edit-mode tests pass, UNCOMMITTED, not played. TODO for Mike: Play Mode re-check of item 19 (right click puts it away, number key re-equips, Hunting Weapon aim and Build-tab right-click cancel unaffected, Esc still pauses). Nothing committed yet: Claude Code's prompt box held an unsubmitted "commit this" suggestion; no commit happens until Mike submits it in Claude Code. ProjectSettings.asset and the AudioManager.cs null guard stay out.
+
+- 2026-10-19 right-click-puts-trap-away re-check: 5/5 PASS (Mike). Item 19 resolved; trap placement checklist stands at 44/44. Placement Preview phases 1-6 fully playtested. Still UNCOMMITTED: phase 6 trap code (TrapSetter.cs, TrapManager.cs, PlacementGhost.cs, PlacementMode.cs collapse-cancel), the trap checklist, and doc edits since c3d3e0f. Ready to commit when Mike submits it in Claude Code; push is a separate go-ahead. ProjectSettings.asset and the AudioManager.cs null guard stay out.

@@ -83,6 +83,10 @@ public class TrapManager : MonoBehaviour, ISaveable
 
     public IReadOnlyList<TrapState> Traps => traps;
 
+    // The prefab a placed trap of this type is built from (for Placement Mode's ghost; nothing is registered by looking at it).
+    public Trap PrefabFor(TrapType type) =>
+        type == TrapType.RabbitSnare ? prefabs.rabbitSnare : type == TrapType.BoxTrap ? prefabs.boxTrap : prefabs.fishTrap;
+
     void Awake()
     {
         if (Instance != null && Instance != this)

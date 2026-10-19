@@ -672,3 +672,75 @@ Claude Code report, reconciled by Claude. 0 errors, 0 warnings. Phase 6 (traps a
 **Checklist:** `06_AI_Collaboration/Build_Placement_Preview_Checklist.md`. Rainwater checklist items 2-26 can now use the preview.
 
 **PLAYTEST RESULT 2026-10-18 (Mike): all 40 items of Build_Placement_Preview_Checklist.md PASS.** Phases 1-5 are playtested; still uncommitted. Open: phase 6 (traps, snares, Fish Trap on the shared placement helper) and the known gaps (Campfire on roof/rock, no spacing ring, lake wording, no gamepad).
+
+
+---
+
+## PLACEMENT PREVIEW PHASE 6: TRAPS (build spec, 2026-10-19)
+
+Phases 1-5 are committed and pushed (6fd820a). Mike asked for phase 6 on 2026-10-19 ("then Placement Preview phase 6"). Everything below is Claude's first pass (Claude, not yet confirmed) except the request itself. I have NOT read the trap placement code; the only thing the docs say is that `TrapSetter` aims with `player.AimRaycast`, reach 4 m, status "Click to set the X here (good spot)". So Claude Code reads first and builds only if the plan fits.
+
+**Intent.** Setting any trap (snares, Fish Traps, and any other placeable `TrapSetter` handles) uses the same Placement Mode as the Build tab: a translucent green/red ghost at the aim point, a reason when red, left click confirms, Esc or right mouse cancels, wheel rotates only where facing matters. Materials and bait are spent only on confirm.
+
+**Rules.**
+1. Every trap rule stays as it is (good-spot test, water rules for Fish Traps, spacing, costs, catch chances, `TrapManager` hourly roll, the flash flood sweep of creek Fish Traps, Pond Drying effects). The preview just evaluates the same rule at the ghost position, so preview and real set can never disagree.
+2. The ghost is throwaway: never registered with `TrapManager`, never saved, never rolls a catch, never swept, never interactable. Cancel, a state change, sleep, collapse or load removes it.
+3. Input gating as in phase 2 (`CanUseTools` false while placing; the confirming click or cancelling Esc cannot also fire a tool or open the pause menu).
+4. Reach: keep the trap's current 4 m unless a rule depends on it; otherwise match Placement Mode's 6 m. Claude Code reports which and why.
+5. Saves unchanged. No new saved fields.
+
+**Known risks.** Fish Trap ghost must read correctly at the waterline (valid only where the existing rule allows); creek and pond Fish Traps share the same preview; a trap set in the creek is still exposed to the flood sweep after it is placed.
+
+**Checklist to be written by Claude Code:** `06_AI_Collaboration/Trap_Placement_Preview_Checklist.md`.
+**Status:** BUILT 2026-10-19 (compile-checked, NOT Play Mode tested, UNCOMMITTED). See "PLACEMENT PREVIEW PHASE 6 BUILT" below.
+
+
+## PLACEMENT PREVIEW PHASE 6 BUILT 2026-10-19 (compile-checked, NOT Play Mode tested, UNCOMMITTED)
+
+Claude Code report, reconciled by Claude. Compiles clean (only MCP WebSocket noise in the Console from the domain reload); 62 of 62 edit-mode tests pass (no new tests). Step 1 (read-only) found nothing that conflicted with the plan, so it went straight on to build.
+
+**Findings.**
+- `TrapSetter` handles exactly three placeables: Rabbit Snare, Box Trap and Fish Trap. Each is placed by equipping it and clicking Attack. The trap faces the way the player faces. Aim was `player.AimRaycast(4 m)`.
+- One rule function, `CanSet`, covers all three, in this order: Fish Trap must hit a `WaterSource` with `FishingManager.WaterAt` not None; Snare and Box Trap must be on no water, on Terrain, slope at most 30 degrees; all three at least 2 m from any other trap.
+- The rules are not tied to the player (hit point, normal and collider only; the aim itself was split off). The 4 m reach was only the ray length, so the ghost uses Placement Mode's 6 m.
+- Traps are prefabs that `TrapManager` instantiates. Registration happens in `Place` (removes the item from the pack, adds the trap to the saved list, spawns the object). `Trap.Awake` only reads body rotation and `Bind` only reads state, so a ghost built from the prefab but never bound touches nothing. The hourly roll and the flood sweep only walk the list, so a ghost is invisible to them.
+- Bait is spent later, when you interact with a placed Box Trap, not at placement. Left alone.
+
+**What changed.**
+- Clicking with a Rabbit Snare, Box Trap or Fish Trap equipped now starts Placement Mode (click to start, second click to set, like the Build tab). Old hint line replaced by "Click to choose where to set the X".
+- Ghost green or red, with the same red reasons as before plus "Too far". The green line includes the spot word (for example "good spot"). Left click sets it, Esc or right mouse cancels. The wheel does nothing for traps (none needs a facing).
+- Placement also cancels if you switch tools or lose the trap, and now on collapse. **The collapse cancel applies to every placement, including Build-tab ones: a small change to phases 1-5.**
+- Ghost safety: built from the prefab with the `Trap` component and all colliders destroyed; Catch and Bait pieces hidden; never bound, never added to `TrapManager`, so it cannot be saved, rolled, swept or interacted with.
+- Rules moved, not changed: `CanSet` is now a wrapper over the public `CanSetAt(type, point, normal, collider, out reason)` with the same checks and wording; the real set and the ghost both call it. The set itself moved into `TrapSetter.SetTrap` with the same message and sound. Reach 4 m to 6 m for the ghost. Costs, catch chances, hourly roll, flood sweep, Pond Drying and the save format unchanged.
+
+**Files.** New: `06_AI_Collaboration/Trap_Placement_Preview_Checklist.md` (44 items; the Claude Code text said 72 lines). Edited: `Player/TrapSetter.cs`, `Player/PlacementMode.cs`, `World/PlacementGhost.cs`, `Managers/TrapManager.cs` (one added accessor, `PrefabFor`). Not touched: ProjectSettings.asset, AudioManager.cs null guard, Saves folder.
+
+**Not tested (Play Mode):** how the ghost looks on each prefab and at the Fish Trap waterline; the two-click flow; Esc and right-click gating; the cancel cases (tool switch, sleep, collapse, load); that the ghost never reaches a save or a sweep; an old-save load; the collapse-cancel change on Build-tab placement.
+
+**Next.** Mike runs the 44-item checklist in Play Mode (back up `slot1` first). Then commit decision (Mike's).
+
+
+**FIRST PLAYTEST FEEDBACK, Placement Preview phase 6 (Mike, 2026-10-19):** items 1 and 2 behave as built (equipped Rabbit Snare shows "Click to choose where to set the Rabbit Snare"; after a click the HUD reads "Place Rabbit Snare here - excellent spot" and a green ghost appears). Mike's change request: **the ghost should show BEFORE clicking.** Equipping a trap should show the live ghost at the aim point straight away, and one click sets it (the old single-click flow, with a preview). The two-click "click to start, click to set" flow from phase 6 is dropped for traps. Build-tab Placement Mode (phases 1-5) is unchanged. Working plan (Claude, not yet confirmed): ghost follows the aim for as long as a trap is equipped and the game is Playing; left click on green sets it; there is no separate mode to cancel (switching tools, opening a screen, sleep, collapse or load removes the ghost; Esc keeps opening the pause menu as normal); hint line shows the "Place X here - <spot>" text or the red reason instead of "Click to choose where to set the X". Not built yet.
+
+
+## PLACEMENT PREVIEW PHASE 6 REVISED 2026-10-19: LIVE GHOST ON EQUIP (compile-checked, NOT Play Mode tested, UNCOMMITTED)
+
+Claude Code report, reconciled by Claude. Change requested by Mike after the first playtest (ghost should show before clicking). Compiles clean (only MCP WebSocket noise); 62 of 62 edit-mode tests pass (no new tests).
+
+**New behaviour for traps (Rabbit Snare, Box Trap, Fish Trap).**
+- Equip a trap and the ghost follows the aim every frame (6 m reach). The HUD shows "Place X here - <spot>" when green, or the red reason, and the aim hint when aiming at the sky (no ghost). The ghost lives in `TrapSetter`.
+- One left click sets the trap at the ghost on green (same message and sound as before, item leaves the pack). On red, the click flashes the reason and sets nothing. A trap is the equipped item, so the click cannot also swing a tool; one press sets at most one trap.
+- No separate mode to cancel. The ghost disappears on its own when you switch tools, lose the trap, open any screen or the pause menu, sleep, collapse, or when `TrapSetter` is destroyed (load, quit to menu). This reuses the `CanUseTools` check, already false in menus, during Build-tab placement and during a flood knock-down. Esc still pauses; right mouse does nothing for traps.
+- `PlacementMode.cs`: all trap code removed again. It now differs from the committed version only by the collapse cancel (kept at Mike's request, applies to Build-tab placement too). Build-tab Esc, right mouse and wheel behaviour untouched.
+- Unchanged: `CanSetAt`, `SetTrap`, `PlacementGhost.ForTrap`, `TrapManager.PrefabFor`. Ghost never registered with `TrapManager` (cannot be saved, rolled, swept or interacted with). No new saved fields.
+- Removed: the private `CanSet` wrapper and the serialized 4 m reach (nothing used them). New fields: `previewReach` (6) and `previewAimRange` (40). The old value left in Player.prefab is ignored.
+
+**Files edited:** `Scripts/Player/TrapSetter.cs`, `Scripts/Player/PlacementMode.cs`, `06_AI_Collaboration/Trap_Placement_Preview_Checklist.md` (intro, sections A, C, E, items 14-22, 27-31, 42 and the notes reworded; numbering still 1-44).
+
+**Not tested (Play Mode):** the ghost appearing on equip and following the aim for all three traps; single-click set and red-click behaviour; the ghost disappearing in each case (tool switch, screens, pause, sleep, collapse, load); that Esc still pauses; the Build-tab regression (including the collapse cancel); the Fish Trap waterline; an old-save load.
+
+
+**PLAYTEST RESULT 2026-10-19 (Mike): all 44 items of Trap_Placement_Preview_Checklist.md PASS** (live ghost on equip, single-click set, collapse-cancel on Build-tab placement, saves). Placement Preview phases 1-6 are all playtested. Notes: 6 m reach is right, the ghost reads well on all three traps (including the Rabbit Snare and the Fish Trap at the waterline), the red-click flash feels right. Open: Mike thinks a right click should cancel while a trap is equipped (item 19); what "cancel" should do with no separate mode is undecided. Still UNCOMMITTED. Known gaps unchanged: Campfire can still go on a roof or rock, no spacing ring, lake wording, no gamepad.
+
+
+**BUILT 2026-10-19: right click puts a held trap away (checklist item 19 follow-up).** Compile clean, 62 of 62 edit-mode tests pass, not Play Mode tested, UNCOMMITTED. Equipping works today by pressing a tool's number key, and pressing the same key again unequips; the Inventory screen's toggle works the same way. Both call `InventoryManager.Unequip()` (equipped tool becomes empty hands), which the new code reuses. In `TrapSetter`'s per-frame update, a right click with a trap equipped calls `Unequip()` and drops the ghost; the trap stays in the pack and nothing is set or spent. It only runs when the ghost would be showing (Playing, no screen, pause menu, Build-tab placement, knock-down, sleep or collapse), so right mouse is unchanged for Hunting Weapon aim, Build-tab Placement Mode (right click still cancels it), menus and other tools. Esc, the red-click flash and the single-click set are untouched. Files edited: `Scripts/Player/TrapSetter.cs`, `Trap_Placement_Preview_Checklist.md` (item 19 reworded, numbering still 44). **Needs a Play Mode re-check of item 19**, plus: re-equip with the number key, Hunting Weapon aim unaffected, Build-tab right-click cancel unaffected and not also putting away a held trap, Esc still pauses.

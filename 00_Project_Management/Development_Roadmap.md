@@ -1,7 +1,7 @@
 # Homestead
 ## Development Roadmap
 
-Status: Active — refreshed 2026-10-04
+Status: Active — refreshed 2026-10-19 (see the 2026-10-19 status update at the bottom, which supersedes older "not built" lists above)
 
 ---
 
@@ -175,3 +175,24 @@ Early Homestead, Established Homestead, and Modern Homestead (per the GDD's Prog
 **Known gaps and loose ends:** item 11 (overheated wade in air under 28 C) untested; Weather Station checklist item 22 (old save with the station equipped or hotkeyed) not yet reported; humidity-vs-difficulty hot-weather rebalance (raw dew point against shifted air temperature makes Pioneer drier and Homesteader muggier; deliberate later rebalance); wind chill now possible (WindSpeedMph exists); spoilage and smoking/drying not built; Winter water pressure and surface freezing; Livestock feed quantities; a performance review of the placed ground objects in World.unity; real mouse/keyboard input untested; optional untested Player Collapse items (starvation collapse, forgiveness count); contents of commit cc5f555 not reviewed.
 
 **Next step (Mike to pick):** candidates are pond drying (design first), spoilage plus smoking/drying with Winter water pressure (Mike wants these later), Rainwater Collection, Large Cabin, Power_System/Flashlight.
+
+
+
+---
+
+# Status Update — 2026-10-19 (supersedes the 2026-10-17 "Still designed, not built" and "Next step" above where they differ)
+
+**Rainwater Collection, Build Placement Preview (phases 1-5), Pond Drying and Flash Floods (phases 1-5) are built, Play Mode tested by Mike, committed and pushed. Master matches origin/master at c3d3e0f.** Save slots step 2 is also committed and pushed (903c72d), so the 2026-10-17 note "not yet committed" no longer applies. Never committed on purpose: `ProjectSettings.asset` (runInBackground), the AudioManager.cs null guard, Homestead.slnx and 08_Backups/.
+
+- **Rainwater Collection, Phase 1: PASS 26/26.** Rain Barrel (80 L, 3 Logs + 2 Branches), eave-only placement, 11.54 m2 catchment per roof slope, water stored as Good. Water_System.md; Rainwater_Playtest_Checklist.md.
+- **Build Placement Preview, phases 1-5: PASS 40/40.** Placement Mode with a translucent green/red ghost, 6 m aim ray, left click confirms, Esc or right mouse cancels, mouse wheel rotates 15 degrees, Rain Barrel eave snapping. Shared rules in `CanBuildPileAt` and friends. Building_Housing_System.md; Build_Placement_Preview_Checklist.md. Phase 6 (traps) is NOT built.
+- **Pond Drying (Water phase 2): PASS 36/36.** Pond level 0-1 per pond; drying by season, doubled in Heat Waves; rain refills; Low and Very Low states change water quality, fishing bite waits and trap catch rates; Bass Hole never goes below 0.35. This closes the old "pond drying in Heat Waves" gap. Pond_Drying_Playtest_Checklist.md.
+- **Flash Floods, phases 1-4: PASS 55/55.** Creek stream state (Normal, High water, Flash flood) from a leaky-bucket model of rainfall; creek water quality and fishing effects; no casting in a flash flood; creek Fish Traps can be swept; pond overflow; Weather screen Creek row; toasts. Flood_Playtest_Checklist.md.
+- **Flash Floods, phase 5 (Creek Crossing Danger): PASS 55/55** (re-checked after the knock-down Health loss was reduced from 5 to 2). Wading a high creek slows and tires you; a flash flood pushes you downstream, knocks you down after 1.5 s, locks you out for 1.5 s, then gives 4 s of immunity; Health never drops below 10 from a flood. Creek_Crossing_Playtest_Checklist.md.
+- **Rule going forward (unchanged):** put new tunables on the component itself, and rename a field rather than changing the default of an already-serialized one.
+
+**Still designed, not built:** Placement Preview phase 6 (traps/snares/Fish Trap onto the shared placement helper), lowered pond surface and rising creek visuals (needs non-static water objects), Rain Barrel freezing (waits on the Winter water system), floodplain placement warning, greywater, koi/garden pond, stocked farm pond, aquaponics (needs Power_System), first-flush/lid/Cistern, Power_System, Flashlight, Maple_Sugaring, Lumber Mill, Large Cabin and higher tiers, Livestock, Mining/Metalworking.
+
+**Known gaps and loose ends:** the "while you slept, the creek flooded" wake-up message (Mike leans toward removing it; waiting for a firm yes); Campfire can still be placed on a roof or rock, no spacing ring on Placement Preview, no gamepad; spoilage and smoking/drying; Winter water pressure and surface freezing; Livestock feed quantities; humidity-vs-difficulty hot-weather rebalance; wind chill; a performance review of the placed ground objects in World.unity; real mouse/keyboard input untested; Power_System and Flashlight.
+
+**Next step (Mike, 2026-10-19):** Placement Preview phase 6 (traps), then Mike picks from the "still designed, not built" list.

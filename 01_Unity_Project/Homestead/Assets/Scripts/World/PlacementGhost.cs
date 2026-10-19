@@ -47,6 +47,27 @@ public sealed class PlacementGhost
         return ghost;
     }
 
+    // A ghost of a trap, built from the same prefab TrapManager places. The Trap component is never Bound (so it is not tied to any
+    // TrapState or to TrapManager) and is destroyed with every collider right away, leaving plain meshes; the catch and bait
+    // pieces (named Catch and Bait in the prefabs) are hidden. Nothing here is saved, rolled, swept or interactable.
+    public static PlacementGhost ForTrap(Trap prefab, string name)
+    {
+        var ghost = new PlacementGhost("Placement Ghost: " + name);
+        if (prefab != null)
+        {
+            GameObject copy = Object.Instantiate(prefab.gameObject, ghost.root.transform);
+            copy.transform.localPosition = Vector3.zero;
+            copy.transform.localRotation = Quaternion.identity;
+            foreach (Transform piece in copy.GetComponentsInChildren<Transform>(true))
+            {
+                if (piece != copy.transform && (piece.name == "Catch" || piece.name == "Bait"))
+                    piece.gameObject.SetActive(false);
+            }
+        }
+        ghost.Finish();
+        return ghost;
+    }
+
     // A ghost of a Campfire: a ring of stones around crossed logs.
     public static PlacementGhost ForCampfire()
     {
@@ -149,6 +170,8 @@ public sealed class PlacementGhost
         Shelter shelter = root.GetComponent<Shelter>();
         if (shelter != null)
             Object.DestroyImmediate(shelter);
+        foreach (Trap trap in root.GetComponentsInChildren<Trap>(true))
+            Object.DestroyImmediate(trap); // a trap ghost: never bound, never interactable
 
         validMaterial = MakeMaterial(Valid);
         invalidMaterial = MakeMaterial(Invalid);
