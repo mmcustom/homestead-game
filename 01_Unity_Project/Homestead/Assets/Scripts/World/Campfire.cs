@@ -181,7 +181,7 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
             string change = FireManager.CarriedFuelKinds > 1 ? "  · F: change fuel" : "";
             if (fires.CanAddFuel(state))
             {
-                string add = $"Add {FireManager.FuelName(pick, false)} (+{fires.BurnHours(pick):0.##} h)";
+                string add = $"Add {fires.NextMoisture(pick)}{FireManager.FuelName(pick, false)} (+{fires.NextBurnHours(pick):0.##} h)";
                 return (state.lit ? $"{add}  · burning, {fuel}" : add) + change + cook;
             }
             if (state.lit)
@@ -197,7 +197,7 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
         string id = FireManager.CycleFuel();
         FireManager fires = FireManager.Instance;
         if (id != null && fires != null)
-            ToolStatus.Flash($"Fuel: {FireManager.FuelName(id, false)} (+{fires.BurnHours(id):0.##} h each)", 2f);
+            ToolStatus.Flash($"Fuel: {fires.NextMoisture(id)}{FireManager.FuelName(id, false)} (+{fires.NextBurnHours(id):0.##} h each)", 2f);
     }
 
     // Raw meat, fish or water that could be cooked or boiled here.
@@ -245,7 +245,7 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (state.lit)
                 return "Put Out Fire  (keeps the fuel left)";
             if (state.fuelHours > 0f && fires.CanAddFuel(state))
-                return $"Add {FireManager.FuelName(FireManager.SelectedFuel, false)} (+{fires.BurnHours(FireManager.SelectedFuel):0.##} h)";
+                return $"Add {fires.NextMoisture(FireManager.SelectedFuel)}{FireManager.FuelName(FireManager.SelectedFuel, false)} (+{fires.NextBurnHours(FireManager.SelectedFuel):0.##} h)";
             return "";
         }
     }

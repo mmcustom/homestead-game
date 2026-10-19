@@ -21,6 +21,7 @@ public static class StructureVisuals
             case PileKind.WaterBarrelSite:
             case PileKind.RainBarrelSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.5f, out boxCenter, out boxSize); return;
             case PileKind.FoodCacheSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.55f, out boxCenter, out boxSize); return;
+            case PileKind.WoodShedSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.9f, out boxCenter, out boxSize); return;
             default: BuildSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
         }
     }
@@ -367,7 +368,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ItemDefinition item = ItemDatabase.Get(id);
             int fits = item != null ? Mathf.Min(state.Count(id), Inventory.Player.SpaceFor(item)) : 0;
             foreach (WoodStack batch in state.Take(id, fits))
-                taken += Inventory.AddToPlayer(id, batch.count);
+                taken += WoodManager.IsWood(id) ? Inventory.AddToPlayer(id, batch.count, batch.day) : Inventory.AddToPlayer(id, batch.count); // wood keeps its wet or dry day
         }
         if (taken == 0)
             ToolStatus.Flash("Too heavy - no room to carry any of it");
@@ -521,8 +522,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 continue;
             if (AudioManager.Instance != null)
                 AudioManager.Instance.SilenceNextRemoval();
-            int removed = Inventory.RemoveFromPlayer(id, n);
-            state.Add(id, removed);
+            // Wood keeps the day it was last wet through the site (WoodMoisture), so taking it back does not make dry wood wet.
+            var days = new List<(int day, int count)>();
+            int removed = Inventory.Player.RemoveBatches(id, n, (day, count) => days.Add((day, count)));
+            foreach ((int day, int count) in days)
+                state.Add(id, count, WoodManager.IsWood(id) ? day : 0);
             stored += removed;
         }
 

@@ -40,7 +40,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // Cabin's staged CabinSite — get the per-item transfer screen on E instead of an instant take-all.
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
-                                state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack;
+                                state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack ||
+                                state.kind == PileKind.WoodShed;
 
     // --- Taking (E) ---
 
@@ -198,7 +199,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         int fits = Mathf.Min(count, Inventory.Player.SpaceFor(item));
         int added = 0;
         foreach (WoodStack batch in state.Take(itemId, fits))
-            added += item.IsPerishable ? Inventory.AddToPlayer(itemId, batch.count, batch.day) : Inventory.AddToPlayer(itemId, batch.count);
+            added += item.TracksBatchDay ? Inventory.AddToPlayer(itemId, batch.count, batch.day) : Inventory.AddToPlayer(itemId, batch.count);
         return added;
     }
 
@@ -526,7 +527,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (left <= 0)
                 break;
             int n = Mathf.Min(left, batch.quantity);
-            state.Add(itemId, n, item != null && item.IsPerishable ? batch.acquiredDay : 0);
+            state.Add(itemId, n, item != null && item.TracksBatchDay ? batch.acquiredDay : 0);
             left -= n;
         }
         return removed;
@@ -631,6 +632,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.StorageBin: BuildBox(new Vector3(1.1f, 0.55f, 0.75f), 1.15f, false); return;
             case PileKind.ToolRack: BuildRack(); return;
             case PileKind.CabinSite: BuildCabinSite(random); return;
+            case PileKind.WoodShed: BuildShed(random); return;
         }
 
         int logs = Mathf.Min(state.Count(WoodManager.LogsId), 6);
@@ -662,6 +664,49 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         box.center = new Vector3(0f, 0.25f, -0.1f);
         box.size = anyWood ? new Vector3(logs + branches > 0 ? 2.2f : 1.6f, logs > 3 || firewood > 8 ? 0.7f : 0.45f, 1.9f)
                            : new Vector3(1.3f, 0.3f, 1.7f);
+    }
+
+    // A Wood Shed: wood off the ground on a deck, a slatted back and left side, and a roof that slopes down to the back and is highest at
+    // the open front (local +Z, the way the ghost opens). The right side is open too, so air gets through. Stored wood is stacked
+    // inside: Firewood in the left bay, Logs and Branches in the right, Sticks at the front.
+    void BuildShed(System.Random random)
+    {
+        const float halfWidth = 1.2f, halfDepth = 0.9f;
+        var roofColor = new Color(0.46f, 0.38f, 0.22f);
+
+        foreach (float x in new[] { -0.9f, 0.9f })
+            Piece(PrimitiveType.Cylinder, new Vector3(x, 0.05f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.08f, 0.95f, 0.08f), bark); // skids
+        Piece(PrimitiveType.Cube, new Vector3(0f, 0.12f, 0f), Vector3.zero, new Vector3(halfWidth * 2f, 0.05f, halfDepth * 2f), bark);   // deck
+
+        foreach (float x in new[] { -halfWidth, halfWidth })
+        {
+            Piece(PrimitiveType.Cylinder, new Vector3(x, 0.925f, halfDepth), Vector3.zero, new Vector3(0.07f, 0.925f, 0.07f), bark);   // front posts, tall
+            Piece(PrimitiveType.Cylinder, new Vector3(x, 0.75f, -halfDepth), Vector3.zero, new Vector3(0.07f, 0.75f, 0.07f), bark);    // back posts, short
+        }
+        for (int i = 0; i < 5; i++)
+            Piece(PrimitiveType.Cube, new Vector3(0f, 0.3f + i * 0.28f, -halfDepth), Vector3.zero, new Vector3(halfWidth * 2f, 0.2f, 0.04f), bark); // back slats
+        for (int i = 0; i < 5; i++)
+            Piece(PrimitiveType.Cube, new Vector3(-halfWidth, 0.3f + i * 0.26f, 0f), Vector3.zero, new Vector3(0.04f, 0.2f, halfDepth * 2f), bark); // left slats
+        Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, 1.72f, 0f), new Vector3(-10f, 0f, 0f), new Vector3(halfWidth * 2f + 0.5f, 0.07f, halfDepth * 2f + 0.5f), null), roofColor);
+
+        float deck = 0.145f;
+        int firewood = Mathf.Min(state.Count(FireManager.FirewoodId), 25);
+        for (int i = 0; i < firewood; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(-1.0f + (i % 5) * 0.19f, deck + 0.085f + (i / 5) * 0.17f, -0.55f), new Vector3(90f, 0f, 0f), new Vector3(0.17f, 0.2f, 0.17f), bark);
+        int logs = Mathf.Min(state.Count(WoodManager.LogsId), 9);
+        for (int i = 0; i < logs; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(0.25f + (i % 3) * 0.34f, deck + 0.16f + (i / 3) * 0.3f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.32f, 0.75f, 0.32f), bark);
+        int branches = Mathf.Min(state.Count(WoodManager.BranchesId), 10);
+        for (int i = 0; i < branches; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(0.3f + (float)random.NextDouble() * 0.7f, deck + 0.05f + i * 0.035f, 0.1f + (float)random.NextDouble() * 0.3f),
+                  new Vector3(90f, (float)random.NextDouble() * 30f - 15f, 0f), new Vector3(0.09f, 0.7f, 0.09f), bark);
+        int sticks = Mathf.Min(state.Count(WoodManager.SticksId), 10);
+        for (int i = 0; i < sticks; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(-0.9f + (float)random.NextDouble() * 0.7f, deck + 0.03f + i * 0.02f, 0.5f + (float)random.NextDouble() * 0.25f),
+                  new Vector3(90f, (float)random.NextDouble() * 180f, 0f), new Vector3(0.035f, 0.35f, 0.035f), bark);
+
+        box.center = new Vector3(0f, 0.95f, 0f);
+        box.size = new Vector3(halfWidth * 2f + 0.3f, 1.9f, halfDepth * 2f + 0.2f);
     }
 
     // A heap of grey stones: a ring of base stones always, more piled on as Stone is stored.

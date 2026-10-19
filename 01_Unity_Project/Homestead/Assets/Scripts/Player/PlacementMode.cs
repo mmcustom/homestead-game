@@ -76,6 +76,7 @@ public class PlacementMode : MonoBehaviour
             case PileKind.ToolRack:
             case PileKind.StorageBin:
             case PileKind.FoodCacheSite:
+            case PileKind.WoodShedSite:
             case PileKind.CabinSite:
             case PileKind.OuthouseSite:
                 return true;
@@ -98,6 +99,8 @@ public class PlacementMode : MonoBehaviour
         campfire = isCampfire;
         kind = pileKind;
         yaw = player.transform.eulerAngles.y;
+        if (!isCampfire && pileKind == PileKind.WoodShedSite)
+            yaw = WellsAndOuthouses.DownwindYaw(); // the open front starts facing away from the wind; the wheel turns it
         ghost = campfire ? PlacementGhost.ForCampfire() : PlacementGhost.ForPile(kind);
         ghost.SetVisible(false);
         placing = true;
@@ -266,6 +269,8 @@ public class PlacementMode : MonoBehaviour
 
         valid = campfire ? FireManager.Instance.CanBuildAt(player, spot, true, out reason)
                          : WoodManager.Instance.CanBuildPileAt(kind, player, spot, yaw, true, out reason);
+        if (!campfire && kind == PileKind.WoodShedSite)
+            note = WellsAndOuthouses.ShedOpeningNote(yaw);
     }
 
     string TooFarText => $"Too far — come within {reach:0} m.";

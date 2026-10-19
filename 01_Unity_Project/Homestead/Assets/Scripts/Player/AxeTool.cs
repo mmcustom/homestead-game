@@ -493,16 +493,24 @@ public class AxeTool : MonoBehaviour
         blows = 0f;
         if (logs)
         {
-            state.Remove(WoodManager.LogsId, 1);
-            state.Add(FireManager.FirewoodId, firewoodPerLog);
+            // The Firewood is as wet as the wood it came from (WoodMoisture): the day of the wettest batch used.
+            state.Add(FireManager.FirewoodId, firewoodPerLog, WettestDay(state.Take(WoodManager.LogsId, 1)));
         }
         else
         {
-            state.Remove(WoodManager.BranchesId, branchesPerFirewood);
-            state.Add(FireManager.FirewoodId, 1);
+            state.Add(FireManager.FirewoodId, 1, WettestDay(state.Take(WoodManager.BranchesId, branchesPerFirewood)));
         }
         ToolStatus.Flash(logs ? $"Split a Log into {firewoodPerLog} Firewood" : "Split Branches into Firewood");
         WoodManager.Instance.NotifyChanged(state);
+    }
+
+    // The most recently wetted stamp among the batches (0 when all were dry): a mix is as wet as its wettest part.
+    static int WettestDay(List<WoodStack> batches)
+    {
+        int day = 0;
+        foreach (WoodStack batch in batches)
+            day = Mathf.Max(day, batch.day);
+        return day;
     }
 
     static float Efficiency => SurvivalManager.Instance != null ? SurvivalManager.Instance.WorkEfficiency : 1f;
@@ -643,9 +651,10 @@ public class AxeTool : MonoBehaviour
         int used = log ? 1 : branchesPerFirewood;
         if (AudioManager.Instance != null)
             AudioManager.Instance.SilenceNextRemoval(); // the chop is the sound, not an item drop
-        if (inventory.RemoveFromPlayer(current.item.Id, used) == used)
+        int wettest = 0;
+        if (inventory.Player.RemoveBatches(current.item.Id, used, (day, count) => wettest = Mathf.Max(wettest, day)) == used)
         {
-            inventory.AddToPlayer(FireManager.FirewoodId, log ? firewoodPerLog : 1);
+            inventory.AddToPlayer(FireManager.FirewoodId, log ? firewoodPerLog : 1, wettest); // as wet as the wood it came from
             if (current.remaining != int.MaxValue)
                 current.remaining--;
         }

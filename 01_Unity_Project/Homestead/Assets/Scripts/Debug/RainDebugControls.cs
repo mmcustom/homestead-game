@@ -17,6 +17,9 @@ using UnityEngine.InputSystem;
 //   Numpad 0            the nearest Well (within 8 m) to 0 L; Shift fills it, Ctrl makes it Unsafe (flood water)
 //   Numpad .            the nearest Outhouse's pit to full; Shift empties it
 //   Numpad 9            show the creek's stage, state and murk hours, and whether you are in the creek, its flow direction and your speed factor
+//   Numpad +            mark the wood in the nearest Wood Shed (within 8 m) wet; with none in reach, the wood you carry. Shift marks it dry,
+//                       Ctrl always means the wood you carry
+//   Numpad -            advance seasoning by one season: every pile, shed and the wood you carry (wet wood becomes dry)
 public class RainDebugControls : MonoBehaviour
 {
     static readonly WeatherType[] Cycle = { WeatherType.Clear, WeatherType.LightRain, WeatherType.HeavyRain, WeatherType.Thunderstorm };
@@ -109,6 +112,14 @@ public class RainDebugControls : MonoBehaviour
         {
             DebugPit(shift);
         }
+        else if (keyboard.numpadPlusKey.wasPressedThisFrame)
+        {
+            DebugWet(shift, keyboard.ctrlKey.isPressed);
+        }
+        else if (keyboard.numpadMinusKey.wasPressedThisFrame)
+        {
+            DebugSeason();
+        }
         else if (keyboard.numpad4Key.wasPressedThisFrame)
         {
             ChangePond(-PondStep, null);
@@ -173,6 +184,71 @@ public class RainDebugControls : MonoBehaviour
         }
         rules.DebugSetPit(outhouse, !empty);
         ToolStatus.Flash($"Outhouse pit {rules.PitFill(outhouse) * 100f:0}% full; sanitary homestead: {(rules.IsSanitary() ? "yes" : "no")}", 3f);
+    }
+
+    // Numpad +: wet (or, with Shift, dry) the wood in the nearest Wood Shed, or the wood carried (WoodMoisture).
+    static void DebugWet(bool dry, bool carriedOnly)
+    {
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        InventoryManager inventory = InventoryManager.Instance;
+        int stamp = dry ? 0 : WoodMoisture.WetStamp;
+        WoodPileState shed = !carriedOnly && player != null && rules != null ? rules.DebugNearest(PileKind.WoodShed, player.transform.position, StructureReach) : null;
+        if (shed != null)
+        {
+            shed.RestampWood(stamp);
+            ToolStatus.Flash($"Wood Shed wood marked {(dry ? "dry" : "wet")}: {MoistureText(shed)}", 3f);
+            return;
+        }
+        if (inventory == null)
+            return;
+        inventory.Player.MapBatchDays(WoodMoisture.Applies, _ => stamp);
+        ToolStatus.Flash($"Carried wood marked {(dry ? "dry" : "wet")}: {CarriedMoistureText(inventory)}", 3f);
+    }
+
+    // Numpad -: one season on for all wood (piles, sheds, the pack).
+    static void DebugSeason()
+    {
+        WoodManager wood = WoodManager.Instance;
+        InventoryManager inventory = InventoryManager.Instance;
+        int days = WoodMoisture.SeasoningDays;
+        if (wood != null)
+            foreach (WoodPileState pile in wood.Piles)
+                pile.AgeWood(days);
+        if (inventory != null)
+            inventory.Player.MapBatchDays(WoodMoisture.Applies, day => WoodMoisture.Aged(day, days));
+        ToolStatus.Flash($"Seasoned all wood forward {days} days (a season). Carried: {(inventory != null ? CarriedMoistureText(inventory) : "-")}", 4f);
+    }
+
+    static string MoistureText(WoodPileState pile)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        foreach (string id in WoodManager.WoodIds)
+        {
+            pile.CountMoisture(id, WoodMoisture.Today, WoodMoisture.SeasoningDays, out int wet, out int dry);
+            if (wet + dry > 0)
+                parts.Add($"{ItemDatabase.Get(id)?.DisplayName ?? id} {WoodMoisture.Label(wet, dry)}");
+        }
+        return parts.Count > 0 ? string.Join(", ", parts) : "empty";
+    }
+
+    static string CarriedMoistureText(InventoryManager inventory)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        foreach (string id in WoodManager.WoodIds)
+        {
+            int wet = 0, dry = 0;
+            foreach ((int day, int quantity) in inventory.Player.Batches(id))
+            {
+                if (WoodMoisture.IsDry(day))
+                    dry += quantity;
+                else
+                    wet += quantity;
+            }
+            if (wet + dry > 0)
+                parts.Add($"{ItemDatabase.Get(id)?.DisplayName ?? id} {WoodMoisture.Label(wet, dry)}");
+        }
+        return parts.Count > 0 ? string.Join(", ", parts) : "no wood";
     }
 
     const float FloodMargin = 3f; // Numpad 8 sets the stage this far above a threshold

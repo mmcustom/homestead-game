@@ -21,6 +21,10 @@ public class ItemDefinition : ScriptableObject
              "(Core_Survival_System.md) can age them; the spoilage rules themselves live there, not in Inventory.")]
     [SerializeField, Min(0f)] float shelfLifeDays;
 
+    [Tooltip("Stacks keep the day of their batch even though the item doesn't spoil, so the batch can be told apart: wood " +
+             "uses it for wet or dry (WoodMoisture). Perishables always do.")]
+    [SerializeField] bool keepsBatchDay;
+
     [Header("Food (0 = not food)")]
     [Tooltip("Hunger restored by eating one.")]
     [SerializeField, Min(0f)] float hungerRestored;
@@ -35,6 +39,9 @@ public class ItemDefinition : ScriptableObject
     public float WeightKg => weightKg;
     public float ShelfLifeDays => shelfLifeDays;
     public bool IsPerishable => shelfLifeDays > 0f;
+    public bool KeepsBatchDay => keepsBatchDay;
+    // Whether stacks of this item are kept apart by the day they were acquired (and carry that day wherever they go).
+    public bool TracksBatchDay => IsPerishable || keepsBatchDay;
     public float HungerRestored => hungerRestored;
     public float HydrationRestored => hydrationRestored;
     public float IllnessChance => illnessChance;
@@ -44,7 +51,7 @@ public class ItemDefinition : ScriptableObject
 
     // For items built in code (tests, tools).
     public static ItemDefinition Create(string id, ItemCategory category, float weightKg, float shelfLifeDays = 0f, string displayName = null,
-                                        float hunger = 0f, float hydration = 0f, float illness = 0f)
+                                        float hunger = 0f, float hydration = 0f, float illness = 0f, bool keepsBatchDay = false)
     {
         var item = CreateInstance<ItemDefinition>();
         item.id = id;
@@ -56,6 +63,7 @@ public class ItemDefinition : ScriptableObject
         item.hungerRestored = hunger;
         item.hydrationRestored = hydration;
         item.illnessChance = illness;
+        item.keepsBatchDay = keepsBatchDay;
         return item;
     }
 

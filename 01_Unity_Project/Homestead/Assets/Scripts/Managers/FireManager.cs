@@ -300,13 +300,15 @@ public class FireManager : MonoBehaviour, ISaveable
             return false;
 
         string payment = BuildPayment(out int paid);
-        Carried.Remove(payment, paid);
+        // The wood that pays for it is its first fuel, so how long that lasts depends on whether each batch was wet or dry.
+        float firstFuelHours = 0f;
+        Carried.RemoveBatches(payment, paid, (day, count) => firstFuelHours += count * BurnHours(payment) * BurnFactorOf(payment, day));
         var fire = new CampfireState
         {
             id = nextId++,
             position = spot.point,
             yaw = yaw,
-            fuelHours = Mathf.Min(maxFuelHours, paid * BurnHours(payment)),
+            fuelHours = Mathf.Min(maxFuelHours, firstFuelHours),
             lit = false,
         };
         fires.Add(fire);
@@ -387,6 +389,51 @@ public class FireManager : MonoBehaviour, ISaveable
         return 0f;
     }
 
+    // How many pieces go onto a fire, taking the batches in the order given (the pack gives up the oldest, driest first), each adding
+    // burn x factor(day) hours, until the next piece would pass the cap (0.01 h of tolerance) or most pieces are in. newHours is what the
+    // fire then holds. Pure, so the edit-mode tests can run it.
+    public static int PiecesThatFit(IEnumerable<(int day, int quantity)> batches, float burn, float hours, float cap, int most, Func<int, float> factor, out float newHours)
+    {
+        int count = 0;
+        foreach ((int day, int quantity) in batches)
+        {
+            float each = burn * factor(day);
+            int room = Mathf.FloorToInt((cap + 0.01f - hours) / each);
+            int take = Mathf.Min(quantity, Mathf.Min(room, most - count));
+            if (take > 0)
+            {
+                hours += take * each;
+                count += take;
+            }
+            if (take < quantity)
+                break;
+        }
+        newHours = hours;
+        return count;
+    }
+
+    // Wet wood burns for a fraction of its normal time (WoodMoisture); a batch of anything else burns as normal.
+    public static float BurnFactorOf(string itemId, int batchDay) => WoodMoisture.Applies(itemId) ? WoodMoisture.BurnFactor(batchDay) : 1f;
+
+    // Hours one piece adds when it is the next one the pack gives up (the oldest, driest batch goes first), wet or dry.
+    public float NextBurnHours(string itemId)
+    {
+        float burn = BurnHours(itemId);
+        if (burn <= 0f || Carried == null || !WoodMoisture.Applies(itemId))
+            return burn;
+        var batches = Carried.Batches(itemId);
+        return batches.Count > 0 ? burn * BurnFactorOf(itemId, batches[0].day) : burn;
+    }
+
+    // "wet " or "dry " in front of a fuel's name for the next piece; nothing for fuel that has no wet or dry.
+    public string NextMoisture(string itemId)
+    {
+        if (itemId == null || Carried == null || !WoodMoisture.Applies(itemId))
+            return "";
+        var batches = Carried.Batches(itemId);
+        return batches.Count > 0 && !WoodMoisture.IsDry(batches[0].day) ? "wet " : "dry ";
+    }
+
     // "a Log", "a Branch", "a Stick", "Firewood".
     public static string FuelName(string itemId, bool withArticle = true)
     {
@@ -448,7 +495,7 @@ public class FireManager : MonoBehaviour, ISaveable
 
     // True when a whole piece of this fuel fits under the cap (0.01 h of tolerance).
     public bool Fits(CampfireState fire, string itemId) =>
-        fire != null && itemId != null && fire.fuelHours + BurnHours(itemId) <= maxFuelHours + 0.01f;
+        fire != null && itemId != null && fire.fuelHours + NextBurnHours(itemId) <= maxFuelHours + 0.01f;
 
     public bool CanLight(CampfireState fire) => fire != null && !fire.lit && fire.fuelHours > 0f && HasIgnition;
 
@@ -493,17 +540,17 @@ public class FireManager : MonoBehaviour, ISaveable
         if (fire == null || id == null)
             return 0;
 
-        float burn = BurnHours(id);
-        int room = Mathf.FloorToInt((maxFuelHours + 0.01f - fire.fuelHours) / burn);
-        int count = Mathf.Min(most, Mathf.Min(room, Carried.Count(id)));
+        // Pieces go in as the pack gives them up, oldest (driest) batch first, each adding its own wet or dry burn time, until the next
+        // one would not fit under the cap.
+        int count = PiecesThatFit(Carried.Batches(id), BurnHours(id), fire.fuelHours, maxFuelHours, most, day => BurnFactorOf(id, day), out float hours);
         if (count <= 0)
         {
-            ToolStatus.Flash($"Not enough room for {FuelName(id)} (needs {burn:0.##} h)");
+            ToolStatus.Flash($"Not enough room for {FuelName(id)} (needs {NextBurnHours(id):0.##} h)");
             return 0;
         }
 
         Carried.Remove(id, count);
-        fire.fuelHours = Mathf.Min(maxFuelHours, fire.fuelHours + count * burn);
+        fire.fuelHours = Mathf.Min(maxFuelHours, hours);
         Changed(fire);
         return count;
     }

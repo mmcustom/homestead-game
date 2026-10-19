@@ -132,6 +132,7 @@ public class StorageTransferScreen : GameScreen
         {
             int count = inventory.Player.Count(itemId);
             string unit = WoodManager.IsWater(itemId) ? $"{count} L" : $"×{count}";
+            unit += MoistureOfPack(inventory, itemId);
             bool can = target.CanStoreOne(itemId, out string reason);
             Row(packList, NameOf(itemId), unit, can ? null : reason, "Store", can, () => StoreAndRefresh(itemId));
         }
@@ -156,9 +157,34 @@ public class StorageTransferScreen : GameScreen
                 continue;
             string itemId = pair.Key;
             string unit = barrel ? $"{pair.Value} L" : $"×{pair.Value}";
+            unit += MoistureOfPile(state, itemId);
             bool can = target.CanTakeOne(itemId, out string reason);
             Row(structureList, NameOf(itemId), unit, can ? null : reason, barrel ? "Fill" : "Take", can, () => TakeAndRefresh(itemId));
         }
+    }
+
+    // " · dry", " · wet" or " · 2 wet, 3 dry" after a row of wood (WoodMoisture); nothing for anything else.
+    static string MoistureOfPack(InventoryManager inventory, string itemId)
+    {
+        if (!WoodMoisture.Applies(itemId))
+            return "";
+        int wet = 0, dry = 0;
+        foreach ((int day, int quantity) in inventory.Player.Batches(itemId))
+        {
+            if (WoodMoisture.IsDry(day))
+                dry += quantity;
+            else
+                wet += quantity;
+        }
+        return "  ·  " + WoodMoisture.Label(wet, dry);
+    }
+
+    static string MoistureOfPile(WoodPileState state, string itemId)
+    {
+        if (!WoodMoisture.Applies(itemId))
+            return "";
+        state.CountMoisture(itemId, WoodMoisture.Today, WoodMoisture.SeasoningDays, out int wet, out int dry);
+        return "  ·  " + WoodMoisture.Label(wet, dry);
     }
 
     static string NameOf(string itemId) => ItemDatabase.Get(itemId)?.DisplayName ?? itemId;
@@ -181,6 +207,7 @@ public class StorageTransferScreen : GameScreen
             case PileKind.FoodCache: return "A Food Cache only holds food.";
             case PileKind.StorageBin: return "A Storage Bin holds Cordage, hides, furs, arrows and the like — not Tools, wood, stone, food or water.";
             case PileKind.ToolRack: return "A Tool Rack only holds Tools.";
+            case PileKind.WoodShed: return "A Wood Shed only holds wood.";
             default: return "A Wood Pile only holds wood.";
         }
     }

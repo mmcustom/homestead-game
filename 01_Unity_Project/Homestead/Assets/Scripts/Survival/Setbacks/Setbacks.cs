@@ -27,6 +27,7 @@ public struct SetbackRules
     public float privyFromBuilding;   // outhouse to a building (7.5 m)
     public float wellFromBuilding;    // well to a building foundation (3 m)
     public float wellFromPen;         // well to animal pens and manure (15 m)
+    public float shedFromBuilding;    // wood shed to a building (3 m, fire practice)
     public float upgradientRange;     // a well must be higher than any privy within this distance
     public float hollowDepth;         // a point this much lower than the ground around it is a hollow
     public float floodBand;           // ground within this distance of the channel edge ...
@@ -34,7 +35,7 @@ public struct SetbackRules
 
     public static SetbackRules Defaults => new SetbackRules
     {
-        privyFromWater = 30f, privyFromWell = 30f, privyFromBuilding = 7.5f, wellFromBuilding = 3f, wellFromPen = 15f,
+        privyFromWater = 30f, privyFromWell = 30f, privyFromBuilding = 7.5f, wellFromBuilding = 3f, wellFromPen = 15f, shedFromBuilding = 3f,
         upgradientRange = 60f, hollowDepth = 0.5f, floodBand = 25f, floodRise = 1.5f,
     };
 }
@@ -115,6 +116,21 @@ public static class Setbacks
             if (site.kind == SiteKind.Well && Flat(point, site.position) <= rules.upgradientRange && site.position.y < point.y)
             {
                 reason = "The well is downhill of here: an outhouse must stand below a well.";
+                return false;
+            }
+        }
+        reason = "";
+        return true;
+    }
+
+    // A Wood Shed: 3 m from any building (a Small Cabin or its site; wood stored against a house is a fire and pest risk).
+    public static bool CanPlaceShed(Vector3 point, IList<SiteInfo> sites, SetbackRules rules, out string reason)
+    {
+        foreach (SiteInfo site in sites)
+        {
+            if (site.kind == SiteKind.Building && Flat(point, site.position) < rules.shedFromBuilding)
+            {
+                reason = TooClose($"the {site.name}", rules.shedFromBuilding);
                 return false;
             }
         }

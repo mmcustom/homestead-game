@@ -65,6 +65,17 @@ public class WellsAndOuthouses : MonoBehaviour
     [Tooltip("Shovel blows (one about every 0.9 s, real time only, each costing the usual swing stamina) to dig a new pit once it is full.")]
     public int outhousePitDigBlows = 10;
 
+    [Header("Wood Shed and wet or dry wood (phase B; first-pass tuning, not confirmed)")]
+    [Tooltip("Cost of a Wood Shed (2 Logs + 8 Branches is 24 kg, so it is a staged site). It holds as much as a Wood Pile, which has no limit.")]
+    public int woodShedLogs = 2;
+    public int woodShedBranches = 8;
+    [Tooltip("The shed stands at least this far (metres) from a Small Cabin.")]
+    public float setbackShedFromBuildingMetres = 3f;
+    [Tooltip("In-game seasons a wet batch of wood takes to dry. One season is 28 days, about 14 real hours; wood in an open Wood Pile is re-wetted by every hour of rain or snow.")]
+    public float seasoningSeasons = 1f;
+    [Tooltip("Wet wood burns this fraction of its normal time (about 30 percent of the heat goes into driving off the water).")]
+    [Range(0.1f, 1f)] public float wetBurnFraction = 0.7f;
+
     [Header("Sanitary homestead")]
     [Tooltip("A working (not full) outhouse within this distance (metres) of where the player sleeps makes the homestead sanitary.")]
     public float sanitaryRadiusMetres = 60f;
@@ -154,6 +165,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WaterBarrelSite:
             case PileKind.RainBarrelSite:
             case PileKind.FoodCacheSite:
+            case PileKind.WoodShedSite:
                 return true;
             default:
                 return false;
@@ -169,6 +181,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WaterBarrelSite: return PileKind.WaterBarrel;
             case PileKind.RainBarrelSite: return PileKind.RainBarrel;
             case PileKind.FoodCacheSite: return PileKind.FoodCache;
+            case PileKind.WoodShedSite: return PileKind.WoodShed;
             default: return PileKind.Well;
         }
     }
@@ -183,6 +196,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WaterBarrelSite: return Stored(PileKind.WaterBarrel, (WoodManager.LogsId, 3));
             case PileKind.RainBarrelSite: return Stored(PileKind.RainBarrel, (WoodManager.LogsId, 3), (WoodManager.BranchesId, 2));
             case PileKind.FoodCacheSite: return Stored(PileKind.FoodCache, (WoodManager.LogsId, 2), (WoodManager.BranchesId, 4));
+            case PileKind.WoodShedSite: return WoodShedCost();
             default: return WellCost();
         }
     }
@@ -208,7 +222,7 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
         if (site == PileKind.WaterBarrelSite)
             return new[] { new[] { WoodManager.LogsId } };
-        if (site == PileKind.RainBarrelSite || site == PileKind.FoodCacheSite)
+        if (site == PileKind.RainBarrelSite || site == PileKind.FoodCacheSite || site == PileKind.WoodShedSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId } };
         return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.LogsId, WoodManager.BranchesId } };
     }
@@ -298,6 +312,7 @@ public class WellsAndOuthouses : MonoBehaviour
     public int waterBarrelBuildBlows = 15;
     public int rainBarrelBuildBlows = 16;
     public int foodCacheBuildBlows = 12;
+    public int woodShedBuildBlows = 25;
     public int cabinBuildBlows = 60;
 
     public int BuildBlows(PileKind site)
@@ -308,6 +323,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WaterBarrelSite: return waterBarrelBuildBlows;
             case PileKind.RainBarrelSite: return rainBarrelBuildBlows;
             case PileKind.FoodCacheSite: return foodCacheBuildBlows;
+            case PileKind.WoodShedSite: return woodShedBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
             default: return wellBuildBlows;
         }
@@ -358,7 +374,44 @@ public class WellsAndOuthouses : MonoBehaviour
         return true;
     }
 
+    // --- Wood Shed facing (the open front is the shed's local +Z) ---
+
+    static readonly string[] Compass = { "north", "north-east", "east", "south-east", "south", "south-west", "west", "north-west" };
+
+    public static string CompassWord(float bearing) => Compass[Mathf.RoundToInt(Mathf.Repeat(bearing, 360f) / 45f) % 8];
+
+    // The yaw that turns the open front away from the wind: toward the bearing the wind blows to. (WindDirection is the bearing it blows FROM; 0 is north, +Z.)
+    public static float DownwindFor(float windFromBearing) => Mathf.Repeat(windFromBearing + 180f, 360f);
+
+    public static float DownwindYaw() => WeatherManager.Instance != null ? DownwindFor(WeatherManager.Instance.WindDirection) : 0f;
+
+    // Whether a front facing yaw is within a quarter turn of straight downwind (so the wind does not blow in).
+    public static bool OpensAwayFromWind(float yaw, float windFromBearing) =>
+        Mathf.Abs(Mathf.DeltaAngle(yaw, DownwindFor(windFromBearing))) <= 90f;
+
+    // What Placement Mode says beside "Place Wood Shed Site here": which way it opens, and how that sits with the wind.
+    public static string ShedOpeningNote(float yaw)
+    {
+        string opens = "opens toward the " + CompassWord(yaw);
+        WeatherManager weather = WeatherManager.Instance;
+        if (weather == null)
+            return opens;
+        return OpensAwayFromWind(yaw, weather.WindDirection)
+            ? opens + ", away from the " + weather.WindFromWords + " wind"
+            : opens + ", into the " + weather.WindFromWords + " wind (turn it with the wheel)";
+    }
+
     // --- Costs (used by WoodManager) ---
+
+    public static WoodStack[] WoodShedCost()
+    {
+        WellsAndOuthouses w = Instance;
+        return new[]
+        {
+            new WoodStack { itemId = WoodManager.LogsId, count = w != null ? w.woodShedLogs : 2 },
+            new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.woodShedBranches : 8 },
+        };
+    }
 
     public static WoodStack[] WellCost()
     {
@@ -391,6 +444,7 @@ public class WellsAndOuthouses : MonoBehaviour
         privyFromBuilding = setbackPrivyFromBuildingMetres,
         wellFromBuilding = setbackWellFromBuildingMetres,
         wellFromPen = setbackWellFromPenMetres,
+        shedFromBuilding = setbackShedFromBuildingMetres,
         upgradientRange = setbackUpgradientRangeMetres,
         hollowDepth = setbackHollowDepthMetres,
         floodBand = floodplainBandMetres,
@@ -514,6 +568,10 @@ public class WellsAndOuthouses : MonoBehaviour
             reason = "In a hollow: rain would run into the well.";
             return false;
         }
+
+        // A Wood Shed only needs dry ground clear of the cabin (the floodplain test above is its other rule).
+        if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed)
+            return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
 
         List<SiteInfo> sites = Sites(ignore);
         return well ? Setbacks.CanPlaceWell(point, sites, rules, out reason)

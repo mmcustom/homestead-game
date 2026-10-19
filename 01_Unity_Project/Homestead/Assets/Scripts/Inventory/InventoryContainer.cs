@@ -86,6 +86,42 @@ public class InventoryContainer
         return Mathf.Max(0, Mathf.FloorToInt((MaxWeightKg - WeightKg) / item.WeightKg + 0.0001f));
     }
 
+    // The batches held of one item as (acquiredDay, quantity), oldest first: the order Remove and MoveTo take them in.
+    public List<(int day, int quantity)> Batches(string itemId)
+    {
+        var batches = new List<(int day, int quantity)>();
+        foreach (ItemStack stack in stacks)
+            if (stack.itemId == itemId && stack.quantity > 0)
+                batches.Add((stack.acquiredDay, stack.quantity));
+        batches.Sort((a, b) => a.day.CompareTo(b.day));
+        return batches;
+    }
+
+    // Gives the stacks of the items picked out by which a new batch day (map takes the old one), merging stacks of one item that now share
+    // a day. Wood marked wet or dry, or seasoned a season on, by the testing keys (WoodMoisture); nothing in play uses it.
+    public void MapBatchDays(Func<string, bool> which, Func<int, int> map)
+    {
+        foreach (ItemStack stack in stacks)
+            if (which(stack.itemId))
+                stack.acquiredDay = map(stack.acquiredDay);
+        for (int i = stacks.Count - 1; i > 0; i--)
+        {
+            ItemDefinition item = ItemDatabase.Get(stacks[i].itemId);
+            if (item == null || !item.TracksBatchDay)
+                continue;
+            for (int j = 0; j < i; j++)
+            {
+                if (stacks[j].itemId == stacks[i].itemId && stacks[j].acquiredDay == stacks[i].acquiredDay)
+                {
+                    stacks[j].quantity += stacks[i].quantity;
+                    stacks.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+        Changed?.Invoke();
+    }
+
     // Adds as many as fit and returns how many were added.
     public int Add(ItemDefinition item, int quantity, int acquiredDay)
     {
@@ -189,7 +225,7 @@ public class InventoryContainer
     {
         foreach (ItemStack stack in stacks)
         {
-            if (stack.itemId == item.Id && (!item.IsPerishable || stack.acquiredDay == acquiredDay))
+            if (stack.itemId == item.Id && (!item.TracksBatchDay || stack.acquiredDay == acquiredDay))
             {
                 stack.quantity += quantity;
                 return;

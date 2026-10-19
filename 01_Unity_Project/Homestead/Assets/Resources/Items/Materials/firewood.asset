@@ -17,3 +17,4 @@ MonoBehaviour:
   category: 3
   weightKg: 1.5
   shelfLifeDays: 0
+  keepsBatchDay: 1

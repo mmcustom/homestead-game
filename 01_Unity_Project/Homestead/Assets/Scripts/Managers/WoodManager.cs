@@ -8,7 +8,8 @@ public class WoodStack
 {
     public string itemId;
     public int count;
-    // The in-game day a perishable batch was acquired, kept while it's stored so the Spoilage System can still age it.
+    // The in-game day a batch was acquired (perishables: so the Spoilage System can still age it) or, for wood, last made wet
+    // (WoodMoisture); kept while it is stored. 0 is "no stamp": food from before this existed, wood that is dry.
     public int day;
 }
 
@@ -31,8 +32,10 @@ public class FelledTree
 // cap) that turns into a Well in place, like CabinSite into Cabin; an OuthouseSite is a staged site too (materials over trips, no dig)
 // that turns into an Outhouse, a shack with a pit that fills. Any build over ~15 kg of materials is staged (WellsAndOuthouses.IsStagedSite):
 // that now includes the WaterBarrelSite, RainBarrelSite and FoodCacheSite, which turn into the (unchanged) WaterBarrel, RainBarrel and FoodCache.
+// Phase B adds the Wood Shed: a WoodShedSite (staged, 24 kg) that turns into a WoodShed, a roofed rack drawn and used like a Wood Pile
+// (WoodPile, the transfer screen) whose wood is never rained on and so seasons from wet to dry (WoodMoisture).
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed }
 
 [Serializable]
 public class WoodPileState
@@ -71,7 +74,7 @@ public class WoodPileState
         }
     }
 
-    // Adds to the batch from the same day (perishables stay apart by day; everything else is day 0).
+    // Adds to the batch from the same day (perishables and wood stay apart by day; everything else is day 0).
     public void Add(string itemId, int count, int day = 0)
     {
         if (count <= 0)
@@ -112,10 +115,71 @@ public class WoodPileState
         return taken;
     }
 
+    // Re-stamps every wood batch to a day (rain wets it: today; marked dry: 0), merging the batches of one item that now share a day.
+    // Returns whether any batch changed.
+    public bool RestampWood(int day)
+    {
+        bool changed = false;
+        foreach (WoodStack stack in contents)
+        {
+            if (WoodManager.IsWood(stack.itemId) && stack.day != day)
+            {
+                stack.day = day;
+                changed = true;
+            }
+        }
+        if (changed)
+            MergeBatches();
+        return changed;
+    }
+
+    // Seasons the wood a number of days further along (WoodMoisture.Aged): the debug "advance seasoning" and nothing else.
+    public void AgeWood(int days)
+    {
+        foreach (WoodStack stack in contents)
+            if (WoodManager.IsWood(stack.itemId))
+                stack.day = WoodMoisture.Aged(stack.day, days);
+        MergeBatches();
+    }
+
+    void MergeBatches()
+    {
+        for (int i = contents.Count - 1; i > 0; i--)
+        {
+            for (int j = 0; j < i; j++)
+            {
+                if (contents[j].itemId == contents[i].itemId && contents[j].day == contents[i].day)
+                {
+                    contents[j].count += contents[i].count;
+                    contents.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    // How many of an item stored here are wet and how many dry, on a given day.
+    public void CountMoisture(string itemId, int today, int seasoningDays, out int wet, out int dry)
+    {
+        wet = dry = 0;
+        foreach (WoodStack stack in contents)
+        {
+            if (stack.itemId != itemId)
+                continue;
+            if (WoodMoisture.IsDry(stack.day, today, seasoningDays))
+                dry += stack.count;
+            else
+                wet += stack.count;
+        }
+    }
+
     public bool IsEmpty => contents.Count == 0;
     public bool IsRock => kind == PileKind.RockStorage;
     public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo || kind == PileKind.Cabin || kind == PileKind.TarpShelter;
     public bool IsWoodPile => kind == PileKind.Felled || kind == PileKind.WoodStorage;
+    // A pile of wood with no roof, which rain wets (WoodManager.RainOnOpenPiles); the Wood Shed keeps its wood dry.
+    public bool IsOpenWoodPile => IsWoodPile;
+    public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
     public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsBuilt => kind != PileKind.Felled;
@@ -143,7 +207,8 @@ public class WoodPileState
             case PileKind.OuthouseSite:
             case PileKind.WaterBarrelSite:
             case PileKind.RainBarrelSite:
-            case PileKind.FoodCacheSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
+            case PileKind.FoodCacheSite:
+            case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
             case PileKind.Well:
             case PileKind.Outhouse:
             case PileKind.Tent:
@@ -370,6 +435,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (rainSubscribed || Instance != this || WeatherManager.Instance == null)
             return;
         WeatherManager.Instance.HourEnded += CollectRain;
+        WeatherManager.Instance.HourEnded += RainOnOpenPiles;
         rainSubscribed = true;
     }
 
@@ -380,6 +446,8 @@ public class WoodManager : MonoBehaviour, ISaveable
 
         if (rainSubscribed && WeatherManager.Instance != null)
             WeatherManager.Instance.HourEnded -= CollectRain;
+        if (rainSubscribed && WeatherManager.Instance != null)
+            WeatherManager.Instance.HourEnded -= RainOnOpenPiles;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         if (SaveManager.Instance != null)
             SaveManager.Instance.Unregister(this);
@@ -533,6 +601,16 @@ public class WoodManager : MonoBehaviour, ISaveable
         return yield;
     }
 
+    // Stamps every batch of a list of wood with today as the day it was last wet, so it starts wet and seasons from there.
+    public static List<WoodStack> WetStamped(List<WoodStack> wood)
+    {
+        int stamp = WoodMoisture.WetStamp;
+        foreach (WoodStack stack in wood)
+            if (IsWood(stack.itemId))
+                stack.day = stamp;
+        return wood;
+    }
+
     // Fells a standing tree, falling away from where the player stands: it topples, and a wood pile holding its
     // yield appears at its base.
     public void Fell(int index, Vector3 from)
@@ -569,7 +647,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             id = nextPileId++,
             position = pilePosition,
             yaw = Quaternion.LookRotation(away).eulerAngles.y,
-            contents = YieldOf(index),
+            contents = WetStamped(YieldOf(index)), // freshly felled wood is wet (WoodMoisture)
         };
         piles.Add(pile);
         SpawnPile(pile);
@@ -674,7 +752,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
-        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
           PileKind.WellSite, PileKind.OuthouseSite };
 
     public const string TentId = "tent";
@@ -704,6 +782,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WaterBarrelSite: return "Water Barrel Site";
             case PileKind.RainBarrelSite: return "Rain Barrel Site";
             case PileKind.FoodCacheSite: return "Food Cache Site";
+            case PileKind.WoodShedSite: return "Wood Shed Site";
+            case PileKind.WoodShed: return "Wood Shed";
             default: return "Wood Pile";
         }
     }
@@ -735,6 +815,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             // (an Outhouse Site is free to mark out the same way; PileKind.Outhouse holds its total.)
             case PileKind.Well: return WellsAndOuthouses.WellCost();
             case PileKind.Outhouse: return WellsAndOuthouses.OuthouseCost();
+            // A Wood Shed Site is free to mark out the same way; PileKind.WoodShed holds its total and what Dismantle halves.
+            case PileKind.WoodShed: return WellsAndOuthouses.WoodShedCost();
             default: return new WoodStack[0];
         }
     }
@@ -892,7 +974,9 @@ public class WoodManager : MonoBehaviour, ISaveable
         }
         // A Well and an Outhouse keep their real-world distances from water, each other and buildings, off floodplain and out of
         // hollows (WellsAndOuthouses.CanPlace); the refusal names what it is too close to.
-        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite) && WellsAndOuthouses.Instance != null &&
+        // A Wood Shed Site keeps off floodplain and 3 m from the cabin (the same call).
+
+        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite) && WellsAndOuthouses.Instance != null &&
             !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         foreach (WoodPileState other in piles)
@@ -968,7 +1052,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     public bool BuildPile(PileKind kind, PlayerController player, BuildSpot spot, float yaw)
     {
         if (kind == PileKind.Felled || kind == PileKind.Cabin || kind == PileKind.Well || kind == PileKind.Outhouse ||
-            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
+            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || kind == PileKind.WoodShed || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
             return false;
 
         foreach (WoodStack c in CostOf(kind))
@@ -1086,6 +1170,27 @@ public class WoodManager : MonoBehaviour, ISaveable
                 remaining[slope] = available - taken; // this barrel is full: the rest runs on to the next
             }
         }
+    }
+
+    // --- Wet and dry wood (WoodMoisture) ---
+
+    // One game hour of rain or snow has ended: the wood in every open Wood Pile is wet again (restamped to today), so a pile that keeps
+    // being rained on never finishes seasoning. A Wood Shed has a roof and is left alone.
+    void RainOnOpenPiles(WeatherType precipitation)
+    {
+        if (WoodMoisture.Wets(precipitation))
+            WetOpenPiles();
+    }
+
+    // Wets the wood in every open Wood Pile. Returns how many piles changed.
+    public int WetOpenPiles()
+    {
+        int stamp = WoodMoisture.WetStamp;
+        int changed = 0;
+        foreach (WoodPileState pile in piles)
+            if (pile.IsOpenWoodPile && pile.RestampWood(stamp))
+                changed++;
+        return changed;
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -1364,7 +1469,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     public void DropPile(Vector3 at, string itemId, int count)
     {
         var pile = new WoodPileState { id = nextPileId++, kind = PileKind.Felled, position = at };
-        pile.Add(itemId, count);
+        pile.Add(itemId, count, IsWood(itemId) ? WoodMoisture.WetStamp : 0);
         piles.Add(pile);
         SpawnPile(pile);
     }
