@@ -12,8 +12,8 @@ using UnityEngine.UI;
 //   Build — what the Inventory screen's Build area held: the Campfire (FireManager), the shelters and storage piles
 //     (WoodManager.Buildable), and the Small Cabin site, which becomes "Complete Small Cabin" once a site is in reach.
 //     Costs, the Hammer requirement, placement and the CanBuildPile / CanCompleteCabin reasons are unchanged — this
-//     screen only asks them. A successful Build closes the screen, since the new structure is placed in front of the
-//     player and they should see it.
+//     screen only asks them. Build closes the screen and starts Placement Mode (PlacementMode), which shows a ghost where the
+//     structure will go and builds it only when the player confirms.
 // Clicking an action that can't go ahead shows the Inventory screen's missing-materials banner (ScreenBanner). Hovering
 // a list row shows its detail in the right panel in place of the selected entry's. The lists refresh live as the pack
 // changes and a few times a second for things that move (reach to a cabin site, the equipped Hammer).
@@ -372,8 +372,8 @@ public class CraftingScreen : GameScreen
         reqLabel.text = none ? "" : Requirements(e);
 
         string message = Notice;
-        if (message == null && chosen != null && mode == Mode.Build && !chosen.can && !string.IsNullOrEmpty(chosen.reason))
-            message = $"<color=#E67350>{chosen.reason}</color>";
+        if (message == null && e != null && mode == Mode.Build && !e.can && !string.IsNullOrEmpty(e.reason))
+            message = $"<color=#E67350>{e.reason}</color>";
         reasonLabel.text = message ?? "";
 
         // The action works on the selected entry (hovering another only previews it).
@@ -562,12 +562,12 @@ public class CraftingScreen : GameScreen
                 name = "Campfire",
                 category = BuildCategories[2],
                 help = Capitalize(CampfireHelp),
-                info = "Placed just in front of you.",
+                info = "You choose the spot: a ghost shows where it will go.",
                 cost = $"{fires.FirewoodToBuild} Firewood / {fires.CampfireSticksCost} Sticks",
                 actionLabel = "Build",
                 failHeading = "Can't build a Campfire",
             };
-            e.can = fires.CanBuild(player, out _, out e.reason);
+            e.can = fires.CanStartBuild(player, out e.reason);
             e.sets.Add(new List<Req> { new Req { label = ItemName(FireManager.FirewoodId), have = inventory != null ? inventory.Player.Count(FireManager.FirewoodId) : 0, need = fires.FirewoodToBuild } });
             e.sets.Add(new List<Req> { new Req { label = ItemName(WoodManager.SticksId), have = inventory != null ? inventory.Player.Count(WoodManager.SticksId) : 0, need = fires.CampfireSticksCost } });
             e.act = () => DoBuildCampfire(fires);
@@ -584,7 +584,7 @@ public class CraftingScreen : GameScreen
             name = WoodManager.PileName(kind),
             category = BuildCategory(kind),
             help = Capitalize(PileHelp(kind)),
-            info = "Placed just in front of you.",
+            info = "You choose the spot: a ghost shows where it will go.",
             cost = wood.CostText(kind),
             actionLabel = "Build",
             failHeading = $"Can't build {WoodManager.PileName(kind)}",
@@ -614,7 +614,7 @@ public class CraftingScreen : GameScreen
             return e;
         }
 
-        e.can = wood.CanBuildPile(kind, player, out _, out e.reason);
+        e.can = wood.CanStartBuild(kind, player, out e.reason);
         if (kind == PileKind.CabinSite)
         {
             e.actionLabel = "Place Site";
@@ -639,32 +639,30 @@ public class CraftingScreen : GameScreen
         return e;
     }
 
+    // Build no longer places anything here: it closes the screen and starts Placement Mode, which shows a ghost where the
+    // structure will go and builds it (spending the materials) only when the player confirms.
     void DoBuildCampfire(FireManager fires)
     {
-        if (!fires.CanBuild(player, out _, out string why))
+        if (!fires.CanStartBuild(player, out string why))
         {
             banner.NotifyCant("Can't build a Campfire", why);
             return;
         }
-        if (!fires.Build(player))
-            return;
         banner.Hide();
-        // (Using up the Firewood already plays the item-drop sound.) Back to the world, so the player sees what they built.
         Close();
+        PlacementMode.BeginCampfire();
     }
 
     void DoBuildPile(WoodManager wood, PileKind kind)
     {
-        if (!wood.CanBuildPile(kind, player, out _, out string why))
+        if (!wood.CanStartBuild(kind, player, out string why))
         {
             banner.NotifyCant($"Can't build {WoodManager.PileName(kind)}", why);
             return;
         }
-        if (!wood.BuildPile(kind, player))
-            return;
         banner.Hide();
-        ToolStatus.Flash($"{WoodManager.PileName(kind)} built — {PileHelp(kind)}");
         Close();
+        PlacementMode.Begin(kind);
     }
 
     void DoCompleteCabin(WoodManager wood)
@@ -705,14 +703,15 @@ public class CraftingScreen : GameScreen
 
     // --- Descriptions ---
 
-    const string CampfireHelp = "builds just in front of you. Light it with Flint and Steel, or a Bow Drill.";
+    public const string CampfireHelp = "builds where you aim. Light it with Flint and Steel, or a Bow Drill.";
 
-    static string PileHelp(PileKind kind)
+    public static string PileHelp(PileKind kind)
     {
         switch (kind)
         {
             case PileKind.RockStorage: return "store Stone (R), take it back (E).";
             case PileKind.WaterBarrel: return "pour water in from the Bucket (R), fill the Bucket from it (E). Holds 40 L.";
+            case PileKind.RainBarrel: return "stand it under a Small Cabin's eave; it fills from the roof in rain (E draws water, R pours in). Holds 80 L.";
             case PileKind.FoodCache: return "store food (R), take it back (E).";
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
             case PileKind.ToolRack: return "store Tools you're not carrying for a trip (R), take them back (E).";

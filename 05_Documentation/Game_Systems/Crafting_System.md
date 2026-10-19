@@ -68,3 +68,7 @@ Reported by Claude Code 2026-10-09 from Crafting.cs (15 recipes, including the t
 ## Not decided here
 
 Crafting skills, stations (workbench, forge, loom), durability and repair (Feature_Backlog.md), and recipe discovery all stay post-Alpha.
+
+## Pointer 2026-10-18
+
+Mike asked for a build preview before placing anything (Rain Barrel playtest). Design draft: Building_Housing_System.md, "Build Placement Preview (design draft)". It changes what the Build button does (Placement Mode with a ghost) but not the Build tab's lists, costs or affordability text.

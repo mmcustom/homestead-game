@@ -33,13 +33,13 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     }
 
     string Name => WoodManager.PileName(state.kind);
-    bool IsBarrel => state.kind == PileKind.WaterBarrel;
+    bool IsBarrel => state.IsWaterBarrel;
     static InventoryManager Inventory => InventoryManager.Instance;
 
     // The deliberate, player-built storage kinds — everything except a felled tree's incidental pile and a Small
     // Cabin's staged CabinSite — get the per-item transfer screen on E instead of an instant take-all.
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
-                                state.kind == PileKind.WaterBarrel || state.kind == PileKind.FoodCache ||
+                                state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
                                 state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack;
 
     // --- Taking (E) ---
@@ -237,7 +237,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                 return IsCabinSite ? "Remove Site  (everything stocked comes back to you)" : "";
             if (IsBarrel)
             {
-                int room = WoodManager.Instance != null ? WoodManager.Instance.BarrelLitres - state.Total : 0;
+                int room = WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(state.kind) - state.Total : 0;
                 return room > 0 ? $"Pour In Water  ({Mathf.Min(room, carried)} L)" : "";
             }
             return UsesTransferScreen ? $"Store Items  ({what})" : $"Store {what}";
@@ -366,7 +366,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // --- Storing: the transfer screen's per-item store (the mirror of TakeOne), and the bulk store behind R ---
 
     // Litres the barrel can still take; unlimited for anything else.
-    int StorageRoom => IsBarrel && WoodManager.Instance != null ? Mathf.Max(0, WoodManager.Instance.BarrelLitres - state.Total) : int.MaxValue;
+    int StorageRoom => IsBarrel && WoodManager.Instance != null ? Mathf.Max(0, WoodManager.Instance.CapacityOf(state.kind) - state.Total) : int.MaxValue;
 
     // Whether StoreOne(itemId, ...) could store anything right now, and why not if not.
     public bool CanStoreOne(string itemId, out string reason)
@@ -542,7 +542,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // e.g. "2 Logs, 4 Branches, 5 Sticks" — water as litres, and long lists cut short.
     public static string Describe(WoodPileState pile)
     {
-        if (pile.kind == PileKind.WaterBarrel)
+        if (pile.IsWaterBarrel)
             return pile.IsEmpty ? "empty" : $"{pile.Total} L of water";
 
         var parts = new List<string>();
@@ -597,7 +597,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         switch (state.kind)
         {
             case PileKind.RockStorage: BuildRocks(random); return;
-            case PileKind.WaterBarrel: BuildBarrel(); return;
+            case PileKind.WaterBarrel:
+            case PileKind.RainBarrel: BuildBarrel(); return;
             case PileKind.FoodCache: BuildBox(new Vector3(1f, 0.6f, 0.7f), 0.8f, true); return;
             case PileKind.StorageBin: BuildBox(new Vector3(1.1f, 0.55f, 0.75f), 1.15f, false); return;
             case PileKind.ToolRack: BuildRack(); return;
@@ -695,17 +696,23 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         box.size = new Vector3(3.4f, 0.9f, 3.4f);
     }
 
-    // A hollowed-log barrel with the water showing at its level.
+    // A hollowed-log barrel with the water showing at its level. A Rain Barrel is a bigger one with a dark rim band.
     void BuildBarrel()
     {
-        const float height = 0.95f;
-        Piece(PrimitiveType.Cylinder, new Vector3(0f, height / 2f, 0f), Vector3.zero, new Vector3(0.7f, height / 2f, 0.7f), bark);
-        float fill = WoodManager.Instance != null ? Mathf.Clamp01(state.Total / (float)WoodManager.Instance.BarrelLitres) : 0f;
+        bool rain = state.kind == PileKind.RainBarrel;
+        float height = rain ? 1.1f : 0.95f;
+        float width = rain ? 0.9f : 0.7f;
+        Piece(PrimitiveType.Cylinder, new Vector3(0f, height / 2f, 0f), Vector3.zero, new Vector3(width, height / 2f, width), bark);
+        int capacity = WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(state.kind) : 1;
+        float fill = Mathf.Clamp01(state.Total / (float)Mathf.Max(1, capacity));
         if (fill > 0f)
-            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, 0.08f + (height - 0.1f) * fill, 0f), Vector3.zero, new Vector3(0.62f, 0.005f, 0.62f), null),
+            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, 0.08f + (height - 0.1f) * fill, 0f), Vector3.zero, new Vector3(width - 0.08f, 0.005f, width - 0.08f), null),
                    new Color(0.22f, 0.3f, 0.34f));
+        if (rain)
+            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, height - 0.03f, 0f), Vector3.zero, new Vector3(width + 0.04f, 0.03f, width + 0.04f), null),
+                   new Color(0.16f, 0.12f, 0.08f));
         box.center = new Vector3(0f, height / 2f, 0f);
-        box.size = new Vector3(0.75f, height, 0.75f);
+        box.size = new Vector3(width + 0.05f, height, width + 0.05f);
     }
 
     // A standing frame with a peg for each kind of Tool stored (up to 6), filling left to right, top to bottom.

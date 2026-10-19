@@ -119,6 +119,8 @@ public class GameManager : MonoBehaviour
             GroundWoodManager.Instance.ResetGroundWood();
         if (PortableLight.Instance != null)
             PortableLight.Instance.ResetLight();
+        if (PondManager.Instance != null)
+            PondManager.Instance.ResetPonds();
     }
 
     // Continue: the newest save across every slot, the Autosave included.

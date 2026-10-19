@@ -151,6 +151,12 @@ public class WeatherManager : MonoBehaviour, ISaveable
     [Tooltip("First pass: the Weather Station shows wind speed in mph as WindStrength (0-1) times this.")]
     [SerializeField] float windSpeedMphAtFull = 40f;
 
+    [Header("Rainfall (Water_System.md's Rainwater Collection; mm of rain per in-game hour, first-pass figures)")]
+    [Tooltip("Light Rain, Heavy Rain and Thunderstorm, from the real intensity bands (light up to about 2.5, heavy over 7.6 mm/h). Snow and everything else is 0.")]
+    [SerializeField, Min(0f)] float lightRainMm = 1.5f;
+    [SerializeField, Min(0f)] float heavyRainMm = 8f;
+    [SerializeField, Min(0f)] float thunderstormMm = 12f;
+
     [Header("Late Fall snow")]
     [Tooltip("Weather_System.md: light snow can occasionally occur late in Fall. Snow's share of the time " +
              "(same scale as the season weights) once Fall is this far through.")]
@@ -179,6 +185,11 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
     public event Action<WeatherType> WeatherChanged;
 
+    // Fired at the top of every hour change with what fell during the hour that just ended (PrecipitationWeather), before
+    // the weather can roll over, so anything that adds up rain (Rain Barrels) sees each hour once and in a fixed order.
+    // Sleep, collapse and debug day skips cross hours one at a time, so they raise it too.
+    public event Action<WeatherType> HourEnded;
+
     public WeatherType Current => current;
     public int HoursRemaining => hoursRemaining;
 
@@ -199,6 +210,18 @@ public class WeatherManager : MonoBehaviour, ISaveable
                              TimeManager.Instance.CurrentSeason == Season.Summer &&
                              dryDays >= droughtDryDays;
     public int DryDays => dryDays;
+
+    // Millimetres of rain an hour of this weather brings (0 for snow and everything dry). Pass PrecipitationWeather.
+    public float RainMmPerHour(WeatherType precipitation)
+    {
+        switch (precipitation)
+        {
+            case WeatherType.LightRain: return lightRainMm;
+            case WeatherType.HeavyRain: return heavyRainMm;
+            case WeatherType.Thunderstorm: return thunderstormMm;
+            default: return 0f;
+        }
+    }
 
     public bool IsHeatWave => current == WeatherType.HeatWave;
     // 0-1: how far into its build and ease-off the current wave is (0 outside a wave).
@@ -451,6 +474,8 @@ public class WeatherManager : MonoBehaviour, ISaveable
 
     void OnHourChanged(int hour)
     {
+        HourEnded?.Invoke(PrecipitationWeather);
+
         if (IsRaining)
         {
             rainedToday = true;
@@ -558,6 +583,23 @@ public class WeatherManager : MonoBehaviour, ISaveable
         temperature = Mathf.MoveTowards(temperature, TargetTemperatureC(), maxTemperatureChangePerHour);
         ResolvePrecipitationType(notify: true);
         return true;
+    }
+
+    // Testing only (RainDebugControls, Numpad 1): sets this weather now for this many hours. Rain below freezing turns to
+    // Snow, as it would naturally.
+    public void DebugForceWeather(WeatherType type, int hours)
+    {
+        current = type;
+        hoursRemaining = Mathf.Max(1, hours);
+        heatWaveStrengthC = 0f;
+        heatWaveTotalHours = 0;
+        ResolvePrecipitationType(notify: false);
+        if (IsRaining)
+        {
+            rainedToday = true;
+            rainRecentHours = rainRecentHoursMax;
+        }
+        WeatherChanged?.Invoke(current);
     }
 
     public void DebugEndHeatWave()

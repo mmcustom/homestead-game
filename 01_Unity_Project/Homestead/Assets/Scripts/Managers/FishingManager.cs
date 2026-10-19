@@ -141,7 +141,7 @@ public class FishingManager : MonoBehaviour
     }
 
     // Seconds until the next bite, by season, time of day, weather and gear.
-    public float BiteWait(bool canePole)
+    public float BiteWait(bool canePole, string pondName = null)
     {
         float wait = baseWaitSeconds;
         TimeManager time = TimeManager.Instance;
@@ -165,12 +165,14 @@ public class FishingManager : MonoBehaviour
         }
         if (canePole)
             wait *= 1.25f;
+        wait *= PondManager.BiteWaitMultiplier(pondName); // a low pond bites slowly (1 for any other water)
         return wait * UnityEngine.Random.Range(0.4f, 1.6f);
     }
 
-    // For Fish Traps: chance per in-game hour that a fish goes in, by season.
-    public float TrapHourlyChance(float baseChance)
+    // For Fish Traps: chance per in-game hour that a fish goes in, by season, and by pond level when the trap is in a pond.
+    public float TrapHourlyChance(float baseChance, string pondName = null)
     {
+        baseChance *= PondManager.TrapChanceMultiplier(pondName);
         TimeManager time = TimeManager.Instance;
         if (time == null)
             return baseChance;

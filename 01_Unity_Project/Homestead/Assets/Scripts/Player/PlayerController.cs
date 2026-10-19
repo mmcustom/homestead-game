@@ -127,7 +127,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     // Scales mouse and stick look — lowered while a scope is zoomed in, so aiming stays steady.
     public float LookScale { get; set; } = 1f;
     // Equipped tools (rod, bow, rifle, traps) only work during gameplay, not in menus or while paused.
-    public bool CanUseTools => CanAct;
+    public bool CanUseTools => CanAct && !PlacementMode.Active;
 
     // A night's sleep: stamina back to as full as Hydration, Hunger and the rest allow.
     public void Rest() => stamina = EffectiveMaxStamina;
@@ -232,7 +232,9 @@ public class PlayerController : MonoBehaviour, ISaveable
     void Update()
     {
         // Esc while typing a journal note belongs to the text field, and Esc in the slot panel to the panel, not the pause menu.
-        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping && !SlotPanel.IsOpen)
+        // Esc while placing a structure cancels the placement (PlacementMode), it doesn't pause.
+        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping && !SlotPanel.IsOpen &&
+            !PlacementMode.Active)
             GameManager.Instance.TogglePause();
 
         if (!CanAct || moveAction == null)
@@ -251,12 +253,14 @@ public class PlayerController : MonoBehaviour, ISaveable
         UpdateHeight(dt);
         UpdateFocus();
 
-        if (focus is Campfire fire && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+        // While choosing where to build (PlacementMode) nothing is interacted with, so a click or key can't do two things.
+        bool placing = PlacementMode.Active;
+        if (!placing && focus is Campfire fire && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
             fire.CycleFuel();
 
-        if (focus != null && interactAction.WasPressedThisFrame())
+        if (!placing && focus != null && interactAction.WasPressedThisFrame())
             focus.Interact(this);
-        else if (focus is ISecondaryInteractable secondary && interactAltAction != null &&
+        else if (!placing && focus is ISecondaryInteractable secondary && interactAltAction != null &&
                  interactAltAction.WasPressedThisFrame() && !string.IsNullOrEmpty(secondary.SecondaryPrompt))
             secondary.SecondaryInteract(this);
 

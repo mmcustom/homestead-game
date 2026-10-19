@@ -13,6 +13,20 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
     // The cabin's footprint (its own local space).
     public const float CabinWidth = 4f, CabinDepth = 5f;
 
+    // The cabin's walls and thatched roof, shared with RainCatchment so a Rain Barrel's catchment is the roof that is
+    // actually drawn: walls of stacked logs to wallHeight, a ridge along Z, and one panel per long side (BuildCabin).
+    public const float WallHeight = 2.2f, RidgeHeight = 3.4f, LogRadius = 0.14f, RoofOverhang = 0.3f;
+    public static readonly int WallCourses = Mathf.Max(4, Mathf.RoundToInt(WallHeight / (LogRadius * 2f)));
+    public static readonly float RoofBaseY = 0.3f + WallCourses * LogRadius * 2f;
+    public static readonly float RoofSlopeRadians = Mathf.Atan2(RidgeHeight - RoofBaseY, CabinWidth / 2f);
+    // Each panel is this long up the slope (the slope plus RoofOverhang) and this deep along the ridge.
+    public static readonly float RoofPanelLength = Mathf.Sqrt((RidgeHeight - RoofBaseY) * (RidgeHeight - RoofBaseY) + CabinWidth * CabinWidth / 4f) + RoofOverhang;
+    public const float RoofPanelDepth = CabinDepth + 0.4f;
+    // Where a panel's low edge (its eave) sits, either side of the ridge, in cabin-local X.
+    public static readonly float RoofEaveX = CabinWidth / 4f + RoofPanelLength / 2f * Mathf.Cos(RoofSlopeRadians);
+    // What one slope catches, seen from above (rain falls on this, not on the sloped surface), from the ridge to the eave.
+    public static float RoofSlopePlanArea => RoofEaveX * RoofPanelDepth;
+
     // The hearth (Mike, 2026-10-09: the fireplace belongs inside). The door is on the +Z wall, so the back wall is -Z. The
     // fire sits a little right of centre, 1.45 m from the middle of the room toward the back: the slab is 1.3 x 1.1 m, which
     // leaves 0.76 m between it and the right wall (the player is 0.7 m across), 1.7 m of open floor on the left for the
@@ -246,7 +260,7 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
     {
         var stoneColor = new Color(0.58f, 0.55f, 0.5f);
         var thatch = new Color(0.62f, 0.55f, 0.28f);
-        const float width = CabinWidth, depth = CabinDepth, wallHeight = 2.2f, ridgeHeight = 3.4f, logRadius = 0.14f;
+        const float width = CabinWidth, depth = CabinDepth, wallHeight = WallHeight, ridgeHeight = RidgeHeight, logRadius = LogRadius;
         const float foundationHeight = 0.3f, logDiameter = logRadius * 2f;
 
         GameObject foundation = Piece(PrimitiveType.Cube, new Vector3(0f, foundationHeight / 2f, 0f), Vector3.zero,
@@ -301,7 +315,7 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
         foreach (float dir in new[] { -1f, 1f })
         {
             GameObject panel = Piece(PrimitiveType.Cube, new Vector3(dir * width / 4f, roofY + rise / 2f, 0f),
-                                     new Vector3(0f, 0f, dir * (90f - slope)), new Vector3(0.08f, roofSide + 0.3f, depth + 0.4f), null);
+                                     new Vector3(0f, 0f, dir * (90f - slope)), new Vector3(0.08f, roofSide + RoofOverhang, depth + 0.4f), null);
             Tint(panel, thatch);
             panel.AddComponent<BoxCollider>().size = Vector3.one; // the cube mesh is 1 m a side; the scale does the rest
         }

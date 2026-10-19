@@ -554,3 +554,121 @@ Shelter tier numbers as built (warmth-loss cut / rain blocked / wind blocked / H
 **Cause found and fix written 2026-10-10 (Claude Code report; NOT compile-checked, NOT Play Mode tested, uncommitted):** the load-on-the-roof bug is in PlayerController.AboveGround, called from RestoreState (PlayerController.cs:537). The old probe cast a ray down from 500 m above the saved position and teleported the player onto the first collider hit if it was above the saved Y; inside the cabin that first hit is the roof. It was written to catch saves from before the terrain was reshaped (underground positions) and was never meant to handle buildings; it could not trigger before the cabin geometry fix because nobody could stand inside the old solid cabin. Fix: AboveGround is now an instance method in two steps. (1) After Physics.SyncTransforms(), if the player's capsule fits at the saved position (no collider overlap), restore it exactly: cabin interior, doorway, hearth slab, under a Tarp. (2) Only if it overlaps, do the downward probe but skip colliders belonging to a Shelter (roof, walls, tarp sheet) and lift only if the ground is above the saved Y. Affected before the fix: Small Cabin (inside, doorway, sleeping) and Tarp Shelter (sheet collider over the sleeper's head, and sleeping triggers an auto-save). Not affected in practice: Tent and Lean-To (solid, can't stand inside; skipped now anyway), Campfire, storage piles and bins. Slopes up to about 30 degrees keep the exact position; steeper ones may report a false overlap, but the fallback probe finds the same height and keeps it; underground saves from before a terrain change still lift to the surface. No other fell-through-the-world safety net exists in the code.
 
 **CONFIRMED 2026-10-10 (Mike, Play Mode, all pass):** old outside-hearth saves migrate the fire indoors (fuel and lit state kept, none left outside); dismantling the cabin with the fire out removes the hearth and returns Firewood; save and load under a Tarp Shelter, on a steep slope, on the creek bank, and from an older pre-cabin save all restore correctly. Together with the earlier confirmation, the indoor hearth and the load-on-the-roof fix are fully confirmed.
+
+
+---
+
+# Build Placement Preview (design draft)
+
+**Added 2026-10-18 (Mike, Rain Barrel playtest; Claude first pass, not yet confirmed).** Mike hit "Can't build Rain Barrel: No clear ground in front of you." and said: "I noticed with most items I place in the world, do not show a preview of where it's being built, so we can determine placement. I would like a build preview before picking where we're building anything."
+
+## How placing works today (from the docs; Claude Code to confirm in code)
+
+- Craft and Build tab: clicking Build closes the screen and the structure "appears just in front of the player" (Crafting_System.md). The spot is a fixed probe about 1.8 m ahead. There is no way to see it, move it or rotate it before it is built; the only feedback is a refusal after the click ("No clear ground in front of you", "A Rain Barrel stands just outside a Small Cabin's long wall...", distance messages).
+- Validity rules live in `WoodManager.CanBuildPile` (and `FireManager.CanBuild`, the Shelter code and `CanCompleteCabin`). Materials are spent when the build succeeds.
+- This hits the Rain Barrel hardest, because its eave band is narrow (0.45 to 1.2 m outside the roof edge) and the 1.8 m probe can land inside the wall.
+
+## Design (first pass)
+
+1. **Flow.** Select an item in Craft and Build and press Build. The screen closes and the game enters **Placement Mode**: a translucent ghost of the structure follows where the player is aiming. Confirm builds it (materials are spent only now). Cancel leaves everything untouched.
+2. **Ghost colour and reason.** Green when the spot is valid, red when not, with a short reason on screen ("Too close to the cabin", "Not under a cabin eave", "Not enough clear ground", "Too far"). The reason text comes from the existing rule checks, so the preview and the real build can never disagree.
+3. **Aim point.** A ray from the camera to the ground within a maximum placement distance (first pass 6 m, tunable on the component), instead of the fixed 1.8 m spot.
+4. **Rotation.** Mouse wheel turns the ghost in 15 degree steps for structures where facing matters (Lean-To, Tent, Tarp Shelter, Tool Rack, Storage Bin, Food Cache and similar). Round things (barrels, piles) ignore it.
+5. **Snapping.** The Rain Barrel ghost snaps to the nearest valid eave spot along a cabin's long wall (1.2 m spacing, as built) and shows which slope it belongs to, so the narrow band stops being a guessing game. If no eave is near, the ghost stays red at the aim point with the reason.
+6. **While placing.** The game keeps running (the player walks around to choose a spot); a hint line shows the keys. Tools and attacks are inactive while placing so confirming never swings the Axe.
+7. **Scope.** Everything on the Build tab: Tarp Shelter, Tent, Lean-To, cabin site, Wood Pile, Rock Pile, Water Barrel, Rain Barrel, Food Cache, Storage Bin, Tool Rack, Campfire. Traps and other placeables outside the Build tab are a second pass once Claude Code reports how they are placed.
+8. **Ghost look.** Simplest first: a translucent copy using the structure's existing mesh builder, or a footprint outline on the ground where the builder is heavy (the Small Cabin site). Claude Code's call.
+9. **Rules unchanged.** Costs, affordability and every placement rule stay as they are; they are just evaluated at the ghost's position instead of a fixed point (so `CanBuildPile` and its siblings need a position and facing as inputs).
+10. **Not in this build:** moving a structure after it is built, grid snapping to other structures, undo.
+
+## Decisions for Mike (Claude's recommendations in bold)
+
+**CONFIRMED 2026-10-18 (Mike: "Yes, use all six"). All six below stand as written. Next step: Claude Code read-only pass (questions below), then build. Numbers stay first-pass.**
+
+1. Build closes the screen and starts Placement Mode; left click confirms, Esc or right click cancels. **Recommended.**
+2. Maximum placement distance 6 m. **Recommended.**
+3. Mouse wheel rotates in 15 degree steps where facing matters. **Recommended.**
+4. The Rain Barrel ghost snaps to eave spots. **Recommended.**
+5. The game keeps running during placement. **Recommended.**
+6. Scope: the whole Build tab now, traps and other placeables later. **Recommended.**
+
+## Open questions for a Claude Code read-only pass
+
+1. Why did the Rain Barrel refuse with the generic "No clear ground in front of you." and not its own eave message? Where was the 1.8 m probe landing (wall, roof or thatch collider)? What exactly does "clear ground" test?
+2. How each Build entry is placed today: the spot, the facing, and which rule function each calls.
+3. Can the placement rules be evaluated at an arbitrary position and facing (a refactor), or are they tied to the player's position?
+4. What input is free during Placement Mode: left click and Enter are Attack, E is interact, Q and the mouse wheel? Hotbar and tool use must be suppressed while placing.
+5. Cheapest ghost approach given how each structure is built (mesh builders, footprint sizes).
+6. Which other placeables (traps, snares, fish traps, cabin site pieces) use a similar fixed-spot placement.
+
+
+## Claude Code read-only findings and build plan (2026-10-18)
+
+Reconciled by Claude from Claude Code's read-only pass. Nothing built yet. Numbers marked (Claude, not yet confirmed) are first-pass.
+
+### Why the Rain Barrel said "No clear ground in front of you."
+
+- The "clear ground" test (`WoodManager.CanBuildPile`, about lines 765-774) is a single point 1.8 m ahead of the player (3.5 m for the Cabin Site) in the body-facing direction. A ray goes straight down from 3 m above that point, 8 m long, and the first non-trigger hit must be a `TerrainCollider`.
+- If the player stands within about 1.8 m of the cabin's roof edge, the point lands on the thatch (or a wall), the first hit is not terrain, and the generic message appears.
+- Check order today: materials, clear ground, water, slope, cabin-only tree/stump checks, eave test, pile spacing, fire. Clear ground always runs BEFORE the eave test, so the Rain Barrel's own eave message is never reached when the probe lands on the roof.
+- **Correction to my interim tip.** I said "stand about 2.5 m out from a long wall". Claude Code's analysis: the player must stand 2.25-3.0 m outside the roof edge, which is 4.4-5.1 m from the cabin centre line, facing the long wall with nothing between. Standing closer fails with the generic message. My 2.5 m was measured from the wall, not the roof edge, and was too close.
+
+### How each Build entry is placed today
+
+- Every Build entry uses the same fixed probe in the body-facing direction (1.8 m; 3.5 m for the Cabin Site). There is no aim ray, no rotation, no preview.
+- Rules can be refactored to take a position and a facing instead of reading the player: `CanBuildPileAt(kind, position, yaw)`, a matching FireManager check for the Campfire, and `BuildPile` / `Build` taking an explicit position and yaw, with the old signatures kept as thin wrappers (so nothing else breaks).
+
+### Input during Placement Mode
+
+- Left click and Enter = Attack, read by AxeTool, FishingRod, TrapSetter and HuntingWeapon; all gate on `PlayerController.CanUseTools`. Placement Mode must make `CanUseTools` false (or consume the click) so confirming never swings the Axe.
+- Esc is handled in `PlayerController.Update` (about line 235, TogglePause on UI/Cancel). Placement must catch Esc first so it cancels placement instead of opening the pause menu.
+- Right mouse = Player/Aim, used only by HuntingWeapon. Free during placement; safe to use as Cancel.
+- Q is unbound. The mouse wheel is unused in gameplay (read `Mouse.current.scroll`), so wheel rotation is free.
+- `TrapSetter` already aims with `player.AimRaycast`, reach 4 m, status "Click to set the X here (good spot)". It is the model for the aim logic.
+
+### Ghost approach
+
+- Build a throwaway `WoodPileState` / `Shelter.Bind` instance for the ghost, strip its colliders, give it a translucent green or red material, and move it each frame. Claude Code must verify the side effects of `WoodPile.Bind` and `Shelter.Bind` first (registration in `WoodManager.Piles`, save state, rain-catchment lookups) so a ghost can never be saved, counted as a pile, or feed a barrel.
+- Where a builder is heavy (the Small Cabin site), use a footprint outline on the ground instead.
+- Campfire is in scope (FireManager). Traps are a second pass.
+
+### Build plan (six phases)
+
+1. Refactor the rule checks to take a position and yaw (`CanBuildPileAt` and siblings), old signatures as wrappers. No behavior change.
+2. Placement Mode core: aim ray (6 m), input gating, confirm/cancel, hint line, reason text.
+3. Rain Barrel eave snapping with a ring or marker at the snapped spot showing the slope.
+4. Ghost meshes for the Build tab (green/red translucent).
+5. Mouse-wheel rotation (15 degree steps) for structures where facing matters.
+6. Traps and other placeables onto the same helper (second pass).
+
+Recommended order: 1 through 5, then 6. **Phases 1-3 alone fix the Rain Barrel problem**, with a ring in place of the full ghost, and are a smaller thing to test first.
+
+## BUILD PLACEMENT PREVIEW PHASES 1-5 BUILT 2026-10-18 (compile-checked, NOT Play Mode tested, UNCOMMITTED)
+
+Claude Code report, reconciled by Claude. 0 errors, 0 warnings. Phase 6 (traps and other placeables) not in this build.
+
+**New files:** `Player/PlacementMode.cs` (tunables: reach 6 m, rotationStepDegrees 15, eaveSnapRange 3 m, aimRange 40 m), `World/PlacementGhost.cs`, `World/BuildSpot.cs` (point, normal, what the ray hit), `Resources/PlacementGhost.mat` (transparent HDRP Lit), `06_AI_Collaboration/Build_Placement_Preview_Checklist.md` (40 pass/fail items).
+**Edited:** WoodManager.cs, FireManager.cs, PlayerController.cs, CraftingScreen.cs, RainCatchment.cs, RainDebugControls.cs.
+
+- **Phase 1.** `CanBuildPileAt(kind, player, spot, yaw, aimed, out reason)` and `CanStartBuild` carry all the rules; FireManager has the same pair. `BuildPile(kind, player, spot, yaw)` and `Build(player, spot, yaw)` take an explicit spot and facing. Old `CanBuildPile`, `BuildPile(kind, player)`, `CanBuild` and `Build(player)` remain as thin wrappers over the fixed probe (same check order and messages). `PileHelp` and `CampfireHelp` in CraftingScreen made public.
+- **Phase 2.** Build closes the screen and starts Placement Mode. The Build button and screen footer use only `CanStartBuild` (materials, one cabin site at a time); spot reasons show on the ghost. Camera ray to ground, left click confirms (materials spent only then), Esc or right mouse cancels. `CanUseTools` false while placing; E, R, F do nothing; the pause check skips Esc while placing. An Active flag stays on one extra frame so the confirming click or cancelling Esc cannot also swing a tool or open the pause menu. The mode ends by itself when the state leaves Playing (another screen, pause, load, slot switch), on sleep or collapse, or if the world is gone. Game keeps running. Hint reads "Place X here" or the red reason, keys underneath.
+- **Phase 3.** Rain Barrel ghost snaps to the nearest eave spot along a cabin long wall: five spots per side, 1.22 m apart (1.2 m rule plus 0.02 m so float rounding cannot fail the spacing test). Prefers an allowed spot over a nearer refused one. Hint names the slope ("right slope" / "left slope" facing the door) and shows 11.5 m2 of roof. With no eave within 3 m of the aim, the ghost stays red at the aim point with the existing eave sentence.
+- **Phase 4. Ghosts** (translucent green/red, built from each structure's own mesh builder with colliders and scripts stripped): Wood Pile frame poles; Rock Pile stone heap; Water Barrel / Rain Barrel barrel (dark rim band on the Rain Barrel); Food Cache / Storage Bin box; Tool Rack frame; Tarp Shelter / Tent / Lean-To real shapes; Small Cabin site corner posts plus a 3 m ground outline; Campfire a primitive ring of stones with crossed logs (the real one is a prefab with lights and fire).
+- **Bind side effects (verified by Claude Code).** `WoodPile.Bind` and `Shelter.Bind` register nothing: they add a collider and build child meshes; neither class has Awake, Start, OnEnable, OnDestroy or event subscriptions; nothing finds piles by scene search, only by raycast hit. The ghost is a throwaway `WoodPileState` id -1 never added to `WoodManager.piles`; colliders and builder destroyed right after Bind, so it cannot be saved, counted, hit by a ray, used by a Rain Barrel lookup or interacted with. Cancel, state change or OnDestroy removes it. Confirmed in the editor that all 11 pile kinds plus the campfire build with zero colliders and zero scripts.
+- **Phase 5.** Wheel turns 15 degrees per notch for Lean-To, Tent, Tarp Shelter, Tool Rack, Storage Bin, Food Cache and Cabin Site (the finished cabin inherits the site's facing: door and hearth). Barrels, Wood Pile, Rock Pile, Campfire ignore the wheel and keep facing the player. The final yaw is what gets built.
+
+**Rules touched.** No cost, affordability or placement rule changed. Four side effects of the refactor: (1) when placing, two ground messages are worded for an aimed spot ("No clear ground there.", "The ground there is too steep."); the fixed-probe path keeps the old wording; (2) new "Too far" message (an aim-distance limit, not a build rule); (3) the Crafting screen Build button no longer shows spot reasons; (4) a Rain Barrel with no cabin nearby shows the eave sentence instead of "no clear ground".
+
+**Tested in the editor only:** every ghost builds with no colliders or scripts and the transparent material; `EaveSpots` gives 10 spots on a cabin, all passing the real eave test, at least 1.2 m apart. **Not tested:** anything in Play Mode (rules at a live ghost, wrapper regression, real Esc/Axe behavior, whether green/red reads well, whether the two-line hint renders).
+
+**Edge cases not covered (known gaps):**
+- Campfire can still go on any solid surface the aim ray hits, including a roof or rock (its old rule took any collider but the player's); rule left alone.
+- No ring showing the 2 m spacing, only the colour.
+- Aiming at a lake gives "No clear ground there." not "Can't build that in water." (same as the old probe).
+- The tent's custom gable mesh is not explicitly freed (Unity cleans it up on unused-asset unload).
+- Traps unchanged (phase 6). Cabin completion unchanged.
+- Keyboard and mouse only; no gamepad placement.
+
+**Checklist:** `06_AI_Collaboration/Build_Placement_Preview_Checklist.md`. Rainwater checklist items 2-26 can now use the preview.
+
+**PLAYTEST RESULT 2026-10-18 (Mike): all 40 items of Build_Placement_Preview_Checklist.md PASS.** Phases 1-5 are playtested; still uncommitted. Open: phase 6 (traps, snares, Fish Trap on the shared placement helper) and the known gaps (Campfire on roof/rock, no spacing ring, lake wording, no gamepad).

@@ -216,7 +216,7 @@ public class TrapManager : MonoBehaviour, ISaveable
         FishingManager fishing = FishingManager.Instance;
         if (fishing == null)
             return false;
-        float chance = fishing.TrapHourlyChance(fishChance) * effect;
+        float chance = fishing.TrapHourlyChance(fishChance, PondNameAt(trap.position)) * effect;
         if (UnityEngine.Random.value >= chance)
             return false;
 
@@ -233,6 +233,13 @@ public class TrapManager : MonoBehaviour, ISaveable
             return true;
         }
         return false;
+    }
+
+    // The pond zone a trap sits in (for the pond-level effect), or null for creek water.
+    static string PondNameAt(Vector3 position)
+    {
+        WaterSource source = FindAnyObjectByType<WaterSource>();
+        return source != null && FishingManager.WaterAt(source, position) == FishWater.Pond ? source.ZoneAt(position) : null;
     }
 
     static FishWater FishWaterAt(Vector3 position)

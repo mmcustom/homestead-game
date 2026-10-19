@@ -141,7 +141,8 @@ public class FishingRod : MonoBehaviour
     void StartWaiting()
     {
         state = State.Waiting;
-        float wait = FishingManager.Instance != null ? FishingManager.Instance.BiteWait(cane) : 10f;
+        string pond = waterKind == FishWater.Pond && water != null ? water.ZoneAt(bobberRest) : null;
+        float wait = FishingManager.Instance != null ? FishingManager.Instance.BiteWait(cane, pond) : 10f;
         stateUntil = Time.time + wait;
     }
 

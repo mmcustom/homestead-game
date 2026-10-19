@@ -37,11 +37,14 @@ public class WaterSource : MonoBehaviour, IInteractable
     {
         get
         {
-            WaterQuality quality = QualityAt(lastPlayer != null ? lastPlayer.transform.position : transform.position);
+            Vector3 at = lastPlayer != null ? lastPlayer.transform.position : transform.position;
+            WaterQuality quality = QualityAt(at);
+            string pond = PondManager.PromptNote(ZoneAt(at));
+            pond = pond.Length > 0 ? "  —  " + pond : "";
             int fill = FillableLitres();
             if (fill > 0)
-                return $"Fill {InventoryManager.Instance.EquippedTool.DisplayName}  ({quality} water, {fill} L)";
-            return $"Drink  ({quality} water{RiskNote(quality)})";
+                return $"Fill {InventoryManager.Instance.EquippedTool.DisplayName}  ({quality} water, {fill} L){pond}";
+            return $"Drink  ({quality} water{RiskNote(quality)}){pond}";
         }
     }
 
@@ -82,6 +85,7 @@ public class WaterSource : MonoBehaviour, IInteractable
     public WaterQuality QualityAt(Vector3 position)
     {
         WaterQuality quality = defaultQuality;
+        string found = null;
         float best = float.MaxValue;
         foreach (QualityZone zone in zones)
         {
@@ -90,10 +94,14 @@ public class WaterSource : MonoBehaviour, IInteractable
             {
                 best = d;
                 quality = zone.quality;
+                found = zone.name;
             }
         }
-        return quality;
+        // A drying pond's water is worse (Pond Drying): the one place every drink and fill reads its quality from.
+        return PondManager.Adjust(found, quality);
     }
+
+    public QualityZone[] Zones => zones;
 
     public bool CanInteract(PlayerController player)
     {

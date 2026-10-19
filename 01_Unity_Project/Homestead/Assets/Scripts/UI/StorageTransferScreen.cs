@@ -97,7 +97,7 @@ public class StorageTransferScreen : GameScreen
         removeButton.GetComponentInChildren<Text>().text = removeButton.interactable ? "Take Down Structure" : $"Take Down — {removeReason}";
 
         WoodPileState state = target.State;
-        bool barrel = state.kind == PileKind.WaterBarrel;
+        bool barrel = state.IsWaterBarrel;
         storeAllButton.gameObject.SetActive(true);
         takeAllButton.gameObject.SetActive(true);
         storeAllButton.GetComponentInChildren<Text>().text = "Store All Eligible";
@@ -140,7 +140,7 @@ public class StorageTransferScreen : GameScreen
     // Right: the structure's capacity where it has one, then what's inside.
     void RefreshStructure(WoodPileState state, bool barrel)
     {
-        int litres = WoodManager.Instance != null ? WoodManager.Instance.BarrelLitres : 0;
+        int litres = WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(state.kind) : 0;
         structureWeight.text = barrel ? $"{state.Total} / {litres} L" : state.IsEmpty ? "Empty" : $"{state.Total} stored   ·   no limit";
 
         takeAllButton.interactable = !state.IsEmpty;
@@ -177,6 +177,7 @@ public class StorageTransferScreen : GameScreen
         {
             case PileKind.RockStorage: return "A Rock Pile only holds Stone.";
             case PileKind.WaterBarrel: return "A Water Barrel only holds water.";
+            case PileKind.RainBarrel: return "A Rain Barrel only holds water.";
             case PileKind.FoodCache: return "A Food Cache only holds food.";
             case PileKind.StorageBin: return "A Storage Bin holds Cordage, hides, furs, arrows and the like — not Tools, wood, stone, food or water.";
             case PileKind.ToolRack: return "A Tool Rack only holds Tools.";
@@ -264,7 +265,7 @@ public class StorageTransferScreen : GameScreen
     {
         if (target == null || target.State == null)
             return;
-        statusLabel.text = target.State.kind == PileKind.WaterBarrel ? target.DrawWaterToStatus() : target.TakeAllToStatus();
+        statusLabel.text = target.State.IsWaterBarrel ? target.DrawWaterToStatus() : target.TakeAllToStatus();
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
         Refresh();

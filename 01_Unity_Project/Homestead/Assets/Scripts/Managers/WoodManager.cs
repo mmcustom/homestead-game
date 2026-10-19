@@ -25,8 +25,10 @@ public class FelledTree
 // Sleep System and Small Cabin), placed and saved the same way. CabinSite is a Wood-Pile-style accumulator — deposited
 // into over multiple trips, then converted in place into a real Cabin once fully stocked (WoodManager.CompleteCabin).
 // TarpShelter is a pitched Tarp (Mike, 2026-10-09): a shelter like the Tent, but the cheapest tier.
+// RainBarrel is a Water Barrel stood at a Small Cabin's long-wall eave that fills itself from that roof slope in rain
+// (Water_System.md's Rainwater Collection; WoodManager.CollectRain).
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel }
 
 [Serializable]
 public class WoodPileState
@@ -103,6 +105,8 @@ public class WoodPileState
     public bool IsShelter => kind == PileKind.Tent || kind == PileKind.LeanTo || kind == PileKind.Cabin || kind == PileKind.TarpShelter;
     public bool IsWoodPile => kind == PileKind.Felled || kind == PileKind.WoodStorage;
     public bool IsBuilt => kind != PileKind.Felled;
+    // Both barrels hold water by the litre under one shared cap (WoodManager.CapacityOf).
+    public bool IsWaterBarrel => kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel;
 
     // What this pile will take in: each kind of storage takes only its own category (Primitive_Storage_System.md).
     // A CabinSite only takes what Small Cabin still needs — once a material reaches its required amount, it stops
@@ -113,7 +117,8 @@ public class WoodPileState
         switch (kind)
         {
             case PileKind.RockStorage: return itemId == WoodManager.StoneId;
-            case PileKind.WaterBarrel: return WoodManager.IsWater(itemId);
+            case PileKind.WaterBarrel:
+            case PileKind.RainBarrel: return WoodManager.IsWater(itemId);
             case PileKind.FoodCache: return WoodManager.IsStorableFood(itemId);
             case PileKind.StorageBin: return WoodManager.IsDryGoods(itemId);
             case PileKind.ToolRack: return WoodManager.IsTool(itemId);
@@ -234,6 +239,21 @@ public class WoodManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0)] int woodPileSticks = 4;
     [SerializeField, Min(1)] int barrelLitres = 40;
     [SerializeField, Min(0.5f)] float buildDistance = 1.8f;
+
+    [Header("Rain Barrel (Water_System.md's Rainwater Collection)")]
+    [Tooltip("Litres a Rain Barrel holds, twice the hand-filled Water Barrel.")]
+    [SerializeField, Min(1)] int rainBarrelLitres = 80;
+    [Tooltip("Logs to build one (8 kg each). No Cordage.")]
+    [SerializeField, Min(1)] int rainBarrelLogCount = 3;
+    [Tooltip("Branches to build one, so the load stays under the Encumbered limit.")]
+    [SerializeField, Min(0)] int rainBarrelBranches = 2;
+    [Tooltip("Share of the rain that falls on a roof slope that reaches the barrel (splash and evaporation take the rest). A placeholder, not a sourced figure.")]
+    [SerializeField, Range(0f, 1f)] float rainEfficiency = 0.8f;
+    [Tooltip("A Rain Barrel's centre must stand this far to this far (metres) outside the roof's edge, along the cabin's long walls. The minimum keeps it clear of the wall.")]
+    [SerializeField, Min(0f)] float eaveMinOutside = 0.45f;
+    [SerializeField, Min(0f)] float eaveMaxOutside = 1.2f;
+    [Tooltip("Rain Barrels can stand this close to each other (metres), so three fit along one slope.")]
+    [SerializeField, Min(0.5f)] float rainBarrelSpacing = 1.2f;
     [Tooltip("Piles and campfires can't be built closer together than this (metres).")]
     [SerializeField, Min(0f)] float minSpacing = 2f;
     [SerializeField, Range(0f, 60f)] float maxSlope = 30f;
@@ -277,6 +297,14 @@ public class WoodManager : MonoBehaviour, ISaveable
     public int WoodPileSticks => woodPileSticks;
     public int BarrelLitres => barrelLitres;
 
+    // Litres a water barrel of this kind holds (0 for anything that isn't one).
+    public int CapacityOf(PileKind kind) =>
+        kind == PileKind.RainBarrel ? rainBarrelLitres : kind == PileKind.WaterBarrel ? barrelLitres : 0;
+
+    // Rain that fell on a roof slope but fits no barrel's whole litre yet, per barrel (not saved: under a litre is lost on load).
+    readonly Dictionary<int, float> rainCarry = new Dictionary<int, float>();
+    bool rainSubscribed;
+
     [Header("Windthrow (chance per in-game hour)")]
     [SerializeField, Min(0f)] float windthrowBase = 1f / 720f;
     [SerializeField, Min(0f)] float windthrowStorm = 0.12f;
@@ -312,6 +340,16 @@ public class WoodManager : MonoBehaviour, ISaveable
     {
         if (Instance == this && SaveManager.Instance != null)
             SaveManager.Instance.Register(this);
+        SubscribeToRain();
+    }
+
+    // Rain Barrels fill once per game hour, from the weather's own HourEnded (so sleep, collapse and day skips count too).
+    void SubscribeToRain()
+    {
+        if (rainSubscribed || Instance != this || WeatherManager.Instance == null)
+            return;
+        WeatherManager.Instance.HourEnded += CollectRain;
+        rainSubscribed = true;
     }
 
     void OnDestroy()
@@ -319,6 +357,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (Instance != this)
             return;
 
+        if (rainSubscribed && WeatherManager.Instance != null)
+            WeatherManager.Instance.HourEnded -= CollectRain;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         if (SaveManager.Instance != null)
             SaveManager.Instance.Unregister(this);
@@ -327,6 +367,7 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        SubscribeToRain(); // in case the weather didn't exist yet at Start
         if (scene.name != GameManager.WorldScene)
             return;
 
@@ -342,6 +383,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     }
 
     bool WorldLoaded => terrain != null && data != null && originalTrees != null;
+    public bool InWorld => WorldLoaded;
 
     // Takes every felled tree out of the terrain and (re)spawns stumps and piles.
     void Apply()
@@ -609,7 +651,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
-        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite };
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrel, PileKind.RainBarrel, PileKind.FoodCache, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite };
 
     public const string TentId = "tent";
     // The Tarp Shelter's stakes and ridgeline: 2 Sticks and 1 Cordage, plus the Tarp itself. Taking it down returns the
@@ -622,6 +664,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         {
             case PileKind.RockStorage: return "Rock Pile";
             case PileKind.WaterBarrel: return "Water Barrel";
+            case PileKind.RainBarrel: return "Rain Barrel";
             case PileKind.FoodCache: return "Food Cache";
             case PileKind.StorageBin: return "Storage Bin";
             case PileKind.ToolRack: return "Tool Rack";
@@ -642,6 +685,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         {
             case PileKind.WoodStorage: return new[] { new WoodStack { itemId = SticksId, count = woodPileSticks } };
             case PileKind.WaterBarrel: return new[] { new WoodStack { itemId = LogsId, count = 3 } };
+            case PileKind.RainBarrel: return new[] { new WoodStack { itemId = LogsId, count = rainBarrelLogCount }, new WoodStack { itemId = BranchesId, count = rainBarrelBranches } };
             case PileKind.FoodCache: return new[] { new WoodStack { itemId = LogsId, count = 2 }, new WoodStack { itemId = BranchesId, count = 4 } };
             case PileKind.StorageBin: return new[] { new WoodStack { itemId = BranchesId, count = 6 }, new WoodStack { itemId = SticksId, count = 6 } };
             case PileKind.ToolRack: return new[] { new WoodStack { itemId = BranchesId, count = 4 }, new WoodStack { itemId = SticksId, count = 4 } };
@@ -680,10 +724,10 @@ public class WoodManager : MonoBehaviour, ISaveable
         return string.Join(", ", parts);
     }
 
-    // Where a storage pile would go if built now in front of the player, or why it can't be built there.
-    public bool CanBuildPile(PileKind kind, PlayerController player, out Vector3 position, out string reason)
+    // Whether building this can start at all — the player is in the World, the materials are in the pack, and for a Cabin Site
+    // no other site is waiting — before any spot is looked at. The Craft and Build screen asks this to start Placement Mode.
+    public bool CanStartBuild(PileKind kind, PlayerController player, out string reason)
     {
-        position = Vector3.zero;
         InventoryManager inventory = InventoryManager.Instance;
         if (player == null || inventory == null || !WorldLoaded)
         {
@@ -719,34 +763,77 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
         }
 
-        float distance = cabin ? cabinBuildDistance : buildDistance;
-        float spacing = cabin ? cabinFootprint : minSpacing;
+        reason = "";
+        return true;
+    }
+
+    // The old fixed spot: a probe the build distance ahead of the player (further for a Cabin Site) and the ground under it.
+    // Placement Mode aims instead; this stays for anything that still builds "just in front of you".
+    BuildSpot ProbeAhead(PileKind kind, PlayerController player)
+    {
+        float distance = kind == PileKind.CabinSite ? cabinBuildDistance : buildDistance;
         Vector3 forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
         Vector3 probe = player.transform.position + forward * distance + Vector3.up * 3f;
-        if (!Physics.Raycast(probe, Vector3.down, out RaycastHit hit, 8f, ~0, QueryTriggerInteraction.Ignore) ||
-            hit.collider.transform.IsChildOf(player.transform) || !(hit.collider is TerrainCollider))
+        if (!Physics.Raycast(probe, Vector3.down, out RaycastHit hit, 8f, ~0, QueryTriggerInteraction.Ignore))
+            return new BuildSpot { point = probe, normal = Vector3.up, onTerrain = false };
+        return new BuildSpot
         {
-            reason = "No clear ground in front of you.";
+            point = hit.point,
+            normal = hit.normal,
+            onTerrain = !hit.collider.transform.IsChildOf(player.transform) && hit.collider is TerrainCollider,
+        };
+    }
+
+    // Where a storage pile would go if built now in front of the player, or why it can't be built there.
+    public bool CanBuildPile(PileKind kind, PlayerController player, out Vector3 position, out string reason)
+    {
+        position = Vector3.zero;
+        if (player == null)
+        {
+            reason = "Not available here.";
             return false;
         }
-        if (Animal.IsOverWater(hit.point, out _))
+
+        BuildSpot spot = ProbeAhead(kind, player);
+        if (!CanBuildPileAt(kind, player, spot, player.transform.eulerAngles.y, false, out reason))
+            return false;
+        position = spot.point;
+        return true;
+    }
+
+    // Every rule for building this kind at a given spot and facing. aimed only changes the wording of the ground messages
+    // ("in front of you" makes no sense for a spot you chose); the rules themselves are the same for the fixed probe and
+    // for Placement Mode, so a ghost can never disagree with the build. Facing is not a rule today (it is only saved).
+    public bool CanBuildPileAt(PileKind kind, PlayerController player, BuildSpot spot, float yaw, bool aimed, out string reason)
+    {
+        if (!CanStartBuild(kind, player, out reason))
+            return false;
+
+        bool cabin = kind == PileKind.CabinSite;
+        float spacing = cabin ? cabinFootprint : minSpacing;
+        if (!spot.onTerrain)
+        {
+            reason = aimed ? "No clear ground there." : "No clear ground in front of you.";
+            return false;
+        }
+        if (Animal.IsOverWater(spot.point, out _))
         {
             reason = "Can't build that in water.";
             return false;
         }
-        if (Vector3.Angle(hit.normal, Vector3.up) > maxSlope)
+        if (Vector3.Angle(spot.normal, Vector3.up) > maxSlope)
         {
-            reason = "The ground in front of you is too steep.";
+            reason = aimed ? "The ground there is too steep." : "The ground in front of you is too steep.";
             return false;
         }
-        if (cabin && FindTree(hit.point, cabinFootprint) >= 0)
+        if (cabin && FindTree(spot.point, cabinFootprint) >= 0)
         {
             reason = "Clear the trees off the building site first.";
             return false;
         }
         if (cabin)
         {
-            foreach (Collider nearby in Physics.OverlapSphere(hit.point, cabinFootprint, ~0, QueryTriggerInteraction.Ignore))
+            foreach (Collider nearby in Physics.OverlapSphere(spot.point, cabinFootprint, ~0, QueryTriggerInteraction.Ignore))
             {
                 if (nearby.GetComponent<Stump>() == null)
                     continue;
@@ -754,30 +841,49 @@ public class WoodManager : MonoBehaviour, ISaveable
                 return false;
             }
         }
+        // A Rain Barrel only goes at the eave of a finished Small Cabin's long wall.
+        bool rainBarrel = kind == PileKind.RainBarrel;
+        if (rainBarrel && !AtAnEave(spot.point, out _, out _))
+        {
+            reason = NotAtAnEaveReason;
+            return false;
+        }
         foreach (WoodPileState other in piles)
         {
+            if (rainBarrel && other.kind == PileKind.Cabin)
+                continue; // the eave band already keeps it off the wall; the 3.2 m cabin clearance would rule out every eave
             bool otherIsCabin = other.kind == PileKind.Cabin || other.kind == PileKind.CabinSite;
-            float clearance = Mathf.Max(spacing, otherIsCabin ? cabinFootprint : minSpacing);
-            if (Vector3.Distance(other.position, hit.point) < clearance)
+            float clearance = rainBarrel && other.kind == PileKind.RainBarrel
+                ? rainBarrelSpacing
+                : Mathf.Max(spacing, otherIsCabin ? cabinFootprint : minSpacing);
+            if (Vector3.Distance(other.position, spot.point) < clearance)
             {
                 reason = cabin ? "Too close to another pile or building." : "Too close to another pile.";
                 return false;
             }
         }
-        if (FireManager.Instance != null && FireManager.Instance.NearestLit(hit.point, spacing) != null)
+        if (FireManager.Instance != null && FireManager.Instance.NearestLit(spot.point, spacing) != null)
         {
             reason = "Too close to the fire.";
             return false;
         }
 
-        position = hit.point;
         reason = "";
         return true;
     }
 
+    // Builds it in front of the player (the fixed probe), facing the way the player does.
     public bool BuildPile(PileKind kind, PlayerController player)
     {
-        if (kind == PileKind.Felled || kind == PileKind.Cabin || !CanBuildPile(kind, player, out Vector3 position, out _))
+        if (player == null)
+            return false;
+        return BuildPile(kind, player, ProbeAhead(kind, player), player.transform.eulerAngles.y);
+    }
+
+    // Builds it at a chosen spot and facing, spending the materials only now.
+    public bool BuildPile(PileKind kind, PlayerController player, BuildSpot spot, float yaw)
+    {
+        if (kind == PileKind.Felled || kind == PileKind.Cabin || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
             return false;
 
         foreach (WoodStack c in CostOf(kind))
@@ -786,14 +892,143 @@ public class WoodManager : MonoBehaviour, ISaveable
         {
             id = nextPileId++,
             kind = kind,
-            position = position,
-            yaw = player.transform.eulerAngles.y,
+            position = spot.point,
+            yaw = yaw,
         };
         piles.Add(pile);
         SpawnPile(pile);
         PileChanged?.Invoke(pile);
         return true;
     }
+
+    // --- Rain Barrels (Water_System.md's Rainwater Collection) ---
+
+    // Whether a spot is at the eave of a finished Small Cabin's long wall, and which cabin and which slope (-1 left, +1 right
+    // of the ridge in the cabin's own space). A barrel's roof is found this way each hour rather than saved, so a dismantled
+    // cabin just means its barrels stop filling.
+    public bool AtAnEave(Vector3 spot, out WoodPileState cabin, out int side)
+    {
+        foreach (WoodPileState pile in piles)
+        {
+            if (pile.kind == PileKind.Cabin &&
+                RainCatchment.IsAtEave(pile.position, pile.yaw, spot, eaveMinOutside, eaveMaxOutside, out side))
+            {
+                cabin = pile;
+                return true;
+            }
+        }
+        cabin = null;
+        side = 0;
+        return false;
+    }
+
+    public const string NotAtAnEaveReason = "A Rain Barrel stands just outside a Small Cabin's long wall, under the roof's edge.";
+
+    // The bark material the piles and shelters are drawn with, for Placement Mode's ghosts.
+    public Material SharedBark => BarkMaterial();
+
+    // The spots a Rain Barrel snaps to along every finished cabin's two long walls within range of a point: in the middle of
+    // the eave band, one every rainBarrelSpacing metres along the roof's depth. Only the ground position (x, z) matters;
+    // the caller finds the ground height. Used by Placement Mode, which then asks CanBuildPileAt about each one.
+    public List<(Vector3 spot, int side, WoodPileState cabin)> EaveSpots(Vector3 near, float range)
+    {
+        var spots = new List<(Vector3 spot, int side, WoodPileState cabin)>();
+        float outside = Shelter.RoofEaveX + (eaveMinOutside + eaveMaxOutside) / 2f;
+        // A hair over the spacing rule's distance, so a barrel stood on one spot never fails the 1.2 m test against its neighbour
+        // through float rounding.
+        float step = rainBarrelSpacing + 0.02f;
+        int steps = Mathf.FloorToInt(Shelter.RoofPanelDepth / 2f / step);
+        foreach (WoodPileState pile in piles)
+        {
+            if (pile.kind != PileKind.Cabin || Vector3.Distance(pile.position, near) > range + Shelter.CabinDepth)
+                continue;
+            Quaternion turn = Quaternion.Euler(0f, pile.yaw, 0f);
+            foreach (int side in new[] { -1, 1 })
+            {
+                for (int k = -steps; k <= steps; k++)
+                {
+                    Vector3 spot = pile.position + turn * new Vector3(side * outside, 0f, k * step);
+                    if (Vector3.Distance(spot, near) <= range)
+                        spots.Add((spot, side, pile));
+                }
+            }
+        }
+        return spots;
+    }
+
+    // One game hour of weather has ended: if it rained, each roof slope sends its litres into the Rain Barrels beneath it,
+    // the first barrel (lowest id) first, overflowing to the next, and anything past the last full barrel is lost. Rain water
+    // is Good quality and, in version 1, does not spoil. Snow is not rain (RainMmPerHour is 0 for it). Whole litres only; the
+    // part of a litre left over carries to the next hour.
+    void CollectRain(WeatherType precipitation)
+    {
+        WeatherManager weather = WeatherManager.Instance;
+        float mm = weather != null ? weather.RainMmPerHour(precipitation) : 0f;
+        if (mm <= 0f)
+            return;
+
+        float slopeLitres = RainCatchment.LitresPerHour(mm, rainEfficiency);
+        string goodWater = WaterQualities.ItemId(WaterQuality.Good);
+        var remaining = new Dictionary<(int cabin, int side), float>();
+        foreach (WoodPileState barrel in piles)
+        {
+            if (barrel.kind != PileKind.RainBarrel || !AtAnEave(barrel.position, out WoodPileState cabin, out int side))
+                continue;
+
+            (int, int) slope = (cabin.id, side);
+            if (!remaining.TryGetValue(slope, out float pool))
+                pool = slopeLitres;
+            rainCarry.TryGetValue(barrel.id, out float carry);
+
+            float available = pool + carry;
+            int whole = Mathf.FloorToInt(available);
+            int taken = Mathf.Min(whole, Mathf.Max(0, rainBarrelLitres - barrel.Total));
+            if (taken > 0)
+            {
+                barrel.Add(goodWater, taken);
+                NotifyChanged(barrel); // redraws the water level
+            }
+
+            if (taken == whole)
+            {
+                rainCarry[barrel.id] = available - whole;
+                remaining[slope] = 0f;
+            }
+            else
+            {
+                rainCarry[barrel.id] = 0f;
+                remaining[slope] = available - taken; // this barrel is full: the rest runs on to the next
+            }
+        }
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Testing only (RainDebugControls): the Rain Barrel nearest a point within reach, or null.
+    public WoodPileState DebugNearestRainBarrel(Vector3 from, float reach)
+    {
+        WoodPileState best = null;
+        float bestDistance = reach;
+        foreach (WoodPileState pile in piles)
+        {
+            float d = Vector3.Distance(pile.position, from);
+            if (pile.kind == PileKind.RainBarrel && d <= bestDistance)
+            {
+                best = pile;
+                bestDistance = d;
+            }
+        }
+        return best;
+    }
+
+    // Testing only: sets a barrel to this many litres of Good water (0 empties it).
+    public void DebugSetBarrelLitres(WoodPileState barrel, int litres)
+    {
+        barrel.contents.Clear();
+        barrel.Add(WaterQualities.ItemId(WaterQuality.Good), Mathf.Clamp(litres, 0, CapacityOf(barrel.kind)));
+        rainCarry.Remove(barrel.id);
+        NotifyChanged(barrel);
+    }
+#endif
 
     // --- Completing a Small Cabin ---
 

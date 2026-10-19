@@ -195,12 +195,11 @@ public class FireManager : MonoBehaviour, ISaveable
 
     // --- Building ---
 
-    // Where a campfire would go if built now in front of the player, or why it can't be built there.
-    public bool CanBuild(PlayerController player, out Vector3 position, out string reason)
+    // Whether a campfire can be started at all — a player in the World and the Firewood or Sticks to pay for it — before any
+    // spot is looked at. The Craft and Build screen asks this to start Placement Mode.
+    public bool CanStartBuild(PlayerController player, out string reason)
     {
-        position = Vector3.zero;
-        InventoryContainer carried = Carried;
-        if (player == null || carried == null)
+        if (player == null || Carried == null)
         {
             reason = "Not available here.";
             return false;
@@ -212,37 +211,78 @@ public class FireManager : MonoBehaviour, ISaveable
             return false;
         }
 
+        reason = "";
+        return true;
+    }
+
+    // The old fixed spot: a probe the build distance ahead of the player and whatever it lands on.
+    BuildSpot ProbeAhead(PlayerController player)
+    {
         Vector3 forward = Vector3.ProjectOnPlane(player.transform.forward, Vector3.up).normalized;
         Vector3 probe = player.transform.position + forward * buildDistance + Vector3.up * 3f;
         if (!Physics.Raycast(probe, Vector3.down, out RaycastHit hit, 8f, ~0, QueryTriggerInteraction.Ignore) ||
             hit.collider.transform.IsChildOf(player.transform))
+            return new BuildSpot { point = probe, normal = Vector3.up, onTerrain = false };
+        return new BuildSpot
         {
-            reason = "No level ground in front of you.";
+            point = hit.point,
+            normal = hit.normal,
+            onTerrain = true, // for a campfire this means "something solid to stand on": it takes any ground, not only the terrain
+            inWaterSource = hit.collider.GetComponentInParent<WaterSource>() != null,
+        };
+    }
+
+    // Where a campfire would go if built now in front of the player, or why it can't be built there.
+    public bool CanBuild(PlayerController player, out Vector3 position, out string reason)
+    {
+        position = Vector3.zero;
+        if (player == null)
+        {
+            reason = "Not available here.";
             return false;
         }
 
-        if (hit.collider.GetComponentInParent<WaterSource>() != null)
+        BuildSpot spot = ProbeAhead(player);
+        if (!CanBuildAt(player, spot, false, out reason))
+            return false;
+        position = spot.point;
+        return true;
+    }
+
+    // Every rule for a campfire at a given spot. For this one onTerrain only means a solid surface was found (the old rule
+    // took any collider but the player's own); aimed only changes the wording of the ground messages.
+    public bool CanBuildAt(PlayerController player, BuildSpot spot, bool aimed, out string reason)
+    {
+        if (!CanStartBuild(player, out reason))
+            return false;
+
+        if (!spot.onTerrain)
+        {
+            reason = aimed ? "No level ground there." : "No level ground in front of you.";
+            return false;
+        }
+
+        if (spot.inWaterSource)
         {
             reason = "Can't build a fire in water.";
             return false;
         }
 
-        if (Vector3.Angle(hit.normal, Vector3.up) > maxSlope)
+        if (Vector3.Angle(spot.normal, Vector3.up) > maxSlope)
         {
-            reason = "The ground in front of you is too steep.";
+            reason = aimed ? "The ground there is too steep." : "The ground in front of you is too steep.";
             return false;
         }
 
         foreach (CampfireState fire in fires)
         {
-            if (Vector3.Distance(fire.position, hit.point) < minSpacing)
+            if (Vector3.Distance(fire.position, spot.point) < minSpacing)
             {
                 reason = "Too close to another campfire.";
                 return false;
             }
         }
 
-        position = hit.point;
         reason = "";
         return true;
     }
@@ -250,7 +290,15 @@ public class FireManager : MonoBehaviour, ISaveable
     // Builds an unlit campfire in front of the player, using up the Firewood as its first fuel.
     public bool Build(PlayerController player)
     {
-        if (!CanBuild(player, out Vector3 position, out _))
+        if (player == null)
+            return false;
+        return Build(player, ProbeAhead(player), player.transform.eulerAngles.y);
+    }
+
+    // Builds an unlit campfire at a chosen spot and facing, using up the Firewood as its first fuel.
+    public bool Build(PlayerController player, BuildSpot spot, float yaw)
+    {
+        if (!CanBuildAt(player, spot, true, out _))
             return false;
 
         string payment = BuildPayment(out int paid);
@@ -258,8 +306,8 @@ public class FireManager : MonoBehaviour, ISaveable
         var fire = new CampfireState
         {
             id = nextId++,
-            position = position,
-            yaw = player.transform.eulerAngles.y,
+            position = spot.point,
+            yaw = yaw,
             fuelHours = Mathf.Min(maxFuelHours, paid * BurnHours(payment)),
             lit = false,
         };
