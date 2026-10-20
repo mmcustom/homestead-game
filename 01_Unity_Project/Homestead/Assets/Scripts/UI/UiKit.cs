@@ -110,8 +110,9 @@ public static class UiKit
         button.colors = colors;
     }
 
-    // A vertically scrolling list. Add rows to the returned content; each row needs a LayoutElement height.
-    public static RectTransform ScrollList(Transform parent, string name, float spacing = 4f)
+    // A vertically scrolling list. Add rows to the returned content; each row needs a LayoutElement height. withScrollbar adds a
+    // slim bar down the right edge that shows only when the rows overflow.
+    public static RectTransform ScrollList(Transform parent, string name, float spacing = 4f, bool withScrollbar = false)
     {
         RectTransform viewport = Rect(name, parent);
         viewport.gameObject.AddComponent<RectMask2D>();
@@ -138,6 +139,28 @@ public static class UiKit
 
         scroll.viewport = viewport;
         scroll.content = content;
+
+        if (withScrollbar)
+        {
+            RectTransform bar = Rect("Scrollbar", viewport);
+            bar.anchorMin = new Vector2(1f, 0f);
+            bar.anchorMax = Vector2.one;
+            bar.pivot = new Vector2(1f, 0.5f);
+            bar.sizeDelta = new Vector2(10f, 0f);
+            bar.anchoredPosition = Vector2.zero;
+            var track = bar.gameObject.AddComponent<Image>();
+            track.color = new Color(0f, 0f, 0f, 0.35f);
+            RectTransform handle = Rect("Handle", bar);
+            handle.Fill();
+            var handleImage = handle.gameObject.AddComponent<Image>();
+            handleImage.color = new Color(Accent.r, Accent.g, Accent.b, 0.7f);
+            var scrollbar = bar.gameObject.AddComponent<Scrollbar>();
+            scrollbar.direction = Scrollbar.Direction.BottomToTop;
+            scrollbar.handleRect = handle;
+            scrollbar.targetGraphic = handleImage;
+            scroll.verticalScrollbar = scrollbar;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+        }
         return content;
     }
 

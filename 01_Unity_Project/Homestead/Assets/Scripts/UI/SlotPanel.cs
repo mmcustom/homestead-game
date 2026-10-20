@@ -4,26 +4,39 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // Save_System.md's Save Slots: the one slot panel, built in code in the game's UI look (like the main menu's difficulty
-// panel: an overlay with its own Canvas, sorted above everything). Three modes:
-//   Save    - from the pause menu: pick a slot to save to. The Autosave is never a manual save target, so it isn't listed.
-//   Load    - from the pause menu or the main menu: pick any slot, the Autosave included.
+// panel: an overlay with its own Canvas, sorted above everything). Two modes:
+//   Browse  - from the pause menu (inGame) or the main menu's Load Game: every slot at once, the Autosave on top. A filled slot
+//             has Load; in game every manual slot also has Save (the Autosave never does). No Save-or-Load pick first.
 //   NewGame - from the main menu after the difficulty step: pick the manual slot the new game will use.
-// Rows: slot number, name, in-game date and time, difficulty, when it was saved (or "Empty"). Each row has Save/Load/Select,
-// Copy (then pick the target slot) and Delete, every overwrite and delete behind a confirmation. Esc or Back closes
-// (or backs out of a copy or a confirmation). Save and Load never write or load anything themselves except Load, which
-// hands the slot to GameManager; Save and New Game report the chosen slot to the caller.
+// Rows: slot number, name (with a Current badge on the last slot saved to or loaded from), in-game date and time, difficulty,
+// when it was saved (or "Empty"), then Save/Load/Select, Copy (then pick the target slot) and Delete. Overwrites and deletes ask
+// first, except saving over the current slot or an empty one (SlotRules). Esc or Back closes (or backs out of a copy or a
+// confirmation). Load hands the slot to GameManager; Save and New Game report the chosen slot to the caller.
 public class SlotPanel : MonoBehaviour
 {
-    public enum Mode { Save, Load, NewGame }
+    public enum Mode { Browse, NewGame }
     enum View { Browse, CopyTarget }
 
     const float PanelWidth = 1500f;
     const float RowHeight = 52f;
     const float RowGap = 4f;
+    static readonly Color CurrentTint = new Color(0.3f, 0.38f, 0.22f, 0.6f);
+    static readonly Color SelectedTint = new Color(0.45f, 0.4f, 0.25f, 0.55f);
     const float HeaderHeight = 120f;
     const float FooterHeight = 76f;
     const int RowCount = SaveManager.ManualSlotCount + 1; // the manual slots and the Autosave
     const float InnerWidth = PanelWidth - 64f;
+
+    // Row columns (x from the row's left edge, 21 px text). Widths hold the longest values with room to spare: "Autumn 28, Year 10 · 23:59"
+    // is 262 px, "Homesteader" 129, "Oct 20, 10:25 AM" 167, "[CURRENT GAME]" at 18 px about 166. The badge has its own column so it
+    // can't run into the date. The four buttons start at ButtonsLeft and nothing else reaches past ColSaved + SavedWidth.
+    const float ColSlot = 12f, ColName = 52f, NameWidth = 140f;
+    const float ColBadge = 196f, BadgeWidth = 176f;
+    const float ColInGame = 378f, InGameWidth = 282f;
+    const float ColDifficulty = 666f, DifficultyWidth = 145f;
+    const float ColSaved = 816f, SavedWidth = 174f;
+    const float ButtonWidth = 90f, ButtonGap = 6f, ButtonMargin = 8f;
+    static float ButtonX(int fromRight) => InnerWidth - ButtonMargin - (fromRight + 1) * ButtonWidth - fromRight * ButtonGap;
 
     static bool open;
     static int closedFrame = -1;
@@ -34,22 +47,21 @@ public class SlotPanel : MonoBehaviour
 
     Mode mode;
     View view = View.Browse;
-    bool allowModeSwitch, warnUnsavedOnLoad, confirming;
-    string copySource;
+    bool inGame, confirming;
+    string copySource, selectedId, current;
+    Button selectedButton;
     Action<string> onPick;
     Action onClosed;
 
     RectTransform panel, rowsHost;
     Text titleLabel, messageLabel;
-    Button saveTab, loadTab;
     GameObject confirmLayer;
     Action confirmYes;
 
     // underCanvas is anything inside the canvas to cover. onPick receives the slot for Save and NewGame; onClosed runs when the
-    // player backs out without choosing. allowModeSwitch shows the Save/Load tabs (the pause menu); warnUnsavedOnLoad asks
-    // before loading over a running game.
-    public static SlotPanel Open(Transform underCanvas, Mode mode, bool allowModeSwitch, bool warnUnsavedOnLoad,
-                                 Action<string> onPick, Action onClosed)
+    // player backs out without choosing. inGame (the pause menu) offers Save, marks the current slot, and asks before loading over
+    // a running game.
+    public static SlotPanel Open(Transform underCanvas, Mode mode, bool inGame, Action<string> onPick, Action onClosed)
     {
         if (open || SaveManager.Instance == null)
             return null;
@@ -67,8 +79,8 @@ public class SlotPanel : MonoBehaviour
 
         var slotPanel = shade.gameObject.AddComponent<SlotPanel>();
         slotPanel.mode = mode;
-        slotPanel.allowModeSwitch = allowModeSwitch;
-        slotPanel.warnUnsavedOnLoad = warnUnsavedOnLoad;
+        slotPanel.inGame = inGame;
+        slotPanel.SelectInitial();
         slotPanel.onPick = onPick;
         slotPanel.onClosed = onClosed;
         slotPanel.Build();
@@ -115,16 +127,8 @@ public class SlotPanel : MonoBehaviour
         titleLabel = UiKit.Text(panel, "Title", "", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
         Place(titleLabel.rectTransform, 32f, 14f, 800f, 54f);
 
-        if (allowModeSwitch)
-        {
-            saveTab = UiKit.Button(panel, "Save Tab", "Save", 22, () => SwitchMode(Mode.Save));
-            Place((RectTransform)saveTab.transform, PanelWidth - 32f - 2 * 150f - 10f, 18f, 150f, 46f);
-            loadTab = UiKit.Button(panel, "Load Tab", "Load", 22, () => SwitchMode(Mode.Load));
-            Place((RectTransform)loadTab.transform, PanelWidth - 32f - 150f, 18f, 150f, 46f);
-        }
-
         string[] heads = { "Slot", "Name", "In game", "Difficulty", "Saved" };
-        float[] xs = { 32f + 14f, 32f + 80f, 32f + 330f, 32f + 700f, 32f + 850f };
+        float[] xs = { 32f + ColSlot, 32f + ColName, 32f + ColInGame, 32f + ColDifficulty, 32f + ColSaved };
         for (int i = 0; i < heads.Length; i++)
             Place(UiKit.Text(panel, heads[i], heads[i], 18, UiKit.Muted, TextAnchor.MiddleLeft).rectTransform, xs[i], 82f, 300f, 30f);
 
@@ -146,6 +150,26 @@ public class SlotPanel : MonoBehaviour
         rt.anchoredPosition = new Vector2(x, -y);
     }
 
+    // The row to start on (see SlotRules.PreSelect). In game: the current slot, else the first empty manual slot, else nothing.
+    // New Game: the first empty slot. Main menu Load: the current slot, else the Autosave if it holds a save.
+    void SelectInitial()
+    {
+        SaveManager saves = SaveManager.Instance;
+        current = saves.CurrentSlot;
+        var exists = new bool[SaveManager.ManualSlotCount];
+        for (int i = 0; i < exists.Length; i++)
+            exists[i] = saves.SlotExists(SaveManager.SlotId(i + 1));
+
+        if (mode == Mode.NewGame)
+            selectedId = IdFor(SlotRules.PreSelect(null, exists));
+        else if (inGame)
+            selectedId = IdFor(SlotRules.PreSelect(current, exists));
+        else
+            selectedId = current ?? (saves.SlotExists(SaveManager.AutosaveId) ? SaveManager.AutosaveId : null);
+    }
+
+    static string IdFor(int number) => number > 0 ? SaveManager.SlotId(number) : null;
+
     void Refresh()
     {
         SaveManager saves = SaveManager.Instance;
@@ -153,77 +177,94 @@ public class SlotPanel : MonoBehaviour
             return;
 
         UiKit.Clear(rowsHost);
+        selectedButton = null;
+        current = saves.CurrentSlot;
         bool copying = view == View.CopyTarget;
 
         titleLabel.text = copying ? $"Copy {saves.GetSlotInfo(copySource).Name} to which slot?"
-                        : mode == Mode.Save ? "Save Game"
-                        : mode == Mode.Load ? "Load Game"
-                        : "Choose a slot for your new game";
-        if (allowModeSwitch)
-        {
-            UiKit.SetSelected(saveTab, mode == Mode.Save);
-            UiKit.SetSelected(loadTab, mode == Mode.Load);
-        }
+                        : mode == Mode.NewGame ? "Choose a slot for your new game"
+                        : inGame ? "Save / Load" : "Load Game";
 
         float y = 0f;
+        // The Autosave sits on top: a place to load from or copy out of, never a save target.
+        if (mode == Mode.Browse && !copying || copying && copySource == SaveManager.AutosaveId)
+        {
+            BuildRow(saves.GetSlotInfo(SaveManager.AutosaveId), y, copying);
+            y += RowHeight + RowGap;
+        }
         for (int number = 1; number <= SaveManager.ManualSlotCount; number++)
         {
             BuildRow(saves.GetSlotInfo(SaveManager.SlotId(number)), y, copying);
             y += RowHeight + RowGap;
         }
 
-        // The Autosave is a place to load from or copy out of, never a save target.
-        if (mode == Mode.Load && !copying || copying && copySource == SaveManager.AutosaveId)
-            BuildRow(saves.GetSlotInfo(SaveManager.AutosaveId), y, copying);
+        if (selectedButton != null && UnityEngine.EventSystems.EventSystem.current != null)
+            UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(selectedButton.gameObject);
     }
 
     void BuildRow(SaveManager.SlotInfo info, float y, bool copying)
     {
-        SaveManager saves = SaveManager.Instance;
         bool isSource = copying && info.Id == copySource;
-        Image row = UiKit.Image(rowsHost, info.Id + " Row", isSource ? new Color(0.3f, 0.36f, 0.24f, 0.5f) : new Color(0f, 0f, 0f, 0.25f));
+        bool isCurrent = inGame && (info.IsAutosave ? SlotRules.AutosaveIsCurrent(true, current) : info.Id == current);
+        bool isSelected = !copying && info.Id == selectedId;
+        Color tint = isSource ? new Color(0.3f, 0.36f, 0.24f, 0.5f) : isCurrent ? CurrentTint : isSelected ? SelectedTint : new Color(0f, 0f, 0f, 0.25f);
+        Image row = UiKit.Image(rowsHost, info.Id + " Row", tint);
         Place(row.rectTransform, 0f, y, InnerWidth, RowHeight);
 
-        bool active = info.Id == saves.ActiveSlot;
         Color nameColor = info.Exists ? UiKit.Cream : UiKit.Muted;
-        AddCell(row, info.IsAutosave ? "A" : SaveManager.SlotNumber(info.Id).ToString(), 14f, 60f, UiKit.Muted);
-        AddCell(row, info.Name + (active ? "  <color=#C7D68C>• current</color>" : ""), 80f, 250f, nameColor);
+        string badge = isCurrent ? (info.IsAutosave ? "[CURRENT GAME]" : "[CURRENT]") : "";
+        AddCell(row, info.IsAutosave ? "A" : SaveManager.SlotNumber(info.Id).ToString(), ColSlot, 36f, UiKit.Muted);
+        Text nameCell = AddCell(row, info.Name, ColName, NameWidth, nameColor);
+        nameCell.horizontalOverflow = HorizontalWrapMode.Wrap; // a long name wraps and clips inside its column
+        nameCell.verticalOverflow = VerticalWrapMode.Truncate;
+        if (badge.Length > 0)
+            AddCell(row, badge, ColBadge, BadgeWidth, new Color(0.78f, 0.84f, 0.55f), 18);
         if (info.Exists)
         {
-            AddCell(row, info.InGame, 330f, 370f, UiKit.Cream);
-            AddCell(row, info.Difficulty, 700f, 150f, UiKit.Cream);
-            AddCell(row, info.SavedAtLocal, 850f, 220f, UiKit.Cream);
+            AddCell(row, info.InGame, ColInGame, InGameWidth, UiKit.Cream);
+            AddCell(row, info.Difficulty, ColDifficulty, DifficultyWidth, UiKit.Cream);
+            AddCell(row, info.SavedAtLocal, ColSaved, SavedWidth, UiKit.Cream);
         }
         else
         {
-            AddCell(row, "Empty", 330f, 370f, UiKit.Muted);
+            AddCell(row, "Empty", ColInGame, InGameWidth, UiKit.Muted);
         }
 
-        // Buttons, right to left: the main action, Copy, Delete.
-        float x = InnerWidth - 8f - 100f;
+        // Buttons, right to left: Delete, Copy, Load (or Select), Save. All on this one row, inside the panel.
         if (copying)
         {
             if (!isSource && !info.IsAutosave)
-                AddButton(row, "Copy here", InnerWidth - 8f - 150f, 150f, () => OnCopyTarget(info));
+                AddButton(row, "Copy here", InnerWidth - ButtonMargin - 150f, 150f, () => OnCopyTarget(info));
             return;
         }
 
         if (info.Exists && !info.IsAutosave)
-            AddButton(row, "Delete", x, 100f, () => OnDelete(info));
-        if (info.Exists && mode != Mode.NewGame)
-            AddButton(row, "Copy", x - 108f, 100f, () => OnCopy(info));
+            AddButton(row, "Delete", ButtonX(0), ButtonWidth, () => OnDelete(info));
+        if (info.Exists && mode == Mode.Browse)
+            AddButton(row, "Copy", ButtonX(1), ButtonWidth, () => OnCopy(info));
 
-        string primary = mode == Mode.Save ? "Save" : mode == Mode.Load ? "Load" : "Select";
-        bool offered = !(mode != Mode.Load && info.IsAutosave) && (mode != Mode.Load || info.Exists);
-        if (offered)
-            AddButton(row, primary, x - 246f, 130f, () => OnPrimary(info));
+        Button primary = null;
+        if (mode == Mode.NewGame)
+        {
+            primary = AddButton(row, "Select", ButtonX(2) - 20f, ButtonWidth + 20f, () => OnSelectForNewGame(info));
+        }
+        else
+        {
+            if (info.Exists)
+                primary = AddButton(row, "Load", ButtonX(2), ButtonWidth, () => OnLoad(info));
+            if (inGame && !info.IsAutosave)
+                primary = AddButton(row, "Save", ButtonX(3), ButtonWidth, () => OnSave(info));
+        }
+        if (isSelected && primary != null)
+            selectedButton = primary;
     }
 
-    static void AddCell(Image row, string text, float x, float width, Color color)
+    static Text AddCell(Image row, string text, float x, float width, Color color, int size = 21)
     {
-        Text cell = UiKit.Text(row.transform, "Cell", text, 21, color, TextAnchor.MiddleLeft);
+        Text cell = UiKit.Text(row.transform, "Cell", text, size, color, TextAnchor.MiddleLeft);
         cell.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(cell.rectTransform, x, 0f, width, RowHeight);
+        return cell;
     }
 
     static Button AddButton(Image row, string label, float x, float width, UnityEngine.Events.UnityAction click)
@@ -235,31 +276,37 @@ public class SlotPanel : MonoBehaviour
 
     // --- Actions ---
 
-    void SwitchMode(Mode newMode)
+    void OnLoad(SaveManager.SlotInfo info)
     {
-        if (mode == newMode)
-            return;
-
         Play(SoundCue.UiClick);
-        mode = newMode;
-        view = View.Browse;
-        messageLabel.text = "";
-        Refresh();
+        selectedId = info.Id;
+        if (inGame)
+            Confirm($"Load {info.Name}?\nUnsaved progress in the current game will be lost.", () => DoLoad(info.Id));
+        else
+            DoLoad(info.Id);
     }
 
-    void OnPrimary(SaveManager.SlotInfo info)
+    // Saving over the current slot or an empty one is one click; any other filled slot asks first, with its details.
+    void OnSave(SaveManager.SlotInfo info)
     {
         Play(SoundCue.UiClick);
-        if (mode == Mode.Load)
+        selectedId = info.Id;
+        ConfirmOverwriteThenPick(info);
+    }
+
+    void OnSelectForNewGame(SaveManager.SlotInfo info)
+    {
+        Play(SoundCue.UiClick);
+        selectedId = info.Id;
+        ConfirmOverwriteThenPick(info);
+    }
+
+    void ConfirmOverwriteThenPick(SaveManager.SlotInfo info)
+    {
+        if (SlotRules.NeedsOverwriteConfirm(info.Exists, info.Id, inGame ? current : null))
         {
-            if (warnUnsavedOnLoad)
-                Confirm($"Load {info.Name}?\nUnsaved progress in the current game will be lost.", () => DoLoad(info.Id));
-            else
-                DoLoad(info.Id);
-        }
-        else if (info.Exists)
-        {
-            Confirm($"Overwrite {info.Name}?\nIts current save will be replaced.", () => DoPick(info.Id));
+            string details = info.InGame.Length > 0 ? $" ({info.InGame})" : "";
+            Confirm($"Overwrite {info.Name}{details}?", () => DoPick(info.Id));
         }
         else
         {

@@ -25,6 +25,9 @@ public static class StructureVisuals
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.Kitchen: BuildKitchen(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Countertop: BuildCountertop(parent, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.Grill: BuildGrill(parent, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.SlopSink: BuildSlopSink(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             default: BuildSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
         }
     }
@@ -150,8 +153,6 @@ public static class StructureVisuals
     static void BuildKitchen(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
     {
         const float postX = Setbacks.KitchenLayout.HalfWidth - 0.15f, postZ = Setbacks.KitchenLayout.HalfDepth - 0.15f, top = Setbacks.KitchenLayout.RoofHeight;
-        var wood = new Color(0.33f, 0.25f, 0.17f);
-
         Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f, 0f), Vector3.zero, new Vector3(postX * 2f, 0.01f, postZ * 2f), null), SoilColor);
         BuildKitchenHearth(parent, pieces, random);
 
@@ -174,13 +175,88 @@ public static class StructureVisuals
             Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, top + (z > 0f ? 0.1f : -0.02f), z), new Vector3(0f, 0f, 90f), new Vector3(0.16f, postX, 0.16f), bark);
 
         // Prep table at the back right, clear of the fire.
-        Vector3 table = new Vector3(0.95f, 0f, -postZ + 0.35f);
-        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(table.x, 0.85f, table.z), Vector3.zero, new Vector3(1.1f, 0.07f, 0.6f), bark), wood));
-        foreach (Vector2 leg in new[] { new Vector2(-0.48f, -0.24f), new Vector2(0.48f, -0.24f), new Vector2(-0.48f, 0.24f), new Vector2(0.48f, 0.24f) })
-            Solid(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(table.x + leg.x, 0.41f, table.z + leg.y), Vector3.zero, new Vector3(0.07f, 0.82f, 0.07f), bark));
+        WorkTable(parent, pieces, bark, new Vector3(0.95f, 0f, -postZ + 0.35f), 1.1f, 0.6f, 0.85f, true);
 
         boxCenter = new Vector3(0f, top / 2f, 0f);
         boxSize = new Vector3(0.1f, 0.1f, 0.1f); // unused: the finished kitchen's own pieces are what is aimed at and bumped into
+    }
+
+    // A work table: a plank top on four legs, centred at (at.x, at.z) with its top at topY. The finished kitchen's prep table (solid: it is the
+    // kitchen's own collider) and the Countertop (not solid: the Countertop has its own interaction box) are both drawn with it.
+    static void WorkTable(Transform parent, List<GameObject> pieces, Material bark, Vector3 at, float width, float depth, float topY, bool solid)
+    {
+        var wood = new Color(0.33f, 0.25f, 0.17f);
+        GameObject top = Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(at.x, topY, at.z), Vector3.zero, new Vector3(width, 0.07f, depth), bark), wood);
+        if (solid)
+            Solid(top);
+        float legHeight = topY - 0.03f;
+        foreach (Vector2 leg in new[] { new Vector2(-1f, -1f), new Vector2(1f, -1f), new Vector2(-1f, 1f), new Vector2(1f, 1f) })
+        {
+            GameObject post = Piece(parent, pieces, PrimitiveType.Cube,
+                                    new Vector3(at.x + leg.x * (width / 2f - 0.07f), legHeight / 2f, at.z + leg.y * (depth / 2f - 0.06f)), Vector3.zero,
+                                    new Vector3(0.07f, legHeight, 0.07f), bark);
+            if (solid)
+                Solid(post);
+        }
+    }
+
+    // --- Kitchen add-ons, batch 1. Each is drawn about its slot's middle, facing local +Z (the middle of the kitchen), 0.88 m wide and
+    // 0.5 m deep at most, and every collider stays under 1.5 m so it never reads as a roof to OverheadCover (shelter, shade, Bow Drill cover). ---
+
+    // A work surface about 0.9 m high with a lower board, a back lip and a chopping board on top.
+    static void BuildCountertop(Transform parent, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        WorkTable(parent, pieces, bark, Vector3.zero, 0.88f, 0.5f, 0.9f, false);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.3f, 0f), Vector3.zero, new Vector3(0.78f, 0.04f, 0.42f), bark), new Color(0.3f, 0.23f, 0.15f));
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.97f, -0.23f), Vector3.zero, new Vector3(0.88f, 0.1f, 0.04f), bark), new Color(0.33f, 0.25f, 0.17f));
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.15f, 0.945f, 0.02f), new Vector3(0f, 8f, 0f), new Vector3(0.36f, 0.025f, 0.24f), null), new Color(0.55f, 0.43f, 0.28f));
+
+        boxCenter = new Vector3(0f, 0.5f, 0f);
+        boxSize = new Vector3(0.88f, 1f, 0.5f);
+    }
+
+    // A stone-and-clay firebox with a flat stone top either side of the fire (the fire itself is a second Campfire, FireManager, standing on the
+    // firebox at WoodManager.GrillFireSpot) and a rack of green sticks over it. The collider is the firebox only, so the fire above has its own.
+    static void BuildGrill(Transform parent, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float height = WoodManager.GrillFireHeight;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, height / 2f, 0f), Vector3.zero, new Vector3(0.88f, height, 0.5f), null), ClayColor);
+        foreach (float x in new[] { -0.33f, 0.33f })
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(x, height + 0.015f, 0f), Vector3.zero, new Vector3(0.2f, 0.03f, 0.5f), null), SlabColor); // flat stone top
+        foreach (float x in new[] { -0.44f, 0.44f })
+            for (int i = 0; i < 2; i++)
+                Stone(parent, pieces, new Vector3(x, 0.07f, -0.17f + i * 0.34f), 0.2f, random);
+
+        // The rack: two forked posts either side of the fire and green sticks laid across them.
+        var green = new Color(0.34f, 0.4f, 0.2f);
+        foreach (float x in new[] { -0.4f, 0.4f })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(x, height + 0.17f, 0.18f), Vector3.zero, new Vector3(0.04f, 0.17f, 0.04f), bark);
+        for (int i = 0; i < 5; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, height + 0.32f, -0.12f + i * 0.08f), new Vector3(0f, 0f, 90f), new Vector3(0.025f, 0.43f, 0.025f), bark), green);
+
+        boxCenter = new Vector3(0f, height / 2f, 0f);
+        boxSize = new Vector3(0.88f, height, 0.5f);
+    }
+
+    // A work-height table with a clay basin sunk in the top: a rim of boards, the water showing at its level, and a spout at the front.
+    static void BuildSlopSink(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        WorkTable(parent, pieces, bark, Vector3.zero, 0.88f, 0.5f, 0.85f, false);
+        var wood = new Color(0.33f, 0.25f, 0.17f);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.895f, 0f), Vector3.zero, new Vector3(0.64f, 0.03f, 0.36f), null), ClayColor);
+        foreach (float z in new[] { -0.19f, 0.19f })
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.93f, z), Vector3.zero, new Vector3(0.7f, 0.1f, 0.04f), bark), wood);
+        foreach (float x in new[] { -0.33f, 0.33f })
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(x, 0.93f, 0f), Vector3.zero, new Vector3(0.04f, 0.1f, 0.4f), bark), wood);
+
+        int capacity = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.slopSinkLitres : 20;
+        float fill = Mathf.Clamp01(state.Total / (float)Mathf.Max(1, capacity));
+        if (fill > 0f)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.905f + 0.03f * fill, 0f), Vector3.zero, new Vector3(0.6f, 0.004f, 0.32f), null), WaterColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.8f, 0.28f), new Vector3(90f, 0f, 0f), new Vector3(0.05f, 0.05f, 0.05f), null), ClayColor); // drain spout
+
+        boxCenter = new Vector3(0f, 0.5f, 0f);
+        boxSize = new Vector3(0.88f, 1f, 0.5f);
     }
 
     // A stone-lined shaft with the water showing at its level, two posts, a windlass beam and a small plank roof.
@@ -338,6 +414,9 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             {
                 case PileKind.Well: return WellPrompt();
                 case PileKind.Kitchen: return KitchenPrompt();
+                case PileKind.Countertop: return Name + "\nA work surface under the kitchen roof - nothing to do at it yet";
+                case PileKind.Grill: return GrillPrompt();
+                case PileKind.SlopSink: return SinkPrompt();
                 default: return OuthousePrompt();
             }
         }
@@ -407,6 +486,131 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
 
     string KitchenPrompt() => $"{Name}  ({KitchenFire()})\nCook and boil water at the fire; a meal eaten under the roof is a sheltered meal";
 
+    // --- Kitchen add-ons: the Wood-Fired Grill and the Slop Sink ---
+
+    string GrillFire()
+    {
+        CampfireState fire = WoodManager.Instance != null ? WoodManager.Instance.GrillFireOf(state) : null;
+        if (fire == null)
+            return "no fire";
+        return fire.lit ? $"lit, {fire.fuelHours:0.#} h of fuel" : fire.fuelHours > 0f ? $"out, {fire.fuelHours:0.#} h of fuel" : "out";
+    }
+
+    string GrillPrompt() => $"{Name}  ({GrillFire()})\nLight and feed the fire on top; cook meat and fish at it from the Inventory";
+
+    // Water in the sink is kept by quality in the pile's contents, like a barrel's; best quality first when drawn.
+    static readonly string[] WaterOrder = { Cooking.PurifiedWaterId, "water_excellent", "water_good", "water_questionable", "water_unsafe" };
+    static float lastDrainTime = -10f;
+
+    int SinkCapacity => WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(PileKind.SlopSink) : 20;
+
+    static int ContainerRoom() =>
+        Inventory == null ? 0 : Mathf.Max(0, WaterQualities.Capacity(Inventory.Player) - WaterQualities.LitresCarried(Inventory.Player));
+
+    string SinkPrompt()
+    {
+        int litres = state.Total;
+        if (litres <= 0)
+            return $"{Name}  (empty, holds {SinkCapacity} L)";
+        return ContainerRoom() > 0 ? $"Draw water  ({litres} of {SinkCapacity} L in the {Name})" : $"{Name}  ({litres} of {SinkCapacity} L of water)";
+    }
+
+    string SinkSecondaryPrompt()
+    {
+        int carried = Inventory != null ? WaterQualities.LitresCarried(Inventory.Player) : 0;
+        int room = SinkCapacity - state.Total;
+        if (carried > 0 && room > 0)
+            return $"Pour In Water  ({Mathf.Min(room, carried)} L)";
+        if (state.Total > 0)
+            return $"Drain the {Name}  (empties it onto the ground)";
+        return WoodManager.HammerEquipped ? $"Dismantle the {Name}  ({RefundText()})"
+                                          : $"Dismantle the {Name}  (needs the Hammer; half the materials back, rounded down)";
+    }
+
+    // E: fills the carried Buckets and Canteens, best quality first, as the Water Barrel does.
+    void DrawFromSink()
+    {
+        if (state.Total <= 0)
+        {
+            ToolStatus.Flash($"The {Name} is empty.", 2.5f);
+            return;
+        }
+        int room = ContainerRoom();
+        if (room <= 0)
+        {
+            ToolStatus.Flash(WaterQualities.Capacity(Inventory.Player) > 0 ? "Your water containers are full." : "Needs a Bucket or Canteen to carry water.", 3f);
+            return;
+        }
+
+        int drawn = 0;
+        foreach (string id in WaterOrder)
+        {
+            if (room <= 0)
+                break;
+            ItemDefinition water = ItemDatabase.Get(id);
+            int n = water != null ? Mathf.Min(Mathf.Min(room, state.Count(id)), Inventory.Player.SpaceFor(water)) : 0;
+            if (n <= 0)
+                continue;
+            int added = Inventory.AddToPlayer(id, n);
+            state.Take(id, added);
+            room -= added;
+            drawn += added;
+        }
+        if (drawn <= 0)
+        {
+            ToolStatus.Flash("Too heavy - no room to carry any of it", 3f);
+            return;
+        }
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash($"Filled {drawn} L from the {Name}  ({state.Total} L left)", 3f);
+    }
+
+    // R: pours carried water in (up to the cap), else drains what is in it onto the ground, else (empty) dismantles it with the Hammer.
+    void SinkSecondary()
+    {
+        int carried = WaterQualities.LitresCarried(Inventory.Player);
+        int room = SinkCapacity - state.Total;
+        if (carried > 0 && room > 0)
+        {
+            int poured = 0;
+            foreach (string id in WaterOrder)
+            {
+                if (room <= 0)
+                    break;
+                int n = Mathf.Min(room, Inventory.Player.Count(id));
+                if (n <= 0)
+                    continue;
+                int removed = Inventory.RemoveFromPlayer(id, n);
+                state.Add(id, removed);
+                room -= removed;
+                poured += removed;
+            }
+            if (poured > 0)
+            {
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.Play(SoundCue.Pour);
+                WoodManager.Instance.NotifyChanged(state);
+                ToolStatus.Flash($"Poured in {poured} L - the {Name} holds {state.Total} L", 3f);
+            }
+            return;
+        }
+
+        if (state.Total > 0)
+        {
+            state.contents.Clear();
+            lastDrainTime = Time.unscaledTime;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.Play(SoundCue.Pour);
+            WoodManager.Instance.NotifyChanged(state);
+            ToolStatus.Flash($"Drained the {Name}.", 3f);
+            return;
+        }
+
+        if (Time.unscaledTime - lastDrainTime < 1.5f)
+            return; // the press that drained it must not also take the empty sink down
+        Dismantle();
+    }
+
     string WellPrompt()
     {
         WellsAndOuthouses w = Rules;
@@ -444,6 +648,14 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                     ? (WoodManager.HammerEquipped ? "Dismantle the hearth  (half the Stone and Clay back, rounded down; the fire must be out)" : "Dismantle the hearth  (needs the Hammer)")
                     : "";
             }
+            if (state.kind == PileKind.SlopSink)
+                return SinkSecondaryPrompt();
+            if (state.kind == PileKind.Grill)
+            {
+                CampfireState fire = WoodManager.Instance.GrillFireOf(state);
+                if (fire != null && fire.lit)
+                    return $"Dismantle the {Name}  (put its fire out first)";
+            }
             return WoodManager.HammerEquipped ? $"Dismantle the {Name}  ({RefundText()})"
                                               : $"Dismantle the {Name}  (needs the Hammer; half the materials back, rounded down)";
         }
@@ -474,6 +686,9 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             case PileKind.Well: DrawWater(player); break;
             case PileKind.Kitchen: ToolStatus.Flash($"{Name}: {KitchenFire()}. Light it, feed it and cook at the fire itself.", 3.5f); break;
+            case PileKind.Countertop: ToolStatus.Flash($"{Name}: a work surface under the roof. Nothing to do at it yet.", 3f); break;
+            case PileKind.Grill: ToolStatus.Flash($"{Name}: {GrillFire()}. Light it, feed it and cook at the fire on top.", 3.5f); break;
+            case PileKind.SlopSink: DrawFromSink(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -630,6 +845,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             else
                 StoreMaterials();
         }
+        else if (state.kind == PileKind.SlopSink)
+        {
+            SinkSecondary();
+        }
         else
         {
             Dismantle();
@@ -698,6 +917,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     // Hammer Dismantle for the Well and the Outhouse: half of each cost line back, rounded down (so a single item refunds nothing).
     void Dismantle()
     {
+        if (state.IsKitchenAddon)
+        {
+            // Hammer in hand; a grill must be out and a sink empty. WoodManager says why not, or what came back.
+            ToolStatus.Flash(WoodManager.Instance.DismantleAddon(state, transform), 5f);
+            return;
+        }
         if (state.IsKitchen)
         {
             // Hammer in hand, hearth out (and a hearth site's roof timber taken back): WoodManager says why not, or what came back.

@@ -181,6 +181,91 @@ public static class Setbacks
         }
 
         public static Vector3 HearthAt(Vector3 pivot, float yawDegrees) => pivot + Quaternion.Euler(0f, yawDegrees, 0f) * HearthLocal;
+
+        // --- Add-on slots (Kitchen add-ons, batch 1) ---
+        // Four fixed, generic slots under the roof: two along the +X wall and two along the -X wall, every item facing the
+        // middle. Each is SlotHalfWidth * 2 along the wall and SlotHalfDepth * 2 deep, which keeps clear of the posts, the hearth slab
+        // (x -1.1 to 0.4, z -0.6 to 0.9) and the prep table (x 0.4 to 1.5, z -1.3 to -0.7), leaves the open front (+Z) and the aisle from it
+        // to the hearth free, and puts every slot more than SlotMinHearthGap from the hearth fire so KitchenHearthOf never mistakes a
+        // grill's fire for the hearth. A slot is just a position: an add-on stands in one if its position is within SlotTolerance of it.
+        public const int SlotCount = 4;
+        public const float SlotHalfWidth = 0.44f;
+        public const float SlotHalfDepth = 0.25f;
+        public const float SlotTolerance = 0.3f;
+        public const float SlotMinHearthGap = 0.75f;
+
+        static readonly Vector3[] SlotLocal =
+        {
+            new Vector3(1.15f, 0f, 0.78f),    // 0: +X wall, front (the player's left, near the entrance)
+            new Vector3(1.15f, 0f, -0.2f),    // 1: +X wall, back (the player's left, toward the back; beside the prep table)
+            new Vector3(-1.37f, 0f, 0.80f),   // 2: -X wall, front (the player's right, near the entrance)
+            new Vector3(-1.37f, 0f, -0.12f),  // 3: -X wall, back (the player's right, toward the back; beside the hearth wall)
+        };
+
+        // What the player calls each slot, standing at the open front (+Z) and looking in toward the back (-Z): local +X is then
+        // their left. Relative to the kitchen, so it holds however the kitchen is turned.
+        static readonly string[] SlotLabels = { "left, near the entrance", "left, toward the back", "right, near the entrance", "right, toward the back" };
+
+        public static string SlotLabel(int index) => SlotLabels[Mathf.Clamp(index, 0, SlotLabels.Length - 1)];
+
+        // The way an item in each slot faces, in the kitchen's own space (its local +Z points at the middle of the kitchen).
+        static readonly float[] SlotYawLocal = { -90f, -90f, 90f, 90f };
+
+        public static Vector3 SlotLocalPosition(int index) => SlotLocal[index];
+
+        // Where slot index stands in the world for a kitchen at pivot with the given yaw (degrees). Height is the pivot's; callers find the ground.
+        public static Vector3 SlotAt(Vector3 pivot, float yawDegrees, int index) => pivot + Quaternion.Euler(0f, yawDegrees, 0f) * SlotLocal[index];
+
+        // The yaw (degrees) an add-on standing in slot index is built with.
+        public static float SlotYaw(float kitchenYawDegrees, int index) => Mathf.Repeat(kitchenYawDegrees + SlotYawLocal[index], 360f);
+
+        static float Flat(Vector3 a, Vector3 b) => Vector2.Distance(new Vector2(a.x, a.z), new Vector2(b.x, b.z));
+
+        // The slot a point stands in (within SlotTolerance of its centre, level ground ignored), or -1.
+        public static int SlotIndexOf(Vector3 pivot, float yawDegrees, Vector3 point, float tolerance = SlotTolerance)
+        {
+            int best = -1;
+            float bestDistance = tolerance;
+            for (int i = 0; i < SlotCount; i++)
+            {
+                float d = Flat(SlotAt(pivot, yawDegrees, i), point);
+                if (d <= bestDistance)
+                {
+                    best = i;
+                    bestDistance = d;
+                }
+            }
+            return best;
+        }
+
+        // The slot nearest a point that nothing stands in (occupied holds the positions of the add-ons already there), or -1 when all four
+        // are taken. distance is how far that slot is from the point.
+        public static int NearestFreeSlot(Vector3 pivot, float yawDegrees, Vector3 point, IList<Vector3> occupied, out float distance)
+        {
+            int best = -1;
+            distance = float.MaxValue;
+            for (int i = 0; i < SlotCount; i++)
+            {
+                Vector3 slot = SlotAt(pivot, yawDegrees, i);
+                bool taken = false;
+                if (occupied != null)
+                    foreach (Vector3 other in occupied)
+                        if (Flat(slot, other) <= SlotTolerance)
+                            taken = true;
+                if (taken)
+                    continue;
+                float d = Flat(slot, point);
+                if (d < distance)
+                {
+                    best = i;
+                    distance = d;
+                }
+            }
+            return best;
+        }
+
+        // Metres from a slot's centre to the hearth fire, for the rule that no slot sits within SlotMinHearthGap of it.
+        public static float SlotToHearth(int index) => Flat(SlotLocal[index], HearthLocal);
     }
 
     // An existing Well that a privy or pen has ended up too close to (or uphill of), say because the outhouse was built after it

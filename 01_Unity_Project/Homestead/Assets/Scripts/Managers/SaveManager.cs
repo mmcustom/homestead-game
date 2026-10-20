@@ -57,6 +57,7 @@ public class SaveManager : MonoBehaviour
         public string season;
         public string difficulty;
         public string savedAtUtc;
+        public string lastSlot; // the current slot when this was saved (SlotRules); empty on a save from before it existed
     }
 
     [Serializable]
@@ -73,6 +74,7 @@ public class SaveManager : MonoBehaviour
         public bool Exists;
         public string InGame = "";
         public string Difficulty = "";
+        public string LastSlot = "";
         public DateTime SavedAtUtc = DateTime.MinValue;
 
         public bool IsAutosave => Id == AutosaveId;
@@ -96,6 +98,9 @@ public class SaveManager : MonoBehaviour
 
     // The manual slot a plain Save writes to, or null (a new game not yet placed, or one loaded from the Autosave).
     public string ActiveSlot => activeSlot;
+
+    // The current slot as the slot screen shows it: the active slot, only while it still holds a save (SlotRules).
+    public string CurrentSlot => SlotRules.ResolveCurrent(activeSlot, SlotExists);
 
     // True when any slot (manual or autosave) holds a completed save.
     public bool HasSave => AllSlotIds().Any(SlotExists);
@@ -287,8 +292,9 @@ public class SaveManager : MonoBehaviour
                 }
             }
 
-            // Loading a manual slot makes it active; loading the Autosave leaves no active slot.
-            SetActiveSlot(slotId == AutosaveId ? null : slotId);
+            // Loading a manual slot makes it current; loading the Autosave takes the slot it carried (SlotRules), so Continue
+            // still knows the current slot. A save from before lastSlot existed has none.
+            SetActiveSlot(SlotRules.CurrentAfterLoad(slotId, GetSlotInfo(slotId).LastSlot, SlotExists));
             return true;
         }
         catch (Exception e)
@@ -347,6 +353,7 @@ public class SaveManager : MonoBehaviour
                 {
                     SlotInfoData info = JsonUtility.FromJson<SlotInfoData>(File.ReadAllText(infoPath));
                     info.name = DefaultName(toId);
+                    info.lastSlot = toId; // a manual slot's record names itself
                     SlotSwap.WriteFlushed(infoPath, JsonUtility.ToJson(info, true));
                 }
             });
@@ -402,6 +409,7 @@ public class SaveManager : MonoBehaviour
                     info.Name = data.name;
                 info.InGame = $"{data.inGameDate} · {data.hour:00}:{data.minute:00}";
                 info.Difficulty = data.difficulty ?? "";
+                info.LastSlot = data.lastSlot ?? "";
             }
             catch (Exception)
             {
@@ -521,18 +529,19 @@ public class SaveManager : MonoBehaviour
             version = SaveVersion,
             savedAtUtc = savedAt,
         }, true);
-        json[SlotInfoFile] = JsonUtility.ToJson(BuildSlotInfo(slotId, savedAt), true);
+        json[SlotInfoFile] = JsonUtility.ToJson(BuildSlotInfo(slotId, savedAt, CurrentSlot), true);
         return json;
     }
 
     // Main thread only: reads the clock and difficulty.
-    static SlotInfoData BuildSlotInfo(string slotId, string savedAt)
+    static SlotInfoData BuildSlotInfo(string slotId, string savedAt, string currentSlot)
     {
         var info = new SlotInfoData
         {
             name = DefaultName(slotId),
             difficulty = DifficultyManager.Tier.ToString(),
             savedAtUtc = savedAt,
+            lastSlot = SlotRules.LastSlotToWrite(slotId, currentSlot) ?? "",
         };
 
         TimeManager time = TimeManager.Instance;

@@ -66,7 +66,7 @@ public class CraftingScreen : GameScreen
     readonly string[] selectedKey = new string[2];
     int quantity; // 0 = x1, 1 = x5, 2 = Max
     string hoverKey;
-    string lastSignature;
+    string lastSignature, lastVisibleMarker;
     List<Entry> allEntries = new List<Entry>();
     List<Entry> shown = new List<Entry>();
     readonly Dictionary<string, Button> rows = new Dictionary<string, Button>();
@@ -123,7 +123,7 @@ public class CraftingScreen : GameScreen
             categoryButtons[i] = button;
         }
 
-        list = UiKit.ScrollList(left, "List");
+        list = UiKit.ScrollList(left, "List", withScrollbar: true);
         ((RectTransform)list.parent).Fill(0f, 0f, 0f, 108f);
 
         // The selected entry.
@@ -302,6 +302,7 @@ public class CraftingScreen : GameScreen
         foreach (Entry e in shown)
             if (rows.TryGetValue(e.key, out Button row))
                 UiKit.SetSelected(row, e.key == selectedKey[m]);
+        KeepSelectedVisible(m);
 
         UpdateDetail();
     }
@@ -333,15 +334,53 @@ public class CraftingScreen : GameScreen
             costText.rectTransform.offsetMax = new Vector2(-12f, 0f);
             SetAvailable(row, entry.can);
 
-            var trigger = row.gameObject.AddComponent<EventTrigger>();
-            var enter = new EventTrigger.Entry { eventID = EventTriggerType.PointerEnter };
-            enter.callback.AddListener(_ => { hoverKey = captured.key; UpdateDetail(); });
-            var exit = new EventTrigger.Entry { eventID = EventTriggerType.PointerExit };
-            exit.callback.AddListener(_ => { if (hoverKey == captured.key) { hoverKey = null; UpdateDetail(); } });
-            trigger.triggers.Add(enter);
-            trigger.triggers.Add(exit);
+            // Hover only: an EventTrigger here would swallow the mouse wheel and drags before the ScrollRect saw them.
+            row.gameObject.AddComponent<RowHover>().Bind(
+                () => { hoverKey = captured.key; UpdateDetail(); },
+                () => { if (hoverKey == captured.key) { hoverKey = null; UpdateDetail(); } });
             rows[entry.key] = row;
         }
+    }
+
+    // Reports the pointer entering and leaving a list row, and nothing else, so scrolling passes through to the ScrollRect.
+    class RowHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    {
+        System.Action enter, exit;
+
+        public void Bind(System.Action onEnter, System.Action onExit)
+        {
+            enter = onEnter;
+            exit = onExit;
+        }
+
+        public void OnPointerEnter(PointerEventData eventData) => enter?.Invoke();
+
+        public void OnPointerExit(PointerEventData eventData) => exit?.Invoke();
+    }
+
+    // Scrolls the list just far enough that the selected row is in view; only when the selection, category or mode changes, so
+    // it never fights the player's own scrolling.
+    void KeepSelectedVisible(int m)
+    {
+        string marker = mode + "|" + categoryIndex[m] + "|" + selectedKey[m];
+        if (marker == lastVisibleMarker)
+            return;
+
+        int index = shown.FindIndex(e => e.key == selectedKey[m]);
+        var viewport = (RectTransform)list.parent;
+        if (index < 0 || viewport.rect.height <= 0f)
+            return; // not laid out yet: try again next refresh
+        lastVisibleMarker = marker;
+
+        float top = 6f + index * (RowHeight + 4f);
+        float bottom = top + RowHeight + 6f;
+        float y = list.anchoredPosition.y;
+        if (top < y)
+            y = top - 6f;
+        else if (bottom > y + viewport.rect.height)
+            y = bottom - viewport.rect.height;
+        float contentHeight = 12f + shown.Count * (RowHeight + 4f) - 4f;
+        list.anchoredPosition = new Vector2(0f, Mathf.Clamp(y, 0f, Mathf.Max(0f, contentHeight - viewport.rect.height)));
     }
 
     void Select(string key)
@@ -720,7 +759,11 @@ public class CraftingScreen : GameScreen
             case PileKind.WoodShed: return "store Sticks, Branches, Logs and Firewood (R), take them back (E). The roof keeps rain off, so wet wood dries in here over about a season.";
             case PileKind.KitchenSite: return "a roofed outdoor cooking place, built in two stages because its materials are heavy. Mark the site out (free, no Hammer; turn it with the wheel), deliver 4 Stone and then 2 Clay with R over as many trips as it takes, and equip the Hammer and hold click on the site until the hearth is built. Then deliver 2 Logs, 6 Branches and 4 Tall Grass for the plank roof and pound that too (once you start a stage, its materials are built in). The hearth is an ordinary campfire: Cooking, boiling water, Flint and Steel and the Bow Drill all work, and under the roof the Bow Drill catches as well as in calm weather, even in rain or snow. The roof also keeps rain and snow off you, shades you from the sun, and a meal eaten under it is a sheltered meal: Health recovers faster for a few hours. Needs dry ground; the roof edge stays 3 m clear of every other structure and every tree.";
             case PileKind.KitchenRoofSite: return "the hearth is built; deliver the roof materials (R) and pound the roof (Hammer, hold click).";
-            case PileKind.Kitchen: return "a roof on posts over a stone hearth. Light and feed the fire as any campfire; cook and boil water there. Rain and snow stay off you under the roof, it shades the sun, and a meal eaten under it is a sheltered meal. R with the Hammer dismantles it (fire out).";
+            case PileKind.Kitchen: return "a roof on posts over a stone hearth. Light and feed the fire as any campfire; cook and boil water there. Rain and snow stay off you under the roof, it shades the sun, and a meal eaten under it is a sheltered meal. It has four fixed slots inside for add-ons (Kitchen-Countertop, Kitchen-Shelves, Kitchen-Grill, Kitchen-Sink). R with the Hammer dismantles it (fire out, add-ons taken down first).";
+            case PileKind.Countertop: return "a work surface about 0.9 m high that stands in one of the four fixed slots inside a finished Covered Outdoor Kitchen (the ghost snaps to the nearest free one). Equip the Hammer to build it; nothing to do at it yet. R with the Hammer takes it down for half its materials back.";
+            case PileKind.Shelving: return "open shelves that stand in a slot of a finished Covered Outdoor Kitchen, under its roof. Store food and dry goods (R or E opens the transfer screen); every batch keeps its day. Equip the Hammer to build it; take it down from the transfer screen's Remove button when it is empty.";
+            case PileKind.Grill: return "a stone-and-clay firebox with a flat stone top and a rack of green sticks, in a slot of a finished Covered Outdoor Kitchen. It comes with its own fire, a second campfire: light it with Flint and Steel or the Bow Drill, feed it Firewood, and cook meat and fish at it from the Inventory. Under the roof the Bow Drill catches as well as in calm weather. Equip the Hammer to build it; R with the Hammer takes it down when its fire is out.";
+            case PileKind.SlopSink: return "a clay basin on a table that holds up to 20 L of water of any quality, in a slot of a finished Covered Outdoor Kitchen. R pours carried water in, E fills your Bucket or Canteen from it, and R with nothing to pour drains it onto the ground. Washing has no effect yet. Equip the Hammer to build it; R with the Hammer takes it down when it is empty.";
             case PileKind.OuthouseSite: return "a pit privy, built in stages because its Logs are heavy. Mark the site out (free, no Hammer; turn it with the wheel so the door faces where you want), deliver 2 Logs, 6 Branches and 3 Tall Grass with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the shack is built (once you start, the wood is built in). A working outhouse within 60 m of where you sleep makes the homestead sanitary: a little less illness and a little better rest. The pit fills over about a season; then dig a new one with the Shovel (E). Must stand 30 m from water and any well, 7.5 m from buildings, below any well.";
             case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, equip the Hammer and hold click on the site until the cabin is built (once you start, the materials are built in). Placed one by mistake? With the Hammer equipped, E on it when it's empty, or R with nothing to store, takes it down.";
             default: return "store wood (R), take it back (E).";

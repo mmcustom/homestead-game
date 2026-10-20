@@ -2137,3 +2137,317 @@ Not covered (stays untested, tuning later):
 Status: Slice 1 phase C (Covered Outdoor Kitchen) = BUILT and PLAYTESTED. UNCOMMITTED and UNPUSHED. Last pushed baseline is 6c76da0 (docs) / eb906d1 (code). Slice 1 phases A, B and C are all built and playtested; only phase C is uncommitted.
 
 Next: commit and push phase C (message sent to Claude Code; keep ProjectSettings.asset, the AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out; message says playtested, all 75 items pass). THEN the kitchen add-ons read-only pass (Structures_Kitchen_Addons.md).
+
+
+---
+
+### 2026-10-19 - Slice 1 phase C COMMITTED and PUSHED; SLICE 1 COMPLETE (Claude Code report)
+
+Claude Code ran the 126 edit-mode tests (126/126 pass; the first attempt hit a Unity session disconnect, so it re-ran) and pushed two commits to master. Local master equals origin/master at a6a2af10886833c4f3300c6b7aa0afa67cb2a212 (short a6a2af1).
+
+- Code commit ce229d6, "Structures Slice 1 phase C: Covered Outdoor Kitchen". Message says playtested in Play Mode, all 75 checklist items pass, and that it completes Slice 1 phases A, B and C. Has the Co-Authored-By line.
+- Docs commit a6a2af1, "Docs: Structures Slice 1 phase C".
+- WoodPile.cs was not in the commit because phase C never changed it.
+
+Left uncommitted on purpose: AudioManager.cs null guard, Homestead.slnx, ProjectSettings/ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Last pushed baseline is now a6a2af1 (code ce229d6). Docs written after this entry (including this one) are uncommitted until the next docs commit.
+
+**SLICE 1 ("Dry and clean") IS COMPLETE:** Well, Outhouse, Wood Shed + wet/dry wood and Covered Outdoor Kitchen are built, playtested (58 + 73 + 75 items, all pass), committed and pushed.
+
+Next (as Mike set the order): the kitchen add-ons READ-ONLY pass (Structures_Kitchen_Addons.md). Claude Code's prompt box held "Start the kitchen add-ons read-only pass", which matches Mike's earlier instruction ("lets get phase c closed out, then do the read only pass"); the message is being sent now. No code changes in this pass.
+
+
+---
+
+### 2026-10-19 - Kitchen add-ons READ-ONLY pass REPORTED (Claude Code); decisions needed from Mike
+
+Claude Code finished the read-only pass: no code, assets, scenes or docs changed; no commits; nothing run in Play Mode. Full findings recorded in 05_Documentation/Game_Systems/Structures_Kitchen_Addons.md (appended section "READ-ONLY FINDINGS from Claude Code"). Headlines:
+
+- **Attachment:** no parent/slot/registry exists. An add-on can be its own WoodPileState with an appended kind, and the parent kitchen found each time by `KitchenRoofAt(position)` (no new save keys). Fixed slots (precedent: Rain Barrel eave snap) vs free placement inside the footprint is Mike's call.
+- **Placement blockers:** the 2 m pile spacing and the 2 m lit-fire rule would reject most add-ons under the roof; the placement aim ray hits planks, posts and the table (so ground under the roof reads "No clear ground there"); slot snapping with GroundAt avoids that. The 3.4 x 3.0 m footprint is tight; Claude Code does not think all five fit inside.
+- **Dismantle:** the kitchen's Dismantle knows nothing about add-ons; it would need a "remove the add-ons first" refusal.
+- **Processing:** the only step is instant field dressing of a carcass where it lies (Carcass.cs). Carcasses cannot be carried; fish, plucking, butchering and plant washing do not exist. No spoilage or cleanliness system exists (shelfLifeDays and day stamps are not read by anything); the only food-risk lever is the fixed illnessChance.
+- **Cooking:** any lit CampfireState works for cooking; a grill is simplest as a second furnished fire (must stay over 0.75 m from the hearth). All 9 recipes are meat or fish. A griddle has nothing to cook (no eggs, grain, flour recipes), so it waits.
+- **Sink:** water is per-litre items; a basin could reuse barrel pour/cap logic, drain by removing litres. Washing affects nothing today (no hygiene stat). A drain fouling a nearby well would be new rule following the Outhouse/Well pattern.
+- **Storage:** shelving fits the Wood Shed route (transfer screen). No food spoilage, so no dryness benefit for food.
+- **Materials:** Lumber exists (5 kg, sold for $8, nothing uses it); NO metal exists (iron and steel not built), so a metal grate waits.
+- **Risks:** any collider counts as a roof for shelter, shade and the Bow Drill cover test (keep add-on colliders below head height); a second fire near the hearth could be mistaken for the kitchen hearth; add-on colliders could block the hearth interaction, the Hammer ray or the open front.
+- **Prep table:** decor only today. Countertop: build as a new piece from an extracted helper; leave the prep table as decor.
+- **Claude Code's size and order:** countertop (small), shelving (medium), grill (medium; griddle waits for recipes), slop sink (medium to large), cleaning table (large, last).
+
+Decisions needed from Mike (asked in chat): where add-ons sit (fixed slots vs free placement), what to build first, and what to do with the cleaning table and sink given there is no spoilage or hygiene system and no carryable carcass. NOTHING BUILT. No commit needed (docs only; uncommitted until the next docs commit).
+
+
+---
+
+### 2026-10-19 - DECISIONS (Mike): kitchen add-ons, first batch
+
+Mike's answers after the read-only pass:
+1. **Placement: FIXED SLOTS on the kitchen.** Add-ons snap into a few set spots under and beside the roof (not free placement).
+2. **First batch: countertop, shelving, wood-fired grill and slop sink.** (Griddle waits for recipes; no eggs, grain or flour exist yet. Metal grate waits for iron/steel.)
+3. **Cleaning table: DEFERRED** until a spoilage and hygiene system exists (carcasses cannot be carried, no fish cleaning or plant prep, no spoilage). The sink's washing benefit is deferred for the same reason; in this batch the sink only holds and drains water.
+
+Still out of scope until the power systems exist: LP gas, electric appliances and anything needing a fuel supply or power.
+
+Build message for "Kitchen add-ons batch 1" sent to Claude Code (build order inside the pass: slots + placement exemptions + kitchen Dismantle refusal first, then countertop, shelving, grill, sink). Claude Code reports back and does NOT commit. New playtest checklist to follow. First-pass costs and numbers are Claude's and not confirmed.
+
+
+---
+
+### 2026-10-19 - Kitchen add-ons batch 1 BUILT (Claude Code report). NOT played, NOT committed.
+
+Claude Code built the four-slot system plus countertop, shelving, wood-fired grill and slop sink. Compiles clean; 146/146 edit-mode tests pass (126 earlier + 20 new). Checklist: 06_AI_Collaboration/Kitchen_Addons_Playtest_Checklist.md, 77 items. Nothing committed or pushed; nothing played in Play Mode. (The one Console warning was the harness reporting the first test run did not start in time; the re-run passed.)
+
+Summary (full record appended to Structures_Kitchen_Addons.md, section "BATCH 1 BUILT"):
+- **Four generic slots under the roof**, all in Setbacks.KitchenLayout: right wall front (1.15, 0.78), right wall back (1.15, -0.20), left wall front (-1.37, 0.80), left wall back (-1.37, -0.12). Open front and the aisle to the hearth stay clear; every slot is at least 1.06 m from the hearth fire (rule: over 0.75 m).
+- **PileKinds 25 to 28** appended; no new save keys (a slot is the add-on's position; the kitchen is found each time).
+- **Countertop** 1 Log + 4 Branches (12 kg), a 0.9 m work surface, no function yet. **Shelving** 10 Branches + 6 Sticks (10.6 kg), transfer screen, dry goods and food, 1.4 m tall, day stamps kept. **Wood-Fired Grill** 2 Stone + 1 Clay (13.5 kg), a real second campfire (fuel, wet/dry wood, lighting, Bow Drill, cooking), no new recipes, fire drawn at 0.6 scale. **Slop Sink** 1 Log + 1 Clay + 2 Branches (13.5 kg), holds 20 L, E draws into Bucket/Canteen, R pours, drains or dismantles; washing does nothing.
+- Kitchen Dismantle refuses while any add-on stands ("remove the add-ons first"). Add-ons skip the 2 m spacing and lit-fire rules against their own kitchen and hearth only.
+- Debug: Numpad / prints slots, grill state, sink litres, shelving contents, 0.75 m check.
+
+Changes from my message (all Claude Code's calls, flagged): sink E draws best-quality-first in one press; sink R is pour/drain/dismantle by context (Mike can ask for a separate drain key); grill fire drawn at 0.6 scale; small edits to FireManager.cs, Campfire.cs and CraftingScreen.cs; one unit test dropped (covered by checklist item 71).
+
+Untested: everything in Play Mode, including slot snapping, ghosts and models, the grill fire and scale, cooking and Bow Drill at the grill, sink pour/draw/drain, shelving and day stamps, saves, regressions, and a kitchen on a steep slope or turned.
+
+Deferred (Mike): cleaning table (needs spoilage, hygiene, carryable carcass), griddle (needs recipes), sink washing benefit, drain fouling wells, metal grate, LP gas, electric, anything needing power.
+
+Waiting on Mike: play Kitchen_Addons_Playtest_Checklist.md (77 items) and report pass/fail per item. Then the commit decision (code + docs; keep ProjectSettings.asset, AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out). Last pushed baseline is a6a2af1.
+
+
+---
+
+### 2026-10-20 - BUG found in kitchen add-ons playtest (Mike): Build tab list does not scroll
+
+While starting Kitchen_Addons_Playtest_Checklist.md, Mike found that the Build tab list in the Craft and Build screen does not scroll. In "Storage and Piles" the list now has 12 entries and is cut off at the bottom ("Kitchen Shelving" half visible; Wood-Fired Grill and Slop Sink unreachable). It did not show before because the Covered Kitchen Site was last in the list in phase C. The category tab also reads "Storage and Piles (8)" while the category holds 12 entries (unknown what the number counts).
+
+Message sent to Claude Code: make the list scroll (mouse wheel, visible scrollbar, selected entry stays visible) for the Craft tab and every Build category, check what the (8) counts and fix or explain, compile-check, run the edit-mode tests (146 pass now), do not commit.
+
+Checklist impact: items that need the Grill, Slop Sink (and probably Shelving) cannot be played until the fix lands. Countertop items are reachable. Mike's results for those items stay untested until then.
+
+Also noted today: Mike's Unity Play Mode started from an Untitled scene instead of Bootstrap, so the main menu did not load (probably a blank scene left open after Claude Code's edit-mode test runs). Open Assets/Scenes/Bootstrap and press Play.
+
+
+---
+
+### 2026-10-20 - DECISION (Mike): rename the kitchen add-ons so the names say where they go
+
+Mike: "i think we also need to be direct with what we name these; for example 'kitchen-Cabinets', 'Kitchen-sink', 'Kitchen-Shelves' and 'Kitchen-Grill'. just to reinforce where they can be placed".
+
+Player-facing names change (internal enum and field names stay as they are, to avoid churn; names are derived from the kind, so no save impact is expected, Claude Code to confirm):
+- Countertop -> **Kitchen Cabinets** (my reading of the four names: Mike listed four names for four add-ons; the countertop is the one with no match, so I mapped it to Cabinets. It is still the same work-surface piece with no function yet, so "cabinets" is a naming choice only. Mike can correct this.)
+- Kitchen Shelving -> **Kitchen Shelves**
+- Slop Sink -> **Kitchen Sink**
+- Wood-Fired Grill -> **Kitchen Grill** (the "wood-fired" description stays in the help text; the fire prompt prefix changes from "Wood-Fired Grill:" to "Kitchen Grill:")
+
+Style: Title Case with a space (matching "Wood Shed Site", "Covered Kitchen Site"), not a hyphen. Applies to the Build tab entries, help text, prompts, refusals, Dismantle text, the Numpad / report and the checklist wording. The refusal "Needs a finished Covered Outdoor Kitchen." stays.
+
+Message sent to Claude Code as a follow-up to the Build tab scroll fix. No commit. The checklist (Kitchen_Addons_Playtest_Checklist.md) is being updated by Claude Code to the new names; the numbering and test steps do not change.
+
+
+---
+
+### 2026-10-20 - CORRECTION and NAMING CONVENTION (Mike): "Building-Item" names for add-ons
+
+Mike clarified the rename request: his four names ("kitchen-Cabinets", "Kitchen-sink", "Kitchen-Shelves", "Kitchen-Grill") were examples of the FORMAT, not a mapping of the four add-ons. My earlier entry mapped the Countertop to "Kitchen Cabinets" and used spaces instead of hyphens; that was wrong and is SUPERSEDED by this entry.
+
+**Naming convention (Mike), for these and any future add-ons to other buildings:** `<Building>-<Item>`, a hyphen between the building's name and the item, each part capitalised. The name says where the add-on goes.
+
+Player-facing names for batch 1:
+- Countertop -> **Kitchen-Countertop**
+- Kitchen Shelving -> **Kitchen-Shelves**
+- Slop Sink -> **Kitchen-Sink**
+- Wood-Fired Grill -> **Kitchen-Grill** (the "wood-fired" description stays in the help text; the fire prompt prefix changes from "Wood-Fired Grill:" to "Kitchen-Grill:")
+
+"Kitchen-Cabinets" is NOT a new item and not a rename of the countertop. It is just an example of the format. If Mike wants a cabinet piece later, it would be a separate add-on.
+
+Examples for later add-ons: Cabin-... for pieces that go in the Small Cabin, Shed-... for pieces that go in a Wood Shed, and so on (Mike to confirm each building's prefix when those come up).
+
+Applies to the Build tab entries, help text, prompts, refusals, Dismantle text, the transfer screen title, the Numpad / report and the checklist wording. Internal enum and field names stay unchanged. The refusal "Needs a finished Covered Outdoor Kitchen." stays. Corrected message sent to Claude Code (replaces the earlier rename message). No commit.
+
+
+---
+
+### 2026-10-20 - DESIGN CHANGE (Mike): save/load screen
+
+Mike's feedback while playing: after Continue (which loads the autosave), clicking Save does not show which slot is current, so it is hard to tell which slot to re-save to without comparing the day and time; the "Save/Load" button goes to the Save screen instead of the Load screen; and he does not like having to pick Save or Load before the slots show.
+
+Mike's decisions (asked in chat):
+1. **Layout: ONE screen, slots always visible.** The Save/Load button opens a single screen listing all slots at once (autosave on top, then the manual slots). Each slot has its own Save and Load buttons; no mode pick first.
+2. **Current slot: REMEMBER THE LAST SLOT YOU SAVED TO.** The autosave remembers which slot was last saved to or loaded from, so after Continue that slot gets a "Current" badge and is pre-selected when opening Save. With no manual save yet, the autosave is marked current and no slot is.
+3. **Overwrite: confirm, but NOT for the current slot.** Saving over the current slot is one click; saving over any other filled slot asks "Overwrite Slot N (Day X, time)?".
+
+Build message sent to Claude Code (a combined read-then-build pass; it reports what exists today first). Queue note: Claude Code still has the Build tab scroll fix and the Kitchen-Item rename pending; the save/load screen is a separate task. First-pass details are Claude's, not confirmed. No commit. New playtest checklist to follow.
+
+
+---
+
+### 2026-10-20 - Kitchen add-on RENAME BUILT (Claude Code report). NOT played, NOT committed.
+
+The four add-ons now show as **Kitchen-Countertop, Kitchen-Shelves, Kitchen-Grill and Kitchen-Sink** everywhere a player sees them. Compiles with no console errors; 146/146 edit-mode tests pass (no test edits needed; they use enum names). Nothing committed; nothing played in Play Mode.
+
+- **Convention in code:** `WoodManager.KitchenAddonPrefix = "Kitchen"` and `AddonName(building, item)` (returns building + "-" + item). `PileName` builds the four names through them. A future Cabin or Shed add-on needs its own prefix constant and an `AddonName` call. Names are derived from the kind each time and never saved, so old and new saves are unaffected.
+- **Player-facing text changed:** Build tab entries, the "Place ... here" ghost line, the "Can't build ..." messages, the transfer screen title and the Dismantle messages (mostly through PileName). The sink refusal now reads "drain the Kitchen-Sink first"; the grill refusal reads "Can't take the Kitchen-Grill down - put the grill's fire out first"; the grill fire prompt prefix is "Kitchen-Grill:".
+- **Files changed:** WoodManager.cs, PlacedStructure.cs (prompts, flashes and Dismantle text use the derived name), Campfire.cs, CraftingScreen.cs (Covered Outdoor Kitchen help text lists the four names), WellsAndOuthouses.cs (cost tooltips and the Numpad / report), Kitchen_Addons_Playtest_Checklist.md (new names throughout, same numbering and steps).
+- **Unchanged:** enum values, fields and tuning fields; "Needs a finished Covered Outdoor Kitchen."; "wood-fired" stays in the Kitchen-Grill help text.
+- **Still carries the old names:** code comments only (FireManager.cs:611, WoodManager.cs lines 39, 190, 1128, 1582, 1588, 1714, 1720, 1731, PlacementMode.cs:248, WoodPile.cs:713, Campfire.cs:165); docs Claude Code did not touch (Structures_Kitchen_Addons.md, one mention in Structures_Slice1_Dry_And_Clean.md, this file, which are history and are corrected by the rename sections already appended). No asset, prefab or scene names.
+- **One wording issue found:** the shelves' refusal reads "a Kitchen-Shelves doesn't hold that" because WoodPile.cs:408 uses "a {Name}" for every kind (it was already slightly off with "Kitchen Shelving"). Switching to "the {Name}" would fix it for all kinds. Claude Code's prompt box held an unsubmitted suggestion "Fix the shelves refusal to say 'the'"; treated as a suggestion only, awaiting Mike's go-ahead.
+
+Status of the other Claude Code queue items: the Build tab scroll fix and the save/load screen redesign are separate tasks; no report has been received for either yet.
+
+Waiting on Mike: (1) yes or no on the "the {Name}" wording fix; (2) the scroll-fix report and the save/load screen report from Claude Code; (3) then play Kitchen_Addons_Playtest_Checklist.md (77 items, now using the new names).
+
+
+---
+
+### 2026-10-20 - Refusal wording fix BUILT (Claude Code report). NOT played, NOT committed.
+
+The "doesn't hold that" refusal in WoodPile.cs (line 408) now says "the {Name}" for every kind instead of "a {Name}". New message: "the {Name} doesn't hold that"; for the shelves "the Kitchen-Shelves doesn't hold that", for others e.g. "the Storage Bin doesn't hold that". One line changed. Compiles with no console errors; 146/146 edit-mode tests pass; no test asserted the old wording. Kitchen_Addons_Playtest_Checklist.md item 23 updated to the new wording. This closes the wording issue noted in the previous entry (the earlier "open issue" mention above is history).
+
+Nothing committed. Claude Code's prompt box held an unsubmitted suggestion "commit this"; treated as a suggestion only. Mike has NOT yet decided to commit this work, and the kitchen add-ons batch 1 (slots, Kitchen-Countertop, Kitchen-Shelves, Kitchen-Grill, Kitchen-Sink, the rename and this wording fix) has not been played.
+
+Uncommitted and unpushed since a6a2af1 (code ce229d6): kitchen add-ons batch 1, the rename, the refusal wording fix, and docs. Still pending from Claude Code with no report: the Build tab scroll fix and the save/load screen redesign. Mike's earlier rule stands: no commit until Mike plays the checklist and says so.
+
+
+---
+
+### 2026-10-20 - Save/load screen redesign BUILT and Build tab scroll fix BUILT (Claude Code report). NOT played, NOT committed.
+
+Claude Code finished the Build tab scroll fix, the Kitchen add-on rename (earlier entry) and the save/load screen redesign. Project compiles with no errors; 154/154 edit-mode tests pass (146 earlier + 8 new in SlotRulesTests.cs). Nothing played in Play Mode; nothing committed or pushed. No save file was touched while building or testing (edit-mode tests use temp folders; Claude Code only listed the Saves folder: slot1, slot2, slot3, autosave and slots.json).
+
+**How save/load worked before (step 1 findings):** SaveManager.cs (slots, saving, loading, autosave), SlotPanel.cs (one slot screen built in code with Save, Load and NewGame modes), PauseMenuController.cs and MainMenuController.cs (open it), GameManager.cs (loads), SlotSwap.cs (atomic folder writes, own assembly). Saves live in `Saves/slot1` to `slot10` plus `Saves/autosave`, each a folder with meta.json, game section files and slotinfo.json (name, in-game date, hour, minute, year, season, difficulty, saved-at). Playtime is not stored. `Saves/slots.json` held the "active slot". Autosave is written at the end of each day, on sleep, on return to the main menu and on quit, and only ever writes the autosave folder. Gaps against Mike's spec: loading the Autosave cleared the active slot (so Continue forgot it); the current slot lived in slots.json, not the save data; the Save-or-Load mode pick was required; every filled overwrite asked for confirmation, even the current slot.
+
+**What was built (Mike's decisions):**
+- **One screen:** the pause menu's "Save / Load..." and the main menu's "Load Game" open the same screen, no mode pick. Autosave row on top, then slots 1 to 10. Each row: name, in-game date with season and time, difficulty, real date saved; empty slots read "Empty". Every filled slot has Load; in game every manual slot has Save; the Autosave has Load only; no Save buttons from the main menu. Copy, Delete and the New Game slot pick are kept. Mode enum: Save and Load became Browse, NewGame kept.
+- **Current slot:** the last manual slot saved to or loaded from, recorded as `lastSlot` in each slot's slotinfo.json (only; game sections and meta.json untouched). Every autosave carries it forward. The current row gets a [CURRENT] badge and a green highlight; with no current slot in game, the Autosave row shows [CURRENT GAME]. In game the current slot is pre-selected, else the first empty slot, else nothing. A lastSlot pointing at an empty or missing slot counts as none. Loading the Autosave now takes the slot it carried, so Continue keeps the current slot. Old saves have no lastSlot and load as before with none current. The Current badge shows only in game; the main menu pre-selects the current slot's Load button, else the Autosave's.
+- **Overwrite confirm:** saving over the current slot or an empty slot is one click; saving over any other filled slot asks "Overwrite Slot N (Spring 3, Year 1 · 14:30)?" with Yes and No (details from that slot's own record). Loading is unchanged: the pause menu load warns "Unsaved progress in the current game will be lost."; the main menu load does not warn.
+- **Copy:** copying onto a manual slot writes that slot as its own lastSlot.
+- **Pure logic:** new SlotRules.cs beside SlotSwap, covered by SlotRulesTests.cs (8 tests).
+- **Not shown:** playtime (saves do not store it).
+- **Checklist:** 06_AI_Collaboration/Save_Load_Screen_Playtest_Checklist.md, 36 items, with a backup step at the top (back up `C:\Users\mmcus\AppData\LocalLow\MM Custom\Homestead\Saves` before playing).
+
+**Build tab scroll fix:** diagnosed (best guess, not reproduced in Play Mode) as each row's EventTrigger for hover swallowing mouse-wheel events before the scroll list saw them. Replaced with a hover-only component; added a scrollbar that shows only when the list overflows; the selected row now scrolls into view. The scrollbar is opt-in, so the other six lists that share the scroll helper are unchanged. **The "(8)" counts the entries you can build right now.** Buildable entries sort first, so entries you cannot yet build sit at the bottom, which is why the kitchen add-ons (needing a finished kitchen) were the ones cut off.
+
+**Untested:** everything on screen (layout and overlap of row buttons, tightened to fit Save, Load, Copy and Delete in 1436 px; focus on the pre-selected button; the badge; all confirm flows); the scroll fix (wheel and scrollbar); real-file lastSlot reads and writes, including bad, missing and old-save cases.
+
+**Claude Code had a compile error mid-build (a newline inside a string literal in SlotPanel.cs), fixed before the final compile.**
+
+Now waiting on Mike, two checklists to play: (1) Save_Load_Screen_Playtest_Checklist.md (36 items; back up the Saves folder first) and (2) Kitchen_Addons_Playtest_Checklist.md (77 items; needs the Build tab scroll to reach the Grill and Sink). Mike should first check that the wheel and scrollbar work in the Build tab. Then pass/fail per item and the commit decision for: kitchen add-ons batch 1, the rename, the refusal wording fix, the Build tab scroll fix and the save/load redesign, plus docs. Last pushed baseline is a6a2af1 (code ce229d6).
+
+
+---
+
+### 2026-10-20 - Three polish fixes from Mike's screenshots (decided in chat; all three chosen)
+
+From Mike's playtest screenshots (save/load screen, pause menu, kitchen add-on ghost):
+1. **Save/Load text overlap.** On the Autosave row the "[CURRENT GAME]" badge runs into the in-game date; on Slot 3 the difficulty "Homesteader" runs into the saved date. Fix: give the badge its own space and widen the difficulty column; no behaviour change. (The screenshot otherwise matches the spec: Autosave shows [CURRENT GAME] with no manual current slot, and the first empty slot, slot 4, is pre-selected.)
+2. **Pause menu has two buttons that do the same thing.** With no current slot, "Save Game..." and "Save / Load..." both open the same screen. Fix: show "Save to Slot N" only when a current slot exists; otherwise show just "Save / Load...". (Changes Save_Load_Screen_Playtest_Checklist.md item 19.)
+3. **Add-on slot labels are from the kitchen's own space, not the player's.** The ghost said "left side, front of the kitchen" but sits on the player's RIGHT when facing in from the open front (the kitchen's local left is the player's right when entering). Fix: label the four slots as seen by someone standing at the open front looking in: "left, near the entrance", "left, toward the back", "right, near the entrance", "right, toward the back" (slot positions and numbering unchanged; text only; labels follow a turned kitchen). Applies to the ghost head line, the Numpad / report and the Kitchen_Addons_Playtest_Checklist.md wording (items 6, 53, 54 and any others naming sides).
+
+Message sent to Claude Code. No commit. Both checklists get updated wording by Claude Code. Mike still has to play: Save_Load_Screen_Playtest_Checklist.md (36 items), Kitchen_Addons_Playtest_Checklist.md (77 items), and check the Build tab scroll.
+
+
+---
+
+### 2026-10-20 - Three polish fixes BUILT (Claude Code report). NOT looked at on screen, NOT committed.
+
+Claude Code built all three fixes from Mike's screenshots. Project compiles with no console errors; 154/154 edit-mode tests pass (no test edits needed). None of it has been looked at in Play Mode or on screen. Nothing committed. No save files touched (edit-mode tests use temp folders).
+
+**1. Save/Load row overlap (SlotPanel.cs).** The [CURRENT] / [CURRENT GAME] badge has its own column (18 px text). Difficulty widened to 145 px (fits "Homesteader", 129 px); in-game date and saved columns widened too. Save, Load, Copy and Delete are 90 px each on one row inside the panel; the widest text ends about 60 px before the first button. A long slot name wraps and clips inside its own column. Real text widths measured in Unity at 21 px: "Autumn 28, Year 10 · 23:59" 262 px, "Oct 20, 10:25 AM" 167 px, "[CURRENT GAME]" about 166 px at 18 px; each fits its column. All game canvases scale from 1920x1080, so 1280x720 is the same layout scaled (not run).
+
+**2. Pause menu (PauseMenuController.cs).** "Save to Slot N" shows only when a slot exists to save to (one click as before). With no slot the menu is Resume, Save / Load..., Main Menu, Quit, and the button column shrinks back to its original size. Resume is still focused first; if focus was on the hidden button it moves to Resume. Esc is untouched. A New Game slot you picked but have not saved yet still counts as a slot, so it still gets "Save to Slot N".
+
+**3. Kitchen slot labels.** Mike's left/right was correct: the kitchen's local +X is the player's left when facing in from the open front (so the old "right side, front" for slot 1 sat on the player's left). New labels, in slot order: "left, near the entrance", "left, toward the back", "right, near the entrance", "right, toward the back". Slot positions and numbering unchanged. Single source: `KitchenLayout.SlotLabel` in Setbacks.cs; the ghost head line (PlacementMode.cs) and the Numpad / report (WellsAndOuthouses.cs) read from it. Labels are relative to the kitchen, so they follow a turned kitchen. Head line now reads "Place Kitchen-Countertop here - left, near the entrance"; report lines read "slot 1 left, near the entrance: ...". No other prompt names a side. Slot comments in Setbacks.cs fixed.
+
+**Checklists updated:** Kitchen_Addons_Playtest_Checklist.md items 6, 9, 10, 53, 54 and the slot table in the numbers section; Save_Load_Screen_Playtest_Checklist.md item 19 rewritten for the pause menu, plus NEW item 37 (no text overlaps on any row, at 1920x1080 and at a smaller window). The Save/Load checklist is now 37 items.
+
+**Could not check (Claude Code):** the panel and the pause menu on screen (row spacing, badge look, button focus, the shrunken pause column); 1280x720 (expected the same, a uniform scale); the new label on a ghost in game.
+
+Waiting on Mike: play Save_Load_Screen_Playtest_Checklist.md (37 items; back up the Saves folder first) and Kitchen_Addons_Playtest_Checklist.md (77 items; check the Build tab wheel and scrollbar first), then the commit decision for everything since a6a2af1 (kitchen add-ons batch 1, the rename, the refusal wording, the Build tab scroll fix, the save/load redesign, the three polish fixes, and docs).
+
+
+---
+
+### 2026-10-20 - Save/Load screen playtest: items 1-36 PASS (Mike); item 37 NOT YET REPORTED
+
+Mike reported "pass" for items 1 through 36, no notes and no failures. I took this as the Save / Load Screen checklist: it matches that checklist's original 36 items (the Kitchen Add-ons checklist has 77). **Item 37 (no text overlaps on any row, at 1920x1080 and at a smaller window) was added later and has not been reported, so it stays UNTESTED.**
+
+Now PLAYTESTED (items 1-36):
+- Opening the screen: one screen from the pause menu and the main menu, Autosave on top then slots 1 to 10, no Save/Load tabs, Save buttons only in game, Esc and Back (A, 1-5)
+- Current slot and pre-selection: the [CURRENT] badge, Continue keeping the current slot, the badge surviving an autosave, pre-selection (B, 6-11)
+- No current slot yet: [CURRENT GAME] on the Autosave, first empty slot pre-selected (C, 12-14)
+- Saving: one click over the current or an empty slot, the overwrite question over any other filled slot, Esc dismissing it, the pause menu's own Save button (D, 15-19)
+- Loading from both menus, the pause-menu warning, loading the Autosave, the right game loading (E, 20-23)
+- Copy, Delete and New Game slot pick (F, 24-26); quit and Continue (G, 27-28)
+- Old saves with no lastSlot, a bad lastSlot ("slot9", "banana", "autosave"), a missing slot file (H, 29-31)
+- Regression: normal saving and loading, the autosave writing only to the autosave slot, the main menu, the pause menu, a clean Console (I, 32-36)
+
+Note for the record: items 12-14, 19 and 29-31 were written before the three polish fixes; item 19 was rewritten afterwards (pause menu with no current slot shows only Save / Load...). Mike's pass on 19 is counted against the rewritten wording since he played after the polish fixes landed.
+
+Not covered / still open:
+- Item 37: the no-overlap check on every row at 1920x1080 and at a smaller window (1280x720). Claude Code measured the text widths but never looked at it on screen.
+- The Build tab wheel and scrollbar (Mike has not said whether they work).
+- The whole Kitchen_Addons_Playtest_Checklist.md (77 items): not played yet.
+- Playtime is not shown on slot rows (saves do not store it).
+
+Status: save/load redesign = BUILT, items 1-36 PLAYTESTED, item 37 pending. UNCOMMITTED and UNPUSHED since a6a2af1 (code ce229d6).
+
+Waiting on Mike: item 37, the Build tab scroll check, the 77-item Kitchen Add-ons checklist, then the commit decision.
+
+
+## 2026-10-20 - Kitchen Add-ons checklist, partial playtest (Mike): items 1-22 pass
+
+Mike played `Kitchen_Addons_Playtest_Checklist.md` and reported items 1-22 pass. Item 10 was typed "past"; read as pass (typo), flagged to Mike to confirm.
+
+Covered and passing so far:
+- A. Build tab and no-kitchen refusals (items 1-5): all four add-ons listed, greyed without a finished kitchen, Placement Mode, no-kitchen head line, cancel.
+- B. Slot snapping (items 6-16): ghost snaps to nearest free slot, slot names match the player's view, Hammer colour and reason text, wheel does not turn the ghost, free-before-taken, two kitchens, turned kitchen, no open-ground placement, pile and fire refusals.
+- C. Kitchen-Countertop (items 17-20): build, prompts, collider, dismantle and refund.
+- D. Kitchen-Shelves (items 21-22): model height, transfer screen title.
+
+NOT yet reported (still untested): items 23-77 (shelves contents and day stamps, Kitchen-Grill, Kitchen-Sink, dismantle rules, Numpad /, saves, walk-in/shelter/shade, regression). Also still open: Save/Load item 37, Build tab wheel and scrollbar check.
+
+No commit. Waiting on the rest of the checklist and Mike's go-ahead.
+
+
+## 2026-10-20 - Kitchen Add-ons checklist COMPLETE (Mike): all 77 items pass
+
+Mike reported items 23-77 pass, completing `Kitchen_Addons_Playtest_Checklist.md`: 77 of 77 pass (item 10 was typed "past" and read as pass; Mike did not correct it).
+
+Newly confirmed in this report:
+- D. Kitchen-Shelves contents, day stamps, transfer screen buttons and Remove rules (23-27).
+- E. Kitchen-Grill: build, prompts, lighting and fuel (wet and dry), Bow Drill under the roof, cooking, 0.75 m rule in all four slots, lit-dismantle refusal and refund (28-38).
+- F. Kitchen-Sink: build, pour, mixed qualities and 20 L cap, draw, drain, no rain fill, washing does nothing, dismantle refusals (39-47).
+- G. Dismantle rules and the kitchen (48-52).
+- H. Numpad / report (53-56).
+- I. Saves, including loading a pre-build save (57-61).
+- J. Walk-in, open front, rain and snow shelter, Heat Wave shade, Bow Drill cover, sheltered meal (62-67).
+- K. Regression, including old kitchens getting slots with no migration, no time jumps, clean Console (68-77).
+
+Still open and NOT yet reported by Mike:
+- Save/Load checklist item 37 (no text overlap at 1920x1080 and a smaller window).
+- Build tab mouse wheel and scrollbar check.
+- On-screen look of the three polish fixes (Save/Load overlap, pause-menu duplicate button, add-on slot labels) is partly covered by Save/Load items 1-36 and Kitchen item 6, but the Build tab scroll was never checked.
+
+Uncommitted since baseline a6a2af1: kitchen add-ons batch 1, Building-Item rename, refusal wording, Build tab scroll fix, save/load redesign, three polish fixes, docs. Keep ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out. No commit until Mike says so.
+
+
+## 2026-10-20 - Build tab scrollbar verified (Mike)
+
+Mike reported "build tab scrollbar works good". The Build tab scroll fix (hover-only row component replacing the row EventTrigger, opt-in scrollbar) is confirmed working on screen. He did not mention the mouse wheel separately; the scrollbar is confirmed, the wheel is taken as covered by the same report unless he says otherwise.
+
+Still open: Save/Load checklist item 37 (no text overlap at 1920x1080 and at a smaller window). Everything else in the current batch is playtested: Save/Load 1-36 pass, Kitchen Add-ons 77/77 pass, Build tab scroll works.
+
+Uncommitted since baseline a6a2af1 (kitchen add-ons batch 1, Building-Item rename, refusal wording, Build tab scroll fix, save/load redesign, three polish fixes, docs). Keep ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out. No commit until Mike says so.
+
+
+## 2026-10-20 - Save/Load item 37 pass (Mike): Save/Load checklist complete, 37/37
+
+Mike reported item 37 passed (no text overlap on the Save/Load screen at 1920x1080 and at a smaller window). Save/Load checklist is now 37 of 37 pass.
+
+Everything since baseline a6a2af1 is now playtested:
+- Kitchen Add-ons batch 1: 77/77 pass.
+- Save/Load redesign and polish fixes: 37/37 pass.
+- Build tab scroll fix: scrollbar confirmed working.
+
+Awaiting Mike's decision to commit and push. Keep ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out. Commit message states playtest status.

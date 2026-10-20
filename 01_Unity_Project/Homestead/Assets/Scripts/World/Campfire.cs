@@ -162,7 +162,17 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
 
     // --- Interaction ---
 
+    // A Wood-Fired Grill's fire is named for it (WoodManager.IsGrillFire); any other campfire reads as it always did.
     public string InteractionPrompt
+    {
+        get
+        {
+            string prompt = FirePrompt;
+            return prompt.Length > 0 && state != null && WoodManager.Instance != null && WoodManager.Instance.IsGrillFire(state) ? WoodManager.PileName(PileKind.Grill) + ":  " + prompt : prompt;
+        }
+    }
+
+    string FirePrompt
     {
         get
         {

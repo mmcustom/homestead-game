@@ -41,7 +41,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
                                 state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack ||
-                                state.kind == PileKind.WoodShed;
+                                state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving;
 
     // --- Taking (E) ---
 
@@ -405,7 +405,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             return false;
         if (!state.Accepts(itemId))
         {
-            reason = $"a {Name} doesn't hold that";
+            reason = $"the {Name} doesn't hold that";
             return false;
         }
         if (Inventory.EquippedTool != null && Inventory.EquippedTool.Id == itemId)
@@ -633,6 +633,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.ToolRack: BuildRack(); return;
             case PileKind.CabinSite: BuildCabinSite(random); return;
             case PileKind.WoodShed: BuildShed(random); return;
+            case PileKind.Shelving: BuildShelving(); return;
         }
 
         int logs = Mathf.Min(state.Count(WoodManager.LogsId), 6);
@@ -707,6 +708,37 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         box.center = new Vector3(0f, 0.95f, 0f);
         box.size = new Vector3(halfWidth * 2f + 0.3f, 1.9f, halfDepth * 2f + 0.2f);
+    }
+
+    // Kitchen Shelving: four boards between two uprights against the kitchen's wall, 1.4 m tall (under the roof's 2.45 m and under head height,
+    // so it never reads as a roof to OverheadCover). Each stack kept on it shows as a small box on a shelf: tan for food, grey-brown for dry goods.
+    void BuildShelving()
+    {
+        const float width = 0.88f, depth = 0.34f, height = 1.4f, centerZ = -0.08f;
+        var wood = new Color(0.33f, 0.25f, 0.17f);
+        foreach (float x in new[] { -(width / 2f - 0.03f), width / 2f - 0.03f })
+            Tinted(Piece(PrimitiveType.Cube, new Vector3(x, height / 2f, centerZ), Vector3.zero, new Vector3(0.06f, height, depth), bark), wood);
+        Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, height / 2f, centerZ - depth / 2f + 0.01f), Vector3.zero, new Vector3(width, height, 0.02f), bark), new Color(wood.r * 0.8f, wood.g * 0.8f, wood.b * 0.8f));
+        float[] boards = { 0.12f, 0.5f, 0.88f, 1.26f };
+        foreach (float y in boards)
+            Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, y, centerZ), Vector3.zero, new Vector3(width, 0.04f, depth), bark), wood);
+
+        int shown = 0;
+        foreach (WoodStack stack in state.contents)
+        {
+            if (shown >= 16)
+                break;
+            ItemDefinition item = ItemDatabase.Get(stack.itemId);
+            bool food = item != null && item.IsFood;
+            int row = shown / 4, column = shown % 4;
+            float h = 0.08f + 0.02f * Mathf.Min(stack.count, 5);
+            Tinted(Piece(PrimitiveType.Cube, new Vector3(-0.3f + column * 0.2f, boards[row] + 0.02f + h / 2f, centerZ + 0.02f), Vector3.zero, new Vector3(0.14f, h, 0.18f), null),
+                   food ? new Color(0.62f, 0.5f, 0.3f) : new Color(0.45f, 0.4f, 0.35f));
+            shown++;
+        }
+
+        box.center = new Vector3(0f, height / 2f, centerZ);
+        box.size = new Vector3(width, height, depth);
     }
 
     // A heap of grey stones: a ring of base stones always, more piled on as Stone is stored.

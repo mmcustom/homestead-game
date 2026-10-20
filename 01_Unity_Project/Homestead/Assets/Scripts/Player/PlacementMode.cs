@@ -23,6 +23,8 @@ public class PlacementMode : MonoBehaviour
     public float rotationStepDegrees = 15f;
     [Tooltip("A Rain Barrel ghost snaps to an eave spot this close (metres) to where you aim.")]
     public float eaveSnapRange = 3f;
+    [Tooltip("A Kitchen add-on ghost snaps to a slot this close (metres) to where you aim.")]
+    public float slotSnapRange = 3f;
     [Tooltip("How far the aim ray looks for ground, so a spot beyond reach can say Too far instead of nothing.")]
     public float aimRange = 40f;
 
@@ -243,6 +245,13 @@ public class PlacementMode : MonoBehaviour
             };
         }
 
+        // A Countertop, Shelving, Grill or Slop Sink goes only in a free slot of a finished Covered Outdoor Kitchen.
+        if (!campfire && WoodManager.IsKitchenAddon(kind))
+        {
+            SnapToSlot(hit ? aim.point : player.transform.position, out spot, out haveSpot, out valid, out reason, out note);
+            return;
+        }
+
         if (!campfire && WoodManager.IsRainBarrel(kind) && TrySnapToEave(hit ? aim.point : player.transform.position, out spot, out valid, out reason, out note))
         {
             haveSpot = true;
@@ -318,6 +327,49 @@ public class PlacementMode : MonoBehaviour
             note = $"{RainCatchment.SlopeName(side)} of the cabin ({Shelter.RoofSlopePlanArea:0.#} m² of roof)";
         }
         return found;
+    }
+
+    // The add-on ghost jumps to the nearest free slot of the nearest finished kitchen within snap range (a taken one only if none is free, so the
+    // refusal can say so). The slot sets the ghost's facing too: toward the middle of the kitchen.
+    void SnapToSlot(Vector3 around, out BuildSpot spot, out bool haveSpot, out bool valid, out string reason, out string note)
+    {
+        spot = default;
+        haveSpot = false;
+        valid = false;
+        note = null;
+        reason = WoodManager.Instance.AnyFinishedKitchen ? "Aim at a slot inside the Covered Outdoor Kitchen." : WoodManager.NeedsKitchenReason;
+
+        bool found = false, bestFree = false;
+        float bestDistance = float.MaxValue, bestYaw = yaw;
+        foreach ((Vector3 world, float slotYaw, WoodPileState kitchen, int index, bool taken) in WoodManager.Instance.AddonSlots(around, slotSnapRange))
+        {
+            if (!GroundAt(world, out BuildSpot ground))
+                continue;
+
+            bool free = !taken;
+            float distance = Vector3.Distance(world, around);
+            if (found && !(free && !bestFree) && !(free == bestFree && distance < bestDistance))
+                continue;
+
+            found = true;
+            bestFree = free;
+            bestDistance = distance;
+            bestYaw = slotYaw;
+            spot = ground;
+            note = Setbacks.KitchenLayout.SlotLabel(index);
+            if (TooFar(ground.point))
+            {
+                valid = false;
+                reason = TooFarText;
+            }
+            else
+            {
+                valid = WoodManager.Instance.CanBuildPileAt(kind, player, ground, slotYaw, true, out reason);
+            }
+        }
+        if (found)
+            yaw = bestYaw;
+        haveSpot = found;
     }
 
     // The terrain under a point, ignoring cabins, piles and trees above it.

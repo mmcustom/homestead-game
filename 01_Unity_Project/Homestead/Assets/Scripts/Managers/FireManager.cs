@@ -608,7 +608,17 @@ public class FireManager : MonoBehaviour, ISaveable
         Campfire view = Instantiate(campfirePrefab, fire.position, Quaternion.Euler(0f, fire.yaw, 0f));
         view.name = $"Campfire {fire.id}";
         view.Bind(fire);
+        // A Wood-Fired Grill's fire is drawn smaller than a ring campfire so it fits its firebox (WoodManager.FireViewScale).
+        if (WoodManager.Instance != null)
+            view.transform.localScale = Vector3.one * WoodManager.Instance.FireViewScale(fire);
         views[fire.id] = view;
+    }
+
+    // Draws an existing fire at a size (a grill's fire, once its grill is standing).
+    public void SetViewScale(CampfireState fire, float scale)
+    {
+        if (fire != null && views.TryGetValue(fire.id, out Campfire view) && view != null)
+            view.transform.localScale = Vector3.one * scale;
     }
 
     // No fires — used when starting a new game.

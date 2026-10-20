@@ -21,6 +21,8 @@ using UnityEngine.InputSystem;
 //                       Ctrl always means the wood you carry
 //   Numpad -            advance seasoning by one season: every pile, shed and the wood you carry (wet wood becomes dry)
 //   Numpad *            print, for the nearest Covered Outdoor Kitchen (within 12 m): roof present, shade, rain-sheltered, hearth lit or out
+//   Numpad /            print, for the nearest finished Covered Outdoor Kitchen (within 12 m): what stands in each of its four slots, the grill's lit state and fuel,
+//                       the sink's litres, the shelving's contents, and the 0.75 m check against the hearth
 public class RainDebugControls : MonoBehaviour
 {
     static readonly WeatherType[] Cycle = { WeatherType.Clear, WeatherType.LightRain, WeatherType.HeavyRain, WeatherType.Thunderstorm };
@@ -125,6 +127,10 @@ public class RainDebugControls : MonoBehaviour
         {
             DebugKitchen();
         }
+        else if (keyboard.numpadDivideKey.wasPressedThisFrame)
+        {
+            DebugKitchenAddons();
+        }
         else if (keyboard.numpad4Key.wasPressedThisFrame)
         {
             ChangePond(-PondStep, null);
@@ -212,6 +218,17 @@ public class RainDebugControls : MonoBehaviour
     }
 
     // Numpad *: for the nearest Covered Outdoor Kitchen (any stage): roof present, shade, rain-sheltered, hearth lit or out.
+    static void DebugKitchenAddons()
+    {
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        if (player == null || rules == null)
+            return;
+        string report = rules.DebugKitchenAddonsReport(player.transform.position, 12f);
+        Debug.Log("[KitchenAddons] " + report);
+        ToolStatus.Flash(report, 8f);
+    }
+
     static void DebugKitchen()
     {
         PlayerController player = FindAnyObjectByType<PlayerController>();

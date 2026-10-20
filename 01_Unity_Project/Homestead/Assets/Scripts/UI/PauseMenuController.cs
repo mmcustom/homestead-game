@@ -12,7 +12,8 @@ public class PauseMenuController : MonoBehaviour
     [SerializeField] Button saveButton;
     [SerializeField] Button mainMenuButton;
     [SerializeField] Button quitButton;
-    Button slotsButton; // "Save / Load..." — built in code beside Save Game, which writes the active slot
+    Button slotsButton; // "Save / Load..." — built in code beside Save to Slot N, which writes the active slot (shown only when there is one)
+    float columnHeight, columnStep;
 
     [Tooltip("Current in-game date, time and weather.")]
     [SerializeField] Text dateLabel;
@@ -33,7 +34,7 @@ public class PauseMenuController : MonoBehaviour
         quitButton.onClick.AddListener(() => GameManager.Instance?.QuitGame());
 
         // Resume's sound comes from the menu closing (OnStateChanged), which also covers closing it with Esc.
-        slotsButton.onClick.AddListener(() => OpenSlotPanel(SlotPanel.Mode.Save));
+        slotsButton.onClick.AddListener(() => OpenSlotPanel());
         foreach (Button button in new[] { saveButton, slotsButton, mainMenuButton, quitButton })
             button.onClick.AddListener(() => PlaySound(SoundCue.UiClick));
     }
@@ -110,7 +111,17 @@ public class PauseMenuController : MonoBehaviour
 
         string active = SaveManager.Instance != null ? SaveManager.Instance.ActiveSlot : null;
         int number = SaveManager.SlotNumber(active);
-        label.text = number > 0 ? $"Save to Slot {number}" : "Save Game…";
+        label.text = $"Save to Slot {number}";
+
+        // With no slot to save to, "Save / Load…" is the only way in, so the one-click button goes away (and the column
+        // shrinks back to the prefab's size; the layout group skips an inactive child).
+        bool show = number > 0;
+        bool changed = saveButton.gameObject.activeSelf != show;
+        saveButton.gameObject.SetActive(show);
+        var column = (RectTransform)saveButton.transform.parent;
+        column.sizeDelta = new Vector2(column.sizeDelta.x, columnHeight + (show ? columnStep : 0f));
+        if (changed && EventSystem.current != null && EventSystem.current.currentSelectedGameObject == saveButton.gameObject)
+            EventSystem.current.SetSelectedGameObject(resumeButton.gameObject);
     }
 
     // A second button under Save Game, cloned from it so it matches the prefab's look and sits in its layout group.
@@ -125,8 +136,8 @@ public class PauseMenuController : MonoBehaviour
         // Room for the extra button in the column's fixed-size rect.
         var column = (RectTransform)saveButton.transform.parent;
         var layout = column.GetComponent<VerticalLayoutGroup>();
-        float step = ((RectTransform)slotsButton.transform).sizeDelta.y + (layout != null ? layout.spacing : 0f);
-        column.sizeDelta += new Vector2(0f, step);
+        columnStep = ((RectTransform)slotsButton.transform).sizeDelta.y + (layout != null ? layout.spacing : 0f);
+        columnHeight = column.sizeDelta.y; // the prefab's, with Save to Slot N but not this button
     }
 
     // Save_System.md: manual save, player-initiated at any time. Writes the active slot; with none (a new game not yet
@@ -138,7 +149,7 @@ public class PauseMenuController : MonoBehaviour
 
         string active = SaveManager.Instance.ActiveSlot;
         if (active == null)
-            OpenSlotPanel(SlotPanel.Mode.Save);
+            OpenSlotPanel();
         else
             SaveToSlot(active);
     }
@@ -150,12 +161,12 @@ public class PauseMenuController : MonoBehaviour
         SaveManager.Instance.SaveGame(slotId);
     }
 
-    void OpenSlotPanel(SlotPanel.Mode mode)
+    void OpenSlotPanel()
     {
         if (SaveManager.Instance == null)
             return;
 
-        SlotPanel.Open(menuRoot.transform, mode, allowModeSwitch: true, warnUnsavedOnLoad: true, onPick: SaveToSlot, onClosed: RefreshSaveLabel);
+        SlotPanel.Open(menuRoot.transform, SlotPanel.Mode.Browse, inGame: true, onPick: SaveToSlot, onClosed: RefreshSaveLabel);
     }
 
     void OnSaveCompleted()

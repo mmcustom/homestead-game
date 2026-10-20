@@ -104,7 +104,7 @@ public class MainMenuController : MonoBehaviour
     void OnLoadGame()
     {
         SetMainButtonsInteractable(false);
-        SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.Load, allowModeSwitch: false, warnUnsavedOnLoad: false, onPick: null,
+        SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.Browse, inGame: false, onPick: null,
                        onClosed: () =>
                        {
                            SetMainButtonsInteractable(true);
@@ -156,7 +156,7 @@ public class MainMenuController : MonoBehaviour
     {
         difficultyPanel.SetActive(false);
         confirmPanel.SetActive(false);
-        SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.NewGame, allowModeSwitch: false, warnUnsavedOnLoad: false,
+        SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.NewGame, inGame: false,
                        onPick: slotId => GameManager.Instance.StartNewGame(chosenTier, chosenWeapon, slotId),
                        onClosed: () =>
                        {

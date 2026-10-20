@@ -352,6 +352,23 @@ public class WellsAndOuthouses : MonoBehaviour
     [Tooltip("Covered Outdoor Kitchen: the hearth stage and the roof stage are each pounded in turn.")]
     public int kitchenHearthBuildBlows = 15;
     public int kitchenRoofBuildBlows = 30;
+
+    [Header("Kitchen add-ons, batch 1 (first-pass costs, Claude's, not confirmed; each is a single-step build under the staged line)")]
+    [Tooltip("Kitchen-Countertop: 1 Log + 4 Branches (12 kg).")]
+    public int countertopLogs = 1;
+    public int countertopBranches = 4;
+    [Tooltip("Kitchen-Shelves: 10 Branches + 6 Sticks (10.6 kg).")]
+    public int shelvingBranches = 10;
+    public int shelvingSticks = 6;
+    [Tooltip("Kitchen-Grill: 2 Stone + 1 Clay (13.5 kg).")]
+    public int grillStone = 2;
+    public int grillClay = 1;
+    [Tooltip("Kitchen-Sink: 1 Log + 1 Clay + 2 Branches (13.5 kg).")]
+    public int slopSinkLogs = 1;
+    public int slopSinkClay = 1;
+    public int slopSinkBranches = 2;
+    [Tooltip("Litres the Kitchen-Sink holds, of any quality (WoodManager.CapacityOf).")]
+    [Min(1)] public int slopSinkLitres = 20;
     public int cabinBuildBlows = 60;
 
     public int BuildBlows(PileKind site)
@@ -457,6 +474,47 @@ public class WellsAndOuthouses : MonoBehaviour
         {
             new WoodStack { itemId = WoodManager.LogsId, count = w != null ? w.woodShedLogs : 2 },
             new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.woodShedBranches : 8 },
+        };
+    }
+
+    public static WoodStack[] CountertopCost()
+    {
+        WellsAndOuthouses w = Instance;
+        return new[]
+        {
+            new WoodStack { itemId = WoodManager.LogsId, count = w != null ? w.countertopLogs : 1 },
+            new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.countertopBranches : 4 },
+        };
+    }
+
+    public static WoodStack[] ShelvingCost()
+    {
+        WellsAndOuthouses w = Instance;
+        return new[]
+        {
+            new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.shelvingBranches : 10 },
+            new WoodStack { itemId = WoodManager.SticksId, count = w != null ? w.shelvingSticks : 6 },
+        };
+    }
+
+    public static WoodStack[] GrillCost()
+    {
+        WellsAndOuthouses w = Instance;
+        return new[]
+        {
+            new WoodStack { itemId = WoodManager.StoneId, count = w != null ? w.grillStone : 2 },
+            new WoodStack { itemId = WoodManager.ClayId, count = w != null ? w.grillClay : 1 },
+        };
+    }
+
+    public static WoodStack[] SlopSinkCost()
+    {
+        WellsAndOuthouses w = Instance;
+        return new[]
+        {
+            new WoodStack { itemId = WoodManager.LogsId, count = w != null ? w.slopSinkLogs : 1 },
+            new WoodStack { itemId = WoodManager.ClayId, count = w != null ? w.slopSinkClay : 1 },
+            new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.slopSinkBranches : 2 },
         };
     }
 
@@ -592,8 +650,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return found;
         foreach (WoodPileState pile in wood.Piles)
         {
-            if (pile == ignore || pile.kind == PileKind.Felled)
-                continue;
+            if (pile == ignore || pile.kind == PileKind.Felled || pile.IsKitchenAddon)
+                continue; // a kitchen's own countertop, shelving, grill or sink is part of it, not a neighbour
             float radius;
             switch (pile.kind)
             {
@@ -897,6 +955,67 @@ public class WellsAndOuthouses : MonoBehaviour
             }
         }
         return best;
+    }
+
+    // Numpad /: for the nearest finished Covered Kitchen within reach of a point, what stands in each of its four slots, the grill's fire, the
+    // sink's litres, how much is on the shelving, and the 0.75 m check that the hearth lookup cannot pick a grill's fire.
+    public string DebugKitchenAddonsReport(Vector3 from, float reach)
+    {
+        WoodManager wood = WoodManager.Instance;
+        WoodPileState kitchen = null;
+        float bestDistance = reach;
+        if (wood != null)
+        {
+            foreach (WoodPileState pile in wood.Piles)
+            {
+                float d = Vector3.Distance(pile.position, from);
+                if (pile.kind == PileKind.Kitchen && d <= bestDistance)
+                {
+                    kitchen = pile;
+                    bestDistance = d;
+                }
+            }
+        }
+        if (kitchen == null)
+            return $"no finished Covered Outdoor Kitchen within {reach:0} m";
+
+        var lines = new List<string>();
+        for (int i = 0; i < Setbacks.KitchenLayout.SlotCount; i++)
+        {
+            WoodPileState addon = wood.AddonInSlot(kitchen, i);
+            string detail = "empty";
+            if (addon != null)
+            {
+                detail = WoodManager.PileName(addon.kind);
+                switch (addon.kind)
+                {
+                    case PileKind.Grill:
+                        CampfireState fire = wood.GrillFireOf(addon);
+                        detail += fire == null ? " (no fire)" : fire.lit ? $" (lit, {fire.fuelHours:0.#} h fuel)" : $" (out, {fire.fuelHours:0.#} h fuel)";
+                        break;
+                    case PileKind.SlopSink: detail += $" ({addon.Total}/{wood.CapacityOf(PileKind.SlopSink)} L)"; break;
+                    case PileKind.Shelving: detail += $" ({addon.contents.Count} stacks, {addon.Total} items)"; break;
+                }
+            }
+            lines.Add($"slot {i + 1} {Setbacks.KitchenLayout.SlotLabel(i)}: {detail}");
+        }
+
+        CampfireState hearth = wood.KitchenHearthOf(kitchen);
+        string hearthCheck = hearth == null ? "hearth: NONE found"
+            : wood.IsGrillFire(hearth) ? "hearth lookup picked a Kitchen-Grill fire (BAD)"
+            : "hearth lookup ok";
+        float closest = float.MaxValue;
+        foreach (WoodPileState addon in wood.AddonsOf(kitchen))
+        {
+            if (addon.kind != PileKind.Grill)
+                continue;
+            CampfireState gf = wood.GrillFireOf(addon);
+            CampfireState real = wood.KitchenHearthOf(kitchen);
+            if (gf != null && real != null)
+                closest = Mathf.Min(closest, Vector3.Distance(gf.position, real.position));
+        }
+        string gap = closest == float.MaxValue ? $"no {WoodManager.PileName(PileKind.Grill)}" : $"{WoodManager.PileName(PileKind.Grill)} fire {closest:0.00} m from the hearth fire ({(closest > Setbacks.KitchenLayout.SlotMinHearthGap ? "ok" : "TOO CLOSE")})";
+        return $"Kitchen {kitchen.id}: " + string.Join("; ", lines) + $" | {hearthCheck}; {gap}";
     }
 
     // Numpad *: for the nearest Covered Kitchen (any stage) within reach of a point, what the roof does there: is the roof in place, does it

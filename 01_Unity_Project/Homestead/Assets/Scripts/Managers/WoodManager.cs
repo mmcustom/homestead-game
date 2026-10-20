@@ -36,8 +36,10 @@ public class FelledTree
 // (WoodPile, the transfer screen) whose wood is never rained on and so seasons from wet to dry (WoodMoisture).
 // Phase C adds the Covered Outdoor Kitchen: a staged site in two stages (KitchenSite: the hearth, Stone and Clay; then KitchenRoofSite: the roof,
 // Logs, Branches and Tall Grass) that turns into a Kitchen, a roof on posts over a stone hearth that is an ordinary Campfire (CampfireState).
+// Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
+// (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink }
 
 [Serializable]
 public class WoodPileState
@@ -183,8 +185,11 @@ public class WoodPileState
     public bool IsOpenWoodPile => IsWoodPile;
     public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
-    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsKitchen => kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen;
+    // A Countertop, Shelving, Grill or Slop Sink: stands in one of a finished Kitchen's four fixed slots (Setbacks.KitchenLayout).
+    public bool IsKitchenAddon => WoodManager.IsKitchenAddon(kind);
+    public bool IsSlopSink => kind == PileKind.SlopSink;
     public bool IsBuilt => kind != PileKind.Felled;
     // Both barrels hold water by the litre under one shared cap (WoodManager.CapacityOf).
     public bool IsWaterBarrel => kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel;
@@ -202,6 +207,7 @@ public class WoodPileState
             case PileKind.RainBarrel: return WoodManager.IsWater(itemId);
             case PileKind.FoodCache: return WoodManager.IsStorableFood(itemId);
             case PileKind.StorageBin: return WoodManager.IsDryGoods(itemId);
+            case PileKind.Shelving: return WoodManager.IsDryGoods(itemId) || WoodManager.IsStorableFood(itemId);
             case PileKind.ToolRack: return WoodManager.IsTool(itemId);
             case PileKind.CabinSite:
                 return WoodManager.Instance != null && Array.IndexOf(WoodManager.CabinMaterialIds, itemId) >= 0 &&
@@ -214,6 +220,9 @@ public class WoodPileState
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
+            case PileKind.Countertop:
+            case PileKind.Grill:
+            case PileKind.SlopSink:
             case PileKind.Kitchen:
             case PileKind.Well:
             case PileKind.Outhouse:
@@ -294,6 +303,10 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     public static readonly string[] WoodIds = { LogsId, BranchesId, SticksId, FireManager.FirewoodId };
     public static bool IsWood(string itemId) => Array.IndexOf(WoodIds, itemId) >= 0;
+
+    // The four Kitchen add-ons: they stand in a finished Kitchen's fixed slots and nowhere else.
+    public static bool IsKitchenAddon(PileKind kind) =>
+        kind == PileKind.Countertop || kind == PileKind.Shelving || kind == PileKind.Grill || kind == PileKind.SlopSink;
 
     public static bool IsWater(string itemId) => WaterQualities.IsRawWater(itemId) || itemId == Cooking.PurifiedWaterId;
 
@@ -391,7 +404,8 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     // Litres a water barrel of this kind holds (0 for anything that isn't one).
     public int CapacityOf(PileKind kind) =>
-        kind == PileKind.RainBarrel ? rainBarrelLitres : kind == PileKind.WaterBarrel ? barrelLitres : 0;
+        kind == PileKind.RainBarrel ? rainBarrelLitres : kind == PileKind.WaterBarrel ? barrelLitres
+        : kind == PileKind.SlopSink && WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.slopSinkLitres : 0;
 
     // Rain that fell on a roof slope but fits no barrel's whole litre yet, per barrel (not saved: under a litre is lost on load).
     readonly Dictionary<int, float> rainCarry = new Dictionary<int, float>();
@@ -759,12 +773,18 @@ public class WoodManager : MonoBehaviour, ISaveable
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite };
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite,
+          PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
     // The Tarp Shelter's stakes and ridgeline: 2 Sticks and 1 Cordage, plus the Tarp itself. Taking it down returns the
     // Tarp and half the Sticks (rounded down) — the Tarp is placed, not used up.
     public const int TarpShelterSticks = 2;
+
+    // Add-on naming convention: <Building>-<Item>, each part capitalised (Kitchen-Countertop). A future Cabin-... or Shed-... add-on
+    // gets its own prefix constant and goes through AddonName. Names are derived from the kind here, never saved.
+    public const string KitchenAddonPrefix = "Kitchen";
+    public static string AddonName(string building, string item) => building + "-" + item;
 
     public static string PileName(PileKind kind)
     {
@@ -793,6 +813,10 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.KitchenSite: return "Covered Kitchen Site";
             case PileKind.KitchenRoofSite: return "Covered Kitchen Site (roof)";
             case PileKind.Kitchen: return "Covered Outdoor Kitchen";
+            case PileKind.Countertop: return AddonName(KitchenAddonPrefix, "Countertop");
+            case PileKind.Shelving: return AddonName(KitchenAddonPrefix, "Shelves");
+            case PileKind.Grill: return AddonName(KitchenAddonPrefix, "Grill");
+            case PileKind.SlopSink: return AddonName(KitchenAddonPrefix, "Sink");
             default: return "Wood Pile";
         }
     }
@@ -828,6 +852,11 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WoodShed: return WellsAndOuthouses.WoodShedCost();
             // A Kitchen Site is free to mark out too; PileKind.Kitchen holds both stages' materials in total, what Dismantle halves line by line.
             case PileKind.Kitchen: return WellsAndOuthouses.KitchenCost();
+            // The Kitchen add-ons are single-step builds (each under the 15 kg staged line); WellsAndOuthouses holds the numbers.
+            case PileKind.Countertop: return WellsAndOuthouses.CountertopCost();
+            case PileKind.Shelving: return WellsAndOuthouses.ShelvingCost();
+            case PileKind.Grill: return WellsAndOuthouses.GrillCost();
+            case PileKind.SlopSink: return WellsAndOuthouses.SlopSinkCost();
             default: return new WoodStack[0];
         }
     }
@@ -888,6 +917,13 @@ public class WoodManager : MonoBehaviour, ISaveable
             }
         }
 
+        // A Kitchen add-on needs a finished Covered Outdoor Kitchen to stand in (its slots), before any materials are asked for.
+        if (IsKitchenAddon(kind) && !AnyFinishedKitchen)
+        {
+            reason = NeedsKitchenReason;
+            return false;
+        }
+
         var shortfalls = new List<(string, int)>();
         foreach (WoodStack c in CostOf(kind))
             shortfalls.Add((c.itemId, c.count - inventory.Player.Count(c.itemId)));
@@ -943,6 +979,10 @@ public class WoodManager : MonoBehaviour, ISaveable
     {
         if (!CanStartBuild(kind, player, out reason))
             return false;
+
+        // A Kitchen add-on goes in a slot of a finished Kitchen and answers to its own rules (CanBuildAddonAt), not the open-ground ones below.
+        if (IsKitchenAddon(kind))
+            return CanBuildAddonAt(kind, spot, out reason);
 
         bool cabin = kind == PileKind.CabinSite;
         float spacing = cabin ? cabinFootprint : minSpacing;
@@ -1032,6 +1072,10 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.RockStorage:
             case PileKind.StorageBin:
             case PileKind.ToolRack:
+            case PileKind.Countertop:
+            case PileKind.Shelving:
+            case PileKind.Grill:
+            case PileKind.SlopSink:
                 return true;
             default:
                 return false;
@@ -1068,6 +1112,10 @@ public class WoodManager : MonoBehaviour, ISaveable
 
         foreach (WoodStack c in CostOf(kind))
             InventoryManager.Instance.RemoveFromPlayer(c.itemId, c.count);
+        // An add-on is built exactly in its slot, facing the middle of the kitchen, whatever the ghost said.
+        if (IsKitchenAddon(kind) && KitchenForSlot(spot.point, out WoodPileState slotKitchen, out int slotIndex))
+            yaw = Setbacks.KitchenLayout.SlotYaw(slotKitchen.yaw, slotIndex);
+
         var pile = new WoodPileState
         {
             id = nextPileId++,
@@ -1077,6 +1125,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             builtDay = 0, // an Outhouse's pit starts when its site is completed (WellsAndOuthouses.FinishSite)
         };
         piles.Add(pile);
+        // A Wood-Fired Grill comes with its fire: a second furnished campfire in the firebox, unlit and out of fuel like the hearth.
+        if (kind == PileKind.Grill && FireManager.Instance != null)
+            FireManager.Instance.BuildFurnished(GrillFireSpot(pile), pile.yaw);
         SpawnPile(pile);
         PileChanged?.Invoke(pile);
         return true;
@@ -1479,6 +1530,12 @@ public class WoodManager : MonoBehaviour, ISaveable
             reason = "take the roof materials back first (E)";
             return false;
         }
+        // Anything standing in a slot (a countertop, shelving, grill or sink) comes down first; a kitchen site has none.
+        if (kitchen.kind == PileKind.Kitchen && KitchenHasAddons(kitchen))
+        {
+            reason = "remove the add-ons first";
+            return false;
+        }
         CampfireState hearth = KitchenHearthOf(kitchen);
         if (hearth != null && hearth.lit)
         {
@@ -1522,6 +1579,209 @@ public class WoodManager : MonoBehaviour, ISaveable
         return refund.Describe("Covered Outdoor Kitchen");
     }
 
+    // --- Kitchen add-ons, batch 1 (Countertop, Shelving, Wood-Fired Grill, Slop Sink) ---
+    // They stand in the four fixed slots of a finished Kitchen (Setbacks.KitchenLayout). A slot is only a position: an add-on belongs to the
+    // kitchen whose slot its position is in, found each time (KitchenForSlot), so nothing about the link is saved.
+
+    public const string NeedsKitchenReason = "Needs a finished Covered Outdoor Kitchen.";
+    public const string SlotTakenReason = "That spot is taken.";
+    // A Wood-Fired Grill's fire sits on top of the firebox, drawn smaller than a ring campfire so it fits the slot.
+    public const float GrillFireHeight = 0.45f;
+    public const float GrillFireScale = 0.6f;
+
+    public bool AnyFinishedKitchen
+    {
+        get
+        {
+            foreach (WoodPileState pile in piles)
+                if (pile.kind == PileKind.Kitchen)
+                    return true;
+            return false;
+        }
+    }
+
+    // The finished kitchen whose slot the point stands in, and which slot (false if none).
+    public bool KitchenForSlot(Vector3 point, out WoodPileState kitchen, out int index)
+    {
+        foreach (WoodPileState pile in piles)
+        {
+            if (pile.kind != PileKind.Kitchen)
+                continue;
+            int found = Setbacks.KitchenLayout.SlotIndexOf(pile.position, pile.yaw, point);
+            if (found >= 0)
+            {
+                kitchen = pile;
+                index = found;
+                return true;
+            }
+        }
+        kitchen = null;
+        index = -1;
+        return false;
+    }
+
+    // The add-on standing in a kitchen's slot, or null.
+    public WoodPileState AddonInSlot(WoodPileState kitchen, int index)
+    {
+        Vector3 slot = Setbacks.KitchenLayout.SlotAt(kitchen.position, kitchen.yaw, index);
+        foreach (WoodPileState pile in piles)
+            if (pile.IsKitchenAddon && Vector2.Distance(new Vector2(pile.position.x, pile.position.z), new Vector2(slot.x, slot.z)) <= Setbacks.KitchenLayout.SlotTolerance)
+                return pile;
+        return null;
+    }
+
+    public List<WoodPileState> AddonsOf(WoodPileState kitchen)
+    {
+        var found = new List<WoodPileState>();
+        for (int i = 0; i < Setbacks.KitchenLayout.SlotCount; i++)
+        {
+            WoodPileState addon = AddonInSlot(kitchen, i);
+            if (addon != null)
+                found.Add(addon);
+        }
+        return found;
+    }
+
+    public bool KitchenHasAddons(WoodPileState kitchen) => AddonsOf(kitchen).Count > 0;
+
+    // Every slot of every finished kitchen within range of a point: where it stands (the pivot's height; the caller finds the ground), the
+    // way an add-on there faces, which kitchen and slot, and whether something already stands in it. Placement Mode snaps to these.
+    public List<(Vector3 world, float yaw, WoodPileState kitchen, int index, bool taken)> AddonSlots(Vector3 near, float range)
+    {
+        var slots = new List<(Vector3 world, float yaw, WoodPileState kitchen, int index, bool taken)>();
+        foreach (WoodPileState pile in piles)
+        {
+            if (pile.kind != PileKind.Kitchen || Vector3.Distance(pile.position, near) > range + 3f)
+                continue;
+            for (int i = 0; i < Setbacks.KitchenLayout.SlotCount; i++)
+            {
+                Vector3 world = Setbacks.KitchenLayout.SlotAt(pile.position, pile.yaw, i);
+                if (Vector3.Distance(world, near) <= range)
+                    slots.Add((world, Setbacks.KitchenLayout.SlotYaw(pile.yaw, i), pile, i, AddonInSlot(pile, i) != null));
+            }
+        }
+        return slots;
+    }
+
+    // The one place a Kitchen add-on is allowed or refused (CanBuildPileAt hands it over, so the ghost and the real build never differ). It
+    // must stand in a free slot of a finished kitchen; it skips the 2 m pile spacing against its own kitchen and that kitchen's other add-ons
+    // and the lit-fire rule against that kitchen's hearth and grills, and still keeps both against anything unrelated.
+    public bool CanBuildAddonAt(PileKind kind, BuildSpot spot, out string reason)
+    {
+        if (!KitchenForSlot(spot.point, out WoodPileState kitchen, out int index))
+        {
+            reason = NeedsKitchenReason;
+            return false;
+        }
+        if (AddonInSlot(kitchen, index) != null)
+        {
+            reason = SlotTakenReason;
+            return false;
+        }
+
+        foreach (WoodPileState other in piles)
+        {
+            if (other == kitchen || (other.IsKitchenAddon && KitchenForSlot(other.position, out WoodPileState ownerKitchen, out _) && ownerKitchen == kitchen))
+                continue;
+            if (Vector3.Distance(other.position, spot.point) < minSpacing)
+            {
+                reason = "Too close to another pile.";
+                return false;
+            }
+        }
+        FireManager fires = FireManager.Instance;
+        if (fires != null)
+        {
+            CampfireState hearth = KitchenHearthOf(kitchen);
+            foreach (CampfireState fire in fires.Fires)
+            {
+                if (!fire.lit || fire == hearth || IsGrillFire(fire) || Vector3.Distance(fire.position, spot.point) >= minSpacing)
+                    continue;
+                reason = "Too close to the fire.";
+                return false;
+            }
+        }
+
+        if (NeedsHammerToBuild(kind) && !HammerEquipped)
+        {
+            reason = WellsAndOuthouses.EquipHammerToBuild;
+            return false;
+        }
+        reason = "";
+        return true;
+    }
+
+    // The Wood-Fired Grill's fire stands on the firebox, at the slot's middle; a second furnished campfire (FireManager.BuildFurnished).
+    public static Vector3 GrillFireSpot(WoodPileState grill) => grill.position + Vector3.up * GrillFireHeight;
+
+    public CampfireState GrillFireOf(WoodPileState grill) =>
+        FireManager.Instance == null ? null : FireManager.Instance.FireNear(GrillFireSpot(grill), 0.4f);
+
+    // Whether a fire is a grill's (the fire's prompt says "Wood-Fired Grill"; its view is drawn smaller).
+    public bool IsGrillFire(CampfireState fire)
+    {
+        foreach (WoodPileState pile in piles)
+            if (pile.kind == PileKind.Grill && Vector3.Distance(GrillFireSpot(pile), fire.position) < 0.4f)
+                return true;
+        return false;
+    }
+
+    public float FireViewScale(CampfireState fire) => IsGrillFire(fire) ? GrillFireScale : 1f;
+
+    // Dismantling a Countertop, Grill or Slop Sink: the Hammer, a grill must be out, a sink empty (Shelving is WoodPile's, emptied first).
+    public bool CanDismantleAddon(WoodPileState addon, out string reason)
+    {
+        reason = "";
+        if (addon == null || !addon.IsKitchenAddon)
+        {
+            reason = "not a kitchen add-on";
+            return false;
+        }
+        if (!HammerEquipped)
+        {
+            reason = "equip the Hammer";
+            return false;
+        }
+        if (addon.kind == PileKind.Grill)
+        {
+            CampfireState fire = GrillFireOf(addon);
+            if (fire != null && fire.lit)
+            {
+                reason = "put the grill's fire out first";                return false;
+            }
+        }
+        if (addon.kind == PileKind.SlopSink && !addon.IsEmpty)
+        {
+            reason = $"drain the {PileName(addon.kind)} first";
+            return false;
+        }
+        return true;
+    }
+
+    // Half of each cost line back, rounded down, as dry wood; a grill's fire goes with it and its Firewood is returned like the hearth's.
+    public string DismantleAddon(WoodPileState addon, Transform view)
+    {
+        string name = PileName(addon.kind);
+        if (!CanDismantleAddon(addon, out string reason))
+            return $"Can't take the {name} down - {reason}.";
+
+        var refund = new StructureRefund(addon.position, view);
+        foreach (WoodStack cost in CostOf(addon.kind))
+            refund.Return(cost.itemId, cost.count / 2);
+        if (addon.kind == PileKind.Grill)
+        {
+            CampfireState fire = GrillFireOf(addon);
+            if (fire != null)
+            {
+                FireManager fires = FireManager.Instance;
+                refund.Return(FireManager.FirewoodId, Mathf.FloorToInt(fire.fuelHours / fires.HoursPerFirewood));
+                fires.RemoveFire(fire);
+            }
+        }
+        RemovePile(addon);
+        return refund.Describe(name);
+    }
+
     void SpawnPile(WoodPileState pile)
     {
         var go = new GameObject($"{PileName(pile.kind)} {pile.id}");
@@ -1533,6 +1793,14 @@ public class WoodManager : MonoBehaviour, ISaveable
         else
             go.AddComponent<WoodPile>().Bind(pile, BarkMaterial());
         pileViews[pile.id] = go;
+
+        // A grill's fire may already be standing (loaded, or just built): draw it at the grill's size.
+        if (pile.kind == PileKind.Grill && FireManager.Instance != null)
+        {
+            CampfireState fire = GrillFireOf(pile);
+            if (fire != null)
+                FireManager.Instance.SetViewScale(fire, GrillFireScale);
+        }
     }
 
     // The Primitive Shovel digging a stump out: it's gone for good, and its roots make a Firewood.
