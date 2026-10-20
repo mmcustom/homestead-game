@@ -34,8 +34,10 @@ public class FelledTree
 // that now includes the WaterBarrelSite, RainBarrelSite and FoodCacheSite, which turn into the (unchanged) WaterBarrel, RainBarrel and FoodCache.
 // Phase B adds the Wood Shed: a WoodShedSite (staged, 24 kg) that turns into a WoodShed, a roofed rack drawn and used like a Wood Pile
 // (WoodPile, the transfer screen) whose wood is never rained on and so seasons from wet to dry (WoodMoisture).
+// Phase C adds the Covered Outdoor Kitchen: a staged site in two stages (KitchenSite: the hearth, Stone and Clay; then KitchenRoofSite: the roof,
+// Logs, Branches and Tall Grass) that turns into a Kitchen, a roof on posts over a stone hearth that is an ordinary Campfire (CampfireState).
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen }
 
 [Serializable]
 public class WoodPileState
@@ -181,7 +183,8 @@ public class WoodPileState
     public bool IsOpenWoodPile => IsWoodPile;
     public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
-    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsKitchen => kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen;
     public bool IsBuilt => kind != PileKind.Felled;
     // Both barrels hold water by the litre under one shared cap (WoodManager.CapacityOf).
     public bool IsWaterBarrel => kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel;
@@ -208,7 +211,10 @@ public class WoodPileState
             case PileKind.WaterBarrelSite:
             case PileKind.RainBarrelSite:
             case PileKind.FoodCacheSite:
+            case PileKind.KitchenSite:
+            case PileKind.KitchenRoofSite:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
+            case PileKind.Kitchen:
             case PileKind.Well:
             case PileKind.Outhouse:
             case PileKind.Tent:
@@ -753,7 +759,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite };
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite };
 
     public const string TentId = "tent";
     // The Tarp Shelter's stakes and ridgeline: 2 Sticks and 1 Cordage, plus the Tarp itself. Taking it down returns the
@@ -784,6 +790,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.FoodCacheSite: return "Food Cache Site";
             case PileKind.WoodShedSite: return "Wood Shed Site";
             case PileKind.WoodShed: return "Wood Shed";
+            case PileKind.KitchenSite: return "Covered Kitchen Site";
+            case PileKind.KitchenRoofSite: return "Covered Kitchen Site (roof)";
+            case PileKind.Kitchen: return "Covered Outdoor Kitchen";
             default: return "Wood Pile";
         }
     }
@@ -817,6 +826,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.Outhouse: return WellsAndOuthouses.OuthouseCost();
             // A Wood Shed Site is free to mark out the same way; PileKind.WoodShed holds its total and what Dismantle halves.
             case PileKind.WoodShed: return WellsAndOuthouses.WoodShedCost();
+            // A Kitchen Site is free to mark out too; PileKind.Kitchen holds both stages' materials in total, what Dismantle halves line by line.
+            case PileKind.Kitchen: return WellsAndOuthouses.KitchenCost();
             default: return new WoodStack[0];
         }
     }
@@ -835,7 +846,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     {
         if (WellsAndOuthouses.IsStagedSite(kind))
         {
-            PileKind finished = WellsAndOuthouses.FinishedKind(kind);
+            PileKind finished = WellsAndOuthouses.FinalKind(kind);
             return $"free to mark out; the {PileName(finished)} then takes " + CostText(finished) + " over several trips";
         }
         WoodStack[] cost = CostOf(kind);
@@ -976,7 +987,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         // hollows (WellsAndOuthouses.CanPlace); the refusal names what it is too close to.
         // A Wood Shed Site keeps off floodplain and 3 m from the cabin (the same call).
 
-        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite) && WellsAndOuthouses.Instance != null &&
+        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite) && WellsAndOuthouses.Instance != null &&
             !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         foreach (WoodPileState other in piles)
@@ -1052,7 +1063,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     public bool BuildPile(PileKind kind, PlayerController player, BuildSpot spot, float yaw)
     {
         if (kind == PileKind.Felled || kind == PileKind.Cabin || kind == PileKind.Well || kind == PileKind.Outhouse ||
-            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || kind == PileKind.WoodShed || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
+            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || kind == PileKind.WoodShed || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
             return false;
 
         foreach (WoodStack c in CostOf(kind))
@@ -1429,6 +1440,86 @@ public class WoodManager : MonoBehaviour, ISaveable
 
         RemovePile(cabin);
         return refund.Describe("Small Cabin");
+    }
+
+    // --- The Covered Outdoor Kitchen (Structures Slice 1, phase C) ---
+    // Its hearth is an ordinary Campfire (CampfireState, saved by FireManager) that the hearth stage's last Hammer blow puts on the
+    // stone slab under the roof (WellsAndOuthouses.FinishSite); like the cabin's it is found again by where it stands, not saved on the pile.
+
+    public static Vector3 KitchenHearthSpot(WoodPileState kitchen) => Setbacks.KitchenLayout.HearthAt(kitchen.position, kitchen.yaw);
+
+    public CampfireState KitchenHearthOf(WoodPileState kitchen) =>
+        FireManager.Instance == null ? null : FireManager.Instance.FireNear(KitchenHearthSpot(kitchen), 0.75f);
+
+    // The finished kitchen whose roof the point stands under, or null (the sheltered meal asks this).
+    public WoodPileState KitchenRoofAt(Vector3 point)
+    {
+        foreach (WoodPileState pile in piles)
+            if (pile.kind == PileKind.Kitchen && Setbacks.KitchenLayout.UnderRoof(pile.position, pile.yaw, point))
+                return pile;
+        return null;
+    }
+
+    // Dismantle works on the finished kitchen, and on a hearth-built site that has no roof materials in it (or whose roof is built in).
+    public bool CanDismantleKitchen(WoodPileState kitchen, out string reason)
+    {
+        reason = "";
+        if (kitchen == null || (kitchen.kind != PileKind.Kitchen && kitchen.kind != PileKind.KitchenRoofSite))
+        {
+            reason = "not a kitchen";
+            return false;
+        }
+        if (!HammerEquipped)
+        {
+            reason = "equip the Hammer";
+            return false;
+        }
+        if (kitchen.kind == PileKind.KitchenRoofSite && !kitchen.IsEmpty && !WellsAndOuthouses.MaterialsLocked(kitchen))
+        {
+            reason = "take the roof materials back first (E)";
+            return false;
+        }
+        CampfireState hearth = KitchenHearthOf(kitchen);
+        if (hearth != null && hearth.lit)
+        {
+            reason = "put the hearth fire out first";
+            return false;
+        }
+        return true;
+    }
+
+    // Takes the kitchen down: half of each cost line back, rounded down (a single item refunds nothing), as dry wood. A hearth-only site
+    // gives back half the hearth, and half the roof too once the roof is built in. The hearth goes with it, its Firewood returned.
+    public string DismantleKitchen(WoodPileState kitchen, Transform view)
+    {
+        if (!CanDismantleKitchen(kitchen, out string reason))
+            return $"Can't dismantle the kitchen - {reason}.";
+
+        var refund = new StructureRefund(kitchen.position, view);
+        if (kitchen.kind == PileKind.Kitchen)
+        {
+            foreach (WoodStack cost in CostOf(PileKind.Kitchen))
+                refund.Return(cost.itemId, cost.count / 2);
+        }
+        else
+        {
+            foreach (WoodStack cost in WellsAndOuthouses.KitchenHearthCost())
+                refund.Return(cost.itemId, cost.count / 2);
+            if (WellsAndOuthouses.MaterialsLocked(kitchen))
+                foreach (WoodStack cost in WellsAndOuthouses.KitchenRoofCost())
+                    refund.Return(cost.itemId, cost.count / 2);
+        }
+
+        CampfireState hearth = KitchenHearthOf(kitchen);
+        if (hearth != null)
+        {
+            FireManager fires = FireManager.Instance;
+            refund.Return(FireManager.FirewoodId, Mathf.FloorToInt(hearth.fuelHours / fires.HoursPerFirewood));
+            fires.RemoveFire(hearth);
+        }
+
+        RemovePile(kitchen);
+        return refund.Describe("Covered Outdoor Kitchen");
     }
 
     void SpawnPile(WoodPileState pile)

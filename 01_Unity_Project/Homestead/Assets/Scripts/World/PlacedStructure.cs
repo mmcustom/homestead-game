@@ -22,6 +22,9 @@ public static class StructureVisuals
             case PileKind.RainBarrelSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.5f, out boxCenter, out boxSize); return;
             case PileKind.FoodCacheSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.55f, out boxCenter, out boxSize); return;
             case PileKind.WoodShedSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.9f, out boxCenter, out boxSize); return;
+            case PileKind.KitchenSite:
+            case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Kitchen: BuildKitchen(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             default: BuildSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
         }
     }
@@ -84,6 +87,102 @@ public static class StructureVisuals
         boxSize = new Vector3(1.6f, 0.9f, 1.6f);
     }
 
+    static readonly Color ClayColor = new Color(0.52f, 0.34f, 0.22f);
+    static readonly Color SlabColor = new Color(0.42f, 0.41f, 0.39f);
+
+    // Marks a piece as solid: PlacedStructure gives it a collider (the ghost never does), so a roof can shelter and a post can be walked into.
+    static GameObject Solid(GameObject piece)
+    {
+        piece.name = "Solid " + piece.name;
+        return piece;
+    }
+
+    // The Covered Outdoor Kitchen's hearth: a flat stone slab with a clay-and-stone backing wall behind where the fire sits (the fire itself
+    // is a Campfire, FireManager). Shown from the hearth stage on.
+    static void BuildKitchenHearth(Transform parent, List<GameObject> pieces, System.Random random)
+    {
+        Vector3 at = Setbacks.KitchenLayout.HearthLocal;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(at.x, at.y / 2f, at.z), Vector3.zero, new Vector3(1.5f, at.y, 1.5f), null), SlabColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(at.x, at.y + 0.38f, at.z - 0.72f), Vector3.zero, new Vector3(1.5f, 0.76f, 0.14f), null), ClayColor);
+        for (int i = 0; i < 5; i++)
+            Stone(parent, pieces, new Vector3(at.x - 0.62f + i * 0.31f, at.y + 0.08f, at.z + 0.7f), 0.26f, random);
+        for (int i = 0; i < 4; i++)
+            Stone(parent, pieces, new Vector3(at.x - 0.55f + i * 0.37f, at.y + 0.84f, at.z - 0.72f), 0.22f, random);
+    }
+
+    // A hearth-stage or roof-stage site: a marked-out plot the size of the roof, four stakes, bare earth, the delivered Stone and Clay beside it;
+    // once the hearth is built (the roof stage) the hearth stands on its slab and the Logs, Branches and Tall Grass for the roof lie at the side.
+    static void BuildKitchenSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float x = Setbacks.KitchenLayout.HalfWidth - 0.1f, z = Setbacks.KitchenLayout.HalfDepth - 0.1f;
+        foreach (Vector2 corner in new[] { new Vector2(-x, -z), new Vector2(x, -z), new Vector2(-x, z), new Vector2(x, z) })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, 0.25f, corner.y), Vector3.zero, new Vector3(0.04f, 0.25f, 0.04f), bark);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f, 0f), Vector3.zero, new Vector3(x * 1.85f, 0.01f, z * 1.85f), null), SoilColor);
+
+        bool roofStage = state.kind == PileKind.KitchenRoofSite;
+        if (roofStage)
+            BuildKitchenHearth(parent, pieces, random);
+
+        // Delivered hearth materials lie beside the plot until the first blow; the roof stage shows the roof timber.
+        int stones = Mathf.Min(state.Count(WoodManager.StoneId), 4);
+        for (int i = 0; i < stones; i++)
+            Stone(parent, pieces, new Vector3(-1.1f + i * 0.34f, 0.12f, 1.0f), 0.34f, random);
+        int clay = Mathf.Min(state.Count(WoodManager.ClayId), 2);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0.9f + i * 0.4f, 0.1f, 1.0f), Vector3.zero, new Vector3(0.36f, 0.2f, 0.3f), null), ClayColor);
+        int logs = Mathf.Min(state.Count(WoodManager.LogsId), 4);
+        for (int i = 0; i < logs; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(1.3f, 0.17f + i * 0.3f, -0.4f + (i % 2) * 0.2f), new Vector3(90f, 0f, 0f), new Vector3(0.32f, 0.85f, 0.32f), bark);
+        int branches = Mathf.Min(state.Count(WoodManager.BranchesId), 8);
+        for (int i = 0; i < branches; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(1.0f + (float)random.NextDouble() * 0.3f, 0.05f + i * 0.035f, -1.1f + (float)random.NextDouble() * 0.3f),
+                  new Vector3(90f, (float)random.NextDouble() * 40f - 20f, 0f), new Vector3(0.09f, 0.75f, 0.09f), bark);
+        int grass = Mathf.Min(state.Count(WoodManager.TallGrassId), 4);
+        for (int i = 0; i < grass; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-1.3f, 0.07f, -0.9f + i * 0.2f), Vector3.zero, new Vector3(0.3f, 0.14f, 0.3f), null), new Color(0.52f, 0.46f, 0.24f));
+
+        boxCenter = new Vector3(0f, 0.125f, 0f);
+        boxSize = new Vector3(x * 1.8f, 0.25f, z * 1.8f);
+    }
+
+    // The finished kitchen: four posts, a plank roof set well above the fire (higher at the open front so rain runs off the back), a prep table at
+    // the back, and the hearth on its slab. Posts, roof and table are Solid, so the roof shelters like the Tent's and the posts are walked round.
+    static void BuildKitchen(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float postX = Setbacks.KitchenLayout.HalfWidth - 0.15f, postZ = Setbacks.KitchenLayout.HalfDepth - 0.15f, top = Setbacks.KitchenLayout.RoofHeight;
+        var wood = new Color(0.33f, 0.25f, 0.17f);
+
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f, 0f), Vector3.zero, new Vector3(postX * 2f, 0.01f, postZ * 2f), null), SoilColor);
+        BuildKitchenHearth(parent, pieces, random);
+
+        foreach (Vector2 corner in new[] { new Vector2(-postX, -postZ), new Vector2(postX, -postZ), new Vector2(-postX, postZ), new Vector2(postX, postZ) })
+            Solid(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, top / 2f, corner.y), Vector3.zero, new Vector3(0.2f, top / 2f, 0.2f), bark));
+
+        // Roof: overlapping planks laid side by side front to back on a gentle slope, with a beam along each edge.
+        const int planks = 8;
+        float span = Setbacks.KitchenLayout.HalfDepth * 2f + 0.3f;
+        for (int i = 0; i < planks; i++)
+        {
+            float t = i / (float)(planks - 1);
+            float z = Mathf.Lerp(-span / 2f, span / 2f, t);
+            float y = top + 0.12f + Mathf.Lerp(-0.1f, 0.1f, t);
+            float tone = 0.85f + (float)random.NextDouble() * 0.3f;
+            Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, y, z), new Vector3(-3f, 0f, 0f), new Vector3(Setbacks.KitchenLayout.HalfWidth * 2f + 0.4f, 0.07f, span / planks + 0.14f), bark),
+                         new Color(0.36f * tone, 0.27f * tone, 0.18f * tone)));
+        }
+        foreach (float z in new[] { -postZ, postZ })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, top + (z > 0f ? 0.1f : -0.02f), z), new Vector3(0f, 0f, 90f), new Vector3(0.16f, postX, 0.16f), bark);
+
+        // Prep table at the back right, clear of the fire.
+        Vector3 table = new Vector3(0.95f, 0f, -postZ + 0.35f);
+        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(table.x, 0.85f, table.z), Vector3.zero, new Vector3(1.1f, 0.07f, 0.6f), bark), wood));
+        foreach (Vector2 leg in new[] { new Vector2(-0.48f, -0.24f), new Vector2(0.48f, -0.24f), new Vector2(-0.48f, 0.24f), new Vector2(0.48f, 0.24f) })
+            Solid(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(table.x + leg.x, 0.41f, table.z + leg.y), Vector3.zero, new Vector3(0.07f, 0.82f, 0.07f), bark));
+
+        boxCenter = new Vector3(0f, top / 2f, 0f);
+        boxSize = new Vector3(0.1f, 0.1f, 0.1f); // unused: the finished kitchen's own pieces are what is aimed at and bumped into
+    }
+
     // A stone-lined shaft with the water showing at its level, two posts, a windlass beam and a small plank roof.
     static void BuildWell(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
     {
@@ -139,11 +238,12 @@ public static class StructureVisuals
         Tinted(stone, new Color(g, g * 0.98f, g * 0.95f));
     }
 
-    static void Tinted(GameObject piece, Color color)
+    static GameObject Tinted(GameObject piece, Color color)
     {
         var block = new MaterialPropertyBlock();
         block.SetColor("_BaseColor", color);
         piece.GetComponent<MeshRenderer>().SetPropertyBlock(block);
+        return piece;
     }
 
     static GameObject Piece(Transform parent, List<GameObject> pieces, PrimitiveType shape, Vector3 position, Vector3 euler, Vector3 scale, Material material)
@@ -203,6 +303,21 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         StructureVisuals.Build(transform, state, bark, pieces, out Vector3 center, out Vector3 size);
         box.center = center;
         box.size = size;
+        // The finished kitchen has no interaction box (it would be a solid block to walk into): its roof, posts and table are the colliders,
+        // so OverheadCover finds the roof and the prompt shows when any of them is aimed at.
+        bool kitchen = state.kind == PileKind.Kitchen;
+        box.enabled = !kitchen;
+        if (!kitchen)
+            return;
+        foreach (GameObject piece in pieces)
+        {
+            if (piece == null || !piece.name.StartsWith("Solid"))
+                continue;
+            BoxCollider solid = piece.AddComponent<BoxCollider>();
+            MeshFilter filter = piece.GetComponent<MeshFilter>();
+            if (filter != null && filter.sharedMesh != null && filter.sharedMesh.name.StartsWith("Cylinder"))
+                solid.size = new Vector3(1f, 2f, 1f); // the primitive cylinder is two units tall
+        }
     }
 
     static bool Equipped(string itemId) => Inventory != null && Inventory.EquippedTool != null && Inventory.EquippedTool.Id == itemId;
@@ -222,6 +337,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             switch (state.kind)
             {
                 case PileKind.Well: return WellPrompt();
+                case PileKind.Kitchen: return KitchenPrompt();
                 default: return OuthousePrompt();
             }
         }
@@ -235,6 +351,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         // Taking an empty site down is destroying a built structure: the Hammer's job, like Dismantle.
         string removal = !WoodManager.HammerEquipped ? "Equip the Hammer to take the site down"
                        : state.digProgress > 0f ? "E fills the site in (the digging is lost)" : "E removes the site";
+        if (state.kind == PileKind.KitchenRoofSite)
+            removal = WoodManager.HammerEquipped ? "R dismantles the hearth (fire out)" : "Equip the Hammer to dismantle the hearth (R)";
         // (Name is "Well Site" / "Outhouse Site".)
         return Name + "\n" + stage + "\n" + removal;
     }
@@ -248,7 +366,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             // Fully stocked: the Hammer finishes it (hold click). Once it has begun the materials are built in.
             string percent = $"{state.buildProgress * 100f:0}%";
             string locked = WellsAndOuthouses.MaterialsLocked(state) ? "\nThe materials are built in - E no longer takes them back" : "";
-            return (WoodManager.HammerEquipped ? $"Hold click with the Hammer to build ({percent})" : $"Fully stocked - equip the Hammer to build ({percent})") + locked;
+            string what = state.kind == PileKind.KitchenSite ? " the hearth" : state.kind == PileKind.KitchenRoofSite ? " the roof" : "";
+            return (WoodManager.HammerEquipped ? $"Hold click with the Hammer to build{what} ({percent})" : $"Fully stocked - equip the Hammer to build{what} ({percent})") + locked;
         }
         if (WellsAndOuthouses.RequiresDig(state.kind) && state.digProgress < 1f)
             return Equipped(AxeTool.ShovelId) ? $"Dig the shaft: hold click ({state.digProgress * 100f:0}%)" : $"Dig the shaft: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
@@ -262,7 +381,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         var parts = new List<string>();
         foreach (WoodStack c in WellsAndOuthouses.FinishedCost(state.kind))
             parts.Add($"{state.Count(c.itemId)} of {c.count} {ItemDatabase.Get(c.itemId)?.DisplayName ?? c.itemId}");
-        return "Needs " + string.Join(", ", parts) + " (R stores what you carry)";
+        string stageName = state.kind == PileKind.KitchenSite ? "Hearth stage: " : state.kind == PileKind.KitchenRoofSite ? "Hearth built. Roof stage: " : "";
+        return stageName + "Needs " + string.Join(", ", parts) + " (R stores what you carry)";
     }
 
     string Describe()
@@ -276,6 +396,16 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         }
         return string.Join(", ", parts);
     }
+
+    string KitchenFire()
+    {
+        CampfireState hearth = WoodManager.Instance != null ? WoodManager.Instance.KitchenHearthOf(state) : null;
+        if (hearth == null)
+            return "no hearth fire";
+        return hearth.lit ? $"hearth lit, {hearth.fuelHours:0.#} h of fuel" : hearth.fuelHours > 0f ? $"hearth out, {hearth.fuelHours:0.#} h of fuel" : "hearth out";
+    }
+
+    string KitchenPrompt() => $"{Name}  ({KitchenFire()})\nCook and boil water at the fire; a meal eaten under the roof is a sheltered meal";
 
     string WellPrompt()
     {
@@ -307,7 +437,13 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             if (state == null || Rules == null)
                 return "";
             if (WellsAndOuthouses.IsStagedSite(state.kind))
-                return CarriedStorable(out string what) > 0 ? $"Store {what}" : ""; // delivering is free; the Hammer finishes the Well
+            {
+                if (CarriedStorable(out string what) > 0)
+                    return $"Store {what}"; // delivering is free; the Hammer finishes the Well
+                return state.kind == PileKind.KitchenRoofSite && state.IsEmpty
+                    ? (WoodManager.HammerEquipped ? "Dismantle the hearth  (half the Stone and Clay back, rounded down; the fire must be out)" : "Dismantle the hearth  (needs the Hammer)")
+                    : "";
+            }
             return WoodManager.HammerEquipped ? $"Dismantle the {Name}  ({RefundText()})"
                                               : $"Dismantle the {Name}  (needs the Hammer; half the materials back, rounded down)";
         }
@@ -337,6 +473,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         switch (state.kind)
         {
             case PileKind.Well: DrawWater(player); break;
+            case PileKind.Kitchen: ToolStatus.Flash($"{Name}: {KitchenFire()}. Light it, feed it and cook at the fire itself.", 3.5f); break;
             default: DigNewPit(player); break;
         }
     }
@@ -344,6 +481,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     void InteractSite()
     {
         WoodManager wood = WoodManager.Instance;
+        if (state.IsEmpty && state.kind == PileKind.KitchenRoofSite)
+        {
+            // The hearth stands on the site now: it is not a bare plot to take down, it is dismantled (R).
+            ToolStatus.Flash("The hearth is built. Deliver the roof materials (R), or dismantle the hearth (R with the Hammer, fire out).", 4f);
+            return;
+        }
         if (state.IsEmpty)
         {
             if (!WoodManager.HammerEquipped)
@@ -481,9 +624,16 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (state == null || Inventory == null || Rules == null)
             return;
         if (WellsAndOuthouses.IsStagedSite(state.kind))
-            StoreMaterials();
+        {
+            if (state.kind == PileKind.KitchenRoofSite && CarriedStorable(out _) <= 0)
+                Dismantle(); // a hearth-built site with nothing to deliver: R takes the hearth down
+            else
+                StoreMaterials();
+        }
         else
+        {
             Dismantle();
+        }
     }
 
     // Everything carried that the site's current stage still takes, up to what the Well needs of each.
@@ -548,6 +698,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     // Hammer Dismantle for the Well and the Outhouse: half of each cost line back, rounded down (so a single item refunds nothing).
     void Dismantle()
     {
+        if (state.IsKitchen)
+        {
+            // Hammer in hand, hearth out (and a hearth site's roof timber taken back): WoodManager says why not, or what came back.
+            ToolStatus.Flash(WoodManager.Instance.DismantleKitchen(state, transform), 5f);
+            return;
+        }
         if (!WoodManager.HammerEquipped)
         {
             ToolStatus.Flash($"Can't take the {Name} down - equip the Hammer.", 3f);

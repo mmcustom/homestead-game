@@ -20,6 +20,7 @@ using UnityEngine.InputSystem;
 //   Numpad +            mark the wood in the nearest Wood Shed (within 8 m) wet; with none in reach, the wood you carry. Shift marks it dry,
 //                       Ctrl always means the wood you carry
 //   Numpad -            advance seasoning by one season: every pile, shed and the wood you carry (wet wood becomes dry)
+//   Numpad *            print, for the nearest Covered Outdoor Kitchen (within 12 m): roof present, shade, rain-sheltered, hearth lit or out
 public class RainDebugControls : MonoBehaviour
 {
     static readonly WeatherType[] Cycle = { WeatherType.Clear, WeatherType.LightRain, WeatherType.HeavyRain, WeatherType.Thunderstorm };
@@ -120,6 +121,10 @@ public class RainDebugControls : MonoBehaviour
         {
             DebugSeason();
         }
+        else if (keyboard.numpadMultiplyKey.wasPressedThisFrame)
+        {
+            DebugKitchen();
+        }
         else if (keyboard.numpad4Key.wasPressedThisFrame)
         {
             ChangePond(-PondStep, null);
@@ -204,6 +209,18 @@ public class RainDebugControls : MonoBehaviour
             return;
         inventory.Player.MapBatchDays(WoodMoisture.Applies, _ => stamp);
         ToolStatus.Flash($"Carried wood marked {(dry ? "dry" : "wet")}: {CarriedMoistureText(inventory)}", 3f);
+    }
+
+    // Numpad *: for the nearest Covered Outdoor Kitchen (any stage): roof present, shade, rain-sheltered, hearth lit or out.
+    static void DebugKitchen()
+    {
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        WellsAndOuthouses rules = WellsAndOuthouses.Instance;
+        if (player == null || rules == null)
+            return;
+        string report = rules.DebugKitchenReport(player.transform.position, 12f);
+        Debug.Log("[Kitchen] " + report);
+        ToolStatus.Flash(report, 8f);
     }
 
     // Numpad -: one season on for all wood (piles, sheds, the pack).

@@ -608,11 +608,25 @@ public class CraftingScreen : GameScreen
             // Too heavy for one trip: free to place, then stocked over as many trips as it takes and pounded into shape with the Hammer.
             e.actionLabel = "Place Site";
             e.info = "Free to place, no Hammer. Then deliver the materials at the site (R), over as many trips as it takes.";
-            PileKind finished = WellsAndOuthouses.FinishedKind(kind);
-            e.notes.Add(($"The {WoodManager.PileName(finished)} needs, in total:", 0));
-            foreach (WoodStack c in WellsAndOuthouses.FinishedCost(kind))
-                e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
-            e.notes.Add(("Then " + (WellsAndOuthouses.RequiresDig(kind) ? "dig the shaft (Shovel) and " : "") + $"pound it with the Hammer (hold click) to build the {WoodManager.PileName(finished)}.", 0));
+            PileKind finished = WellsAndOuthouses.FinalKind(kind);
+            if (kind == PileKind.KitchenSite)
+            {
+                // Two stages, each delivered and then pounded in turn: the hearth, then the roof.
+                e.notes.Add(("Stage 1, the hearth (Stone first, then Clay):", 0));
+                foreach (WoodStack c in WellsAndOuthouses.KitchenHearthCost())
+                    e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
+                e.notes.Add(("Stage 2, the roof (after the hearth is built):", 0));
+                foreach (WoodStack c in WellsAndOuthouses.KitchenRoofCost())
+                    e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
+                e.notes.Add(("Pound each stage with the Hammer (hold click) to build it.", 0));
+            }
+            else
+            {
+                e.notes.Add(($"The {WoodManager.PileName(finished)} needs, in total:", 0));
+                foreach (WoodStack c in WellsAndOuthouses.FinishedCost(kind))
+                    e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
+                e.notes.Add(("Then " + (WellsAndOuthouses.RequiresDig(kind) ? "dig the shaft (Shovel) and " : "") + $"pound it with the Hammer (hold click) to build the {WoodManager.PileName(finished)}.", 0));
+            }
         }
         else
         {
@@ -704,6 +718,9 @@ public class CraftingScreen : GameScreen
             case PileKind.FoodCacheSite: return "a lidded food cache, built in stages because its Logs are heavy. Mark the site out (free, no Hammer; turn it with the wheel), deliver 2 Logs and 4 Branches with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the cache is built (once you start, the wood is built in).";
             case PileKind.WoodShedSite: return "a roofed firewood rack with an open front, built in stages because its wood is heavy. Mark the site out (free, no Hammer; turn it with the wheel so the open front faces away from the wind), deliver 2 Logs and 8 Branches with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the shed is built (once you start, the wood is built in). Stores Sticks, Branches, Logs and Firewood (R, E), holds as much as a Wood Pile, and keeps the rain off: fresh wet wood dries in it over about a season, and dry wood burns longer than wet. Needs dry ground at least 3 m from the cabin.";
             case PileKind.WoodShed: return "store Sticks, Branches, Logs and Firewood (R), take them back (E). The roof keeps rain off, so wet wood dries in here over about a season.";
+            case PileKind.KitchenSite: return "a roofed outdoor cooking place, built in two stages because its materials are heavy. Mark the site out (free, no Hammer; turn it with the wheel), deliver 4 Stone and then 2 Clay with R over as many trips as it takes, and equip the Hammer and hold click on the site until the hearth is built. Then deliver 2 Logs, 6 Branches and 4 Tall Grass for the plank roof and pound that too (once you start a stage, its materials are built in). The hearth is an ordinary campfire: Cooking, boiling water, Flint and Steel and the Bow Drill all work, and under the roof the Bow Drill catches as well as in calm weather, even in rain or snow. The roof also keeps rain and snow off you, shades you from the sun, and a meal eaten under it is a sheltered meal: Health recovers faster for a few hours. Needs dry ground; the roof edge stays 3 m clear of every other structure and every tree.";
+            case PileKind.KitchenRoofSite: return "the hearth is built; deliver the roof materials (R) and pound the roof (Hammer, hold click).";
+            case PileKind.Kitchen: return "a roof on posts over a stone hearth. Light and feed the fire as any campfire; cook and boil water there. Rain and snow stay off you under the roof, it shades the sun, and a meal eaten under it is a sheltered meal. R with the Hammer dismantles it (fire out).";
             case PileKind.OuthouseSite: return "a pit privy, built in stages because its Logs are heavy. Mark the site out (free, no Hammer; turn it with the wheel so the door faces where you want), deliver 2 Logs, 6 Branches and 3 Tall Grass with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the shack is built (once you start, the wood is built in). A working outhouse within 60 m of where you sleep makes the homestead sanitary: a little less illness and a little better rest. The pit fills over about a season; then dig a new one with the Shovel (E). Must stand 30 m from water and any well, 7.5 m from buildings, below any well.";
             case PileKind.CabinSite: return "an empty building site — deposit Logs, Branches, Tall Grass, Stone and Clay into it (R) over however many trips it takes, take any of it back any time (E). Fully stocked, equip the Hammer and hold click on the site until the cabin is built (once you start, the materials are built in). Placed one by mistake? With the Hammer equipped, E on it when it's empty, or R with nothing to store, takes it down.";
             default: return "store wood (R), take it back (E).";

@@ -76,6 +76,23 @@ public class WellsAndOuthouses : MonoBehaviour
     [Tooltip("Wet wood burns this fraction of its normal time (about 30 percent of the heat goes into driving off the water).")]
     [Range(0.1f, 1f)] public float wetBurnFraction = 0.7f;
 
+    [Header("Covered Outdoor Kitchen (phase C; first-pass tuning, not confirmed)")]
+    [Tooltip("Stage 1, the hearth (4 Stone + 2 Clay is 27 kg, so a staged site): Stone first, then Clay.")]
+    public int kitchenStone = 4;
+    public int kitchenClay = 2;
+    [Tooltip("Stage 2, the roof (2 Logs + 6 Branches + 4 Tall Grass is about 22 kg): delivered once the hearth is built.")]
+    public int kitchenLogs = 2;
+    public int kitchenBranches = 6;
+    public int kitchenTallGrass = 4;
+    [Tooltip("The roof's edge keeps this far (metres) clear of any other structure, and of any tree trunk (fire safety).")]
+    public float setbackKitchenFromStructureMetres = 3f;
+    public float setbackKitchenFromTreeMetres = 3f;
+    [Tooltip("The roof's reach from its centre (its corner), so those gaps are measured from its edge.")]
+    public float kitchenRoofRadiusMetres = 2.3f;
+    [Tooltip("A sheltered meal (eaten under the kitchen roof): Health recovers this much faster (0.25 is 25 percent) for this many game hours. There is no Morale stat yet.")]
+    public float shelteredMealRecoveryBonus = 0.25f;
+    public float shelteredMealHours = 4f;
+
     [Header("Sanitary homestead")]
     [Tooltip("A working (not full) outhouse within this distance (metres) of where the player sleeps makes the homestead sanitary.")]
     public float sanitaryRadiusMetres = 60f;
@@ -166,6 +183,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite:
             case PileKind.FoodCacheSite:
             case PileKind.WoodShedSite:
+            case PileKind.KitchenSite:
+            case PileKind.KitchenRoofSite:
                 return true;
             default:
                 return false;
@@ -182,8 +201,19 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite: return PileKind.RainBarrel;
             case PileKind.FoodCacheSite: return PileKind.FoodCache;
             case PileKind.WoodShedSite: return PileKind.WoodShed;
+            case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
+            case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
         }
+    }
+
+    // The structure a site finally becomes, through every stage (the Covered Kitchen's hearth site passes through a roof site first).
+    public static PileKind FinalKind(PileKind site)
+    {
+        PileKind kind = site;
+        for (int guard = 0; guard < 4 && IsStagedSite(kind); guard++)
+            kind = FinishedKind(kind);
+        return kind;
     }
 
     // What the finished structure takes in total, delivered to the site over trips. The storage kinds read WoodManager's own costs
@@ -197,6 +227,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite: return Stored(PileKind.RainBarrel, (WoodManager.LogsId, 3), (WoodManager.BranchesId, 2));
             case PileKind.FoodCacheSite: return Stored(PileKind.FoodCache, (WoodManager.LogsId, 2), (WoodManager.BranchesId, 4));
             case PileKind.WoodShedSite: return WoodShedCost();
+            case PileKind.KitchenSite: return KitchenHearthCost();
+            case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
         }
     }
@@ -222,6 +254,10 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
         if (site == PileKind.WaterBarrelSite)
             return new[] { new[] { WoodManager.LogsId } };
+        if (site == PileKind.KitchenSite)
+            return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.ClayId } }; // the Stone first, then the Clay
+        if (site == PileKind.KitchenRoofSite)
+            return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
         if (site == PileKind.RainBarrelSite || site == PileKind.FoodCacheSite || site == PileKind.WoodShedSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId } };
         return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.LogsId, WoodManager.BranchesId } };
@@ -313,6 +349,9 @@ public class WellsAndOuthouses : MonoBehaviour
     public int rainBarrelBuildBlows = 16;
     public int foodCacheBuildBlows = 12;
     public int woodShedBuildBlows = 25;
+    [Tooltip("Covered Outdoor Kitchen: the hearth stage and the roof stage are each pounded in turn.")]
+    public int kitchenHearthBuildBlows = 15;
+    public int kitchenRoofBuildBlows = 30;
     public int cabinBuildBlows = 60;
 
     public int BuildBlows(PileKind site)
@@ -324,6 +363,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite: return rainBarrelBuildBlows;
             case PileKind.FoodCacheSite: return foodCacheBuildBlows;
             case PileKind.WoodShedSite: return woodShedBuildBlows;
+            case PileKind.KitchenSite: return kitchenHearthBuildBlows;
+            case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
             default: return wellBuildBlows;
         }
@@ -346,6 +387,8 @@ public class WellsAndOuthouses : MonoBehaviour
     // What the player is told when a site is finished.
     public static string FinishedMessage(PileKind site)
     {
+        if (site == PileKind.KitchenSite)
+            return "Hearth built - now deliver the roof: " + KitchenRoofText() + ".";
         string name = WoodManager.PileName(FinishedKind(site));
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
@@ -356,6 +399,7 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         if (site == null || !IsStagedSite(site.kind) || SiteNeeds(site) != null)
             return false;
+        PileKind was = site.kind;
         site.contents.Clear();
         site.kind = FinishedKind(site.kind);
         site.buildProgress = 0f;
@@ -365,6 +409,9 @@ public class WellsAndOuthouses : MonoBehaviour
             site.contaminatedHours = 0f;
         }
         site.builtDay = Today;
+        // The hearth stage's last blow puts the hearth on its slab: an ordinary Campfire, unlit and out of fuel until it is tended.
+        if (was == PileKind.KitchenSite && FireManager.Instance != null && FireManager.Instance.FireNear(WoodManager.KitchenHearthSpot(site), 0.75f) == null)
+            FireManager.Instance.BuildFurnished(WoodManager.KitchenHearthSpot(site), site.yaw);
         // A barrel or cache is a WoodPile, not a PlacedStructure: swap the view, keeping the site's position and facing (a Rain
         // Barrel stays where the site was snapped to the eave).
         if (!site.IsPlacedStructure)
@@ -413,6 +460,44 @@ public class WellsAndOuthouses : MonoBehaviour
         };
     }
 
+    public static WoodStack[] KitchenHearthCost()
+    {
+        WellsAndOuthouses w = Instance;
+        return new[]
+        {
+            new WoodStack { itemId = WoodManager.StoneId, count = w != null ? w.kitchenStone : 4 },
+            new WoodStack { itemId = WoodManager.ClayId, count = w != null ? w.kitchenClay : 2 },
+        };
+    }
+
+    public static WoodStack[] KitchenRoofCost()
+    {
+        WellsAndOuthouses w = Instance;
+        return new[]
+        {
+            new WoodStack { itemId = WoodManager.LogsId, count = w != null ? w.kitchenLogs : 2 },
+            new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.kitchenBranches : 6 },
+            new WoodStack { itemId = WoodManager.TallGrassId, count = w != null ? w.kitchenTallGrass : 4 },
+        };
+    }
+
+    // Both stages together: what the finished kitchen is worth, and so what Dismantle halves line by line.
+    public static WoodStack[] KitchenCost()
+    {
+        var all = new List<WoodStack>(KitchenHearthCost());
+        all.AddRange(KitchenRoofCost());
+        return all.ToArray();
+    }
+
+    // e.g. "2 Logs, 6 Branches, 4 Tall Grass".
+    public static string KitchenRoofText()
+    {
+        var parts = new List<string>();
+        foreach (WoodStack c in KitchenRoofCost())
+            parts.Add($"{c.count} {ItemDatabase.Get(c.itemId)?.DisplayName ?? c.itemId}");
+        return string.Join(", ", parts);
+    }
+
     public static WoodStack[] WellCost()
     {
         WellsAndOuthouses w = Instance;
@@ -445,6 +530,9 @@ public class WellsAndOuthouses : MonoBehaviour
         wellFromBuilding = setbackWellFromBuildingMetres,
         wellFromPen = setbackWellFromPenMetres,
         shedFromBuilding = setbackShedFromBuildingMetres,
+        kitchenFromStructure = setbackKitchenFromStructureMetres,
+        kitchenFromTree = setbackKitchenFromTreeMetres,
+        kitchenRadius = kitchenRoofRadiusMetres,
         upgradientRange = setbackUpgradientRangeMetres,
         hollowDepth = setbackHollowDepthMetres,
         floodBand = floodplainBandMetres,
@@ -493,6 +581,37 @@ public class WellsAndOuthouses : MonoBehaviour
             }
         }
         return sites;
+    }
+
+    // Every built structure but the one being placed, with how far each reaches from its position (the kitchen's gap is clear air).
+    List<SiteInfo> KitchenNeighbours(WoodPileState ignore)
+    {
+        var found = new List<SiteInfo>();
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null)
+            return found;
+        foreach (WoodPileState pile in wood.Piles)
+        {
+            if (pile == ignore || pile.kind == PileKind.Felled)
+                continue;
+            float radius;
+            switch (pile.kind)
+            {
+                case PileKind.Cabin:
+                case PileKind.CabinSite: radius = 2.5f; break;      // half the cabin's depth
+                case PileKind.Kitchen:
+                case PileKind.KitchenSite:
+                case PileKind.KitchenRoofSite: radius = kitchenRoofRadiusMetres; break;
+                case PileKind.WoodShed:
+                case PileKind.WoodShedSite:
+                case PileKind.Tent:
+                case PileKind.LeanTo:
+                case PileKind.TarpShelter: radius = 1.2f; break;
+                default: radius = 0.7f; break;
+            }
+            found.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = radius });
+        }
+        return found;
     }
 
     // Metres from the point to the creek channel's edge (negative inside the channel).
@@ -573,9 +692,32 @@ public class WellsAndOuthouses : MonoBehaviour
         if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed)
             return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
 
+        // A Covered Kitchen keeps its roof edge clear of every other structure and every tree (a fire under a roof).
+        if (kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen)
+        {
+            bool treeNear = WoodManager.Instance != null && WoodManager.Instance.FindTree(point, kitchenRoofRadiusMetres + setbackKitchenFromTreeMetres) >= 0;
+            return Setbacks.CanPlaceKitchen(point, KitchenNeighbours(ignore), treeNear, rules, out reason);
+        }
+
         List<SiteInfo> sites = Sites(ignore);
         return well ? Setbacks.CanPlaceWell(point, sites, rules, out reason)
                     : Setbacks.CanPlaceOuthouse(point, sites, WaterEdges(point), rules, out reason);
+    }
+
+    // --- The Covered Outdoor Kitchen's sheltered meal ---
+
+    // A meal eaten standing under a finished kitchen's roof (Food.Consume asks after each one): Health recovers faster for a few game
+    // hours (there is no Morale stat in the game yet; SurvivalManager.NoteShelteredMeal). Returns the words to add to the eating message, or null.
+    public static string ShelteredMeal(ItemDefinition item)
+    {
+        WellsAndOuthouses w = Instance;
+        PlayerController player = w != null ? FindAnyObjectByType<PlayerController>() : null;
+        if (player == null || item == null || item.IsDrink || item.HungerRestored <= 0f || WoodManager.Instance == null || SurvivalManager.Instance == null)
+            return null;
+        if (WoodManager.Instance.KitchenRoofAt(player.transform.position) == null)
+            return null;
+        SurvivalManager.Instance.NoteShelteredMeal(w.shelteredMealHours, w.shelteredMealRecoveryBonus);
+        return "a sheltered meal";
     }
 
     // --- The Well's water ---
@@ -755,6 +897,40 @@ public class WellsAndOuthouses : MonoBehaviour
             }
         }
         return best;
+    }
+
+    // Numpad *: for the nearest Covered Kitchen (any stage) within reach of a point, what the roof does there: is the roof in place, does it
+    // shade a high sun, does it keep rain off the head, and is the hearth lit. Probes the kitchen's own centre, so it reads the same wherever you stand.
+    public string DebugKitchenReport(Vector3 from, float reach)
+    {
+        WoodManager wood = WoodManager.Instance;
+        WoodPileState best = null;
+        float bestDistance = reach;
+        if (wood != null)
+        {
+            foreach (WoodPileState pile in wood.Piles)
+            {
+                float d = Vector3.Distance(pile.position, from);
+                if (pile.IsKitchen && d <= bestDistance)
+                {
+                    best = pile;
+                    bestDistance = d;
+                }
+            }
+        }
+        if (best == null)
+            return $"Kitchen: none within {reach:0} m";
+
+        Vector3 centre = best.position + Vector3.up * 0.1f;
+        bool roof = Physics.Raycast(centre, Vector3.up, out RaycastHit hit, 8f, ~0, QueryTriggerInteraction.Ignore) && !(hit.collider is TerrainCollider);
+        float shaded = OverheadCover.SunBlocked(best.position + Vector3.up * 1.1f, 70f, 180f, 0f, 0f, 0f, out bool sunRoofed);
+        bool shade = sunRoofed || shaded >= 0.99f;
+        bool rain = OverheadCover.At(best.position + Vector3.up, 0.8f) >= 0.99f;
+        CampfireState hearth = wood.KitchenHearthOf(best);
+        string hearthText = hearth == null ? "none" : hearth.lit ? $"lit ({hearth.fuelHours:0.#} h of fuel)" : $"out ({hearth.fuelHours:0.#} h of fuel)";
+        string covered = hearth == null ? "" : $", Bow Drill covered {(OverheadCover.Roofed(hearth.position + Vector3.up * 0.3f) ? "yes" : "no")}";
+        string where = Setbacks.KitchenLayout.UnderRoof(best.position, best.yaw, from) ? ", you are under the roof" : "";
+        return $"Kitchen ({WoodManager.PileName(best.kind)}): roof {(roof ? $"present ({hit.distance + 0.1f:0.0} m up)" : "absent")}, shade {(shade ? "yes" : "no")} (high sun), rain-sheltered {(rain ? "yes" : "no")}, hearth {hearthText}{covered}{where}";
     }
 
     // mode: 0 empty it, 1 fill it, 2 flood-contaminate it.

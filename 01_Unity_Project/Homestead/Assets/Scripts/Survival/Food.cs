@@ -43,7 +43,11 @@ public static class Food
         if (survival.RollIllness(item.IllnessChance))
             ToolStatus.Flash($"{verb} {item.DisplayName} — {SickMessage(before, survival.SicknessLevel)}", 5f);
         else
-            ToolStatus.Flash($"{verb} {item.DisplayName}");
+        {
+            // Eaten under a Covered Outdoor Kitchen's roof: a sheltered meal, a small comfort bonus (WellsAndOuthouses.ShelteredMeal).
+            string sheltered = WellsAndOuthouses.ShelteredMeal(item);
+            ToolStatus.Flash(sheltered == null ? $"{verb} {item.DisplayName}" : $"{verb} {item.DisplayName} - {sheltered}: you feel settled", sheltered == null ? 3f : 4f);
+        }
         return true;
     }
 

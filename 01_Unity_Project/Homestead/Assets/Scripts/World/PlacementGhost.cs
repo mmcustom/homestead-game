@@ -29,7 +29,7 @@ public sealed class PlacementGhost
         var ghost = new PlacementGhost("Placement Ghost: " + WoodManager.PileName(kind));
         // A staged site (Well, Outhouse, Water Barrel, Rain Barrel, Food Cache) aims with the outline of the structure it will become;
         // once placed the site draws its plot (PlacedStructure) until it is completed. Every other kind aims as itself.
-        PileKind drawn = WellsAndOuthouses.IsStagedSite(kind) ? WellsAndOuthouses.FinishedKind(kind) : kind;
+        PileKind drawn = WellsAndOuthouses.IsStagedSite(kind) ? WellsAndOuthouses.FinalKind(kind) : kind;
         var state = new WoodPileState { id = -1, kind = drawn, builtDay = WellsAndOuthouses.Today }; // id -1: never a real pile
         Material bark = WoodManager.Instance != null ? WoodManager.Instance.SharedBark : null;
 

@@ -381,6 +381,16 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     public float SleepRainShelter { get; set; }
     public float SleepWindShelter { get; set; }
     public float SleepRecovery { get; set; } = 1f;
+
+    // A sheltered meal (eaten under a Covered Outdoor Kitchen's roof, WellsAndOuthouses.ShelteredMeal): Health recovers faster for a
+    // while. There is no Morale stat yet, so this is the comfort bonus. Not saved; it is only a few game hours long.
+    float shelteredMealHours, shelteredMealBonus;
+    public bool HasShelteredMeal => shelteredMealHours > 0f;
+    public void NoteShelteredMeal(float hours, float bonus)
+    {
+        shelteredMealHours = Mathf.Max(shelteredMealHours, hours); // a second meal refreshes it, it doesn't stack
+        shelteredMealBonus = Mathf.Max(0f, bonus);
+    }
     public Sickness SicknessLevel => illnessHours <= 0f ? Sickness.None
                                    : illnessHours > illnessHoursPerBout ? Sickness.Severe : Sickness.Mild;
     public float IllnessHoursLeft => illnessHours;
@@ -527,6 +537,9 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         }
         if (weakenedHours > 0f)
             weakenedHours = Mathf.Max(0f, weakenedHours - hours);
+        float mealBonus = shelteredMealHours > 0f ? shelteredMealBonus : 0f;
+        if (shelteredMealHours > 0f)
+            shelteredMealHours = Mathf.Max(0f, shelteredMealHours - hours);
         if (IsSick)
         {
             illnessHours = Mathf.Max(0f, illnessHours - hours);
@@ -537,7 +550,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         if (healthLoss > 0f)
             SetHealth(health - healthLoss * hours);
         else if (!IsSick && hydration > 0f && hunger > 0f)
-            SetHealth(health + (hydration >= halfFed && hunger >= halfFed ? recoveryPerHour : lowRecoveryPerHour) * SleepRecovery * hours);
+            SetHealth(health + (hydration >= halfFed && hunger >= halfFed ? recoveryPerHour : lowRecoveryPerHour) * SleepRecovery * (1f + mealBonus) * hours);
     }
 
     float ColdLoss(Tier tier) =>
@@ -959,6 +972,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
         totalMet = 1f;
         smoothedReady = false;
         sunlightReady = sunCoverReady = false;
+        shelteredMealHours = shelteredMealBonus = 0f;
         sweatWatts = solarWatts = sunStrength01 = 0f;
         wadeShare = waterCoolWatts = waterTakenWatts = waterTaper = tailShare = tailHoursLeft = 0f;
         lastLossCause = collapseCause = LossCause.Unknown;

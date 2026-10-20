@@ -9,6 +9,7 @@ public struct SiteInfo
     public SiteKind kind;
     public Vector3 position;
     public string name; // for the refusal text, e.g. "Small Cabin"
+    public float radius; // how far the thing itself reaches from its position (metres); 0 for a point, used by the Covered Kitchen's gap
 }
 
 // How far the point is from the edge of a body of water (the creek channel, a pond or spring zone). 0 or less is in it.
@@ -28,6 +29,9 @@ public struct SetbackRules
     public float wellFromBuilding;    // well to a building foundation (3 m)
     public float wellFromPen;         // well to animal pens and manure (15 m)
     public float shedFromBuilding;    // wood shed to a building (3 m, fire practice)
+    public float kitchenFromStructure; // covered kitchen's roof edge to any other structure (3 m, fire safety)
+    public float kitchenFromTree;     // covered kitchen's roof edge to a tree trunk (3 m, fire safety)
+    public float kitchenRadius;       // the kitchen roof's reach from its centre, so the gaps are measured from its edge (2.3 m, the roof corner)
     public float upgradientRange;     // a well must be higher than any privy within this distance
     public float hollowDepth;         // a point this much lower than the ground around it is a hollow
     public float floodBand;           // ground within this distance of the channel edge ...
@@ -35,7 +39,7 @@ public struct SetbackRules
 
     public static SetbackRules Defaults => new SetbackRules
     {
-        privyFromWater = 30f, privyFromWell = 30f, privyFromBuilding = 7.5f, wellFromBuilding = 3f, wellFromPen = 15f, shedFromBuilding = 3f,
+        privyFromWater = 30f, privyFromWell = 30f, privyFromBuilding = 7.5f, wellFromBuilding = 3f, wellFromPen = 15f, shedFromBuilding = 3f, kitchenFromStructure = 3f, kitchenFromTree = 3f, kitchenRadius = 2.3f,
         upgradientRange = 60f, hollowDepth = 0.5f, floodBand = 25f, floodRise = 1.5f,
     };
 }
@@ -136,6 +140,47 @@ public static class Setbacks
         }
         reason = "";
         return true;
+    }
+
+    // A Covered Outdoor Kitchen (a fire under a roof): its roof edge keeps kitchenFromStructure clear of every other structure and
+    // kitchenFromTree clear of a tree. A structure's own reach (SiteInfo.radius) counts, so the gap is clear air, not centre to centre.
+    // treeNear: a standing tree trunk is within kitchenRadius + kitchenFromTree of the point (the caller asks the trees).
+    public static bool CanPlaceKitchen(Vector3 point, IList<SiteInfo> structures, bool treeNear, SetbackRules rules, out string reason)
+    {
+        foreach (SiteInfo site in structures)
+        {
+            if (Flat(point, site.position) < rules.kitchenRadius + site.radius + rules.kitchenFromStructure)
+            {
+                reason = TooClose($"the {site.name}", rules.kitchenFromStructure);
+                return false;
+            }
+        }
+        if (treeNear)
+        {
+            reason = TooClose("a tree", rules.kitchenFromTree);
+            return false;
+        }
+        reason = "";
+        return true;
+    }
+
+    // Covered Outdoor Kitchen layout, in the kitchen's own space (+Z is the open front, +X right). One source for the roof, the hearth
+    // and "standing under the roof", so what is drawn and what counts as sheltered never differ.
+    public static class KitchenLayout
+    {
+        public const float HalfWidth = 1.7f;   // roof edge to centre, side to side (x)
+        public const float HalfDepth = 1.5f;   // roof edge to centre, front to back (z)
+        public const float RoofHeight = 2.45f; // the roof is well clear of the fire
+        public static readonly Vector3 HearthLocal = new Vector3(-0.35f, 0.14f, 0.15f);
+
+        // Whether a world point stands under the roof of a kitchen at pivot with the given yaw (degrees), by the roof's footprint.
+        public static bool UnderRoof(Vector3 pivot, float yawDegrees, Vector3 point)
+        {
+            Vector3 local = Quaternion.Euler(0f, -yawDegrees, 0f) * (point - pivot);
+            return Mathf.Abs(local.x) <= HalfWidth && Mathf.Abs(local.z) <= HalfDepth;
+        }
+
+        public static Vector3 HearthAt(Vector3 pivot, float yawDegrees) => pivot + Quaternion.Euler(0f, yawDegrees, 0f) * HearthLocal;
     }
 
     // An existing Well that a privy or pen has ended up too close to (or uphill of), say because the outhouse was built after it

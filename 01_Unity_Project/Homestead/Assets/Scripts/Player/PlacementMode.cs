@@ -77,6 +77,7 @@ public class PlacementMode : MonoBehaviour
             case PileKind.StorageBin:
             case PileKind.FoodCacheSite:
             case PileKind.WoodShedSite:
+            case PileKind.KitchenSite:
             case PileKind.CabinSite:
             case PileKind.OuthouseSite:
                 return true;
