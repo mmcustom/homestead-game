@@ -2011,3 +2011,129 @@ Waiting on Mike: (1) commit and push decision for phase B (code + docs; keep Pro
 ### 2026-10-19 - DECISION (Mike): commit and push Slice 1 phase B
 
 Mike said yes to committing phase B (Wood Shed + wet/dry wood; all 73 checklist items pass). Message sent to Claude Code. Keep ProjectSettings.asset (runInBackground), the AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out of the commit. Commit message states: playtested, all 73 items pass. Baseline before this commit: d772648. Phase C NOT started; waiting for Mike's go-ahead after the push is confirmed.
+
+
+---
+
+### 2026-10-19 - Slice 1 phase B COMMITTED and PUSHED (Claude Code report)
+
+Claude Code ran the 113 edit-mode tests (113/113 pass) and pushed two commits to master. Local master equals origin/master at 6c76da043c5b8ffc202547fd83542353210266b0 (short 6c76da0).
+
+- Code commit eb906d1: Wood Shed and wet/dry wood scripts, the four wood item assets, WoodMoisture.cs, WoodShedTests.cs and .meta files. Message says playtested, all 73 checklist items pass.
+- Docs commit 6c76da0: Structures_Slice1_Dry_And_Clean.md, Current_Task_List.md, Wood_Shed_Playtest_Checklist.md.
+
+Both commits carry the Co-Authored-By line. Git printed harmless LF-to-CRLF warnings.
+
+Left uncommitted on purpose: AudioManager.cs null guard, Homestead.slnx, ProjectSettings/ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Last pushed baseline is now 6c76da0 (was d772648). Docs written after this entry (including this one) are uncommitted until the next docs commit.
+
+Slice 1 status: phase A and phase B built, playtested, committed and pushed. Phase C (Covered Outdoor Kitchen) remains.
+
+Phase C NOT started. Claude Code's prompt box held an unsubmitted suggestion "Start phase C"; treated as a suggestion only, awaiting Mike's go-ahead.
+
+
+---
+
+### 2026-10-19 - DECISION (Mike): start phase C, Covered Outdoor Kitchen
+
+Mike chose "Yes, start phase C". Build message sent to Claude Code. Scope: two-stage staged site (hearth: 4 Stone + 2 Clay = 27 kg, delivered in lots; roof: 2 Logs + 6 Branches + 4 Tall Grass = 22.4 kg), Hammer pounding after each stage (first pass about 15 blows for the hearth, about 30 for the roof; tuning fields), finished-structure ghost, hearth works as a Campfire under the roof (same fuel, wet/dry and burn rules; covered fire ignores the lighting-in-rain penalty), roof gives rain and snow shelter and shade in a Heat Wave, small sheltered-meal comfort bonus, 3 m from other structures and trees, Hammer Dismantle (hearth must be out, half refund), no time jumps, debug Numpad * prints roof, shade and rain-sheltered flags, new playtest checklist. Weight note: hearth 27 kg is under the 30 kg Encumbered line, so the earlier "decide hearth weight" question is settled (staged anyway). Claude Code reports back and does NOT commit. Rain does not affect a lit fire today (phase B finding), so the Kitchen's value is lighting reliability, shelter, shade and comfort.
+
+
+---
+
+### 2026-10-19 - Slice 1 phase C BUILT (Claude Code report): Covered Outdoor Kitchen. NOT played, NOT committed.
+
+Claude Code built phase C. Compiles clean; 126/126 edit-mode tests pass (113 earlier + 13 new). Nothing committed or pushed. Nothing played in Play Mode. Checklist: 06_AI_Collaboration/Covered_Kitchen_Playtest_Checklist.md, 75 items.
+
+**Kitchen (two-stage staged site)**
+- PileKinds appended: KitchenSite 22, KitchenRoofSite 23, Kitchen 24; a row in each of the four staged-site data methods.
+- Stage 1 hearth: 4 Stone then 2 Clay (27 kg). Stage 2 roof: 2 Logs + 6 Branches + 4 Tall Grass (22.4 kg), any order. Each stage has its own Hammer pounding using the shared staged-site code.
+- Blows: hearth 15 (`kitchenHearthBuildBlows`), roof 30 (`kitchenRoofBuildBlows`), on WellsAndOuthouses.
+- Hammer rule as before: placing, delivering and taking back are free; the Hammer pounds and takes an empty site down; a stage's materials lock in at its first blow.
+- Look: ghost shows the finished kitchen (four posts, overlapping plank roof, hearth slab with clay backing, prep table). Placed site is a bare plot of stakes and earth; after the hearth blows it grows a slab, backing wall and campfire; after the roof blows it becomes the finished kitchen.
+- Placement: wheel rotation; refuses water, steep ground, floodplain. New rules in Setbacks.cs: 3 m to other structures and 3 m to trees ("Too close to the Small Cabin: 3 m needed.", "Too close to a tree: 3 m needed."). Measured from the roof edge, so centre to centre it is about 5.3 m from a tree trunk or small pile and about 7.8 m from the cabin.
+- Roof, posts and table have real colliders.
+- Dismantle: Hammer plus an unlit hearth; refunds half of each line rounded down, as dry wood; the unlit hearth's remaining Firewood is returned too and the hearth goes with it.
+- Debug: Numpad * prints roof, shade, rain-sheltered and hearth state for the nearest kitchen, and whether the Bow Drill counts the hearth as covered.
+
+**Confirmed in code (no changes needed):**
+- Covered fire: the Bow Drill's covered test (BowDrill.cs) casts a ray up from 0.3 m above the fire at any non-terrain collider, so the kitchen roof counts; under it the Bow Drill catches at the calm-weather rate (45%). Flint and Steel never had a weather chance.
+- Rain does not slow or douse a lit fire, so the roof's benefit at the hearth is reliable Bow Drill lighting.
+- Shelter: Rain, Snow and Thunderstorm come off the player through the same upward ray test the Tent uses.
+- Shade: the heat model's sun term already ray-casts toward the sun, so the roof shades with no change. A low sun can still reach under the front edge.
+
+**Changes from my message (Claude Code's calls; flagged for Mike):**
+1. Third kind KitchenRoofSite records "hearth built, roof pending" with no new save key.
+2. The hearth campfire appears as soon as stage 1 finishes, so it works before the roof exists.
+3. Reused BuildFurnished but NOT HearthOf or the hearth migration (cabin-specific); the kitchen finds its hearth by position, and a new structure has nothing to migrate.
+4. Dismantle works on a hearth-only site too (R, Hammer, fire out). E on an empty hearth-only site refuses to remove it (it would orphan the fire).
+5. SHELTERED MEAL IS A DIFFERENT BONUS THAN DESIGNED: there is no Morale or Comfort stat in the code (only in the design docs). The simplest honest bonus: 25% faster Health recovery for 4 game hours after eating a meal under the roof (`shelteredMealRecoveryBonus` 0.25, `shelteredMealHours` 4). Fires only when the eaten item restores Hunger. The bonus is lost on save and load. Mike can accept it, retune it, or ask for a real comfort stat later.
+6. The finished kitchen has no interaction box (it would be a solid block you could not walk into); you aim at its roof, posts or table.
+
+**Known wrinkle:** when pounding the roof stage, aim at the plot ground rather than the fire; the fire sits at the middle of the plot and takes the aim first.
+
+**Untested (everything, in Play Mode):** look and roof slope; walking in under the roof; how the campfire's collider interacts with the site; sun, rain and Heat Wave effects; the meal bonus; Numpad *; the 15 and 30 blow timings.
+
+Claude Code did not edit the Slice 1 doc's phase C section. Its plan to extend FireManager/WoodPile/Shelter and use the hearth migration differs from what was built; the record below notes that.
+
+Waiting on Mike: play Covered_Kitchen_Playtest_Checklist.md (75 items) and report pass/fail per item. Then commit decision.
+
+
+---
+
+### 2026-10-19 - DECISIONS (Mike) on phase C changes, plus a future-plan note
+
+Mike's replies to the phase C report (three bullets, taken in the order of my three flagged points: sheltered meal, hearth timing, no interaction box):
+1. Sheltered meal as built (25% faster Health recovery for 4 game hours, lost on save and load): "that's fine as it is". ACCEPTED. No change.
+2. "That's fine for now." ACCEPTED for now (hearth campfire appearing as soon as the hearth stage finishes, and the kitchen having no interaction box). Revisit when add-ons arrive.
+3. FUTURE PLAN (backlog, not built): items that go in the outdoor kitchen later, such as countertops, a wood-fired grill and a griddle, and possibly LP gas or electric appliances after that. Design note for whoever builds it: the finished kitchen has no interaction box and the hearth is found by position, so add-ons will need their own placeable or interactable pieces and a way to attach to a kitchen; the roof, posts and table already have colliders. LP gas and electric appliances depend on a Power_System and a fuel supply, which are not built.
+
+Waiting on Mike: play Covered_Kitchen_Playtest_Checklist.md (75 items) and report pass/fail per item. No commit until then.
+
+
+---
+
+### 2026-10-19 - DECISION (Mike): kitchen add-ons scope (backlog, design first)
+
+Mike: "you can add countertops, and cleaning tables for processing harvested plants and animals, a slop sink, shelving and a wood fired grill / griddle. but everything else should wait on the other power systems."
+
+IN scope for the kitchen add-on set: countertops, cleaning (processing) tables, slop sink, shelving, wood-fired grill/griddle. OUT until the power systems exist: LP gas, electric, and anything else needing a fuel supply or power.
+
+Written up as 05_Documentation/Game_Systems/Structures_Kitchen_Addons.md (draft rules, decisions needed, eight read-only questions for Claude Code). NOTHING BUILT. Sequence: finish phase C first (Mike plays Covered_Kitchen_Playtest_Checklist.md, then commit), then a read-only pass on the add-ons, then Mike's decisions, then build. This supersedes the earlier "future plan" wording (countertops, grill, griddle, LP gas or electric later): the first five are now in scope, the rest waits.
+
+Still waiting on Mike: play Covered_Kitchen_Playtest_Checklist.md (75 items), then the commit decision.
+
+
+---
+
+### 2026-10-19 - DECISION (Mike): close out phase C first, then the read-only pass
+
+Mike: "lets get phase c closed out, then do the read only pass". Order now: (1) Mike plays Covered_Kitchen_Playtest_Checklist.md (75 items) and reports pass/fail; (2) fixes if any item fails; (3) commit and push phase C (Mike's yes, Claude Code does it, same exclusions: ProjectSettings.asset, AudioManager.cs null guard, Homestead.slnx, 08_Backups/); (4) THEN the read-only pass for the kitchen add-ons (Structures_Kitchen_Addons.md). The read-only message is NOT sent until phase C is committed.
+
+
+---
+
+### 2026-10-19 - Covered Kitchen playtest: ALL 75 ITEMS PASS (Mike)
+
+Mike played Covered_Kitchen_Playtest_Checklist.md in Play Mode and reported "pass" for every item, 1 through 75, no notes and no failures.
+
+Now PLAYTESTED (no longer "Untested"):
+- Ghost and refusals: finished-kitchen ghost, wheel rotation, 3 m to structures and trees, water, steep, floodplain, fire, free placement (A, 1-10)
+- Stage 1 hearth: two-lot delivery (Stone then Clay), part deliveries, save with half stock, take-back before pounding, empty-site take-down, 15-blow pounding, locked-in materials, the plot growing a hearth, hearth as an ordinary campfire (B, C, D, 11-25)
+- Stage 2 roof: delivery in any order, take-back, 30-blow pounding, finish in place with a lit fire staying lit, no clock jump (E, 26-31)
+- Finished kitchen: look, walk-in, colliders, ghost match (F, 32-34)
+- Hearth lighting and burning, wet/dry wood, Bow Drill at the calm-weather rate under the roof, no rain effect on a lit fire, cooking, boiling, warmth (G, 35-40)
+- Rain, snow and thunderstorm shelter and the roof edge (H, 41-44); Heat Wave shade and low-sun behaviour (I, 45-47)
+- Sheltered meal: bonus, edge case, no stacking, lost on save and load (J, 48-52)
+- Dismantle: lit hearth refusal, Hammer rule, refund, full pack, hearth-only site, E refusal on empty hearth-only site (K, 53-58)
+- Numpad * output (L, 59-62); saves (M, 63-66); regression for campfires, cabin, Wood Shed, Well, Outhouse, barrels, Food Cache, eating elsewhere, time keys, Console (N, 67-75)
+
+Not covered (stays untested, tuning later):
+- Feel of first-pass numbers: 15 and 30 blows, the 25% Health recovery bonus for 4 game hours, the 3 m setback distances
+- A real comfort or morale stat (none exists; the bonus is Health recovery)
+- Long play in a kitchen through a full season of weather
+
+Status: Slice 1 phase C (Covered Outdoor Kitchen) = BUILT and PLAYTESTED. UNCOMMITTED and UNPUSHED. Last pushed baseline is 6c76da0 (docs) / eb906d1 (code). Slice 1 phases A, B and C are all built and playtested; only phase C is uncommitted.
+
+Next: commit and push phase C (message sent to Claude Code; keep ProjectSettings.asset, the AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out; message says playtested, all 75 items pass). THEN the kitchen add-ons read-only pass (Structures_Kitchen_Addons.md).

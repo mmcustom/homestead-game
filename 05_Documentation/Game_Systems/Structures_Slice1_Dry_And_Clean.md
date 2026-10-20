@@ -742,3 +742,49 @@ Status of phase B: BUILT and PLAYTESTED. Code and docs remain UNCOMMITTED and UN
 Not covered (tuning later): natural-time seasoning (28 game days tested via Numpad - and day skips), natural-weather re-wetting over a real season, a real winter of fuel use from a stocked shed, and the feel of the first-pass numbers (25 blows, wet burn 0.7, one-season seasoning, no capacity limit, wind-facing as advice only).
 
 Next: phase C (Covered Outdoor Kitchen), staged in two stages with Hammer pounding.
+
+
+---
+
+## PHASE C BUILT - Covered Outdoor Kitchen (2026-10-19, NOT played, NOT committed)
+
+Phase B was committed and pushed first (code eb906d1, docs 6c76da0). Phase C is built on top. 126/126 edit-mode tests pass (13 new). Checklist: Covered_Kitchen_Playtest_Checklist.md (75 items). Where this section differs from section 4 (Covered Outdoor Kitchen) and the phase C build plan above, this section wins.
+
+**Final rules as built**
+- **Two-stage staged site.** PileKinds KitchenSite 22, KitchenRoofSite 23 (hearth built, roof pending), Kitchen 24 (appended). Stage 1 hearth: 4 Stone + 2 Clay (27 kg, delivered in lots). Stage 2 roof: 2 Logs + 6 Branches + 4 Tall Grass (about 22.4 kg), any order. Each stage has its own Hammer pounding (hearth 15 blows, roof 30, tuning fields); a stage's materials lock in at its first blow.
+- **Hammer rule:** placing, delivering and taking back are free; the Hammer pounds, takes an empty site down, and dismantles. No time jumps.
+- **Look:** ghost shows the finished kitchen (four posts, overlapping plank roof, stone hearth slab with clay backing, prep table). The plot grows from stakes to hearth to finished kitchen. Roof, posts and table have colliders; the finished kitchen has no interaction box (aim at its parts).
+- **Placement:** not on water, not steep, not in the floodplain, 3 m clear of other structures and trees (measured from the roof edge). New Setbacks rules.
+- **Hearth:** the hearth campfire appears as soon as stage 1 finishes and works as a Campfire (same fuel, wet/dry and burn rules, Cooking screen, boiling water). Found by position; the cabin's HearthOf and hearth migration were not used (cabin-specific).
+- **Weather and fire (confirmed in code):** rain does not slow or douse a lit fire. The roof counts as cover for the Bow Drill (up-ray from 0.3 m above the fire), so lighting in rain is at the calm-weather rate (45%). Flint and Steel never had a weather chance. Rain, Snow and Thunderstorm do not wet the player under the roof (same up-ray test as the Tent). The heat model's sun term already ray-casts, so the roof gives shade with no change.
+- **Sheltered meal (changed from design):** there is no Morale or Comfort stat in the code. Built as 25% faster Health recovery for 4 game hours after eating a Hunger-restoring item under the roof (`shelteredMealRecoveryBonus`, `shelteredMealHours`); lost on save and load. A real comfort stat remains a later option.
+- **Dismantle:** Hammer plus an unlit hearth; half refund rounded down, dry; the hearth's leftover Firewood is returned; works on a hearth-only site too. E on an empty hearth-only site refuses (would orphan the fire).
+- **Saves:** no new save keys; old saves have none and load unchanged.
+- **Debug key:** Numpad * prints roof, shade, rain-sheltered, hearth state and Bow Drill coverage for the nearest kitchen.
+- **Known wrinkle:** while pounding the roof stage, aim at the plot ground, not the fire.
+
+**Where the build differs from the plan above:** the plan said to extend FireManager, WoodPile and the Shelter visuals and to reuse HearthOf and the hearth migration. None of that was needed beyond the staged-site code, the new kinds, the Setbacks rules and the sheltered-meal hook.
+
+**Untested:** all of it in Play Mode (look and slope, walking under the roof, the campfire collider on the site, sun/rain/Heat Wave effects, the meal bonus, Numpad *, the 15 and 30 blow timings).
+
+
+---
+
+## PHASE C - Mike's decisions and future plan (2026-10-19)
+
+- The sheltered-meal bonus stays as built (25% faster Health recovery for 4 game hours after eating under the roof, lost on save and load): Mike, "fine as it is".
+- The hearth appearing as soon as stage 1 finishes, and the kitchen having no interaction box, are fine for now.
+- **Future (not built, not scheduled):** outdoor kitchen add-ons such as countertops, a wood-fired grill and a griddle, and possibly LP gas or electric appliances later. Add-ons will need their own placeable or interactable pieces and a way to attach to a kitchen. LP gas and electric appliances depend on a Power_System and a fuel supply, neither built. A real comfort stat could also replace the Health-recovery bonus when one exists.
+
+
+---
+
+## PHASE C PLAYTESTED - all 75 checklist items pass (2026-10-19)
+
+Mike played Covered_Kitchen_Playtest_Checklist.md in Play Mode: items 1-75 all pass, no notes. This covers the finished-kitchen ghost and refusals, two-stage delivery, Hammer pounding for the hearth and the roof, the plot growing, the hearth as an ordinary campfire, rain, snow and thunderstorm shelter, Heat Wave shade, the sheltered meal, Dismantle, Numpad *, saves, and regression for every earlier structure.
+
+Status of phase C: BUILT and PLAYTESTED. Code and docs remain UNCOMMITTED and UNPUSHED (baseline 6c76da0).
+
+Not covered (tuning later): feel of the first-pass numbers (15 and 30 blows, the 25% Health-recovery meal bonus for 4 game hours, the 3 m setbacks), a real comfort stat (none exists), and a full season of play in a kitchen.
+
+**Slice 1 ("Dry and clean") is complete once phase C is committed:** Well, Outhouse, Wood Shed with wet/dry wood, and Covered Outdoor Kitchen are all built and playtested. Next: the kitchen add-ons read-only pass (Structures_Kitchen_Addons.md), then Slice 2 per Structures_Roadmap.md.
