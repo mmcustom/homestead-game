@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "Homestead.SlotSwap",
         "Homestead.CreekCrossing",
-        "Homestead.Setbacks"
+        "Homestead.Setbacks",
+        "Homestead.Economy"
     ],
     "includePlatforms": [
         "Editor"

@@ -47,7 +47,7 @@ public class DifficultyManager : MonoBehaviour, ISaveable
     public static float TemperatureOffsetC => Pick(3f, 0f, -3f);
     public static float StormMultiplier => Pick(0.6f, 1f, 1.5f);
     public static float WildlifeAlertness => Pick(0.85f, 1f, 1.2f);
-    public static int StartingCash => Tier == Difficulty.Homesteader ? 50 : 0;
+    public static long StartingCashCents => Money.Dollars(Tier == Difficulty.Homesteader ? 50 : 0);
 
     static float Pick(float homesteader, float settler, float pioneer) =>
         Tier == Difficulty.Homesteader ? homesteader : Tier == Difficulty.Pioneer ? pioneer : settler;

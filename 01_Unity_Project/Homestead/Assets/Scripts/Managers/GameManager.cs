@@ -71,7 +71,7 @@ public class GameManager : MonoBehaviour
         if (DifficultyManager.Instance != null)
             DifficultyManager.Instance.Begin(difficulty);
         if (TradingPost.Instance != null)
-            TradingPost.Instance.ResetMoney(DifficultyManager.StartingCash);
+            TradingPost.Instance.ResetMoney(DifficultyManager.StartingCashCents);
 
         ResetManagers(() =>
         {

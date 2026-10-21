@@ -2,17 +2,11 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[Serializable]
-public struct TradingPostSaveData
-{
-    public int money;
-}
-
 // Difficulty_System.md's Trading Post (confirmed 2026-09-26) — the first real mechanic Economy_System.md has had. A
 // two-way exchange, menu-only (TradingPostScreen, the T tab): sell what's gathered, hunted and made for money, and buy
 // what can't be made yet. Open on every difficulty; only the starting cash differs (DifficultyManager).
 //
-// Prices are whole dollars, Claude Code's first pass for Mike to confirm by feel:
+// Prices are whole dollars (kept as cents), Claude Code's first pass for Mike to confirm by feel:
 //   Buys (the store's stock) — the "camping kit" and hunting and fishing gear: Flint and Steel $8, Knife $4, Canteen $5,
 //     Bucket $6, Cooking Pot $12, Tarp $8, Sleeping Bag $15, Tent $25, Axe $20, Hammer $10, Fishing Rod $12, Recurve
 //     Bow $30, Arrow $1, Bolt-Action Rifle $60, Rifle Round $1, Cordage $2, Lamp Oil $3 (Portable Lighting, 2026-10-03:
@@ -29,38 +23,41 @@ public class TradingPost : MonoBehaviour, ISaveable
     public static TradingPost Instance { get; private set; }
 
     // The store's stock, in display order.
-    static readonly (string item, int price)[] Stock =
+    static readonly (string item, long price)[] Stock =
     {
-        ("flint_and_steel", 8), ("knife", 4), ("canteen", 5), ("bucket", 6), ("cooking_pot", 12), ("tarp", 8),
-        ("sleeping_bag", 15), ("tent", 25), ("axe", 20), ("hammer", 10), ("fishing_rod", 12),
-        ("recurve_bow", 30), ("arrows", 1), ("bolt_action_rifle", 60), ("rifle_rounds", 1), ("cordage", 2),
-        ("lamp_oil", 3), ("lumber", 8), ("weather_station", 25),
+        ("flint_and_steel", D(8)), ("knife", D(4)), ("canteen", D(5)), ("bucket", D(6)), ("cooking_pot", D(12)), ("tarp", D(8)),
+        ("sleeping_bag", D(15)), ("tent", D(25)), ("axe", D(20)), ("hammer", D(10)), ("fishing_rod", D(12)),
+        ("recurve_bow", D(30)), ("arrows", D(1)), ("bolt_action_rifle", D(60)), ("rifle_rounds", D(1)), ("cordage", D(2)),
+        ("lamp_oil", D(3)), ("lumber", D(8)), ("weather_station", D(25)),
     };
 
     // What the store pays for things it doesn't stock.
-    static readonly Dictionary<string, int> Buys = new Dictionary<string, int>
+    static readonly Dictionary<string, long> Buys = new Dictionary<string, long>
     {
-        { "deer_hide", 8 }, { "deer_antlers", 6 }, { "small_furs", 3 }, { "feathers", 1 }, { "sinew", 1 },
-        { "venison", 3 }, { "turkey_meat", 2 }, { "waterfowl_meat", 2 }, { "small_game_meat", 1 }, { "chicken_meat", 1 },
-        { "cooked_venison", 4 }, { "cooked_turkey", 3 }, { "cooked_waterfowl", 3 }, { "cooked_small_game", 2 }, { "cooked_chicken", 2 },
-        { "bluegill", 1 }, { "crappie", 1 }, { "bass", 2 }, { "catfish", 2 },
-        { "cooked_bluegill", 2 }, { "cooked_crappie", 2 }, { "cooked_bass", 3 }, { "cooked_catfish", 3 },
-        { "blackberries", 1 }, { "raspberries", 1 }, { "wild_apples", 1 }, { "pawpaw", 1 },
-        { "chestnuts", 1 }, { "hickory_nuts", 1 }, { "walnuts", 1 },
-        { "morel", 3 }, { "oyster_mushroom", 1 }, { "dryads_saddle", 1 }, { "wild_onion", 1 }, { "cattail", 1 },
-        { "chicken_eggs", 1 }, { "goat_milk", 1 },
-        { "firewood", 1 }, { "logs", 3 }, { "stone", 1 },
-        { "stone_pick_axe", 4 }, { "shovel", 4 }, { "primitive_axe", 4 }, { "rabbit_snare", 1 }, { "box_trap", 2 },
-        { "fish_trap", 3 }, { "cane_pole", 2 }, { "pouch", 3 }, { "torch", 1 }, { "bow_drill", 1 }, { "lantern", 4 },
-        { "primitive_bow", 2 },
+        { "deer_hide", D(8) }, { "deer_antlers", D(6) }, { "small_furs", D(3) }, { "feathers", D(1) }, { "sinew", D(1) },
+        { "venison", D(3) }, { "turkey_meat", D(2) }, { "waterfowl_meat", D(2) }, { "small_game_meat", D(1) }, { "chicken_meat", D(1) },
+        { "cooked_venison", D(4) }, { "cooked_turkey", D(3) }, { "cooked_waterfowl", D(3) }, { "cooked_small_game", D(2) }, { "cooked_chicken", D(2) },
+        { "bluegill", D(1) }, { "crappie", D(1) }, { "bass", D(2) }, { "catfish", D(2) },
+        { "cooked_bluegill", D(2) }, { "cooked_crappie", D(2) }, { "cooked_bass", D(3) }, { "cooked_catfish", D(3) },
+        { "blackberries", D(1) }, { "raspberries", D(1) }, { "wild_apples", D(1) }, { "pawpaw", D(1) },
+        { "chestnuts", D(1) }, { "hickory_nuts", D(1) }, { "walnuts", D(1) },
+        { "morel", D(3) }, { "oyster_mushroom", D(1) }, { "dryads_saddle", D(1) }, { "wild_onion", D(1) }, { "cattail", D(1) },
+        { "chicken_eggs", D(1) }, { "goat_milk", D(1) },
+        { "firewood", D(1) }, { "logs", D(3) }, { "stone", D(1) },
+        { "stone_pick_axe", D(4) }, { "shovel", D(4) }, { "primitive_axe", D(4) }, { "rabbit_snare", D(1) }, { "box_trap", D(2) },
+        { "fish_trap", D(3) }, { "cane_pole", D(2) }, { "pouch", D(3) }, { "torch", D(1) }, { "bow_drill", D(1) }, { "lantern", D(4) },
+        { "primitive_bow", D(2) },
     };
 
-    int money;
+    // Whole dollars as cents, so the price tables below read as dollars.
+    static long D(int dollars) => Money.Dollars(dollars);
 
-    public int Money => money;
+    long money; // cents (Money)
+
+    public long Cents => money;
     public event Action MoneyChanged;
 
-    public static IReadOnlyList<(string item, int price)> Catalog => Stock;
+    public static IReadOnlyList<(string item, long price)> Catalog => Stock;
 
     void Awake()
     {
@@ -90,21 +87,23 @@ public class TradingPost : MonoBehaviour, ISaveable
         Instance = null;
     }
 
-    public static int BuyPrice(string itemId)
+    // Cents (0: not for sale).
+    public static long BuyPrice(string itemId)
     {
-        foreach ((string item, int price) in Stock)
+        foreach ((string item, long price) in Stock)
             if (item == itemId)
                 return price;
         return 0;
     }
 
-    // What the store pays for one (0: it doesn't buy it).
-    public static int SellPrice(string itemId)
+    // What the store pays for one, in cents (0: it doesn't buy it). Stocked items go back at 40% (Money.SellBackCents; none of
+    // the under-$3 ammo and cordage); anything else has its own fixed price.
+    public static long SellPrice(string itemId)
     {
-        int stocked = BuyPrice(itemId);
+        long stocked = BuyPrice(itemId);
         if (stocked > 0)
-            return stocked >= 3 ? Mathf.Max(1, Mathf.FloorToInt(stocked * 0.4f)) : 0; // no buying back ammo and cordage
-        return Buys.TryGetValue(itemId, out int price) ? price : 0;
+            return Money.SellBackCents(stocked);
+        return Buys.TryGetValue(itemId, out long price) ? price : 0;
     }
 
     // Buys up to count. Returns how many were bought, and why not all (null if all were).
@@ -113,57 +112,58 @@ public class TradingPost : MonoBehaviour, ISaveable
         problem = null;
         InventoryManager inventory = InventoryManager.Instance;
         ItemDefinition item = ItemDatabase.Get(itemId);
-        int price = BuyPrice(itemId);
+        long price = BuyPrice(itemId);
         if (inventory == null || item == null || price <= 0 || count <= 0)
         {
             problem = "Not for sale.";
             return 0;
         }
 
-        int affordable = money / price;
+        long affordable = money / price;
         int fits = inventory.Player.SpaceFor(item);
-        int n = Mathf.Min(count, Mathf.Min(affordable, fits));
+        int n = Money.BuyCount(money, price, count, fits);
         if (n <= 0)
         {
-            problem = affordable <= 0 ? $"Not enough money — {item.DisplayName} costs ${price}." : "No room to carry it.";
+            problem = affordable <= 0 ? $"Not enough money — {item.DisplayName} costs {Money.Format(price)}." : "No room to carry it.";
             return 0;
         }
         n = inventory.AddToPlayer(itemId, n);
-        money -= n * price;
+        money = Money.Sub(money, Money.Mul(price, n));
         MoneyChanged?.Invoke();
         if (n < count)
             problem = affordable < count ? "Ran out of money." : "Ran out of room.";
         return n;
     }
 
-    // Sells up to count of a carried item. Returns the money made.
-    public int Sell(string itemId, int count)
+    // Sells up to count of a carried item. Returns the money made, in cents.
+    public long Sell(string itemId, int count)
     {
         InventoryManager inventory = InventoryManager.Instance;
-        int price = SellPrice(itemId);
+        long price = SellPrice(itemId);
         if (inventory == null || price <= 0 || count <= 0)
             return 0;
         if (AudioManager.Instance != null)
             AudioManager.Instance.SilenceNextRemoval(); // a sale, not an item dropped
         int sold = inventory.RemoveFromPlayer(itemId, count);
-        money += sold * price;
+        long made = Money.Mul(price, sold);
+        money = Money.Add(money, made);
         MoneyChanged?.Invoke();
-        return sold * price;
+        return made;
     }
 
-    // New Game: the tier's starting cash. Loading a save: nothing, until the save says otherwise.
-    public void ResetMoney(int amount)
+    // New Game: the tier's starting cash, in cents. Loading a save: nothing, until the save says otherwise.
+    public void ResetMoney(long cents)
     {
-        money = Mathf.Max(0, amount);
+        money = Math.Max(0L, cents);
         MoneyChanged?.Invoke();
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-    public void DebugAddMoney(int amount) => ResetMoney(money + amount);
+    public void DebugAddMoney(int dollars) => ResetMoney(Money.Add(money, Money.Dollars(dollars)));
 #endif
 
-    public TradingPostSaveData CaptureState() => new TradingPostSaveData { money = money };
-    public void RestoreState(TradingPostSaveData data) => ResetMoney(data.money);
+    public TradingPostSaveData CaptureState() => TradingPostSaveData.FromCents(money);
+    public void RestoreState(TradingPostSaveData data) => ResetMoney(data.ToCents());
 
     string ISaveable.SaveFile => "player";
     string ISaveable.SaveKey => "money";

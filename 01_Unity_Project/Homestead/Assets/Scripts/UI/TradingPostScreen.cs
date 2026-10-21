@@ -71,7 +71,7 @@ public class TradingPostScreen : GameScreen
         TradingPost post = TradingPost.Instance;
         InventoryManager inventory = InventoryManager.Instance;
         moneyLabel.text = post != null
-            ? $"${post.Money}   <size=18><color=#EDE3C799>{DifficultyManager.Name(DifficultyManager.Tier)}</color></size>"
+            ? $"{Money.Format(post.Cents)}   <size=18><color=#EDE3C799>{DifficultyManager.Name(DifficultyManager.Tier)}</color></size>"
             : "";
 
         UiKit.Clear(buyList);
@@ -79,24 +79,24 @@ public class TradingPostScreen : GameScreen
         if (post == null || inventory == null)
             return;
 
-        foreach ((string item, int price) in TradingPost.Catalog)
+        foreach ((string item, long price) in TradingPost.Catalog)
         {
             ItemDefinition definition = ItemDatabase.Get(item);
             if (definition == null)
                 continue;
-            bool afford = post.Money >= price;
+            bool afford = post.Cents >= price;
             string have = inventory.Player.Count(item) > 0 ? $"  <size=15><color=#C7D68C>have {inventory.Player.Count(item)}</color></size>" : "";
-            Row(buyList, $"{definition.DisplayName}{have}", $"${price}", "Buy", afford, () => Buy(item));
+            Row(buyList, $"{definition.DisplayName}{have}", Money.Format(price), "Buy", afford, () => Buy(item));
         }
 
         // Everything carried the store will take, one row per kind, highest value first.
-        var carried = new List<(ItemDefinition item, int count, int price)>();
+        var carried = new List<(ItemDefinition item, int count, long price)>();
         var seen = new HashSet<string>();
         foreach (ItemStack stack in inventory.Player.Stacks)
         {
             if (!seen.Add(stack.itemId))
                 continue;
-            int price = TradingPost.SellPrice(stack.itemId);
+            long price = TradingPost.SellPrice(stack.itemId);
             ItemDefinition definition = ItemDatabase.Get(stack.itemId);
             if (price > 0 && definition != null)
                 carried.Add((definition, inventory.Player.Count(stack.itemId), price));
@@ -104,11 +104,11 @@ public class TradingPostScreen : GameScreen
         carried.Sort((a, b) => b.price.CompareTo(a.price));
         if (carried.Count == 0)
             UiKit.Height(UiKit.Text(sellList, "Empty", "Nothing you're carrying that the store buys. Hides, furs, meat, fish, forage, firewood, logs and stone all sell.", 18, UiKit.Muted), 60f);
-        foreach ((ItemDefinition item, int count, int price) in carried)
+        foreach ((ItemDefinition item, int count, long price) in carried)
         {
             bool equipped = inventory.EquippedTool == item;
             string note = equipped ? "  <size=15><color=#C7D68C>equipped</color></size>" : "";
-            Row(sellList, $"{item.DisplayName}  <size=16><color=#EDE3C799>×{count}</color></size>{note}", $"${price}", "Sell", true, () => Sell(item));
+            Row(sellList, $"{item.DisplayName}  <size=16><color=#EDE3C799>×{count}</color></size>{note}", Money.Format(price), "Sell", true, () => Sell(item));
         }
     }
 
@@ -157,10 +157,10 @@ public class TradingPostScreen : GameScreen
         if (post == null || inventory == null)
             return;
         int count = ShiftHeld ? inventory.Player.Count(item.Id) : 1;
-        int made = post.Sell(item.Id, count);
+        long made = post.Sell(item.Id, count);
         if (made > 0)
         {
-            statusLabel.text = $"Sold {(count > 1 ? count + " × " : "")}{item.DisplayName} for ${made}";
+            statusLabel.text = $"Sold {(count > 1 ? count + " × " : "")}{item.DisplayName} for {Money.Format(made)}";
             if (AudioManager.Instance != null)
                 AudioManager.Instance.Play(SoundCue.UiClick);
         }
