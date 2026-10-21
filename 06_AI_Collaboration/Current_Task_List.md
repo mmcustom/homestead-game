@@ -2783,3 +2783,69 @@ New code baseline: b6f548a (previous 493e35c).
 Still uncommitted by design: ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx, 08_Backups/. Uncommitted docs: GDD v2.0, Structures_Roadmap.md, Money_System.md, Trading_Post_Market.md, Current_Task_List.md, Kitchen and Save/Load checklist headers, Money_Cents_Playtest_Checklist.md. Claude Code's prompt box showed "Commit the docs separately"; that is a suggestion, not Mike's approval. A docs commit waits for Mike's say-so.
 
 Next: the Trading Post market (Claude Code read-only pass on the build first), then Money System Phase A (land loan, parcel choice, payments). Backlog added: cash-only debug key.
+
+
+## 2026-10-20 - Docs committed and pushed: e193129
+
+Claude Code showed the 8-file staging list first and Mike approved it. Docs commit e193129 pushed to master (b6f548a..e193129). Contents: Homestead_GDD_v2.0.md, Structures_Roadmap.md, Money_System.md, Trading_Post_Market.md, Current_Task_List.md, Kitchen_Addons_Playtest_Checklist.md, Save_Load_Screen_Playtest_Checklist.md, Money_Cents_Playtest_Checklist.md.
+
+Baselines: code b6f548a (money in cents), docs e193129. Still uncommitted by design: ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx, 08_Backups/.
+
+Claude Code's prompt box showed "Start Phase A of the loan system". That is a suggestion, not a go-ahead: no Phase A build brief has been written or approved yet. Before the brief, Claude needs Mike's confirmation of four Phase A items (old $50/$0 starting cash retired; how payments are made; old saves; what Phase A includes without the loss screen). Next: those answers, then the Phase A brief; the market build gets its own read-only pass after.
+
+
+## 2026-10-20 - Phase A decisions (Mike)
+
+Mike's picks: the old $50 / $0 / $0 starting cash is RETIRED; payments are made on a SEPARATE Finances screen on its own key (not a seventh T-window tab); saves made before the loan system load as today with no loan; before the loss screen exists, three missed payments are counted and warned in red but do not end the game.
+
+Recorded in `Money_System.md` ("Phase A decisions"). Phase A scope: parcel choice and savings split at new game, the loan, Finances screen (pay due, extra payments), late fee, missed count, warnings, save and load, tests. Not in Phase A: statement and ledger (Phase B), loss screen (Phase C), the market, any price change. Next: Claude writes the Phase A build brief for Claude Code; Mike runs it, pastes the report, then plays a checklist Claude writes. Nothing committed.
+
+
+## 2026-10-20 - Phase A of the land loan built by Claude Code; NOT committed, waiting for Mike's playtest
+
+Claude Code report received (partly garbled in the test list). Phase A compiles with no console errors; 222 edit-mode tests pass (165 before, 57 new). Claude Code also ran the real flow in Play Mode on a backed-up Saves folder and restored it (43 files, hashes match). Full details are in `Money_System.md` under "Phase A build report".
+
+- The Finances screen is on L (new input action). New files: LoanState.cs, LandRules.cs (both in Homestead.Economy), MoneyManager.cs, FinancesScreen.cs, LandPurchasePanel.cs, LoanTests.cs. Changed: Money.cs, TradingPost.cs, GameManager.cs, DifficultyManager.cs (SavingsPercent replaces old starting cash; three blurbs reworded), MainMenuController.cs, SaveManager.cs, GameScreens.cs, TimeDebugControls.cs, InputSystem_Actions.inputactions.
+- Debug: F5 one day, Shift+F5 ten days (new), F6 next season; F6 four times from a new game reaches day 112.
+- Money is processed before autosave in three ways (SaveManager hook, MoneyManager.Update catch-up, CaptureState).
+- Claude Code's choices Mike did not specify: four warnings (7 days, due today, overdue, missed/WARNING), interest on later payments uses the whole balance including principal in open payments, no new payments if all principal is already in open payments, an amount box with presets (no slider), the Finances screen stops the clock, MoneyManager creates itself at startup.
+- Not covered: the visual look (40-acre card unchecked), the real L key press, sleep over a due date in play, Pioneer and Homesteader paths, the payoff banner.
+- Decision for Mike: add MoneyManager to the Bootstrap scene (loan terms become editable in the inspector, matching the tunables-on-the-component rule) or leave it self-creating. Claude's prompt box showed "Add MoneyManager to the Bootstrap scene", which is a suggestion, not approval.
+
+Claude wrote `06_AI_Collaboration\Loan_Phase_A_Playtest_Checklist.md` (41 items). Next: Mike plays it and reports by item number; then the commit message. Nothing committed.
+
+
+## 2026-10-20 - Phase A: two decisions (Mike)
+
+- MoneyManager goes in the Bootstrap scene, so rate, term and the $75 late fee are inspector fields. It touches the Bootstrap scene, so the scene file joins the Phase A commit list and must be checked before committing.
+- Interest on later payments stays on the whole balance, including principal sitting in missed payments (Claude Code's choice, kept).
+
+Claude Code is to add MoneyManager to the Bootstrap scene (message sent to Mike), keeping the self-create fallback only if a Bootstrap object is missing, then Mike plays `Loan_Phase_A_Playtest_Checklist.md`. Nothing committed.
+
+
+## 2026-10-20 - MoneyManager added to the Bootstrap scene (Claude Code report); still NOT committed
+
+- Change: `Assets/Scenes/Bootstrap.unity` only, +20 lines, MoneyManager on the Managers object. Inspector fields: rate 800 basis points, payments 180, interval 28 days, first due day 112, late days 10, late fee 7500 cents, missed-payment warning count 3. Values unchanged.
+- Claude Code first added it through Unity and saved, which rewrote unrelated manager values (for example a Weather weights array went from 64 to 49 entries). It reverted that and edited the scene file directly, so the diff is only the 20 lines. Unity reopens the scene clean (as reported).
+- Fallback: the self-create fallback now runs AfterSceneLoad (after the first scene's Awakes), so it only creates a manager when a scene is played with no Bootstrap instance; a duplicate now destroys only its own component. Checked in Play Mode: exactly one MoneyManager, on Managers, no fallback object.
+- Checks: 222 edit-mode tests passed after the script change but BEFORE the scene edit; they were not re-run afterwards because the editor connection dropped when Play Mode ended. The console after that run was not read. A new game (Settler, 5 acres, half down) started with $6,000.00 cash, a $54,000.00 loan, payment $516.05, first due day 112, with the terms read from the scene component. Saves folder restored (43 files, hashes match).
+- Bootstrap.unity belongs in the Phase A commit.
+- Flag: the Unity save rewriting unrelated Bootstrap values (Weather weights 64 to 49) means the saved scene data is out of step with the scripts. Not touched here; BACKLOG: check the Weather weights array in Bootstrap.
+
+Claude Code's prompt box showed "Show me the file list for the Phase A commit" (harmless, a list only). Not approval to commit. Next: Mike plays `Loan_Phase_A_Playtest_Checklist.md`. Before the commit, Claude Code must rerun the edit-mode tests and read the console with the scene as committed. Nothing committed.
+
+
+## 2026-10-21 - Land loan Phase A playtested: 41 of 41 pass (Mike)
+
+Mike played `Loan_Phase_A_Playtest_Checklist.md`: items 1 to 41 all pass (new game flow and land screen, starting values for all tiers and parcels, the Finances screen on L, due dates and warnings, paying and extra payments, late and missed fees, save and load including an old save, sleep over a due date, console clean).
+
+Not yet done before the commit: Claude Code re-runs the 222 edit-mode tests and reads the console with the scene as committed (the editor dropped after the Bootstrap edit), then shows the staging list and waits for Mike's OK. Phase A files: Economy/LoanState.cs, LandRules.cs, Money.cs (changed), MoneyManager.cs, FinancesScreen.cs, LandPurchasePanel.cs, LoanTests.cs and .meta files, TradingPost.cs, GameManager.cs, DifficultyManager.cs, MainMenuController.cs, SaveManager.cs, GameScreens.cs, TimeDebugControls.cs, InputSystem_Actions.inputactions, Assets/Scenes/Bootstrap.unity. Docs go in a separate docs commit. Nothing committed.
+
+
+## 2026-10-21 - Land loan Phase A committed and pushed: b03ebc3
+
+Before committing, Claude Code re-ran all 222 edit-mode tests (222 pass, 0 failed) with Bootstrap open and not dirty, and read the console after a Play Mode run (0 errors, 0 warnings, 0 log entries). The Saves folder was byte-identical to its backup. It showed the staging list and Mike approved it in Claude Code. Commit b03ebc3 pushed to master (e193129..b03ebc3). 22 files (Claude Code first said 28; it miscounted, the list was exact): Economy/LoanState.cs, LandRules.cs and .meta files, Money.cs, Managers/MoneyManager.cs and .meta, TradingPost.cs, GameManager.cs, DifficultyManager.cs, SaveManager.cs, UI/FinancesScreen.cs, LandPurchasePanel.cs and .meta files, MainMenuController.cs, GameScreens.cs, Debug/TimeDebugControls.cs, Tests/EditMode/LoanTests.cs and .meta, InputSystem_Actions.inputactions, Scenes/Bootstrap.unity. Message used Mike's suggested text plus the Co-Authored-By line.
+
+Baselines: code b03ebc3 (Phase A loan), docs e193129. Still uncommitted by design: ProjectSettings.asset, AudioManager.cs null guard, Homestead.slnx, 08_Backups/. Uncommitted docs: Money_System.md, Current_Task_List.md, Loan_Phase_A_Playtest_Checklist.md. Claude Code's prompt box showed "commit the docs separately and push"; that is a suggestion, not approval.
+
+Done so far in the Money System: Phase A (loan, payments, parcels, savings, Finances screen), money in cents. Remaining: Phase B (ledger and seasonal account statement), Phase C (loss screen, Restart and Load Save), the Trading Post market (read-only pass first, then build), Phase D difficulty and rebalance. Backlog: cash-only debug key, check the Weather weights array in Bootstrap.

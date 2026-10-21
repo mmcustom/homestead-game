@@ -357,3 +357,44 @@ One click sells one unit and Shift-click sells the stack. One row per item kind,
 The problem is the opposite of what was assumed. The land payment is far too small for the income, not the other way round. The 5-acre payment is about $16 to $20 per game day against about $60 to $150 of casual income. Over 28 days a casual player earns about $1,700 to $4,200 against a $459 payment. The Trading Post prices (about $1 to $60) are also trivial next to $12,000 to $30,000 of savings.
 
 The cheapest fix named by Claude Code is the crafted-tool buyback (the lantern loop), which also stops fish and firewood from dominating. Firewood, fishing and the lantern loop each earn $50 to $100 or more per game day for about five real minutes.
+
+
+---
+
+# Phase A decisions (Mike, 2026-10-20)
+
+Made when Phase A was about to start. Code baseline b6f548a (money in cents), docs baseline e193129.
+
+| Question | Decision |
+|---|---|
+| Old starting cash ($50 Homesteader, $0 Settler and Pioneer) | RETIRED. The only starting money is the savings (Homesteader 40%, Settler 20%, Pioneer 0, every tier capped at $30,000) minus the down payment. Starting kits stay as they are. |
+| How a payment is made | A SEPARATE Finances screen on its own key (not a seventh tab in the T window). |
+| Saves made before the loan system | Load as today with no loan; the money system is off for them. |
+| Three missed payments in Phase A | Counted and warned in red, but no loss yet. The loss screen is Phase C. |
+
+Phase A scope: parcel choice (5, 10 or 40 acres) and savings split at a new game, the loan (8% a year, 180 payments, one every 28 days, first due day 112), the Finances screen (pay the amount due, extra payments), the late fee, the missed count, due-date warnings, saving and loading, and tests. Not in Phase A: the seasonal statement and ledger (Phase B), the loss screen (Phase C), the Trading Post market, any change to prices.
+
+Expected payments (computed from the formula; Claude Code's tests must match to the cent): $48,000 loan $458.71; $60,000 $573.39; $112,000 $1,070.33; $360,000 $3,440.35.
+
+
+---
+
+# Phase A build report (Claude Code, 2026-10-20), NOT committed, not yet played by Mike
+
+Built and compiled with no console errors; 222 edit-mode tests pass (165 before, 57 new cases from about 30 methods). Claude Code also drove the real New Game flow, a Settler 5-acre game with a $6,000 split ($54,000 loan, payment $516.05), the Finances screen, warnings, paying, extra payments, three missed payments (red warning), save and reload, and an old save (slot1 loaded with no loan and $23.00 cash converted from dollars) in Play Mode. It backed up the whole Saves folder first and restored it afterwards (43 files, hashes match). The pasted report was partly garbled in the test list; the content above is what could be read.
+
+Files created: `Economy/LoanState.cs` (terms, payment formula, due dates, lateness, paying, warnings, `LoanSaveData`), `Economy/LandRules.cs` (three parcels, savings by tier with the $30,000 cap, split rules), `Managers/MoneyManager.cs`, `UI/FinancesScreen.cs`, `UI/LandPurchasePanel.cs`, `Tests/EditMode/LoanTests.cs`. Changed: `Economy/Money.cs` (TryParseCents), `TradingPost.cs` (TrySpend), `GameManager.cs` (StartNewGame takes the land choice; load clears the loan first), `DifficultyManager.cs` (old starting cash replaced by SavingsPercent; three blurbs reworded), `MainMenuController.cs` (flow: difficulty, land, savings split, loan summary, slot pick), `SaveManager.cs` (end-of-day hook), `GameScreens.cs` (T-window keys ignored while Finances is open), `TimeDebugControls.cs` (Shift+F5 skips 10 days), `InputSystem_Actions.inputactions` (Finances action bound to L).
+
+Processing before autosave: three ways, so no save can hold a loan behind the calendar: SaveManager.OnDayChanged calls MoneyManager.ProcessNow() before the autosave request; MoneyManager.Update catches up whenever TotalDays differs from the last processed day (sleep, debug skips, loads); MoneyManager.CaptureState processes first (manual and quit saves). Processing is idempotent.
+
+What Claude Code chose that Mike did not specify (all PROPOSED, accepted unless Mike objects):
+- Four warnings, once each per payment: "due in 7 days" (message line), "due today" (banner), "Overdue" the day after the due day (banner, says when the fee lands), "Missed" at due+10 (banner, prefixed WARNING when three are open). A long sleep shows only the latest stage per payment.
+- Interest on later payments is computed on the whole balance, including principal sitting in open (missed) payments.
+- If every remaining dollar of principal is in open payments, no more payments are created.
+- The amount box takes "250", "250.50" and "$1,250.00". The savings split uses an amount box with "All down", "Half and half" and "None down" presets (no slider) and must stay within the savings; odd cents go to the reserve.
+- The Finances screen is its own overlay and uses the Menu state, so the clock stops while it is open.
+- MoneyManager creates itself at startup (like GroundWoodManager), so no scene was edited. Its loan terms are inspector fields on a component that only exists at runtime, so they cannot be tuned in the editor yet. Claude Code asked whether to add it to the Bootstrap scene.
+
+Not covered: the visual look (screenshots were not viewed; the 40-acre card is unchecked), the real L key press, sleeping over a due date in the real sleep fade, the Pioneer and Homesteader paths in play, and the payoff banner in play (the logic is tested). A missing loan section and an old money save are covered only by the Play Mode run, not by edit-mode tests.
+
+Playtest: `06_AI_Collaboration\Loan_Phase_A_Playtest_Checklist.md` (41 items).
