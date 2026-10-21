@@ -2849,3 +2849,148 @@ Before committing, Claude Code re-ran all 222 edit-mode tests (222 pass, 0 faile
 Baselines: code b03ebc3 (Phase A loan), docs e193129. Still uncommitted by design: ProjectSettings.asset, AudioManager.cs null guard, Homestead.slnx, 08_Backups/. Uncommitted docs: Money_System.md, Current_Task_List.md, Loan_Phase_A_Playtest_Checklist.md. Claude Code's prompt box showed "commit the docs separately and push"; that is a suggestion, not approval.
 
 Done so far in the Money System: Phase A (loan, payments, parcels, savings, Finances screen), money in cents. Remaining: Phase B (ledger and seasonal account statement), Phase C (loss screen, Restart and Load Save), the Trading Post market (read-only pass first, then build), Phase D difficulty and rebalance. Backlog: cash-only debug key, check the Weather weights array in Bootstrap.
+
+
+## 2026-10-21 - Docs committed and pushed: 7cdadb1
+
+Claude Code showed the 3-file staging list first and Mike approved it. Docs commit 7cdadb1 pushed to master (b03ebc3..7cdadb1): Money_System.md, Current_Task_List.md, Loan_Phase_A_Playtest_Checklist.md.
+
+Baselines: code b03ebc3 (Phase A loan), docs 7cdadb1. Still uncommitted by design: ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx, 08_Backups/. Entries appended to this file after 7cdadb1 (this one) are not yet committed.
+
+Next: Trading Post market read-only pass (Claude Code), then the market build, then Phase B (ledger and seasonal statement), Phase C (loss screen), Phase D (difficulty and rebalance). Backlog: cash-only debug key, check the Weather weights array in Bootstrap, Slice 2 (Winter water) when chosen.
+
+
+## 2026-10-21 - Trading Post market read-only pass: report received and logged
+
+Read only; Claude Code changed nothing, created no files, made no commit, ran no Play Mode. Full plan is in `Trading_Post_Market.md` ("Claude Code read-only pass on the market build"). Headlines:
+
+- The Economy assembly has no engine access and the test assembly cannot see game code, so all market rules (pressure, floors, recovery, seasonal targets, selling a stack, save data, catalog) go in Economy as plain C#; a ScriptableObject `MarketData` holds the rows, seeded from today's constants by an editor command; a new `MarketManager` (Bootstrap, like MoneyManager) holds the scalar tunables and the state.
+- Save: multiplier per pool in basis points plus last day processed, in `player/market`; TradingPostSaveData unchanged; old saves load at 1.0; new games start at the seasonal target; `ResetMarket()` needed in both GameManager paths.
+- Time: state-based catch-up from TotalDays (three triggers like MoneyManager); N days in one call must equal N single-day calls.
+- Selling: unit by unit at the falling price, rounded half up to the cent; a SaleResult (also the hook for the Phase B ledger) and a quote function; sell-back 40% of base buy price times the multiplier; test proves sell-back is always below buy.
+- T window: trend marker, "% of normal" note, a market line under the header; the Sell list must stop sorting by current price.
+- Size: about 6 code files, 1 asset, 1 test file; edits to TradingPost.cs, TradingPostScreen.cs, GameManager.cs, SaveManager.cs, Bootstrap.unity; 35 to 45 new tests (222 to about 260 to 270).
+- Six decisions needed from Mike before building: pool granularity, eggs/goat milk/chicken meat group, Winter forage meaning, sell-back base, cooked-meat curve, and whether a data asset table is acceptable under his tunables-on-components rule.
+
+Nothing committed. Uncommitted: this entry and the Trading_Post_Market.md addition (docs commit later), plus ProjectSettings.asset, AudioManager.cs null guard, Homestead.slnx, 08_Backups/.
+
+
+## 2026-10-21 - Market build decisions (Mike)
+
+Mike's picks: ONE POOL PER ITEM (against Claude's shared-pool recommendation; the pool is a data field so it can change later by editing data); a new FARM PRODUCE group for eggs, goat milk and chicken meat (5% drop, target 1.0 all year); forage price stays 0.85 in Winter (nothing in the world to pick, stored forage still sells); a data asset for the item table is acceptable (scalars on MarketManager).
+
+Claude's defaults (accepted unless Mike objects): sell-back is 40% of the base buy price times the multiplier; cooked meat and fish share their raw species' pool and curve; Sell list sorted by base price or name; new games start at the seasonal target.
+
+Re-run of the simulation for one pool per item (Claude's model, not played): Survivor $29, Casual mixed $50, Grinder $82 ($99 if he crafts four different tools) per game day, up from $21, $38, $69. The 5-acre payments are covered every period by every player; the 10-acre payment ($1,070) is now covered by Casual and Grinder; the 40-acre payment is still not covered from wild goods. Income is now above the earlier $25-a-day target; it can be pulled back by sharing pools after the first playtest records real money per game day. Recorded in Trading_Post_Market.md ("Decisions on the build questions").
+
+Next: Claude writes the market build brief for Claude Code (order from the read-only pass: pure core in Economy with tests, data asset and seeder, MarketManager and hooks, TradingPost Buy and Sell, T window), then Mike plays a checklist. Nothing committed. Uncommitted docs: the Trading_Post_Market.md additions and these task list entries.
+
+
+## 2026-10-21 - Trading Post market built by Claude Code; NOT committed, waiting for Mike's playtest
+
+Claude Code report received (partly garbled). The market compiles; 289 edit-mode tests pass (222 old, 67 new cases from about 45 methods); Play Mode check on a backed-up Saves folder (restored, hashes identical), 0 console errors. Full details in `Trading_Post_Market.md` ("Market build report").
+
+- New: Economy/MarketCatalog.cs, MarketRules.cs, MarketState.cs; Managers/MarketData.cs, MarketManager.cs; Editor/MarketDataSeeder.cs; Tests/EditMode/MarketTests.cs; Resources/Market/MarketData.asset. Changed: Money.cs (SellBackCents overload), TradingPost.cs (price tables moved out, Sell returns SaleResult), TradingPostScreen.cs, GameManager.cs, SaveManager.cs, Bootstrap.unity (+19 lines).
+- Data: 71 rows (52 bought, 19 stocked), 8 groups, 59 pools. Base-price proof: all 71 prices match commit b03ebc3 to the cent (script check plus permanent tests). Correction: the Buys dictionary has 52 items, not 55.
+- T window: +, - or = trend marker per Sell row, "NN% of normal" and "Shift: all N for about $X.XX" lines, a market note under the header (empty in Spring and Fall), Sell list sorted by base price then name.
+- Not covered: the Shift button was not clicked in the UI; real income per game day not measured.
+- Claude Code's unspecified choices (listed in the doc) include: constants moved out of TradingPost.cs into the catalog, a seasonalBuy data flag, ASCII markers, an empty market note when nothing differs 10%+, a fallback to defaults on a bad asset, 52 px rows with a 13 px second line.
+
+Claude wrote `06_AI_Collaboration\Market_Playtest_Checklist.md` (28 pass-or-fail items plus 4 notes, including a one-week income log). Next: Mike plays it and reports by item number, then the commit message. Nothing committed. Uncommitted docs: Trading_Post_Market.md additions, Current_Task_List.md entries, the new checklist.
+
+
+## 2026-10-21 - Trading Post market playtested: 28 of 28 pass; new request: quantity controls (Mike)
+
+Mike played `Market_Playtest_Checklist.md`: items 1 to 28 all pass (display, selling pressure and recovery, crafted and cooked pools, seasons and gear prices, save and load including an old save, loan unaffected, console clean). Items 29 to 32 are notes; he answered "pass" to each and gave no income figures or feel comments, so real money per game day is still unmeasured (the model said about $29 for a Survivor and $50 for a casual player). Worth asking for a week's income once he has played more.
+
+Next: commit the market files (Claude writes the commit message; Claude Code shows the staging list and waits). Market files: Economy/MarketCatalog.cs, MarketRules.cs, MarketState.cs (and .meta files), Money.cs, Managers/MarketData.cs, MarketManager.cs, TradingPost.cs, GameManager.cs, SaveManager.cs, UI/TradingPostScreen.cs, Editor/MarketDataSeeder.cs, Tests/EditMode/MarketTests.cs, Resources/Market/MarketData.asset (and .meta and the Market folder meta), Scenes/Bootstrap.unity. Nothing committed yet.
+
+NEW REQUEST (Mike): "we need a way to increase and decrease quantities when buying, selling and storing or removing things from storages or campfires." Today: Trading Post click sells or buys 1 and Shift-click sells the whole stack or buys 10; how storages and campfires move items is not yet known to Claude. Design questions sent to Mike (control style, where, default amount). Next: a Claude Code read-only pass on every screen that moves items (Trading Post, storage containers, campfire and cooking), then a build brief. Not yet scheduled against the Money System Phase B.
+
+
+## 2026-10-21 - Quantity controls: design decisions (Mike)
+
+Mike's picks: an on-screen stepper (minus, amount, plus, Max, typed amount) plus keyboard shortcuts; on EVERY screen that moves items by count (Trading Post buy and sell, storage containers, campfire and cooking, anything else); the amount resets to 1 after each move.
+
+New doc: `05_Documentation\Game_Systems\Quantity_Controls.md` (design draft v0.1 with Claude's proposed defaults and four open questions: what Shift-click means once the stepper exists, behaviour when weight blocks the amount, whether large sales get a confirmation, and which screens exist).
+
+Order of work: (1) commit the market files, (2) Claude Code read-only pass on every screen that moves items, (3) Mike answers the open questions, (4) a build brief, shared control first, Trading Post first. Nothing committed.
+
+
+## 2026-10-21 - Quantity controls read-only pass: report received and logged
+
+Read only; Claude Code changed nothing, created no files, ran no Play Mode. Full findings are in `Quantity_Controls.md` ("Claude Code read-only pass"). Headlines:
+
+- Screens that move items by count: Trading Post buy and sell, storage store and take (WoodPile), campfire fuel (E and Shift+E, no screen), campfire cooking queue and firewood splitting (Inventory buttons), drop, lantern refill, and Crafting (which already has an x1 / x5 / Max row). Out of scope: building, placing, eating. No drag and drop. Removing fuel from a fire is not possible today; the only "removal" is cancelling a queued cook.
+- No shared row component: four separate row builders and three copies of ShiftHeld; every screen rebuilds its rows on refresh, so amounts need a per-screen dictionary reset after a move and cleared on hide.
+- Pure code: a `QuantityRules` class in Economy (Clamp, Step, TryParse, MaxOf), about 25 tests. Weight, storage and fuel limits stay in the main assembly and are passed in. Trading Post totals come from the market's Quote (sell) and Money.Mul / BuyCount (buy).
+- Risks: Sell rows are too narrow for a 170 px stepper (taller two-line rows or a narrower name and price area); typing in the InputField blocks hotkeys until focus is released and the digit hotkeys on a tool row need a guard; Cook and Split are cancel-toggle queues that conflict with a stepper without a Cancel button; mouse-only play needs - / + / Max to be enough.
+- Size: about 3 new code files and 600 to 900 lines; no saves, no existing tests affected.
+
+Decisions needed from Mike: what Shift-click does after the stepper exists, where a campfire fuel stepper would live, and the row layout. Claude's defaults (accepted unless Mike objects): weight shortage clamps the maximum to what fits; no confirmation for large sales (the live total is shown); plain click moves the chosen amount; "Cook n" gets a separate Cancel button; amounts in litres for water; Crafting's x1 / x5 / Max is replaced by the stepper in a later step. The market commit is still waiting for Mike's OK in Claude Code. Nothing committed.
+
+
+## 2026-10-21 - Quantity controls: decisions after the read-only pass (Mike)
+
+Mike's picks: Shift-click keeps its old meaning (plain click moves the stepper's amount, Shift-click the whole stack or 10 when buying); the campfire stays as it is, no fuel panel, and the stepper applies to cooking and boiling only; taller two-line rows (line one: name, trend, price; line two: stepper, live total, button).
+
+Claude's defaults (accepted unless Mike objects): clamp to what fits; no confirmation for large sales; a separate Cancel button for queued Cook; litres for water; Esc while typing only ends typing; Crafting's x1 / x5 / Max replaced later by the stepper. Recorded in `Quantity_Controls.md`.
+
+Plan: Part 1 (QuantityRules and tests, shared stepper, Trading Post, Storage) then a checklist; Part 2 (Inventory drop, split, cook, lantern; Crafting) then a checklist. Precondition: the market commit is done first (still waiting for Mike's OK in Claude Code). Nothing committed.
+
+
+## 2026-10-21 - Drag and drop considered; stepper first (Mike)
+
+Mike asked whether drag and drop should be considered before the quantity brief. Claude's advice, which Mike took: build the stepper first (it chooses an amount on every screen; drag and drop only chooses source and destination), and revisit drag and drop later as a layer on top. Reasons: there are no drag handlers in the game today, the screens are lists not slot grids, screens rebuild their rows on refresh, dragging to "sell" hides the live price and total, the fire has no screen to drop onto, and the screens are mouse and keyboard only. Likely fits for later: Storage (inventory to pile and back), dropping on the ground or the fire, and dragging a tool onto a hotkey slot.
+
+BACKLOG: drag and drop (Storage first, hotkey assignment, ground and fire), decided after Mike plays Quantity Controls Part 1. The Part 1 brief goes to Claude Code unchanged (precondition: the market commit is done). Nothing committed.
+
+
+## 2026-10-21 - Trading Post market committed and pushed: 0f8e336
+
+Claude Code showed the 23-path staging list first (it matched the list Claude supplied) and Mike approved it. Commit 0f8e336 pushed to master (7cdadb1..0f8e336). Tests passed 289 of 289 before the commit; the console had 0 errors and 0 warnings (one plain "[Survival] Player collapsed" log line, pre-existing, from a survival test).
+
+Baselines: code 0f8e336 (market), docs 7cdadb1. Still uncommitted by design: ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx, 08_Backups/. Uncommitted docs: Trading_Post_Market.md, Quantity_Controls.md, Market_Playtest_Checklist.md, Current_Task_List.md (this entry included).
+
+Next: Quantity Controls Part 1 (brief sent to Claude Code, precondition now met); a docs commit whenever Mike wants it. Money System remaining: Phase B (ledger and seasonal statement), Phase C (loss screen), Phase D (difficulty and rebalance). Backlog: cash-only debug key, Weather weights in Bootstrap, drag and drop, week-of-income measurement.
+
+
+---
+
+## Quantity Controls Part 1 built, awaiting playtest (not committed)
+
+Claude Code reported Part 1 built on top of market commit 0f8e336. Nothing committed.
+
+- 335 edit-mode tests pass (289 existing + 46 new QuantityRules cases). Console 0 errors, 0 warnings after final runs. Saves folder backed up and restored (hashes identical).
+- New: Economy/QuantityRules.cs (Clamp, Step, TryParse, MaxOf, ParseAndClamp, MaxAmount 999,999), UI/QuantityStepper.cs (includes QuantityRowUi), Tests/EditMode/QuantityRulesTests.cs (+ .meta files).
+- Changed: TradingPostScreen.cs (rewritten), StorageTransferScreen.cs, WoodPile.cs (Store/Take(id,count), MaxStore/MaxTake; StoreOne/TakeOne are wrappers), UiKit.cs (ShiftHeld, ReleaseFocus), GameScreens.cs (one-frame Esc-ended-typing flag), PlayerController.cs (one pause-check condition), InventoryScreen.cs (typing guard on hotkey assign).
+- Behaviour: plain click moves the stepper amount; Shift-click keeps the old meaning (sell stack, buy 10, store/take whole stack); amount resets to 1 after a move and clears on hide; rows are two lines, 84 px.
+- Claude Code Play Mode checks passed: sell 5 firewood matched quote and cash; Shift-click sold stack; typed 999999 clamps to max; "abc" ignored; 0 becomes 1; Max on Tarp = 11 (weight-limited); Shift +/- steps 10; Shift-click Buy buys 10 arrows for $10; storage store 4 / take 3; weight-limited rows grey with "too heavy to carry more"; layouts fine at 1920x1080 and 1024x768.
+- Claude Code's own choices: click-to-type clears the box with a greyed placeholder; digits only; Storage total reads "n of max"; reasons inline on line one; empty trend slot on buy rows; amount returns to 1 even after a failed move; heading hints now "Shift-click: 10" and "Shift-click: the lot".
+- NOT covered by Claude Code (Mike to test): real T/I/M/Esc key presses, real mouse clicks and Shift, water and barrel rows, refresh while typing (typed text is lost).
+- Playtest checklist written: 06_AI_Collaboration/Quantity_Controls_Part1_Playtest_Checklist.md.
+- Part 2 still to do: Inventory drop, split firewood, cook/boil (separate Cancel button), lantern refill, Crafting (replace x1/x5/Max).
+
+
+---
+
+## Quantity Controls Part 1 playtest: 39 of 39 pass
+
+Mike played Quantity_Controls_Part1_Playtest_Checklist.md. All 39 items passed (Trading Post sell and buy, typed amounts, Esc and hotkeys while typing, Storage including water/barrel rows, layout, regression checks, clean Console). No notes added.
+
+Next: commit Part 1 code (Claude Code shows exact staging list, waits for Mike's OK), then the docs commit, then the Part 2 brief.
+
+
+---
+
+## Quantity Controls Part 1 committed and pushed: b306150
+
+Commit b306150ffb935fd79223d47ebf3aa5c6ab1c5d40 on master (0f8e336..b306150), 13 files, exactly the approved staging list. Tests last ran 335 of 335 before the Unity connection dropped; code unchanged since.
+
+Code baseline is now b306150. Docs baseline is still 7cdadb1.
+
+Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Docs waiting for their own commit: Trading_Post_Market.md, Quantity_Controls.md, Market_Playtest_Checklist.md, Quantity_Controls_Part1_Playtest_Checklist.md, Current_Task_List.md.
+
+Next: docs commit, then the Part 2 brief (Inventory drop, split firewood, cook/boil with separate Cancel, lantern refill, Crafting).

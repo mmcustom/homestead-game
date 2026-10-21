@@ -187,3 +187,93 @@ Correction: the chat message that offered this choice said 30 lanterns would ear
 - Seasonal targets: Mike asked what they are, Claude explained them, and Mike APPROVED the table below (2026-10-20). They can still be tuned when the market is built.
 
 Seasonal targets (APPROVED) (price level each group recovers toward; 1.0 is today's price): firewood, logs and stone 1.0 Spring, 0.8 Summer, 1.0 Fall, 1.5 Winter; fish 1.0, 0.9, 1.0, 1.0; hides, furs and game meat 1.0, 1.0, 1.0, 1.3; forage 0.85 in Spring, Summer and Fall (the abundant seasons), nothing sells in Winter; crafted goods and stocked sell-backs 1.0 all year. Buy prices: survival gear (tents, sleeping bags, tarps, lamp oil) about 10% dearer in Winter and 5% cheaper in Summer; everything else unchanged.
+
+
+---
+
+# Claude Code read-only pass on the market build (2026-10-21)
+
+Read only: nothing changed, committed or created, and Play Mode was not run. Items marked UNCONFIRMED were not verified from code. Code baseline b03ebc3.
+
+## Findings that shape the build
+
+- The `Homestead.Economy` assembly has no engine access (noEngineReferences). It can hold plain C# and [Serializable] structs (like `LoanSaveData`) but not a ScriptableObject or JsonUtility.
+- The edit-mode test assembly references only Economy, SlotSwap, CreekCrossing and Setbacks. It cannot see TradingPost or any MonoBehaviour, so every rule worth testing must live in Economy.
+- `SellPrice`, `Catalog`, `Buy` and `Sell` are called only from `TradingPostScreen.cs`. No existing test touches TradingPost (MoneyTests covers `Money.SellBackCents` and `TradingPostSaveData`). Leaving those two alone keeps all 222 tests valid.
+
+## Group mapping
+
+- Stock (19 items): 16 sell back at 40% (flint_and_steel, knife, canteen, bucket, cooking_pot, tarp, sleeping_bag, tent, axe, hammer, fishing_rod, recurve_bow, bolt_action_rifle, lamp_oil, lumber, weather_station). Arrows, rifle_rounds and cordage never sell back (under $3).
+- Buys (55 items): firewood/logs/stone (3); meat and fish (18: raw and cooked venison, turkey, waterfowl, small game, chicken; raw and cooked bluegill, crappie, bass, catfish); hides, furs and the like (5: deer_hide, deer_antlers, small_furs, feathers, sinew); forage (12); crafted (12: stone_pick_axe, shovel, primitive_axe, rabbit_snare, box_trap, fish_trap, cane_pole, pouch, torch, bow_drill, lantern, primitive_bow); and no group (2: chicken_eggs, goat_milk). No id is in both lists. The existing ItemCategory is too coarse to derive groups, so groups must be explicit data.
+
+## Build plan
+
+- Data: one data asset (ScriptableObject `MarketData` in the main assembly, Resources/Market/) holds rows {itemId, group, pool, baseCents, kind} and group rows {drop, floor, four seasonal targets}; the plain structs live in Economy. An editor menu command seeds it from today's constants so no price is retyped. Scalars (recovery 25, sell-back 40, buy drift Winter +10% and Summer -5%) go flat on a new `MarketManager` component in Bootstrap, like MoneyManager. TradingPost stays about cash, buying and selling.
+- Save: a multiplier per pool as an integer in basis points (10000 = 1.0) plus the last day processed, in a new section `player/market` owned by MarketManager. TradingPostSaveData does not change. Old saves have no section, so every multiplier is 1.0 and the first catch-up sets the last day to today. New games start each pool at its current-season target. `GameManager` needs a `ResetMarket()` next to `ResetLoan()` in both the New Game and Load paths.
+- Time: a pure `Advance(state, fromDay, toDay, daysPerSeason)` moves each pool toward the season target one day at a time, in integer basis points with half-up rounding and a snap when the gap is tiny. One call over N days must equal N single-day calls. Same three triggers as MoneyManager (Update catch-up, a line in SaveManager.OnDayChanged before the autosave, CaptureState). The market runs whether or not there is a loan. Buy-side seasonal drift is stateless.
+- Selling: unit by unit at the falling price. Price per unit = (base cents x multiplier + half) / 10000 rounded half up; new multiplier = max(floor, multiplier x (1 - drop)) rounded the same way. A `SaleResult` (count, total, first and last unit price, new multiplier) is also the "price actually paid" hook for the Phase B ledger. A non-mutating quote lets the T window show "Shift: all 40 for about $18.20". Sell-back is `Money.SellBackCents` of the base buy price times the multiplier, so at 1.0 it equals today's value.
+- No-profit invariant: stocked targets are 1.0 and the cheapest seasonal buy is 0.95 of base, so a test over every stocked item in every season should prove sell-back is below buy.
+- T window: a narrow trend column (a coloured + or - if the arrow glyphs do not render; UNCONFIRMED), a small "62% of normal" note in the name cell, a one-line market line under the header (pushes lists down about 28 px), a `MarketManager.Changed` event subscribed in OnShow and OnHide. The Sell list must stop sorting by current price (rows would jump under the cursor); sort by base price or name.
+- Tests: about 35 to 45 new, taking 222 to roughly 260 to 270. New files about 6 code files, 1 data asset, 1 test file. Edited: TradingPost.cs, TradingPostScreen.cs, GameManager.cs (2 spots), SaveManager.cs (1 line), Bootstrap.unity.
+- Recommended order: settle decisions; pure core in Economy with tests; data asset and seeder with completeness checks; MarketManager, Bootstrap, GameManager and SaveManager hooks; TradingPost Buy and Sell with SaleResult and quotes; T window; a short checklist and Mike's playtest recording money per game day; docs.
+
+## Decisions needed before building
+
+1. What a multiplier belongs to: one pool per item (selling venison would not depress turkey), or shared pools. The earlier Python model used group-wide pools. With a pool per item, a player who spreads sales over many items earns more than the model says, and a crafted-tool player can craft 12 different tools and dodge the pressure.
+2. Eggs, goat milk and chicken meat fit no group (and chicken meat is farm meat, not game).
+3. "Nothing sells in Winter" for forage: price 0, or just nothing in season.
+4. Whether Sell-back is 40% of the base buy price (Claude Code's reading) or of the seasonal buy price.
+5. Whether cooked meat and fish follow their raw item's curve and pool.
+6. Whether a data asset table is acceptable under Mike's rule that tunables live on a component and never in nested serialized classes (Claude Code could not confirm what exactly that rule guards against).
+
+Claude's defaults and recommendations are in the next section of this document once Mike has answered.
+
+
+---
+
+# Decisions on the build questions (Mike, 2026-10-21)
+
+| Question | Decision |
+|---|---|
+| Pools | ONE POOL PER ITEM (Claude had recommended shared pools). Selling venison does not lower the price of turkey, and each crafted tool has its own pool. The pool is a field on each data row, so items can be moved into shared pools later by editing data. |
+| Eggs, goat milk, chicken meat | A new FARM PRODUCE group: 5% drop, floor 0.25, target 1.0 all year (nothing seasonal, no livestock yet). |
+| Forage in Winter | Price target stays 0.85 in Winter; a Winter shortage comes from nothing being in the world, not from a price of zero. Players can sell stored forage in Winter. |
+| Data asset | Acceptable: scalars (recovery 25%, sell-back 40%, buy drift) sit directly on MarketManager in Bootstrap; the item and group table sits in one data asset. |
+
+Claude's defaults (not asked, accepted unless Mike objects): sell-back is 40% of the BASE buy price (not the seasonal buy price) times the item's multiplier; cooked meat and fish share the pool and seasonal curve of their raw species (otherwise a player could sell raw and cooked fish as two separate price tracks); chicken meat uses the farm produce settings; the Sell list is sorted by base price or name, not current price; trend marker is a coloured + or - if the arrow glyphs do not render; new games start each pool at its current-season target.
+
+## Simulation re-run for one pool per item (Claude's model, not played)
+
+Same player types as before, but fish split over four species pools (45% bluegill, 31% bass, 18% catfish, 5% crappie), game goods over six item pools (venison, small game, small furs, turkey meat, feathers, deer hide), firewood one pool, forage one pool, crafted goods each in their own pool with a 10% drop and a 0.1 floor. No random events. Approved seasonal targets and 25% daily recovery.
+
+| Player | Shared pools (decided earlier) | One pool per item |
+|---|---|---|
+| Survivor | $21 a day | $29 a day |
+| Casual mixed | $38 a day | $50 a day |
+| Grinder, lanterns only | $69 a day | $82 a day |
+| Grinder, four crafted tools (30 a day split four ways) | not modelled | $99 a day |
+
+Share of 28-day periods below each payment with one pool per item: the 5-acre payments ($459 and $573) are covered every period by every player; the 10-acre payment ($1,070) is short 100% of the time for the Survivor and 0% for the Casual mixed and Grinder (it was short half the time for the Casual player with shared pools); the 40-acre payment ($3,440) is still not covered by wild goods (the Grinder's median 28-day income is about $2,300 to $2,800).
+
+What this means: one pool per item lifts income about 30 to 40 percent over the shared-pool model, which makes the 10-acre parcel comfortable for a casual player and the 5-acre parcel very comfortable. Crafting several different tools adds about 20 percent for the Grinder. The earlier target of about $25 a day for a typical player is now exceeded (Survivor $29, Casual $50). Because the pool is a data field, income can be pulled back by sharing pools (crafted tools in one pool, for instance) after the first playtest records real money per game day, without any code change.
+
+
+---
+
+# Market build report (Claude Code, 2026-10-21), NOT committed, not yet played by Mike
+
+Built and compiled; 289 edit-mode tests pass (222 old, 67 new cases from about 45 methods, re-run after Play Mode); Play Mode check on a backed-up Saves folder (restored, 50 files, hashes identical) with 0 console errors or warnings. Parts of the pasted report were garbled by overlapping text.
+
+Files created: `Economy/MarketCatalog.cs` (enums, row and group structs, SaleResult, the default catalog as pure data, MarketTable lookup and checks), `Economy/MarketRules.cs`, `Economy/MarketState.cs` (also `MarketSaveData`), `Managers/MarketData.cs` (ScriptableObject), `Managers/MarketManager.cs`, `Editor/MarketDataSeeder.cs` (menu: Homestead > Market > Seed MarketData), `Tests/EditMode/MarketTests.cs`, `Resources/Market/MarketData.asset`. Changed: `Money.cs` (SellBackCents(price, percent) overload; the old one-argument version calls it with 40), `TradingPost.cs` (price tables removed, asks MarketManager, Sell returns a SaleResult), `TradingPostScreen.cs`, `GameManager.cs` (ResetMarket(true) in New Game, ResetMarket(false) in Load), `SaveManager.cs` (OnDayChanged processes the market before the autosave request), `Bootstrap.unity` (+19 lines, additions only, edited with another scene loaded so Unity never rewrote it). Untouched: ProjectSettings.asset, AudioManager.cs, Homestead.slnx, 08_Backups, TradingPostSaveData, the loan code.
+
+Data asset: 71 rows (52 bought, 19 stocked, 16 of which sell back) in 8 groups, 59 pools (71 rows, minus 3 never sold back, minus 9 cooked rows that share a raw pool). Firewood, logs and stone 3 rows; fish 8; game meat 8; hides and furs 5; forage 12; crafted 12; farm produce 4; stocked 19. Group settings as decided. Scalars on MarketManager in Bootstrap: recovery 25, sell-back 40, winter buy +10, summer buy -5, flat-trend band 3 (values read back after reload).
+
+Base-price proof: the 19 stocked and 52 bought prices parsed from TradingPost.cs at commit b03ebc3 match the seeded asset to the cent (71 ids, 0 mismatches, 0 extra). A permanent test pins the totals ($255.00 stocked, $110.00 bought) and individual prices; another test requires the asset file to equal the defaults; another proves sell-back at 1.0 equals the old rule for all 19 stocked items. Correction to the earlier read-only report: the Buys dictionary has 52 items, not 55.
+
+Play Mode (driven through TradingPost.Sell and the TimeManager methods behind F5 and F6, not key presses): new game starts at season targets (forage 0.85, rest 1.0); 17 firewood quoted $12.49, sold for $12.49, multiplier 10000 to 4995; 180 more units reached exactly 0.25 and then paid $0.25 each; recovery from the floor 2500, 4375, 5781, then 9437 at day 9; Summer shows firewood target 0.8 (trend down), tent $23.75, the Summer note; Winter (day 84) 11250, tent $27.50; save and load round-trip (last day 84, three multipliers, cash); an old slot loaded with all 59 pools at 1.0, last day set to today, no loan, then moved to 9500 after one day.
+
+Claude Code's choices (all accepted unless Mike objects): the seeder fills from the pure MarketCatalog and the constants moved out of TradingPost.cs; a `seasonalBuy` flag marks the four survival-gear rows; recovery rounds half up toward positive infinity (a gap of -10 moves 2 basis points); the 3% trend band is 300 basis points absolute; "% of normal" shows only when not 100% and the Shift line only for stacks of 2 or more; flat marker is a dim =; markers are ASCII + - =; a saved game with a gap in its pools defaults them to 1.0; the market note is empty in Spring and Fall; the Buy list shows only stocked rows with the seasonal price; a bad MarketData asset falls back to defaults with a console warning; the 2.0 ceiling and the floors apply on load. Rows are 52 px instead of 44; the second line is 13 px.
+
+Not covered: the Shift button was not clicked in the UI (the sale was checked through TradingPost.Sell and the quote text read from a screenshot); real income per game day was not measured; a hand-edited save with a stocked item above 1.0 could sell back above its buy price (normal play cannot).
+
+Playtest: `06_AI_Collaboration\Market_Playtest_Checklist.md` (28 pass-or-fail items plus 4 notes).
