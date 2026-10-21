@@ -151,7 +151,17 @@ public class TradingPost : MonoBehaviour, ISaveable
         return made;
     }
 
-    // New Game: the tier's starting cash, in cents. Loading a save: nothing, until the save says otherwise.
+    // Takes money out for something other than a purchase (a loan payment). Never lets cash go below zero.
+    public bool TrySpend(long cents)
+    {
+        if (cents < 0 || cents > money)
+            return false;
+        money = Money.Sub(money, cents);
+        MoneyChanged?.Invoke();
+        return true;
+    }
+
+    // New Game: the cash reserve the player kept from their savings, in cents. Loading a save: nothing, until the save says otherwise.
     public void ResetMoney(long cents)
     {
         money = Math.Max(0L, cents);

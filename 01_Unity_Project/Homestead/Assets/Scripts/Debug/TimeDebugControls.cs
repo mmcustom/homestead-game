@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 //   F4  start a Heat Wave (+6 C at its peak, 96 h; Shift+F4 a strong one, +12 C); pressed during a wave, ends it. Works in any
 //       season: set the season to Summer first for the real temperatures, or the wave is added to Winter's cold
 //   F2  jump a Heat Wave to its natural end now (not the F4 end): the forced Thunderstorm (70%) or Cold Front (30%) follows
-//   F5  skip 1 day
+//   F5  skip 1 day (Shift+F5: skip 10 days; each midnight crossed fires DayChanged, so land payments fall due and go late on the way)
 //   F6  skip to the start of the next season
 //   F7  cycle fast-forward: x1, x10, x60 (a day in 30s), x360 (a day in 5s) — calendar only, not movement
 //   F8  skip to the start of Winter
@@ -81,8 +81,9 @@ public class TimeDebugControls : MonoBehaviour
         }
         else if (keyboard.f5Key.wasPressedThisFrame)
         {
-            time.DebugSkipDays(1);
-            Show("Skipped 1 day", time);
+            int days = keyboard.shiftKey.isPressed ? 10 : 1; // Shift+F5: 10 days at once, to reach a loan due date or late date
+            time.DebugSkipDays(days);
+            Show(days == 1 ? "Skipped 1 day" : $"Skipped {days} days", time);
         }
         else if (keyboard.f6Key.wasPressedThisFrame)
         {

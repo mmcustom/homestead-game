@@ -149,6 +149,7 @@ GameObject:
   - component: {fileID: 199833601}
   - component: {fileID: 199833604}
   - component: {fileID: 199833603}
+  - component: {fileID: 199833605}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -1271,3 +1272,22 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 199833584}
+--- !u!114 &199833605
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 199833582}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e086d62a209ca6488eeb73683a74d23, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MoneyManager
+  rateBasisPoints: 800
+  payments: 180
+  intervalDays: 28
+  firstDueDay: 112
+  graceDays: 10
+  lateFeeCents: 7500
+  missedWarningCount: 3

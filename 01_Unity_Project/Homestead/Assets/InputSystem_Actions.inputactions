@@ -150,6 +150,15 @@
                     "initialStateCheck": false
                 },
                 {
+                    "name": "Finances",
+                    "type": "Button",
+                    "id": "00a01bd0-ea6a-48ea-8654-4a07f917b912",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "Aim",
                     "type": "Button",
                     "id": "217d54f1-c956-4e96-8494-c13ef7d4423e",
@@ -597,6 +606,17 @@
                     "processors": "",
                     "groups": "Keyboard&Mouse",
                     "action": "Weather",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3af797e3-c622-47b7-a200-13ae3ac2ccaf",
+                    "path": "<Keyboard>/l",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Finances",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

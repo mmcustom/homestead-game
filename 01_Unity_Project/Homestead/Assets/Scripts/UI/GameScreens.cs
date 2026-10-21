@@ -86,8 +86,8 @@ public class GameScreens : MonoBehaviour
 
     void Update()
     {
-        if (IsTyping)
-            return;
+        if (IsTyping || FinancesScreen.IsOpen)
+            return; // the Finances screen (L) is its own window; the tab keys don't open a second one over it
 
         for (int i = 0; i < actions.Length; i++)
         {

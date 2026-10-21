@@ -19,10 +19,10 @@ public struct DifficultySaveData
 //     on every tier.
 //       Homesteader: Tent, Sleeping Bag, Tarp, Cooking Pot, Bucket, Axe, Hammer, Pick Axe, Shovel, Canteen, Flint and
 //                    Steel, 3 Cordage, Knife, and a Bow with 20 arrows or a Rifle with 10 rounds — and $50.
-//       Settler:     the same without the Hammer, the Tarp and the cash.
+//       Settler:     the same without the Hammer, the Tarp.
 //       Pioneer:     a Bucket, 3 Cordage and the Knife. Nothing else, not even a way to light a fire — sell something at
 //                    the Trading Post first.
-//   Trading Post — open on every tier (TradingPost); only the starting cash differs.
+//   Trading Post — open on every tier (TradingPost); only the savings differ (they replaced the starting cash).
 //   Survival severity — how forgiving the survival systems are, as multipliers on their own numbers:
 //                  Hunger/Hydration/Warmth drain   weather           wildlife alertness   spoilage (not built yet)
 //     Homesteader  x0.75                           +3°C, storms x0.6 x0.85                x0.75
@@ -47,7 +47,9 @@ public class DifficultyManager : MonoBehaviour, ISaveable
     public static float TemperatureOffsetC => Pick(3f, 0f, -3f);
     public static float StormMultiplier => Pick(0.6f, 1f, 1.5f);
     public static float WildlifeAlertness => Pick(0.85f, 1f, 1.2f);
-    public static long StartingCashCents => Money.Dollars(Tier == Difficulty.Homesteader ? 50 : 0);
+    // Savings at a new game, as a percentage of the land price (capped for every tier, LandRules): the player splits them between a
+    // down payment and a cash reserve. This replaced the old starting cash ($50, $0, $0).
+    public static int SavingsPercent(Difficulty tier) => LandRules.SavingsPercent((int)tier);
 
     static float Pick(float homesteader, float settler, float pioneer) =>
         Tier == Difficulty.Homesteader ? homesteader : Tier == Difficulty.Pioneer ? pioneer : settler;
@@ -60,15 +62,15 @@ public class DifficultyManager : MonoBehaviour, ISaveable
         {
             case Difficulty.Homesteader:
                 return "Packed for a week of camping: tent, sleeping bag, tarp, cooking pot, bucket, axe, hammer, pick axe, " +
-                       "shovel, canteen, flint and steel, knife, cordage and a bow or rifle — plus $50 for the Trading Post. " +
+                       "shovel, canteen, flint and steel, knife, cordage and a bow or rifle — plus savings of 40% of your land's price (up to $30,000). " +
                        "Hunger, thirst and cold come on slowly; the weather is milder and the game less wary.";
             case Difficulty.Pioneer:
-                return "A bucket, a knife and a little cordage. No shelter, no fire-starter, no weapon, no money — sell what " +
+                return "A bucket, a knife and a little cordage. No shelter, no fire-starter, no weapon, no savings: the land is fully financed. Sell what " +
                        "you gather at the Trading Post to buy the rest. Hunger, thirst and cold bite harder; the weather is " +
                        "harsher and the game warier.";
             default:
-                return "The camping kit without the hammer and tarp, and no money to start: the Trading Post is there once " +
-                       "you've something to sell. Survival as it's meant to be.";
+                return "The camping kit without the hammer and tarp, and savings of 20% of your land's price (up to $30,000) to split " +
+                       "between a down payment and a cash reserve. Survival as it's meant to be.";
         }
     }
 

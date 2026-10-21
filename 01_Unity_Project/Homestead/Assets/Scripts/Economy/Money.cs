@@ -50,6 +50,39 @@ public static class Money
         return negative ? "-$" + text : "$" + text;
     }
 
+    // Reads what a player typed as an amount: "12", "12.5", "12.50", "$1,250.00". No sign, at most two decimals, digits only.
+    public static bool TryParseCents(string text, out long cents)
+    {
+        cents = 0;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        string clean = text.Replace("$", "").Replace(",", "").Replace(" ", "").Trim();
+        if (clean.Length == 0)
+            return false;
+
+        string whole = clean, fraction = "";
+        int dot = clean.IndexOf('.');
+        if (dot >= 0)
+        {
+            whole = clean.Substring(0, dot);
+            fraction = clean.Substring(dot + 1);
+        }
+
+        if (whole.Length == 0 && fraction.Length == 0)
+            return false;
+        if (whole.Length > 15 || fraction.Length > 2)
+            return false;
+        foreach (char c in whole + fraction)
+            if (c < '0' || c > '9')
+                return false;
+
+        long dollars = whole.Length == 0 ? 0 : long.Parse(whole, CultureInfo.InvariantCulture);
+        long extra = fraction.Length == 0 ? 0 : long.Parse(fraction.PadRight(2, '0'), CultureInfo.InvariantCulture);
+        cents = Add(Dollars(dollars), extra);
+        return true;
+    }
+
     // What the store pays for one of an item it stocks at buyCents (0: it doesn't buy it back).
     public static long SellBackCents(long buyCents)
     {

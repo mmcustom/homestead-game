@@ -187,7 +187,14 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    void OnDayChanged() => RequestAutoSave("End of day");
+    // The land loan is brought up to the new day BEFORE the autosave is requested (handler order between managers isn't fixed), so the
+    // end-of-day save never holds a loan that is behind the calendar. MoneyManager.CaptureState does the same for every other save.
+    void OnDayChanged()
+    {
+        if (MoneyManager.Instance != null)
+            MoneyManager.Instance.ProcessNow();
+        RequestAutoSave("End of day");
+    }
 
     public void Register(ISaveable saveable) => saveables[BlockId(saveable)] = saveable;
 

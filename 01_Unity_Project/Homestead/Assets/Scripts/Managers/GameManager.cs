@@ -57,10 +57,12 @@ public class GameManager : MonoBehaviour
             GoToMainMenu();
     }
 
-    // New Game on a difficulty (Difficulty_System.md): the tier's starting kit and cash, locked in for this save.
+    // New Game on a difficulty (Difficulty_System.md): the tier's starting kit, locked in for this save, and the land bought (below).
     // slotId is the manual slot the player picked for this game (SlotPanel's New Game mode); it becomes the active slot
     // up front, and nothing is written to it (or to any other slot) until a save.
-    public void StartNewGame(Difficulty difficulty = Difficulty.Settler, StartingWeapon weapon = StartingWeapon.Bow, string slotId = null)
+    // land is the parcel and savings split chosen at the land purchase (LandPurchasePanel): the cash reserve becomes the player's money
+    // and the rest of the price becomes the land loan. Without it (nothing calls it that way today) there is no loan and no cash.
+    public void StartNewGame(Difficulty difficulty = Difficulty.Settler, StartingWeapon weapon = StartingWeapon.Bow, string slotId = null, LandChoice? land = null)
     {
         if (IsLoading)
             return;
@@ -71,7 +73,19 @@ public class GameManager : MonoBehaviour
         if (DifficultyManager.Instance != null)
             DifficultyManager.Instance.Begin(difficulty);
         if (TradingPost.Instance != null)
-            TradingPost.Instance.ResetMoney(DifficultyManager.StartingCashCents);
+            TradingPost.Instance.ResetMoney(land.HasValue ? land.Value.reserveCents : 0);
+        if (MoneyManager.Instance != null)
+        {
+            if (land.HasValue)
+            {
+                Parcel parcel = LandRules.Starters[land.Value.parcelIndex];
+                MoneyManager.Instance.BeginLoan(parcel.acres, parcel.priceCents, land.Value.downCents);
+            }
+            else
+            {
+                MoneyManager.Instance.ResetLoan();
+            }
+        }
 
         ResetManagers(() =>
         {
@@ -160,6 +174,8 @@ public class GameManager : MonoBehaviour
             DifficultyManager.Instance.ResetForLoad();
         if (TradingPost.Instance != null)
             TradingPost.Instance.ResetMoney(0);
+        if (MoneyManager.Instance != null)
+            MoneyManager.Instance.ResetLoan(); // a save with no loan section (an old game) has no loan
         ResetManagers();
         yield return LoadRoutine(WorldScene, GameState.Playing, () => SaveManager.Instance.LoadGame(slotId));
     }

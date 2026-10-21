@@ -6,7 +6,7 @@ using UnityEngine.UI;
 // The MainMenu scene's buttons. All game flow goes through GameManager; this only wires the UI to it.
 // New Game asks for a difficulty first (Difficulty_System.md): Homesteader, Settler or Pioneer, each described, plus the
 // Bow or Rifle choice for the two tiers that pack a weapon. The choice is locked in for the save. That panel is built
-// in code, in the game's UI look.
+// in code, in the game's UI look. Then the land purchase (LandPurchasePanel) and the slot pick.
 public class MainMenuController : MonoBehaviour
 {
     [SerializeField] Button continueButton;
@@ -29,6 +29,7 @@ public class MainMenuController : MonoBehaviour
     GameObject weaponRow;
     Difficulty chosenTier = Difficulty.Settler;
     StartingWeapon chosenWeapon = StartingWeapon.Bow;
+    LandChoice? chosenLand; // the parcel and savings split from the land purchase step (LandPurchasePanel)
 
     void Awake()
     {
@@ -151,18 +152,36 @@ public class MainMenuController : MonoBehaviour
         UiKit.SetSelected(rifleButton, weapon == StartingWeapon.Rifle);
     }
 
-    // After the difficulty step: pick the slot this game will use, then start. Backing out returns to the difficulty panel.
+    // After the difficulty step: buy the land (parcel, savings split, loan summary), then pick the slot this game will use, then start.
+    // Backing out of the slot pick returns to the loan summary; backing out of the land purchase returns to the difficulty panel.
     void StartNewGame()
     {
         difficultyPanel.SetActive(false);
         confirmPanel.SetActive(false);
+        chosenLand = null;
+        ShowLand(null);
+    }
+
+    void ShowLand(LandChoice? resume)
+    {
+        LandPurchasePanel.Open(newGameButton.transform, chosenTier, resume,
+                               onConfirmed: land =>
+                               {
+                                   chosenLand = land;
+                                   PickSlot();
+                               },
+                               onBack: () =>
+                               {
+                                   difficultyPanel.SetActive(true);
+                                   Select(startButton);
+                               });
+    }
+
+    void PickSlot()
+    {
         SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.NewGame, inGame: false,
-                       onPick: slotId => GameManager.Instance.StartNewGame(chosenTier, chosenWeapon, slotId),
-                       onClosed: () =>
-                       {
-                           difficultyPanel.SetActive(true);
-                           Select(startButton);
-                       });
+                       onPick: slotId => GameManager.Instance.StartNewGame(chosenTier, chosenWeapon, slotId, chosenLand),
+                       onClosed: () => ShowLand(chosenLand));
     }
 
     void BuildDifficultyPanel()
