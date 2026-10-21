@@ -1,0 +1,498 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e62ee8f6eca22a94b9ec74ceaf59fa4a, type: 3}
+  m_Name: MarketData
+  m_EditorClassIdentifier: Assembly-CSharp::MarketData
+  rows:
+  - itemId: flint_and_steel
+    group: 7
+    pool: flint_and_steel
+    baseCents: 800
+    kind: 0
+    seasonalBuy: 0
+  - itemId: knife
+    group: 7
+    pool: knife
+    baseCents: 400
+    kind: 0
+    seasonalBuy: 0
+  - itemId: canteen
+    group: 7
+    pool: canteen
+    baseCents: 500
+    kind: 0
+    seasonalBuy: 0
+  - itemId: bucket
+    group: 7
+    pool: bucket
+    baseCents: 600
+    kind: 0
+    seasonalBuy: 0
+  - itemId: cooking_pot
+    group: 7
+    pool: cooking_pot
+    baseCents: 1200
+    kind: 0
+    seasonalBuy: 0
+  - itemId: tarp
+    group: 7
+    pool: tarp
+    baseCents: 800
+    kind: 0
+    seasonalBuy: 1
+  - itemId: sleeping_bag
+    group: 7
+    pool: sleeping_bag
+    baseCents: 1500
+    kind: 0
+    seasonalBuy: 1
+  - itemId: tent
+    group: 7
+    pool: tent
+    baseCents: 2500
+    kind: 0
+    seasonalBuy: 1
+  - itemId: axe
+    group: 7
+    pool: axe
+    baseCents: 2000
+    kind: 0
+    seasonalBuy: 0
+  - itemId: hammer
+    group: 7
+    pool: hammer
+    baseCents: 1000
+    kind: 0
+    seasonalBuy: 0
+  - itemId: fishing_rod
+    group: 7
+    pool: fishing_rod
+    baseCents: 1200
+    kind: 0
+    seasonalBuy: 0
+  - itemId: recurve_bow
+    group: 7
+    pool: recurve_bow
+    baseCents: 3000
+    kind: 0
+    seasonalBuy: 0
+  - itemId: arrows
+    group: 7
+    pool: arrows
+    baseCents: 100
+    kind: 0
+    seasonalBuy: 0
+  - itemId: bolt_action_rifle
+    group: 7
+    pool: bolt_action_rifle
+    baseCents: 6000
+    kind: 0
+    seasonalBuy: 0
+  - itemId: rifle_rounds
+    group: 7
+    pool: rifle_rounds
+    baseCents: 100
+    kind: 0
+    seasonalBuy: 0
+  - itemId: cordage
+    group: 7
+    pool: cordage
+    baseCents: 200
+    kind: 0
+    seasonalBuy: 0
+  - itemId: lamp_oil
+    group: 7
+    pool: lamp_oil
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 1
+  - itemId: lumber
+    group: 7
+    pool: lumber
+    baseCents: 800
+    kind: 0
+    seasonalBuy: 0
+  - itemId: weather_station
+    group: 7
+    pool: weather_station
+    baseCents: 2500
+    kind: 0
+    seasonalBuy: 0
+  - itemId: deer_hide
+    group: 3
+    pool: deer_hide
+    baseCents: 800
+    kind: 1
+    seasonalBuy: 0
+  - itemId: deer_antlers
+    group: 3
+    pool: deer_antlers
+    baseCents: 600
+    kind: 1
+    seasonalBuy: 0
+  - itemId: small_furs
+    group: 3
+    pool: small_furs
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: feathers
+    group: 3
+    pool: feathers
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: sinew
+    group: 3
+    pool: sinew
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: venison
+    group: 2
+    pool: venison
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: turkey_meat
+    group: 2
+    pool: turkey_meat
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: waterfowl_meat
+    group: 2
+    pool: waterfowl_meat
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: small_game_meat
+    group: 2
+    pool: small_game_meat
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: chicken_meat
+    group: 6
+    pool: chicken_meat
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_venison
+    group: 2
+    pool: venison
+    baseCents: 400
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_turkey
+    group: 2
+    pool: turkey_meat
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_waterfowl
+    group: 2
+    pool: waterfowl_meat
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_small_game
+    group: 2
+    pool: small_game_meat
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_chicken
+    group: 6
+    pool: chicken_meat
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: bluegill
+    group: 1
+    pool: bluegill
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: crappie
+    group: 1
+    pool: crappie
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: bass
+    group: 1
+    pool: bass
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: catfish
+    group: 1
+    pool: catfish
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_bluegill
+    group: 1
+    pool: bluegill
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_crappie
+    group: 1
+    pool: crappie
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_bass
+    group: 1
+    pool: bass
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cooked_catfish
+    group: 1
+    pool: catfish
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: blackberries
+    group: 4
+    pool: blackberries
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: raspberries
+    group: 4
+    pool: raspberries
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: wild_apples
+    group: 4
+    pool: wild_apples
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: pawpaw
+    group: 4
+    pool: pawpaw
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: chestnuts
+    group: 4
+    pool: chestnuts
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: hickory_nuts
+    group: 4
+    pool: hickory_nuts
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: walnuts
+    group: 4
+    pool: walnuts
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: morel
+    group: 4
+    pool: morel
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: oyster_mushroom
+    group: 4
+    pool: oyster_mushroom
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: dryads_saddle
+    group: 4
+    pool: dryads_saddle
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: wild_onion
+    group: 4
+    pool: wild_onion
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cattail
+    group: 4
+    pool: cattail
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: chicken_eggs
+    group: 6
+    pool: chicken_eggs
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: goat_milk
+    group: 6
+    pool: goat_milk
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: firewood
+    group: 0
+    pool: firewood
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: logs
+    group: 0
+    pool: logs
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: stone
+    group: 0
+    pool: stone
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: stone_pick_axe
+    group: 5
+    pool: stone_pick_axe
+    baseCents: 400
+    kind: 1
+    seasonalBuy: 0
+  - itemId: shovel
+    group: 5
+    pool: shovel
+    baseCents: 400
+    kind: 1
+    seasonalBuy: 0
+  - itemId: primitive_axe
+    group: 5
+    pool: primitive_axe
+    baseCents: 400
+    kind: 1
+    seasonalBuy: 0
+  - itemId: rabbit_snare
+    group: 5
+    pool: rabbit_snare
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: box_trap
+    group: 5
+    pool: box_trap
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: fish_trap
+    group: 5
+    pool: fish_trap
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: cane_pole
+    group: 5
+    pool: cane_pole
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: pouch
+    group: 5
+    pool: pouch
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: torch
+    group: 5
+    pool: torch
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: bow_drill
+    group: 5
+    pool: bow_drill
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: lantern
+    group: 5
+    pool: lantern
+    baseCents: 400
+    kind: 1
+    seasonalBuy: 0
+  - itemId: primitive_bow
+    group: 5
+    pool: primitive_bow
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  groups:
+  - group: 0
+    dropBp: 400
+    floorBp: 2500
+    spring: 10000
+    summer: 8000
+    fall: 10000
+    winter: 15000
+  - group: 1
+    dropBp: 500
+    floorBp: 2500
+    spring: 10000
+    summer: 9000
+    fall: 10000
+    winter: 10000
+  - group: 2
+    dropBp: 500
+    floorBp: 2500
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 13000
+  - group: 3
+    dropBp: 500
+    floorBp: 2500
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 13000
+  - group: 4
+    dropBp: 600
+    floorBp: 2500
+    spring: 8500
+    summer: 8500
+    fall: 8500
+    winter: 8500
+  - group: 5
+    dropBp: 1000
+    floorBp: 1000
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 10000
+  - group: 6
+    dropBp: 500
+    floorBp: 2500
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 10000
+  - group: 7
+    dropBp: 800
+    floorBp: 2500
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 10000

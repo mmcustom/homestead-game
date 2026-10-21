@@ -74,6 +74,8 @@ public class GameManager : MonoBehaviour
             DifficultyManager.Instance.Begin(difficulty);
         if (TradingPost.Instance != null)
             TradingPost.Instance.ResetMoney(land.HasValue ? land.Value.reserveCents : 0);
+        if (MarketManager.Instance != null)
+            MarketManager.Instance.ResetMarket(true); // a new market: every price starts at its current-season target
         if (MoneyManager.Instance != null)
         {
             if (land.HasValue)
@@ -176,6 +178,8 @@ public class GameManager : MonoBehaviour
             TradingPost.Instance.ResetMoney(0);
         if (MoneyManager.Instance != null)
             MoneyManager.Instance.ResetLoan(); // a save with no loan section (an old game) has no loan
+        if (MarketManager.Instance != null)
+            MarketManager.Instance.ResetMarket(false); // a save with no market section (an old game) starts at normal prices
         ResetManagers();
         yield return LoadRoutine(WorldScene, GameState.Playing, () => SaveManager.Instance.LoadGame(slotId));
     }

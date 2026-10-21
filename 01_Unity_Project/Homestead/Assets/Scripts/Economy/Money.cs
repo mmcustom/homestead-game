@@ -84,11 +84,14 @@ public static class Money
     }
 
     // What the store pays for one of an item it stocks at buyCents (0: it doesn't buy it back).
-    public static long SellBackCents(long buyCents)
+    public static long SellBackCents(long buyCents) => SellBackCents(buyCents, 40);
+
+    // The same rule at another share (MarketManager's sellBackPercent): that percent of the whole-dollar price, rounded down, at least $1.
+    public static long SellBackCents(long buyCents, int percent)
     {
         if (buyCents < MinBuyBackStockCents)
             return 0;
-        long dollars = buyCents / CentsPerDollar * 40 / 100; // 40% of the whole-dollar price, rounded down
+        long dollars = buyCents / CentsPerDollar * percent / 100;
         return Dollars(Math.Max(1, dollars));
     }
 

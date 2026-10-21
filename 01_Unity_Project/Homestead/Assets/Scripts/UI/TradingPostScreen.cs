@@ -4,14 +4,20 @@ using UnityEngine.UI;
 
 // Difficulty_System.md's Trading Post as a game screen (T): menu-only, no place or trader in the world. The store's
 // stock on the left with Buy buttons, everything carried that it'll take on the right with Sell buttons, and the money
-// and difficulty across the top. Shift-click buys ten (arrows, rounds, cordage) or sells the whole stack. Prices and
-// the buying and selling themselves live in TradingPost.
+// and difficulty across the top, and a one-line market note under them. Shift-click buys ten (arrows, rounds, cordage) or sells the whole
+// stack, unit by unit at the falling price. Each Sell row shows the price now, a trend marker (green +: below its seasonal target and
+// recovering; red -: above it and falling; =: steady), how far from normal it is, and what the whole stack would fetch. The Sell list is
+// ordered by base price, never by current price, so rows don't jump under the cursor as prices move. Prices and the buying and selling
+// themselves live in TradingPost and MarketManager.
 public class TradingPostScreen : GameScreen
 {
     RectTransform buyList, sellList;
-    Text moneyLabel, statusLabel;
+    Text moneyLabel, statusLabel, marketLabel;
     InventoryManager watchedInventory;
     TradingPost watchedPost;
+    MarketManager watchedMarket;
+
+    const string UpColor = "#C7D68C", DownColor = "#E07A6A";
 
     public override string Title => "Trading Post";
 
@@ -22,6 +28,9 @@ public class TradingPostScreen : GameScreen
         statusLabel = UiKit.Text(area, "Status", "", 18, UiKit.Muted, TextAnchor.MiddleRight);
         Top(statusLabel.rectTransform, 0f, 40f, 0.4f, 1f);
 
+        marketLabel = UiKit.Text(area, "Market", "", 16, UiKit.Muted, TextAnchor.MiddleLeft);
+        Top(marketLabel.rectTransform, 40f, 24f, 0f, 1f);
+
         buyList = Column(area, "Buy", 0f, 0.485f);
         sellList = Column(area, "Sell", 0.515f, 1f);
     }
@@ -29,7 +38,7 @@ public class TradingPostScreen : GameScreen
     RectTransform Column(RectTransform area, string heading, float xMin, float xMax)
     {
         RectTransform column = UiKit.Rect(heading, area).Region(xMin, 0f, xMax, 1f);
-        column.offsetMax = new Vector2(0f, -52f);
+        column.offsetMax = new Vector2(0f, -78f);
         Text label = UiKit.Text(column, "Heading", heading == "Buy" ? "Buy" : "Sell", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
         Top(label.rectTransform, 0f, 36f, 0f, 1f);
         Text sub = UiKit.Text(column, "Sub", heading == "Buy" ? "What the store has    (Shift: 10 at a time)" : "What you carry that it'll take    (Shift: the lot)",
@@ -48,6 +57,9 @@ public class TradingPostScreen : GameScreen
             watchedInventory.Player.Changed += Refresh;
         if (watchedPost != null)
             watchedPost.MoneyChanged += Refresh;
+        watchedMarket = MarketManager.Instance;
+        if (watchedMarket != null)
+            watchedMarket.Changed += Refresh;
         statusLabel.text = "";
         Refresh();
     }
@@ -62,8 +74,11 @@ public class TradingPostScreen : GameScreen
             watchedInventory.Player.Changed -= Refresh;
         if (watchedPost != null)
             watchedPost.MoneyChanged -= Refresh;
+        if (watchedMarket != null)
+            watchedMarket.Changed -= Refresh;
         watchedInventory = null;
         watchedPost = null;
+        watchedMarket = null;
     }
 
     void Refresh()
@@ -74,9 +89,12 @@ public class TradingPostScreen : GameScreen
             ? $"{Money.Format(post.Cents)}   <size=18><color=#EDE3C799>{DifficultyManager.Name(DifficultyManager.Tier)}</color></size>"
             : "";
 
+        MarketManager market = MarketManager.Instance;
+        marketLabel.text = market != null ? market.Note : "";
+
         UiKit.Clear(buyList);
         UiKit.Clear(sellList);
-        if (post == null || inventory == null)
+        if (post == null || inventory == null || market == null)
             return;
 
         foreach ((string item, long price) in TradingPost.Catalog)
@@ -89,39 +107,69 @@ public class TradingPostScreen : GameScreen
             Row(buyList, $"{definition.DisplayName}{have}", Money.Format(price), "Buy", afford, () => Buy(item));
         }
 
-        // Everything carried the store will take, one row per kind, highest value first.
-        var carried = new List<(ItemDefinition item, int count, long price)>();
+        // Everything carried the store will take, one row per kind, highest BASE price first, then by name (never by the price now).
+        var carried = new List<(ItemDefinition item, int count, long baseCents)>();
         var seen = new HashSet<string>();
         foreach (ItemStack stack in inventory.Player.Stacks)
         {
             if (!seen.Add(stack.itemId))
                 continue;
-            long price = TradingPost.SellPrice(stack.itemId);
             ItemDefinition definition = ItemDatabase.Get(stack.itemId);
-            if (price > 0 && definition != null)
-                carried.Add((definition, inventory.Player.Count(stack.itemId), price));
+            if (definition != null && market.CanSell(stack.itemId))
+                carried.Add((definition, inventory.Player.Count(stack.itemId), market.SellBase(stack.itemId)));
         }
-        carried.Sort((a, b) => b.price.CompareTo(a.price));
+        carried.Sort((a, b) =>
+        {
+            int byBase = b.baseCents.CompareTo(a.baseCents);
+            return byBase != 0 ? byBase : string.CompareOrdinal(a.item.DisplayName, b.item.DisplayName);
+        });
         if (carried.Count == 0)
             UiKit.Height(UiKit.Text(sellList, "Empty", "Nothing you're carrying that the store buys. Hides, furs, meat, fish, forage, firewood, logs and stone all sell.", 18, UiKit.Muted), 60f);
-        foreach ((ItemDefinition item, int count, long price) in carried)
+        foreach ((ItemDefinition item, int count, long baseCents) in carried)
         {
             bool equipped = inventory.EquippedTool == item;
             string note = equipped ? "  <size=15><color=#C7D68C>equipped</color></size>" : "";
-            Row(sellList, $"{item.DisplayName}  <size=16><color=#EDE3C799>×{count}</color></size>{note}", Money.Format(price), "Sell", true, () => Sell(item));
+
+            var detail = new List<string>();
+            int percent = MarketRules.PercentOfNormal(market.Multiplier(item.Id));
+            if (percent != 100)
+                detail.Add($"{percent}% of normal");
+            if (count > 1)
+                detail.Add($"Shift: all {count} for about {Money.Format(market.Quote(item.Id, count).totalCents)}");
+            string second = detail.Count > 0 ? $"\n<size=13><color=#EDE3C799>{string.Join("  ·  ", detail)}</color></size>" : "";
+
+            string trend;
+            switch (market.Trend(item.Id))
+            {
+                case MarketTrend.Up: trend = $"<color={UpColor}>+</color>"; break;
+                case MarketTrend.Down: trend = $"<color={DownColor}>-</color>"; break;
+                default: trend = "<color=#EDE3C766>=</color>"; break;
+            }
+
+            Row(sellList, $"{item.DisplayName}  <size=16><color=#EDE3C799>×{count}</color></size>{note}{second}",
+                Money.Format(market.SellPrice(item.Id)), "Sell", true, () => Sell(item), trend, 52f);
         }
     }
 
-    void Row(RectTransform list, string label, string price, string action, bool enabled, UnityEngine.Events.UnityAction click)
+    // trend: a marker between the name and the price (Sell rows), or null for none (Buy rows).
+    void Row(RectTransform list, string label, string price, string action, bool enabled, UnityEngine.Events.UnityAction click,
+             string trend = null, float height = 44f)
     {
         RectTransform row = UiKit.Image(list, "Row", UiKit.RaisedColor).rectTransform;
-        UiKit.Height(row, 44f);
+        UiKit.Height(row, height);
         Text name = UiKit.Text(row, "Name", label, 20, UiKit.Cream, TextAnchor.MiddleLeft);
         name.rectTransform.anchorMin = Vector2.zero;
-        name.rectTransform.anchorMax = new Vector2(0.62f, 1f);
+        name.rectTransform.anchorMax = new Vector2(trend != null ? 0.56f : 0.62f, 1f);
         name.rectTransform.offsetMin = new Vector2(12f, 0f);
         name.rectTransform.offsetMax = Vector2.zero;
         name.horizontalOverflow = HorizontalWrapMode.Overflow;
+        if (trend != null)
+        {
+            Text marker = UiKit.Text(row, "Trend", trend, 26, UiKit.Cream, TextAnchor.MiddleCenter, FontStyle.Bold);
+            marker.rectTransform.anchorMin = new Vector2(0.56f, 0f);
+            marker.rectTransform.anchorMax = new Vector2(0.62f, 1f);
+            marker.rectTransform.offsetMin = marker.rectTransform.offsetMax = Vector2.zero;
+        }
         Text cost = UiKit.Text(row, "Price", price, 20, enabled ? UiKit.Cream : UiKit.Muted, TextAnchor.MiddleRight);
         cost.rectTransform.anchorMin = new Vector2(0.62f, 0f);
         cost.rectTransform.anchorMax = new Vector2(0.78f, 1f);
@@ -157,10 +205,10 @@ public class TradingPostScreen : GameScreen
         if (post == null || inventory == null)
             return;
         int count = ShiftHeld ? inventory.Player.Count(item.Id) : 1;
-        long made = post.Sell(item.Id, count);
-        if (made > 0)
+        SaleResult sale = post.Sell(item.Id, count);
+        if (sale.count > 0)
         {
-            statusLabel.text = $"Sold {(count > 1 ? count + " × " : "")}{item.DisplayName} for {Money.Format(made)}";
+            statusLabel.text = $"Sold {(sale.count > 1 ? sale.count + " × " : "")}{item.DisplayName} for {Money.Format(sale.totalCents)}";
             if (AudioManager.Instance != null)
                 AudioManager.Instance.Play(SoundCue.UiClick);
         }
