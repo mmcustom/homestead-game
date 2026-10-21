@@ -389,6 +389,9 @@ public class InventoryScreen : GameScreen
     // Pointing at a Tool row and pressing 1-9 or 0 assigns that key to it.
     void PollHotkeyAssign()
     {
+        if (GameScreens.IsTyping)
+            return; // typing a number (an amount box) must not assign a hotkey to the tool under the pointer
+
         var keyboard = UnityEngine.InputSystem.Keyboard.current;
         var mouse = UnityEngine.InputSystem.Mouse.current;
         InventoryManager inventory = InventoryManager.Instance;

@@ -164,6 +164,17 @@ public static class UiKit
         return content;
     }
 
+    // Whether either Shift key is down (the click shortcuts: the whole stack, ten, or plus and minus ten).
+    public static bool ShiftHeld =>
+        UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.shiftKey.isPressed;
+
+    // Gives the keyboard back to the game screens (an amount box keeps it until something else is selected), so the hotkeys work again.
+    public static void ReleaseFocus()
+    {
+        if (UnityEngine.EventSystems.EventSystem.current != null)
+            UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+    }
+
     public static void Clear(Transform parent)
     {
         for (int i = parent.childCount - 1; i >= 0; i--)

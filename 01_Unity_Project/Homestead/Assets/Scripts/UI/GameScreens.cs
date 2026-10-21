@@ -44,6 +44,13 @@ public class GameScreens : MonoBehaviour
     Kind current = Kind.None;
     bool subscribed;
 
+    // The frame an amount box (QuantityStepper) ended editing because Esc was pressed. Esc while typing only ends the typing, so
+    // PlayerController skips its pause or close check that frame (the box has already let go of the keyboard by then, so IsTyping alone
+    // would let the same Esc through).
+    static int escapeEndedTypingFrame = -1;
+    public static void NoteEscapeEndedTyping() => escapeEndedTypingFrame = Time.frameCount;
+    public static bool EscapeEndedTyping => escapeEndedTypingFrame == Time.frameCount;
+
     // True while the player is typing into a text field (a journal note), so letters don't act as hotkeys.
     public static bool IsTyping
     {

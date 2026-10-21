@@ -244,7 +244,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     {
         // Esc while typing a journal note belongs to the text field, and Esc in the slot panel to the panel, not the pause menu.
         // Esc while placing a structure cancels the placement (PlacementMode), it doesn't pause.
-        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping && !SlotPanel.IsOpen &&
+        if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping && !GameScreens.EscapeEndedTyping && !SlotPanel.IsOpen &&
             !PlacementMode.Active)
             GameManager.Instance.TogglePause();
 

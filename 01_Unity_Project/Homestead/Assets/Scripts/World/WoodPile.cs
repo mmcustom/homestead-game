@@ -139,16 +139,33 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 
     // One unit of a kind stored, or (all) the whole stack — StorageTransferScreen's Take/Shift-click. The barrel
     // draws against Bucket/Canteen room instead of carry weight, same rule DrawWater always used.
-    public int TakeOne(string itemId, bool all)
+    public int TakeOne(string itemId, bool all) => Take(itemId, all ? int.MaxValue : 1);
+
+    // Up to count of a kind stored (the stepper's amount), oldest batch first; the barrel's litres draw against Bucket and Canteen room.
+    // Takes what fits when the pack or the containers can't hold all of it, and returns how many came out.
+    public int Take(string itemId, int count)
     {
-        if (state == null || Inventory == null)
+        if (state == null || Inventory == null || count <= 0)
             return 0;
         int available = IsBarrel ? Mathf.Min(BucketRoom(), state.Count(itemId)) : state.Count(itemId);
-        int want = all ? available : Mathf.Min(1, available);
+        int want = Mathf.Min(count, available);
         int taken = TakeInto(itemId, want);
         if (taken > 0 && WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(state);
         return taken;
+    }
+
+    // The most Take(itemId, ...) could take right now: what is stored, held to the carry weight (a barrel: to Bucket and Canteen room).
+    // 0 when nothing can come out.
+    public int MaxTake(string itemId)
+    {
+        if (state == null || Inventory == null)
+            return 0;
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        if (item == null)
+            return 0;
+        int available = IsBarrel ? Mathf.Min(BucketRoom(), state.Count(itemId)) : state.Count(itemId);
+        return Mathf.Max(0, Mathf.Min(available, Inventory.Player.SpaceFor(item)));
     }
 
     // Whether TakeOne(itemId, ...) could take anything right now, and why not if not.
@@ -428,15 +445,27 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 
     // One unit of an item from the pack, or (all) the whole stack, into this pile — StorageTransferScreen's
     // Store/Shift-click. Returns how many went in.
-    public int StoreOne(string itemId, bool all)
+    public int StoreOne(string itemId, bool all) => Store(itemId, all ? int.MaxValue : 1);
+
+    // Up to count of an item from the pack into this pile (the stepper's amount), held to what is carried and the barrel's room.
+    // Returns how many went in.
+    public int Store(string itemId, int count)
     {
-        if (!CanStoreOne(itemId, out _))
+        if (count <= 0 || !CanStoreOne(itemId, out _))
             return 0;
-        int want = Mathf.Min(all ? Inventory.Player.Count(itemId) : 1, StorageRoom);
+        int want = Mathf.Min(Mathf.Min(count, Inventory.Player.Count(itemId)), StorageRoom);
         int stored = StoreInto(itemId, want, IsBarrel);
         if (stored > 0 && WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(state);
         return stored;
+    }
+
+    // The most Store(itemId, ...) could store right now: what is carried, held to the barrel's room. 0 when nothing can go in.
+    public int MaxStore(string itemId)
+    {
+        if (!CanStoreOne(itemId, out _))
+            return 0;
+        return Mathf.Max(0, Mathf.Min(Inventory.Player.Count(itemId), StorageRoom));
     }
 
     // Whether Store All Eligible would move anything.

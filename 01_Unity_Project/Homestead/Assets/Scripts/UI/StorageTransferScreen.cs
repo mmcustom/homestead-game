@@ -8,8 +8,12 @@ using UnityEngine.UI;
 // the player presses E or R on a built storage pile — Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin or
 // Tool Rack (WoodPile.UsesTransferScreen) — targeting that one pile. Two panels in the one window, so the other tabs
 // stay reachable: the player's pack on the left (only what this structure holds), the structure's contents on the
-// right, each with its weight or capacity. Click moves one across, Shift-click the whole stack, same convention as
-// Cooking's Split and Trading Post's Buy/Sell. A row that can't move stays, greyed, with the reason. The Water Barrel
+// right, each with its weight or capacity. Every row is two lines (QuantityRowUi): the name and what is there, then a quantity stepper
+// (Quantity_Controls.md) with the button. Click moves the amount shown in the stepper (1 by default, back to 1 after every move),
+// Shift-click the whole stack, same convention as Trading Post's Buy/Sell. The most that can move is worked out by the pile
+// (WoodPile.MaxStore and MaxTake: what is carried or stored, held to the carry weight, the barrel's litres or Bucket and Canteen room),
+// so the amount is clamped to what fits and the status line reports what actually moved. A row that can't move stays, greyed, with the
+// reason. The Water Barrel
 // breaks out by quality on both sides, so the player picks which water goes in or comes out. A shortcut button heads
 // each panel and keeps the old one-press behavior: "Store All Eligible" on the left, "Take Everything" (or "Fill Bucket
 // (best quality)" for the barrel) on the right.
@@ -23,6 +27,11 @@ public class StorageTransferScreen : GameScreen
     Button storeAllButton, takeAllButton, removeButton;
     WoodPile target;
     bool confirmingRemove;
+
+    // The amount chosen in each row's stepper, by item id (the pack side and the structure side separately). The rows are rebuilt on
+    // every refresh, so the amounts live here; they go back to 1 after a move and are cleared when the screen hides.
+    readonly Dictionary<string, int> storeAmounts = new Dictionary<string, int>();
+    readonly Dictionary<string, int> takeAmounts = new Dictionary<string, int>();
 
     public override string Title => target != null && target.State != null ? WoodManager.PileName(target.State.kind) : "Storage";
 
@@ -72,8 +81,17 @@ public class StorageTransferScreen : GameScreen
     // pile or the player's pack except this screen's own buttons — which call Refresh themselves after.
     public override void OnShow()
     {
-        statusLabel.text = "Click moves one; Shift-click moves the whole stack.";
+        statusLabel.text = "Click moves the amount shown; Shift-click moves the whole stack.";
+        storeAmounts.Clear();
+        takeAmounts.Clear();
         Refresh();
+    }
+
+    public override void OnHide()
+    {
+        storeAmounts.Clear();
+        takeAmounts.Clear();
+        UiKit.ReleaseFocus();
     }
 
     void Refresh()
@@ -134,7 +152,8 @@ public class StorageTransferScreen : GameScreen
             string unit = WoodManager.IsWater(itemId) ? $"{count} L" : $"×{count}";
             unit += MoistureOfPack(inventory, itemId);
             bool can = target.CanStoreOne(itemId, out string reason);
-            Row(packList, NameOf(itemId), unit, can ? null : reason, "Store", can, () => StoreAndRefresh(itemId));
+            MoveRow(packList, itemId, unit, can ? null : reason, "Store", target.MaxStore(itemId), WoodManager.IsWater(itemId), storeAmounts,
+                    (amount, all) => StoreAndRefresh(itemId, all ? int.MaxValue : amount));
         }
     }
 
@@ -159,7 +178,8 @@ public class StorageTransferScreen : GameScreen
             string unit = barrel ? $"{pair.Value} L" : $"×{pair.Value}";
             unit += MoistureOfPile(state, itemId);
             bool can = target.CanTakeOne(itemId, out string reason);
-            Row(structureList, NameOf(itemId), unit, can ? null : reason, barrel ? "Fill" : "Take", can, () => TakeAndRefresh(itemId));
+            MoveRow(structureList, itemId, unit, can ? null : reason, barrel ? "Fill" : "Take", target.MaxTake(itemId), barrel, takeAmounts,
+                    (amount, all) => TakeAndRefresh(itemId, all ? int.MaxValue : amount));
         }
     }
 
@@ -212,31 +232,33 @@ public class StorageTransferScreen : GameScreen
         }
     }
 
-    void Row(RectTransform list, string name, string unit, string whyNot, string action, bool enabled, UnityEngine.Events.UnityAction click)
+    // One row: line one is the name and what is there (or why it can't move), line two the stepper, how much of the most that can move
+    // is chosen, and the button. onMove gets the chosen amount and whether Shift was held (the old shortcut: the whole stack).
+    static void MoveRow(RectTransform list, string itemId, string unit, string whyNot, string action, int max, bool litres,
+                        Dictionary<string, int> amounts, System.Action<int, bool> onMove)
     {
-        RectTransform row = UiKit.Image(list, "Row", UiKit.RaisedColor).rectTransform;
-        UiKit.Height(row, 46f);
+        QuantityRowUi row = null;
+        row = QuantityRowUi.Create(list, action, false, amounts.TryGetValue(itemId, out int chosen) ? chosen : 1, max,
+                                   shift => onMove(row.Stepper.Amount, shift));
         string detail = whyNot != null ? $"{unit} — {whyNot}" : unit;
-        Text label = UiKit.Text(row, "Name", $"{name}  <size=16><color=#EDE3C799>{detail}</color></size>", 20, UiKit.Cream, TextAnchor.MiddleLeft);
-        label.rectTransform.anchorMin = Vector2.zero;
-        label.rectTransform.anchorMax = new Vector2(0.74f, 1f);
-        label.rectTransform.offsetMin = new Vector2(12f, 0f);
-        label.rectTransform.offsetMax = Vector2.zero;
-        label.horizontalOverflow = HorizontalWrapMode.Overflow;
-        Button button = UiKit.Button(row, action, action, 18, click);
-        var rt = (RectTransform)button.transform;
-        rt.anchorMin = new Vector2(0.76f, 0f);
-        rt.anchorMax = new Vector2(1f, 1f);
-        rt.offsetMin = new Vector2(0f, 6f);
-        rt.offsetMax = new Vector2(-6f, -6f);
-        button.interactable = enabled;
+        row.Name.text = $"{NameOf(itemId)}  <size=16><color=#EDE3C799>{detail}</color></size>";
+        row.SetActionEnabled(max > 0);
+
+        void ShowTotal() => row.Total.text = max > 0 ? $"{row.Stepper.Amount} of {max}{(litres ? " L" : "")}" : "";
+        row.Stepper.Changed += () =>
+        {
+            amounts[itemId] = row.Stepper.Amount;
+            ShowTotal();
+        };
+        ShowTotal();
     }
 
-    void StoreAndRefresh(string itemId)
+    void StoreAndRefresh(string itemId, int count)
     {
         if (target == null)
             return;
-        int stored = target.StoreOne(itemId, ShiftHeld);
+        storeAmounts.Remove(itemId); // back to 1 once the move has happened
+        int stored = target.Store(itemId, count);
         string name = NameOf(itemId);
         bool water = WoodManager.IsWater(itemId);
         statusLabel.text = stored > 0 ? (water ? $"Poured in {stored} L of {name}." : $"Stored {stored} {name}.")
@@ -246,11 +268,12 @@ public class StorageTransferScreen : GameScreen
         Refresh();
     }
 
-    void TakeAndRefresh(string itemId)
+    void TakeAndRefresh(string itemId, int count)
     {
         if (target == null)
             return;
-        int taken = target.TakeOne(itemId, ShiftHeld);
+        takeAmounts.Remove(itemId); // back to 1 once the move has happened
+        int taken = target.Take(itemId, count);
         statusLabel.text = taken > 0 ? $"Took {taken} {NameOf(itemId)}." : "No room to carry any more.";
         if (taken > 0 && AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
@@ -297,9 +320,6 @@ public class StorageTransferScreen : GameScreen
             AudioManager.Instance.Play(SoundCue.UiClick);
         Refresh();
     }
-
-    static bool ShiftHeld =>
-        UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.shiftKey.isPressed;
 
     // Places an element a fixed distance from its parent's top, full width.
     static void Top(RectTransform rt, float top, float height)
