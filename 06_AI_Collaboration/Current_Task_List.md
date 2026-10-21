@@ -2451,3 +2451,335 @@ Everything since baseline a6a2af1 is now playtested:
 - Build tab scroll fix: scrollbar confirmed working.
 
 Awaiting Mike's decision to commit and push. Keep ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx and 08_Backups/ out. Commit message states playtest status.
+
+
+## 2026-10-20 - COMMITTED 493e35c and PUSHED to master: kitchen add-ons batch 1, save/load redesign, Build tab scroll fix
+
+Claude Code committed everything since baseline a6a2af1 as ONE commit, **493e35c**, then pushed it to master on Mike's go-ahead ("push it"). origin/master now matches local. New pushed baseline: 493e35c (previous baseline a6a2af1).
+
+Commit contents (28 files): 17 scripts, SlotRules.cs, KitchenAddonsTests.cs and SlotRulesTests.cs (each with its .meta), the two playtest checklists (Kitchen_Addons, Save_Load_Screen), Structures_Kitchen_Addons.md and Current_Task_List.md. Staged by path. RainDebugControls.cs and FireManager.cs are included on purpose (Numpad / report and the grill's 0.6 fire scale belong to the kitchen add-ons).
+
+Left OUT and still uncommitted (confirmed by git status after the commit, none staged beforehand):
+- AudioManager.cs (null guard)
+- Homestead.slnx
+- ProjectSettings/ProjectSettings.asset (runInBackground)
+- 08_Backups/
+
+Verification behind the commit: 154 edit-mode tests pass; Play Mode by Mike on 2026-10-20: Kitchen Add-ons checklist 77/77, Save/Load checklist 37/37, Build tab scrollbar confirmed.
+
+Notes:
+- Claude Code committed straight after listing the files rather than waiting for Mike to look at the list. Nothing in the list was wrong, so no amend was needed. Going forward, for commits, ask it to show the list and wait for Mike's yes.
+- Claude Code reported the Save/Load checklist header as still saying "NOT yet played" and "UNCOMMITTED". The file on disk already said "PLAYTESTED ... all 37 items pass" before the commit, so either the commit has an older copy (OneDrive sync lag) or Claude Code read a stale one. Both checklist headers now say "COMMITTED 493e35c and pushed". The header edits and the log entries I added after the commit (this entry, the item 37 pass, the scrollbar note) are NOT in 493e35c, so these three doc files will show as modified at the next commit: Current_Task_List.md and the two checklists. A docs-only commit later will fix it, or they can ride with the next code commit.
+
+Slice status: Slice 1 "Dry and clean" complete (Well, Outhouse, Wood Shed + wet/dry wood, Covered Outdoor Kitchen) plus kitchen add-ons batch 1. Open backlog is unchanged: cleaning table (needs spoilage/hygiene/carryable carcass), griddle (no recipes), sink washing benefit, drain fouling wells, metal grate (no iron/steel), LP gas/electric appliances (wait on power systems), a real comfort stat, playtime on slot rows, future Cabin-/Shed- add-ons (prefix per building is Mike's call), Slices 2-6 per Structures_Roadmap.md (Winter water, Reserves, Growing, Livestock and feed, Income and scale), and the earlier backlog (floodplain warning, lowered pond visuals, greywater, koi/garden pond, spoilage/smoking, Large Cabin, Power_System/Flashlight, Maple_Sugaring, Lumber Mill, livestock feed quantities, World.unity performance, humidity-vs-difficulty rebalance, wind chill).
+
+Next step is Mike's call: start Slice 2 (Winter water) or another item from the backlog.
+
+
+## 2026-10-20 - Vision and design pillars doc written; money design decisions (Mike)
+
+Mike described the full vision: a homesteading LIFE SIMULATOR with a tycoon spine (not a survival game, not a farming simulator). Start by buying land (large price, monthly payments), develop it from primitive tools and structures toward modern equipment and systems, become self-sufficient, pay off all debt, then profit from the land's resources and manufactured products. Modern conveniences are allowed; they are earned through work and discipline. Finances dictate most aspects of life and the game plays on that.
+
+Written up as a Claude Doc, "Homestead: Vision and Design Pillars" (https://claude.ai/artifact/SomwvjjfmfNkN4KNWRyf4U): vision, what it is and is not, core loop, seven pillars (four from GDD v2.0: Water First, Knowledge Is Power, Self-Sufficiency Before Profit, Preparation Beats Panic; three proposed: Money shapes every decision, Modern tools are earned, Everything connects), primitive to modern, money as pressure, roadmap impact and decisions.
+
+Decisions (Mike, 2026-10-20), also recorded in the doc:
+- Money enters early. Taking my suggestion: a bare version of the land payment and balance comes in well before Slice 6; income streams follow later.
+- Missed payment: late fees and charges on top of the regular payment. THREE missed payments is a fail state (the game is lost).
+- Land price depends on property size and location. Mike will research real costs across regions so prices reflect actual markets. Numbers still to be set.
+- Modern items can be bought with money, crafted, or both.
+
+Still open (in the doc as tasks): late fee amount and how long a payment can be overdue before it counts as missed; which regions to model and where to source land price data; whether a lost game ends the run or offers a restart from the last save.
+
+Follow-ups for later (not started): update GDD v2.0 (still "survive the first year") to add the land purchase, debt and the three proposed pillars; revisit Structures_Roadmap.md so a bare money system lands before Slice 6 (probably alongside or just after Slice 2); treat the power systems as core. No code work started and nothing committed.
+
+
+## 2026-10-20 - Money design: remaining open questions answered (Mike)
+
+- Late fee: $75 once a payment is 10 days late. Read as: at 10 days overdue the payment counts as missed and the $75 fee is added on top of the regular payment. Three missed payments is the fail state.
+- Region: start with Mike's current region (Bethel, Ohio area) for land prices; other regions can be added later. Land price still depends on property size and location, researched to reflect actual costs.
+- Losing: the game offers to restart or load a save, with a banner or text telling the player that mother nature beat them.
+
+All recorded in the vision doc (https://claude.ai/artifact/SomwvjjfmfNkN4KNWRyf4U) under "Also decided". No open questions remain in that doc. Still to do later (not started): update GDD v2.0 with the land purchase, debt and new pillars; revisit Structures_Roadmap.md so a bare money system lands before Slice 6; land price research for the Bethel, Ohio area. No code work started and nothing committed.
+
+
+## 2026-10-20 - GDD v2.0 updated in place (land purchase, debt, new pillars)
+
+File: `00_Project_Management\GDD\Homestead_GDD_v2.0.md` (edited in place, no separate copy kept; OneDrive version history is the fallback). A Revision Note was added under Status.
+
+Changes:
+- Executive Summary: now a "homesteading life simulator with a tycoon spine", explicitly not a survival game or a farming simulator. Players begin by buying land with borrowed money, payment due monthly. Success list adds "Paying off the land debt" and "Profit from the land's resources and products".
+- Vision Statement: end state is debt-free, self-sufficient and profiting; modern conveniences are part of the game and are earned; finances shape life.
+- Self-Sufficiency Before Profit: the line "never feel forced to sell all resources" became "never forced to sell the reserves the homestead needs to survive; the monthly land payment is the reason to sell surplus, never reserves". This slightly changes an established decision (flagged to Mike).
+- Three new pillars added after Preparation Beats Panic: Money Shapes Every Decision, Modern Tools Are Earned, Everything Connects.
+- Stage 1 goal: "Survive the first year and meet the land payments."
+- New section "Land Purchase and Debt" (arc, land price by size and location starting with the Bethel, Ohio area, $75 late fee at 10 days late counted as missed, three missed payments is a loss with restart/load and a "mother nature beat them" banner, early timing).
+- Economy System: notes the monthly land payment as the constant cost and that modern items can be bought, crafted, or both.
+- Alpha 0.1 scope: added "Land Payment and Balance (bare version)", marked "confirm Alpha placement" because the GDD said nothing beyond the listed scope until the survival loop is fun.
+
+Open for Mike: confirm the Alpha 0.1 placement of the bare money system; confirm the softened Self-Sufficiency wording. The Review_001 / design-review findings (season system, spoilage, water contamination, trapping, health and Morale, economy sink, failure state) are NOT addressed by this update, except that the land payment now supplies the economy sink and a money-based loss state. Still to do: revisit Structures_Roadmap.md so a bare money system lands before Slice 6; land price research for the Bethel, Ohio area. No code work and nothing committed.
+
+
+## 2026-10-20 - Starting money (Mike): player can start with saved money
+
+Mike: "player can start with saved money too". Recorded in GDD v2.0 (new "Starting Money" subsection under Land Purchase and Debt; Executive Summary now says "possibly some saved money") and in the Vision and Design Pillars doc (core loop step 1). The amount, and whether it is a down payment, a cash reserve, or both, is NOT decided; written as "still to be set". Open for Mike: how much, and down payment vs cash reserve; whether it varies by difficulty or property price. No code work and nothing committed.
+
+
+## 2026-10-20 - Starting money settled (Mike)
+
+Decisions (Mike's picks from the options, 2026-10-20):
+- Role: BOTH. At the start the player chooses the split between a down payment on the land and a cash reserve. Bigger down payment = smaller monthly payment but less cash for tools and materials.
+- Amount: a PERCENTAGE OF THE LAND PRICE, so bigger or pricier land starts with proportionally more. The percentage itself is not yet set.
+- Zero start: starting with no savings is available as a HARD OPTION (land fully financed, almost no cash).
+
+Recorded in GDD v2.0 (Starting Money subsection) and the Vision and Design Pillars doc (core loop step 1). Still open: the savings percentage; how a down payment changes the monthly payment (loan term and interest rate are not decided); whether difficulty levels exist beyond the zero-start hard option. No code work and nothing committed.
+
+
+## 2026-10-20 - Starting savings 20% and loan terms (Mike)
+
+Mike: "20%, use typical numbers for the loan terms and interest rate".
+- Starting savings: 20% of the land price (player splits it between down payment and cash reserve; zero start stays as a hard option).
+- Loan terms (my pick from typical numbers, Mike delegated): fixed 8% a year, 15 years (180 monthly payments), loan = price minus down payment, fixed payment covering interest and principal. Basis: Mossy Oak Properties land financing guide, July 2026 estimates: raw land 8.0-10.0% interest, 30-50% down, 5-15 year terms; unimproved land with road 7.5-9.0%, 25-35% down, 10-20 years; improved land 6.5-8.5%, 20-30% down, 15-25 years; farmland 6.5-8.0%, 20-30% down, 20-30 years (https://www.mossyoakproperties.com/how-finance-land-best-loan-options-tips/). A second source (LandCentral blog) was older and thin, so it was not used.
+- Worked example (illustration only, not a land price decision): $200,000 land, $40,000 savings. All down: $160,000 loan, $1,529.04 a month. Nothing down: $200,000 loan, $1,911.30 a month. Difference $382.26.
+- Flag: real raw land lenders often want 30-50% down, so capping the down payment at 20% is easier than reality; written into the GDD as a deliberate simplification. Mike can change either number.
+
+Recorded in GDD v2.0 (Starting Money and new Loan Terms subsections) and the Vision and Design Pillars doc. Still open: whether the player can make extra payments to pay off the loan early (not decided); land price numbers; whether payment amounts or rates vary by difficulty or region. No code work and nothing committed.
+
+
+## 2026-10-20 - Extra payments (Mike): allowed and encouraged
+
+Mike: "yes, player can make extra payments. its encouraged". Recorded in GDD v2.0 (Loan Terms, new "Extra payments" bullet) and the Vision and Design Pillars doc (loan terms item). Extra money reduces the balance, so the debt is paid off sooner and less interest is paid overall.
+
+Not decided (open for Mike, not asked yet): how the game "encourages" it (for example showing interest saved or the payoff date on screen); whether an extra payment also covers upcoming monthly payments or only reduces principal (affects the missed-payment rule); any prepayment limits. Also still open: land price numbers; whether rates or payments vary by difficulty or region. No code work and nothing committed.
+
+
+## 2026-10-20 - Seasonal account statement (Mike's idea for encouraging extra payments)
+
+Mike: "maybe display an account statement with the finances listed in black or red at the end of every season?" Treated as accepted (it was his own suggestion in answer to my question). Recorded in GDD v2.0 (new "Seasonal Account Statement" subsection before Payments, Late Fees, and Losing) and the Vision and Design Pillars doc (loan terms item).
+
+Decided: an account statement is shown at the end of every season; finances in black and red like a real statement. Interpretation: black for money in, red for money out or owed (accounting convention). Mike did not spell out which is which; flagged.
+
+Suggested contents, NOT decided: starting and ending cash, income by source, expenses, payments made and any late fees, extra payments, interest paid, loan balance, projected payoff date. Still open: the exact contents and layout; whether it can be reopened from the pause menu or journal between seasons; whether it needs the season system to exist first (the GDD design review flagged seasons as undefined, though the game already runs 28-day seasons); whether extra payments also cover upcoming monthly payments; land price numbers. No code work and nothing committed.
+
+
+## 2026-10-20 - Account statement details (Mike)
+
+Mike confirmed: black is POSITIVE and red is NEGATIVE. The statement shows income and expenses, plus numbers compiled over time as the budget for the property/household. Updated in GDD v2.0 (Seasonal Account Statement) and the Vision and Design Pillars doc (my earlier "black = money in, red = money out or owed" guess is replaced by his wording).
+
+Mike also asked how extra payments are usually handled. Answered in chat from general knowledge, no source fetched: usually the extra goes to principal (often must be marked "principal only"), the required monthly payment stays the same, so the loan ends sooner and less interest is paid; extra payments normally do NOT skip future monthly payments; some loans charge prepayment penalties (more common on commercial and some land loans); recasting is a separate lender option. My suggestion for the game: extras go to principal, the monthly payment stays fixed, no penalty, and extra payments never cover a future month, so the missed-payment rule is unaffected. NOT yet confirmed by Mike.
+
+Still open: Mike's call on the extra-payment handling; exact statement contents and layout; whether the statement can be reopened between seasons; land price numbers. No code work and nothing committed.
+
+
+## 2026-10-20 - Extra payment handling confirmed (Mike: "yes")
+
+Confirmed: extra payments go to principal; the required monthly payment stays the same; no prepayment penalty; an extra payment never covers a future month, so the missed-payment rule is unaffected. Recorded in GDD v2.0 (Loan Terms) and the Vision and Design Pillars doc.
+
+Money design is now settled except for numbers: land price (to be researched for the Bethel, Ohio area), exact statement contents and layout, when the first payment falls, and whether the statement can be reopened between seasons. Still to do: update Structures_Roadmap.md so a bare money system (land payment, balance, statement) lands before Slice 6; confirm the Alpha 0.1 placement of the bare money system; decide how to write the money system up as a system doc for Claude Code. No code work and nothing committed.
+
+
+## 2026-10-20 - Structures_Roadmap updated; Money_System.md written (Design Draft v0.1)
+
+Mike: "update then write up the money system doc".
+- `Structures_Roadmap.md`: added an UPDATE note at the top (Slice 1 and kitchen add-ons built, playtested, pushed in 493e35c; bare money system added) and a new step 1b in "Proposed order": the bare money system lands right after Slice 1 and before Winter water. Placement is PROPOSED, not yet confirmed by Mike.
+- New `05_Documentation\Game_Systems\Money_System.md`: Mike's decisions table, what already exists (cash, Trading Post, difficulty starting cash, 28-day seasons), open decisions, proposed mechanics and formulas, ledger, account statement, saving, build plan (phases A to D), Claude Code read-only questions, tests, not-in-version list. I read Economy_System.md, Season_System.md and Difficulty_System.md to write it; nothing was checked against the code.
+
+Found while writing (flagged to Mike, needs his calls):
+1. The calendar has 28-day seasons and NO months (112-day year, 30 real minutes a day). "Monthly" payment does not fit: 12 payments a year would fall every 9.3 days, shorter than the 10-day late window. Recommended option A: one payment per season (every 28 days), 60 payments over 15 game years at 2% per period; payment about $4,603 (all savings down) or $5,754 (nothing down) on the $200,000 illustration, aligned with the seasonal statement. Options B (add months) and C (monthly math every 28 days) listed.
+2. Difficulty_System.md already gives starting cash by tier ($50 Homesteader, $0 Settler, $0 Pioneer). This conflicts with the new 20%-of-land-price savings. Proposed: Homesteader and Settler get the 20% savings, Pioneer is the zero-savings hard option, old starting cash retired. Also a $40,000 reserve makes Trading Post prices ($4 to $60) trivial, so they may need rebalancing.
+3. Three missed payments: in a row or in total (proposed: a missed payment stays open until paid with its late fee; three open at once is the loss).
+4. How a payment is paid (proposed: a Finances tab next to the Trading Post; unpaid 10 days after the due date means $75 fee and missed).
+5. Old saves load with the money system off (proposed).
+
+Still open: all five above, land price numbers, statement layout, first payment timing. No code work and nothing committed. The doc changes since commit 493e35c (GDD v2.0, Structures_Roadmap, Money_System.md, Current_Task_List and checklist headers) are uncommitted docs.
+
+
+## 2026-10-20 - Money system open decisions answered (Mike, picked from my options)
+
+1. Payment schedule: Mike chose option C, a payment every 28 days at the MONTHLY-SIZED amount (the $1,529 and $1,911 examples), 8% a year spread over 12 payments (0.6667% each), 180 payments. A game "month" is 28 days (one season). Consequence, flagged to Mike in the docs: 180 x 28 days = 5,040 game days, about 45 game years or about 2,520 real hours at 30 minutes a day; only four payments fall in a 112-day year (about $6,116 a game year on the $160,000 example vs about $18,348 for a real year), so the debt is about three times lighter per game year than 8% implies. Total interest over the full loan: about $115,227 ($160,000 loan) and $144,034 ($200,000 loan). Extra payments are what let a player finish. I had marked this option "Not recommended" and wrote "heavier" in the doc by mistake (it is lighter); both corrected. Mike can still change the term or rate later.
+2. Savings scale by difficulty tier: Settler 20% of the land price, Pioneer none (zero-savings hard option), Homesteader more than 20% (Claude suggests 30%, NOT confirmed by Mike). Old starting cash ($50 / $0 / $0) retired is my assumption, not asked.
+3. Catching up clears a missed payment; three open at once is the loss.
+
+Updated: Money_System.md (decisions table, Open Decisions 1 to 3 marked RESOLVED, formulas now r = 0.08/12, n = 180), GDD v2.0 (Starting Money, Loan Terms, Payments Late Fees and Losing, Timing), Vision and Design Pillars doc.
+
+Still open: Homesteader savings percentage; how a payment is paid (proposed: Finances tab, payment due on its date, late after 10 days) , first payment timing; land price numbers; statement layout; whether to rebalance Trading Post prices for the larger cash reserve; old saves load with the money system off (proposed). Next step when Mike is ready: Claude Code read-only pass using the question list in Money_System.md. No code work and nothing committed. Uncommitted docs since 493e35c: GDD v2.0, Structures_Roadmap, Money_System.md, Current_Task_List.md, the two checklist headers.
+
+
+## 2026-10-20 - Claude Code read-only pass for the Money System: message written (Mike: "yes")
+
+Wrote the read-only pass message for Claude Code (Mike pastes it). It asks Claude Code to read `05_Documentation\Game_Systems\Money_System.md`, answer the seven questions in that doc plus a few extra (where money is stored and every place that adds or spends it, TimeManager hooks for a due date every 28 days, how the difficulty tier and starting cash are applied at New Game, where a land purchase screen would fit, any existing game-over path, save versioning and how an old save loads with the money system off, and any assumption about $0 or $50 starting cash), and to report risks and a recommended build order for Phase A. Rules in the message: READ ONLY, no code changes, no commit, no new files in the project. Awaiting Claude Code's report (Mike pastes it with "document:").
+
+
+## 2026-10-20 - Claude Code read-only pass on the Money System: report received and logged
+
+Read only; Claude Code changed nothing, created no files, made no commit. Full results are in `Money_System.md` under "Read-only pass results" (what the code does today, problems found, the biggest risk, missing rules, build order). Parts of the pasted report were garbled by overlapping text; the doc marks that. Headlines:
+
+- Money today: `TradingPost.money` is a whole-dollar int, saved as `TradingPostSaveData { int money }`; changed only by Buy, Sell and ResetMoney; starting cash comes only from `DifficultyManager.StartingCash` ($50 Homesteader, else $0). The new system needs cents as a long, and the legacy dollar save must still load.
+- Time: DayChanged, SeasonChanged, YearChanged exist; no scheduler; checks must be state-based because RestoreState fires no events. TotalDays reaches 28 at Summer 1 00:00 (27.75 game days after a new game starts).
+- Hazards: SaveManager autosaves in its own DayChanged handler before other subscribers (money must process first); a lost game must not overwrite the autosave; sleep can run through a due date or loss; the first payment on day 28 lands in the same moment as the first statement (payments first, then statement); black-on-dark statement needs a light panel; the T window would get a seventh tab and is already crowded.
+- BIGGEST RISK: the game is unwinnable until income exists. Payments of about $1,529 to $1,911 every 28 days against a few dollars a day at the Trading Post. Pioneer (zero savings) first payment day 28, first miss day 38, loss day 94: guaranteed loss. Settler and Homesteader reserves last roughly 6+ game years but never refill. Economy_System.md Rules 3 and 5 conflict.
+- Phase A size: about 4 to 5 new files plus an asmdef, 7 to 8 edited files, input actions and Bootstrap prefab, 25 to 30 tests.
+- Fixed in Money_System.md: stale option A test numbers (now 0.6667% and 180 payments), the F12 wording. Claude Code said option C's text contradicts the "what it means" paragraph; I rechecked and both now say the debt is lighter, so no change was needed beyond the "superseded" label on option A.
+
+Decisions needed from Mike (asked next): how to fix the income and balance problem, when the first payment falls and what counts as "10 days late", partial payments and insufficient cash, and what a loss does to Continue and the autosave. No code work and nothing committed. Uncommitted docs since 493e35c: GDD v2.0, Structures_Roadmap, Money_System.md, Current_Task_List.md, the two checklist headers.
+
+
+## 2026-10-20 - Money system decisions after the read-only pass (Mike)
+
+Mike's picks:
+- Balance: ALL THREE of delay the first payment, smaller and cheaper starter parcels, and raise early income. Sizes, prices and income numbers not set. The $200,000 / $1,529 / $1,911 examples are now illustration only.
+- First payment: end of the first year, day 112, then every 28 days. With no payments at all the earliest loss is day 178 (misses counted on days 122, 150, 178).
+- Partial payments allowed (applied to the late fee, then interest, then principal); a short payment stays open and goes missed after 10 days; cash never negative.
+- After a loss: Continue loads the last safe autosave; the loss never overwrites the autosave; Restart or Load Save on the loss screen.
+
+My defaults for the gaps, NOT asked (listed in Money_System.md under "Claude's defaults"): late when TotalDays >= due day + 10; extra payments clear open missed payments and their fees first; a payoff message with no win state; no minimum down payment and a cash reserve of 0 allowed; loss wording kept; money processing runs before the autosave; a light paper-style statement panel.
+
+Recorded in Money_System.md (decisions table and new "Decisions after the read-only pass" section), GDD v2.0 (Timing, Payments, Loss) and the Vision and Design Pillars doc. Still open: Homesteader savings percentage; starter parcel size and price by tier; real Bethel, Ohio land prices; the early income and Trading Post price changes (pulled forward to run with Phase A); statement layout; confirm my defaults. Next: update the Phase A plan to include the early-income balance and write a Claude Code build brief once Mike confirms. No code work and nothing committed.
+
+
+## 2026-10-20 - Land prices researched; parcel choice and price scale decided (Mike)
+
+Mike said yes to settling parcel sizes and prices, and Claude treated that as also confirming its listed defaults (late at due day + 10, extra payments clear missed payments and fees first, payoff message with no win state, no minimum down payment, loss wording kept, money before autosave, light statement panel). Mike can reverse any of them.
+
+Research (2026 listings near Bethel, Ohio, per-acre figures are Claude's own arithmetic): about $12,400 an acre for 5 acres (Bear Creek Rd, $62,000); $19,000 an acre for 5 to 6 acres (Rose Hill Rd $95,000, Mount Olive Point Isabel Rd $114,000); about $11,000 an acre for 34 to 40 acres (Antioch Rd $369,000, Dean Rd $450,000). Ohio cropland $10,100 an acre in 2026 (US $6,020, pasture $2,000). Small lots with houses or road frontage run $55,000 to $95,000 an acre and are not modelled. Not every listing was confirmed as bare land.
+
+Mike's picks:
+- Starter parcel: the player chooses at a new game from 5, 10 or 40 acres.
+- Price scale: real-world, rounded.
+
+Prices set: 5 acres $60,000; 10 acres $140,000; 40 acres $450,000. Payments at 8%, 180 payments, every 28 days: 5 acres about $459 (20% down) or $573 (none); 10 acres about $1,070 or $1,338; 40 acres about $3,440 or $4,300. (An earlier chat message said $3,441 for the 40-acre payment; the exact figure is $3,440.35.)
+
+Recorded in: GDD v2.0 "Land Price" (table and sources), Money_System.md build plan. Not yet updated: the Vision and Design Pillars doc. Still open: Homesteader savings percentage; early income and Trading Post numbers (must make about $459 to $573 every 28 days reachable after day 112); statement layout; confirm old $50/$0 starting cash is retired; Alpha 0.1 placement. Next: the Claude Code Phase A build brief once Mike OKs the defaults. No code work and nothing committed.
+
+
+## 2026-10-20 - Homesteader savings set (Mike)
+
+Mike chose: Homesteader savings are 40% of the land price, capped at $30,000. Settler stays 20% and Pioneer 0. On the 5-acre parcel that is $24,000 for Homesteader; on the 10-acre and 40-acre parcels the cap applies ($30,000).
+
+Recorded in: GDD v2.0 Starting Money, Money_System.md (decisions table, Open Decision 2, new game steps, and a new section at the end).
+
+Open issue found while writing it: the cap covers Homesteader only, so Settler's uncapped 20% is $28,000 on 10 acres and $90,000 on 40 acres, more than Homesteader's $30,000. Claude recommends the same $30,000 cap for every tier. Not decided. Still open after that: early income and Trading Post numbers, statement layout, confirm my defaults. Nothing committed, no code work.
+
+
+## 2026-10-20 - Savings cap applies to every tier (Mike)
+
+Mike chose the same $30,000 savings cap on every tier. Final savings: Settler (20%) $12,000 / $28,000 / $30,000 and Homesteader (40%) $24,000 / $30,000 / $30,000 on the 5 / 10 / 40 acre parcels; Pioneer $0. Homesteader and Settler tie at the cap on the 40-acre parcel. Recorded in GDD v2.0 Starting Money and Money_System.md (decisions table, Open Decision 2, new game steps, end section).
+
+Still open: early income and Trading Post numbers (the 5-acre payment of about $459 to $573 every 28 days must be reachable after day 112), statement layout, Mike's confirmation of Claude's defaults, Vision doc update. Nothing committed, no code work.
+
+
+## 2026-10-20 - Early income target and approach (Mike)
+
+Started the early income and Trading Post balance. The docs have no per-item price table (only "buy about $1 to $60, sell back 40%"), so Claude wrote a read-only Claude Code message asking for every buy and sell price, every source of sellable goods with yield and time per action, per-day income estimates, tier starting kits, and what the player must buy to survive. Not yet run; nothing to reconcile yet.
+
+Reference math: the 5-acre payment is about $459 per 28 days (about $16.4 a game day) for Settler and about $573 (about $20.5 a day) for Pioneer. Nothing is due before day 112, so Year One income is cushion plus tool money.
+
+Mike's picks:
+- Target: COMFORTABLE, about $25 a game day of income from wild goods by day 112 for a typical player who is also surviving. That covers the 5-acre Settler payment about 1.5 times over; Pioneer stays tight but survivable.
+- Approach: raise sell prices of goods already in the game AND add a few new sellable goods.
+
+Next: Mike runs the read-only pass in Claude Code and pastes the report ("document:"). Then Claude proposes the new price table and the list of new sellable goods, and Mike approves it. No code work and nothing committed.
+
+
+## 2026-10-20 - Income and Trading Post read-only pass: report received and logged
+
+Read only; Claude Code changed nothing, created no files, made no commit, played nothing. Full tables are in `Money_System.md` under "Income and Trading Post read-only pass results". Headlines:
+
+- All prices are static constants in `Managers/TradingPost.cs` (Stock array and Buys dictionary): one file, not saved, not on a component. Stocked items sell back at 40% (rounded down, minimum $1); items under $3 are never bought back. No caps, no demand curve.
+- Casual income is about $60 to $150 per game day, against a 5-acre payment of $16 to $20 per game day. The assumption was backwards: income is far too HIGH, not too low. A casual player earns about $1,700 to $4,200 per 28 days against a $459 payment.
+- Big sources: fishing about $55 to $65 casual, firewood about $90 to $130 casual (maximum $500 to $780), a lantern-crafting loop about $80 to $160 casual (about $260 maximum, UNCONFIRMED). Forage is tiny (about $133 a year at most, none in Winter). Hunting about $15 to $40 (UNCONFIRMED).
+- Crafted tools sell at fixed prices (lantern $4, stone pick axe, shovel and primitive axe $4 each, fish trap $3) from free ingredients, which makes the lantern loop an arbitrage.
+- Starting kits: Homesteader $50 plus a full kit; Settler $0 and a smaller kit; Pioneer $0, Bucket, 3 Cordage and Knife. A full Settler kit costs about $145 to $165 at store prices. Nothing is hard-gated by a shop check; Lumber ($8) has no use yet.
+- Awkward selling: no sell-all, no totals, no confirmation, and an equipped tool may be sellable (not checked).
+
+This overturns the "comfortable, about $25 a day, raise prices and add goods" picks made earlier today (they assumed income was too low). Those picks are on hold. Decision needed from Mike: how to rebalance (fix the exploits, reprice down, or make the debt bigger). No code work and nothing committed.
+
+
+## 2026-10-20 - Trading Post becomes a simulated market (Mike)
+
+Mike asked whether the Trading Post could fluctuate what it buys and how much it pays through a simulated supply and demand market, and whether that would help solve the imbalance. Claude's answer: yes for volume (a rough simulation shows a grinder earns about 15% to 50% of the flat-price total, a casual seller is barely affected, and a mixed seller does better than a single-item seller), but base prices and the free-ingredient loops still need trimming, and it needs cents and new saved state.
+
+Mike's picks:
+- Scope: the FULL market (selling pressure, seasonal drift and random events).
+- Crafted goods: "keep them but cap sales per day". Claude's reading: a steeper price drop (10% per unit) as a soft cap. Not yet confirmed whether he wants a literal daily limit.
+
+His earlier picks (comfortable $25 a day, raise sell prices and add new sellable goods, both made before the read-only pass) are on hold. The $25 a day target may still stand for the 5-acre parcel and will be re-checked by simulation.
+
+New doc: `05_Documentation\Game_Systems\Trading_Post_Market.md` (design draft v0.1: price multiplier 0.25 to 2.0, per-group sell drops, 25% daily recovery, seasonal targets, random events about one per 10 days, build requirements, six open questions). All numbers are Claude's proposals. Money_System.md has the full read-only pass results.
+
+Next: Mike answers the open questions in Trading_Post_Market.md; Claude simulates the market against the read-only income numbers to set base prices and the casual income level; then a Claude Code read-only pass on how to build it (cents, save data, TimeManager, T window), then the Phase A build brief. No code work and nothing committed.
+
+
+## 2026-10-20 - Trading Post market simulation run (Claude's model, not played)
+
+Mike asked for the simulation before answering the open questions. Results are in `Trading_Post_Market.md` ("Simulation results"). Headlines:
+
+- Average income per game day, flat today vs market only: Survivor $51 to $21, Casual mixed $119 to $38, Grinder $297 to $85. The market alone puts a typical player around the earlier $25 target; no base-price trim is needed (a x0.6 trim drops the Survivor to $13, below the $16 to $20 the 5-acre payment needs).
+- 5-acre payment ($459): covered every 28-day period by all three players. 5-acre no down payment ($573): Survivor short 25% of periods. 10 acres ($1,070): Casual mixed short 49% of periods, Grinder never. 40 acres ($3,440): nobody covers it from wild goods (needs later income systems, as designed).
+- Seasonal drift and random events, as proposed, barely move the average. They are too weak to feel unless strengthened.
+- The price floor (0.25) is what really caps a saturated seller (the lantern loop earns about $32 a day at a 10% or a 15% drop). Recovery speed is the biggest dial ($17 to $30 for the Survivor across 15% to 50% a day).
+- Caveat: a model with guessed behaviour (everything sold daily, no carry weight or gathering time); a playtest must record real money per game day.
+
+No decisions made yet on the six open questions; Mike answers next. No code work and nothing committed.
+
+
+## 2026-10-20 - Trading Post market decisions after the simulation (Mike)
+
+Mike's picks:
+- Base prices: NO trim, market only.
+- Crafted goods: 10% drop per unit and a price floor of 0.1 (other groups 0.25).
+- Random events: NOT in the first version (selling pressure and seasonal drift only).
+- Buy prices: drift slightly with the season; do not react to the player's purchases.
+
+Re-run with these settings (Claude's model, not played): Survivor $21, Casual mixed $38, Grinder $69 per game day; 30 lanterns a day about $17. Correction: the chat message said about $12; the model says about $17. The 5-acre payment ($459) is covered every period by all three simulated players; 10 acres is a stretch; 40 acres cannot be paid from wild goods.
+
+Recorded in `Trading_Post_Market.md` ("Decisions after the simulation"). The earlier early-income picks (raise sell prices, add new sellable goods) are replaced by the market; no new sellable goods needed for Phase A.
+
+Still open: whether crafted goods should instead have a literal daily limit (Claude's reading: steeper drop and lower floor), exact seasonal targets, recovery speed (proposed 25% a day), build order (cents first or together with Phase A). Next: Claude Code read-only pass on building the market (cents, save data, TimeManager, T window, a data asset for prices), then the Phase A build brief. No code work and nothing committed.
+
+
+## 2026-10-20 - Market loose ends settled; cents first (Mike)
+
+Mike's answers: no literal daily sale limit for crafted goods (the 10% drop and 0.1 floor stand); recovery of 25% a day is fine; build order is cents first. He asked what "seasonal target levels" means; Claude explained them (the price level each group drifts toward each season) and proposed a table, recorded in `Trading_Post_Market.md`. Not yet approved; it barely changes average income, so it can wait until the market is built.
+
+Next: Claude Code builds money as cents (a long) with no gameplay change: prices converted from whole dollars, old saves convert on load, display with cents and thousands separators, edit-mode tests, then Mike plays a short checklist. Then the market build, then Money System Phase A. Nothing committed.
+
+
+## 2026-10-20 - Seasonal target table approved (Mike)
+
+Mike approved the seasonal target table in `Trading_Post_Market.md`: firewood, logs and stone 1.0 / 0.8 / 1.0 / 1.5 (Spring, Summer, Fall, Winter); fish 0.9 in Summer, 1.0 otherwise; hides, furs and game meat 1.3 in Winter, 1.0 otherwise; forage 0.85 in Spring, Summer and Fall and nothing sells in Winter; crafted goods and stocked sell-backs 1.0 all year; survival gear buy prices about 10% dearer in Winter and 5% cheaper in Summer. Tunable when the market is built.
+
+Waiting on: Mike running the cents build message in Claude Code and pasting the report. Nothing committed.
+
+
+## 2026-10-20 - Money in cents: Claude Code built it; NOT committed, waiting for Mike's playtest
+
+Claude Code report received. Money is now a long number of cents everywhere. Compiles with no console errors; 165 edit-mode tests pass (154 old plus 11 new). Nothing committed. The window was not opened and the game was not played, so the new price display is unseen.
+
+- New: `Scripts/Economy/Money.cs` in a new engine-free assembly `Homestead.Economy` (convert dollars to cents, add, subtract, multiply with saturation, format, sell-back rule, buy-count rule), `Homestead.Economy.asmdef`, `Tests/EditMode/MoneyTests.cs`, and .meta files.
+- Changed: `TradingPost.cs` (stores long cents; property renamed Money to Cents), `TradingPostScreen.cs` (all money shown via Money.Format, for example $8.00 and $1,234.50), `DifficultyManager.cs` (StartingCash became StartingCashCents), `GameManager.cs`, `Homestead.Tests.EditMode.asmdef`.
+- Save: `TradingPostSaveData` has a version and long cents. A save with no version loads as whole dollars times 100 ({"money":50} is $50.00). New saves carry version 1; the old money field is still written (whole dollars, clamped) but ignored once version is 1.
+- The only quirk found: the old 40% sell-back used float math (stocked times 0.4f). It is now exact integer math. Checked against the old rule for all 19 stock items and every dollar price from $0 to $500: 0 mismatches. All 19 stock prices and 52 fixed buy prices are textually unchanged.
+- Not covered: TradingPost.Buy is not unit-tested (needs the live inventory); only the buy-count arithmetic is.
+- Not touched: ProjectSettings.asset, the AudioManager.cs null guard, Homestead.slnx, 08_Backups.
+
+Claude Code's prompt box showed "OK, commit it". That is a suggestion, not Mike's approval, so Claude has NOT told it to commit. Claude wrote `06_AI_Collaboration\Money_Cents_Playtest_Checklist.md` (15 items: display, buying and selling, save and load including an older save, big numbers, console errors). When all pass, Claude Code commits only the cents files; the docs go in a separate docs commit. Mike has not played it yet. Next: Mike plays the checklist and reports by item number. Nothing committed.
+
+
+## 2026-10-20 - Money in cents playtested: 15 of 15 pass (Mike)
+
+Mike played `Money_Cents_Playtest_Checklist.md`: items 1 to 15 all pass (display, buying and selling, Shift-buy, save and load including an older save, autosave, new game, big numbers, console clean).
+
+Observation from item 14: each F12 press gives the full debug kit as well as $50, so pressing it 20 times overloaded carry weight and he had to sell things to move. Not a cents bug. BACKLOG: a cash-only debug key (or make F12 give the kit only once) so large balances can be tested without overload.
+
+Next: commit only the cents files (TradingPost.cs, TradingPostScreen.cs, DifficultyManager.cs, GameManager.cs, Scripts/Economy files and meta, MoneyTests.cs, Homestead.Tests.EditMode.asmdef); the docs go in a later docs commit. Claude Code shows the file list and waits for Mike's OK before committing. Then the market build (read-only pass first), then Money System Phase A. Nothing committed yet.
+
+
+## 2026-10-20 - Money in cents committed and pushed: b6f548a
+
+Claude Code showed the staging list before committing (12 paths; it had said 14 first, then corrected itself) and Mike approved it in Claude Code. Commit b6f548a pushed to master (493e35c..b6f548a). Contents: TradingPost.cs, TradingPostScreen.cs, DifficultyManager.cs, GameManager.cs, Scripts/Economy.meta, Scripts/Economy/Money.cs and .meta, Scripts/Economy/Homestead.Economy.asmdef and .meta, Tests/EditMode/MoneyTests.cs and .meta, Tests/EditMode/Homestead.Tests.EditMode.asmdef. 165 edit-mode tests pass.
+
+New code baseline: b6f548a (previous 493e35c).
+
+Still uncommitted by design: ProjectSettings.asset (runInBackground), AudioManager.cs null guard, Homestead.slnx, 08_Backups/. Uncommitted docs: GDD v2.0, Structures_Roadmap.md, Money_System.md, Trading_Post_Market.md, Current_Task_List.md, Kitchen and Save/Load checklist headers, Money_Cents_Playtest_Checklist.md. Claude Code's prompt box showed "Commit the docs separately"; that is a suggestion, not Mike's approval. A docs commit waits for Mike's say-so.
+
+Next: the Trading Post market (Claude Code read-only pass on the build first), then Money System Phase A (land loan, parcel choice, payments). Backlog added: cash-only debug key.

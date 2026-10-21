@@ -1,6 +1,8 @@
 # Homestead
 ## Structures Roadmap v0.1
 
+UPDATE 2026-10-20: Slice 1 (Well, Outhouse, Wood Shed, Covered Outdoor Kitchen) and kitchen add-ons batch 1 are built, playtested and pushed (commit 493e35c). Mike's vision update (Homestead_Vision_and_Design_Pillars, GDD v2.0 Land Purchase and Debt) adds a bare money system; see step 1b under "Proposed order" and `Money_System.md`. The rest of this document is unchanged.
+
 Status: Design Draft (roadmap only, nothing built). Requested 2026-10-19 (Mike). Everything below is Claude's first pass and is NOT yet confirmed by Mike. No numbers are set yet; this document sorts the structures, shows what each one depends on, and proposes an order. Real-world research and numbers come when each group is detailed.
 
 ---
@@ -134,6 +136,7 @@ The framework already exists: the Craft and Build tab, Placement Mode with its g
 Order follows what each group can stand on, not how exciting it is:
 
 1. **Slice 1, Dry and clean (Group 1 without the freeze part):** Well, Outhouse, covered firewood storage, covered outdoor kitchen and dining area. All work with systems that are built today. Needs a short Claude Code read-only pass first (do rain and wind affect campfires and cooking today, is there any wet-wood idea in the code, how the Wood Pile would take a roof).
+1b. **Money system, bare version (added 2026-10-20, proposed placement, not yet confirmed):** the land payment, the loan balance, the extra payment and the seasonal account statement, with the late fee and the three-missed-payments loss. It needs no new structures, so it can land right after Slice 1 and before Winter water. Detail is in `Money_System.md`. Mike's vision (2026-10-20) has the land payment due from the start, so it should not wait for Slice 6.
 2. **Slice 2, Winter water:** design Winter water pressure and surface freezing, then frost-proof storage, Rain Barrel freezing and the Cistern. This also finishes the open "Rain Barrel freezing with the Winter water system" item.
 3. **Slice 3, Reserves:** spoilage and smoking/drying (already on Mike's later list), then Root Cellar, Smokehouse and Storage Shed so they have something to do.
 4. **Slice 4, Growing:** Gardening basics designed first, then garden beds, composting, cold frame to hoop house to greenhouse, and irrigation from the Rain Barrel.
