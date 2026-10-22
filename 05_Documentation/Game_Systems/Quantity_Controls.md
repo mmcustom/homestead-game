@@ -129,3 +129,28 @@ Next: Mike plays Quantity_Controls_Part1_Playtest_Checklist.md, then commit. Par
 ## Part 1 status
 
 Played 39 of 39 by Mike. Committed and pushed as b306150 (13 files). Part 2 is next.
+
+
+---
+
+## Part 2 build report (Inventory actions and Crafting)
+
+Status: built, 345 of 345 tests pass, awaiting Mike's playtest (Quantity_Controls_Part2_Playtest_Checklist.md). Not committed.
+
+- Inventory rows are now two lines (84 px): top half is name, tags, hotkey, quantity and weight (still equips, eats or sleeps); bottom half is the stepper, a status line and buttons: Drop n, Cook / Boil / Split / Refill n, and Cancel (only while a cook, boil or split is queued).
+- One stepper per row; its maximum is the carried count and each button clamps to its own limit (Refill pours min(amount, room in the tank); Split counts lots on Branches via `AxeTool.SplitCapacity`; Boil is disabled with a reason when there is no Cooking Pot).
+- Shift-click keeps the old meanings: Drop the stack, Cook and Split queue all, Refill pours as many as fit.
+- Cook, boil and split add to the queue as before; Cancel is its own button and the status line shows progress.
+- `QuantityRules.UnitsThatFit(free, each)` added (whole units that fit in a space; a zero-size unit has no limit but the 999,999 cap). `PortableLight.RefillRoom` and `Refill(int count)` added; the old `Refill(bool all)` is a wrapper.
+- Typed amounts survive an Inventory refresh: refresh is deferred while one of the Inventory's own boxes has focus and runs when typing ends.
+- Crafting: the x1 / x5 / Max row is replaced by the shared stepper on multi-craft recipes (starts at 1, max from materials, cap 99, hidden on single-craft recipes).
+- Hotkey assignment and the screen hotkeys are blocked while a quantity box has focus.
+
+Open: one unexplained burst of "PlayerLoop called recursively" engine messages in one Play Mode session (suspected test harness, unproven). Untested by Claude Code: real key presses and clicks, a real lit fire and walking out of range, quitting with a queued cook, odd drop spots, other crafting recipes.
+
+
+---
+
+## Part 2 status
+
+Played 46 of 46 by Mike. Committed and pushed as 50d01d8 (7 files). Quantity controls are complete for the Trading Post, Storage, Inventory actions (drop, split, cook, boil, lantern refill) and Crafting. Not built, by decision: a campfire fuel panel. Backlog: drag and drop (Storage first, hotkey assignment, ground and fire).

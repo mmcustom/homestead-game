@@ -2994,3 +2994,54 @@ Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, Project
 Docs waiting for their own commit: Trading_Post_Market.md, Quantity_Controls.md, Market_Playtest_Checklist.md, Quantity_Controls_Part1_Playtest_Checklist.md, Current_Task_List.md.
 
 Next: docs commit, then the Part 2 brief (Inventory drop, split firewood, cook/boil with separate Cancel, lantern refill, Crafting).
+
+
+---
+
+## Docs committed and pushed: 84ba77e
+
+Docs commit 84ba77e8debb0258a78ec6c994041e6de2a01e83 on master (b306150..84ba77e), 5 files (3 new, 2 modified): Trading_Post_Market.md, Quantity_Controls.md, Market_Playtest_Checklist.md, Quantity_Controls_Part1_Playtest_Checklist.md, Current_Task_List.md.
+
+Baselines now: code b306150, docs 84ba77e. Nothing waiting to commit. Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Next: Part 2 brief for Claude Code (read-only pass first).
+
+
+---
+
+## Quantity Controls Part 2 built, awaiting playtest (not committed)
+
+Claude Code reported Part 2 built on top of b306150. Nothing staged or committed.
+
+- Tests: 345 of 345 pass (335 existing + 10 new in QuantityRulesTests: UnitsThatFit, refill maximum, boiling needs the pot). Console 0 errors, 0 warnings before and after.
+- No new files. Changed: Economy/QuantityRules.cs (UnitsThatFit), Tests/EditMode/QuantityRulesTests.cs, UI/QuantityStepper.cs (SetAmount, box text not overwritten while focused), UI/InventoryScreen.cs (two-line rows, one stepper per row, Cancel, deferred refresh, typing guard), UI/CraftingScreen.cs (x1/x5/Max replaced by the stepper), Survival/PortableLight.cs (RefillRoom, Refill(int count); old Refill(bool all) is a wrapper), Player/AxeTool.cs (SplitCapacity).
+- Claude Code's unspecified choices: one stepper per row feeds every button on the row; stepper max = carried count and each button clamps to its own limit ("Refill 2" when the stepper holds 5), so a full lantern does not grey out Drop; Boil without the Cooking Pot is disabled with the reason shown; Split on Branches counts lots (SplitCapacity); Shift-click keeps old meanings (Cook/Split queue all, Refill pours all that fit, Drop drops the stack); cook, boil and split add to the queue; Cancel is a separate button and shows only while something is queued, with progress on the status line; rows are 84 px (about 2,200 px of scroll for 25 item kinds); only the top half of a row equips or eats; typed amounts survive refresh (refresh is deferred while an Inventory box has focus); Crafting stepper starts at 1 on each recipe, hidden on single-craft recipes, cap 99; help text shortened and given more height, Craft and Build button and notice line moved down about 22 px.
+- Claude Code Play Mode checks passed: Drop 5 of 12 feathers, Split 3, Cook 2 and Shift-cook of 5 venison, Boil 4 and Boil disabled without the pot, Refill with 5 oil clamped to 2, typed amount survived a refresh, hotkey guard confirmed, Crafting plus/typing/Max cap 99, layouts at 1920x1080 and 1024x768.
+- Open item: one Play Mode session logged 5 "PlayerLoop internal function has been called recursively" engine messages around a blank screenshot. Could not reproduce. Believed to be a test-harness artifact, unproven. Mike to watch for it.
+- NOT covered by Claude Code (Mike to test): real key presses and mouse clicks and Shift, real typing, Esc while typing, dropping on a slope/water/no room, a real lit fire (walking out of range with a cook queued), quitting with a queued cook, lantern in hand, crafting other recipes in a real session, long item names with tool tags at 1920x1080.
+- Note: Current_Task_List.md shows as modified because of these log entries (written after the docs commit 84ba77e). It goes in the next docs commit.
+- Playtest checklist written: 06_AI_Collaboration/Quantity_Controls_Part2_Playtest_Checklist.md (46 items).
+
+
+---
+
+## Quantity Controls Part 2 playtest: 46 of 46 pass
+
+Mike played Quantity_Controls_Part2_Playtest_Checklist.md. All 46 items passed, including a real lit fire, walking out of range with a cook queued, quitting with a queued cook, typing and hotkey guards, lantern refill, Crafting stepper, and item 46 (Console watch). The PlayerLoop recursion messages did not come up as a failure, so they are treated as a test-harness artifact. No notes added; the stepper-max choice (stepper max = carried count, each button clamps to its own limit) stands.
+
+Next: commit Part 2 code (7 files, Claude Code shows exact staging list and waits for Mike's OK), then the docs commit.
+
+
+---
+
+## Quantity Controls Part 2 committed and pushed: 50d01d8
+
+Commit 50d01d8395e039bf0eb2faceaecdc692b2d0139a on master (84ba77e..50d01d8), 7 files, exactly the approved staging list. 345 of 345 tests at last run, code unchanged since.
+
+Quantity controls are now complete except the decided-against campfire fuel panel and the drag-and-drop idea (backlog).
+
+Code baseline is now 50d01d8. Docs baseline is still 84ba77e.
+
+Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Docs waiting for their own commit: Quantity_Controls.md, Current_Task_List.md, Quantity_Controls_Part2_Playtest_Checklist.md.
