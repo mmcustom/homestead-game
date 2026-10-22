@@ -66,6 +66,18 @@ public static class QuantityRules
     public static int ParseAndClamp(string text, int current, int max) =>
         Clamp(TryParse(text, out int parsed) ? parsed : current, max);
 
+    // How many whole units fit in a space: free / each, never more than MaxAmount. Both in the same small unit (the lantern tank in
+    // hundredths of an hour). Nothing fits when there is no free space; a unit that takes no room has no limit.
+    public static int UnitsThatFit(long free, long each)
+    {
+        if (free <= 0)
+            return 0;
+        if (each <= 0)
+            return MaxAmount;
+        long units = free / each;
+        return units > MaxAmount ? MaxAmount : (int)units;
+    }
+
     // The most that can move: the smallest of the limits (what is available, what can be afforded, what can be carried, what has room).
     // Any limit of 0 or less means nothing can move; no limits at all means none either. Never more than MaxAmount.
     public static int MaxOf(params int[] limits)

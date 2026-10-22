@@ -583,6 +583,14 @@ public class AxeTool : MonoBehaviour
         return Mathf.Clamp01(splitProgress / SplitSeconds(item));
     }
 
+    // How many splits what is carried could make: one per Log, one per lot of Branches (the stepper's limit for a Split button).
+    public int SplitCapacity(ItemDefinition item)
+    {
+        if (item == null || !IsSplittable(item.Id))
+            return 0;
+        return item.Id == WoodManager.BranchesId ? Carried(item) / branchesPerFirewood : Carried(item);
+    }
+
     // Logs, or lots of Branches, still to split — capped at what's carried.
     public int SplitsLeft(ItemDefinition item)
     {

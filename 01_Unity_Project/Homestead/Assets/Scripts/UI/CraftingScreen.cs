@@ -8,7 +8,8 @@ using UnityEngine.UI;
 // description, what it makes or needs, a have / need line per ingredient (green when enough, red when short) and an
 // action button.
 //   Craft — every recipe in Crafting.Recipes, grouped into six categories, the ones makeable right now listed first.
-//     Arrows and Cordage have a x1 / x5 / Max quantity. Crafting stays instant, with no timer, skill or station.
+//     Arrows and Cordage have the shared quantity stepper (Quantity_Controls.md, Part 2: - / + / Max or a typed amount, at most what the
+//     materials allow, never over 99). Crafting stays instant, with no timer, skill or station.
 //   Build — what the Inventory screen's Build area held: the Campfire (FireManager), the shelters and storage piles
 //     (WoodManager.Buildable), and the Small Cabin site, which you finish by pounding it with the Hammer at the site.
 //     Costs, the Hammer requirement, placement and the CanBuildPile / CanCompleteCabin reasons are unchanged — this
@@ -57,14 +58,14 @@ public class CraftingScreen : GameScreen
     Text[] categoryLabels = new Text[6];
     RectTransform list;
     Text nameLabel, helpLabel, infoLabel, reqHeading, reqLabel, reasonLabel;
-    Button[] quantityButtons = new Button[3];
+    QuantityStepper quantityStepper; // for the multi-craft recipes (Arrows, Cordage)
+    string stepperKey;               // the entry the stepper's amount belongs to: a new selection starts again at 1
     Button actionButton;
     Text actionLabel;
 
     Mode mode = Mode.Craft;
     readonly int[] categoryIndex = new int[2];
     readonly string[] selectedKey = new string[2];
-    int quantity; // 0 = x1, 1 = x5, 2 = Max
     string hoverKey;
     string lastSignature, lastVisibleMarker;
     List<Entry> allEntries = new List<Entry>();
@@ -147,17 +148,11 @@ public class CraftingScreen : GameScreen
         reasonLabel.rectTransform.offsetMin = new Vector2(0f, 116f);
         reasonLabel.rectTransform.offsetMax = new Vector2(0f, 172f);
 
-        string[] quantityNames = { "x1", "x5", "Max" };
-        for (int i = 0; i < quantityButtons.Length; i++)
-        {
-            int index = i;
-            Button q = UiKit.Button(right, "Quantity " + quantityNames[i], quantityNames[i], 22, () => { quantity = index; Refresh(); });
-            var rt = (RectTransform)q.transform;
-            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 0f);
-            rt.sizeDelta = new Vector2(120f, 44f);
-            rt.anchoredPosition = new Vector2(i * 128f, 66f);
-            quantityButtons[i] = q;
-        }
+        quantityStepper = QuantityStepper.Create(right, 1, 1);
+        RectTransform stepperRt = quantityStepper.Root;
+        stepperRt.anchorMin = stepperRt.anchorMax = stepperRt.pivot = Vector2.zero;
+        stepperRt.anchoredPosition = new Vector2(0f, 71f);
+        quantityStepper.Changed += UpdateDetail;
 
         actionButton = UiKit.Button(right, "Action", "", 28, OnAction);
         var actionRt = (RectTransform)actionButton.transform;
@@ -202,6 +197,9 @@ public class CraftingScreen : GameScreen
     {
         banner.Hide();
         Unsubscribe();
+        stepperKey = null;
+        quantityStepper.SetAmount(1);
+        UiKit.ReleaseFocus();
     }
 
     void OnDestroy() => Unsubscribe();
@@ -419,12 +417,16 @@ public class CraftingScreen : GameScreen
         bool hasAction = chosen != null;
         actionButton.gameObject.SetActive(hasAction);
         bool showQuantity = hasAction && chosen.multi;
-        for (int i = 0; i < quantityButtons.Length; i++)
+        quantityStepper.Root.gameObject.SetActive(showQuantity);
+        if (showQuantity)
         {
-            quantityButtons[i].gameObject.SetActive(showQuantity);
-            UiKit.SetSelected(quantityButtons[i], i == quantity);
-            if (i == 2 && showQuantity)
-                quantityButtons[i].GetComponentInChildren<Text>().text = chosen.maxCrafts > 1 ? $"Max ({chosen.maxCrafts})" : "Max";
+            // The most is what the materials allow (Crafting.MaxCrafts, at most 99); picking another recipe starts again at 1.
+            quantityStepper.SetMax(chosen.maxCrafts);
+            if (stepperKey != chosen.key)
+            {
+                stepperKey = chosen.key;
+                quantityStepper.SetAmount(1);
+            }
         }
         if (hasAction)
         {
@@ -433,13 +435,9 @@ public class CraftingScreen : GameScreen
         }
     }
 
-    // How many crafts the button will make: the chosen quantity, no more than the materials allow (at least one, so the
+    // How many crafts the button will make: the stepper's amount, no more than the materials allow (at least one, so the
     // button still reads sensibly while it's greyed).
-    int CraftTimes(Entry e)
-    {
-        int want = quantity == 0 ? 1 : quantity == 1 ? 5 : 99;
-        return Mathf.Max(1, Mathf.Min(want, e.maxCrafts));
-    }
+    int CraftTimes(Entry e) => Mathf.Max(1, Mathf.Min(quantityStepper.Amount, e.maxCrafts));
 
     string Notice => notice != null && Time.unscaledTime < noticeUntil ? notice : null;
 
@@ -554,6 +552,7 @@ public class CraftingScreen : GameScreen
         int made = Crafting.Craft(e.recipe, CraftTimes(e));
         if (made <= 0)
             return;
+        quantityStepper.SetAmount(1); // back to 1 once the move has happened
         int total = made * Mathf.Max(1, e.recipe.outputCount);
         string itemName = ItemName(e.recipe.outputId);
         string text = total == 1 ? $"Made a {itemName}." : $"Made {total} {itemName}.";

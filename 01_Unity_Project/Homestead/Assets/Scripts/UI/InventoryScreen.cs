@@ -7,8 +7,14 @@ using UnityEngine.UI;
 // Encumbered and maximum carry thresholds, and which Tool is equipped. Clicking a carried tool equips it, clicking the
 // equipped tool again unequips it; clicking food or water eats or drinks one (Food). Standing by a burning campfire,
 // raw meat and fish rows get a Cook button and raw water a Boil button (Cooking) — Shift-click does the whole stack.
-// Each piece takes a few seconds (CampfireCooking); the button shows the progress, and clicking it again stops.
+// Each piece takes a few seconds (CampfireCooking); the row shows the progress, and its Cancel button stops it.
 // Carrying the Axe, Logs and Branches get a Split button the same way, making Firewood (AxeTool).
+// Every row is two lines (Quantity_Controls.md, Part 2): the name, quantity and weight on top (click it to equip a tool, eat or drink),
+// and below it ONE quantity stepper (QuantityStepper) that the row's buttons all use: "Drop n", "Cook n", "Boil n", "Split n" and
+// "Refill n". A plain click uses the amount in the stepper (1 by default, back to 1 after every move); Shift-click keeps the old shortcut:
+// Drop drops the stack, Cook and Split queue them all, Refill pours as many as fit. The stepper's most is what is carried; a button
+// clamps to its own limit (the room in the Lantern's tank, the splits the pack can make). The queue buttons (Cook, Boil, Split) add to the
+// queue, and Cancel is a separate button that shows while one is queued.
 // Building and crafting moved to their own Craft and Build screen (CraftingScreen, key B, 2026-10-09) — a button here
 // opens it. Storage is filled and emptied in the World, not from this screen.
 public class InventoryScreen : GameScreen
@@ -34,7 +40,23 @@ public class InventoryScreen : GameScreen
     RectTransform encumberedTick;
     Text encumberedTickLabel;
     InventoryManager watched;
-    readonly Dictionary<ItemDefinition, Text> cookLabels = new Dictionary<ItemDefinition, Text>();
+
+    // The amount chosen in each row's stepper, by item id. Rows are rebuilt on every refresh, so the amounts live here; they go back to 1
+    // after a move and are cleared when the screen hides.
+    readonly Dictionary<string, int> amounts = new Dictionary<string, int>();
+
+    // A row with a queue (Cook, Boil, Split): the line that shows its progress and the Cancel button that shows only while it is queued.
+    class QueueRow
+    {
+        public ItemDefinition item;
+        public bool split;
+        public Text info;
+        public Button cancel;
+        public string idleInfo;
+    }
+
+    readonly List<QueueRow> queueRows = new List<QueueRow>();
+    bool refreshPending; // a refresh was skipped while a quantity box had the keyboard: it happens when the typing ends
     readonly List<(RectTransform row, ItemDefinition tool)> toolRows = new List<(RectTransform, ItemDefinition)>();
 
     public override string Title => "Inventory";
@@ -88,13 +110,13 @@ public class InventoryScreen : GameScreen
         Top(equippedLabel.rectTransform, 242f, 34f);
 
         hintLabel = UiKit.Text(right, "Hint", "", 16, UiKit.Muted);
-        Top(hintLabel.rectTransform, 278f, 64f);
+        Top(hintLabel.rectTransform, 278f, 88f);
 
         // Building and crafting live on their own screen now.
         craftButton = UiKit.Button(right, "Craft and Build", "Craft and Build  [B]", 22, OpenCrafting);
-        Top((RectTransform)craftButton.transform, 352f, 52f);
+        Top((RectTransform)craftButton.transform, 374f, 52f);
         noticeLabel = UiKit.Text(right, "Notice", "", 18, UiKit.Muted);
-        Top(noticeLabel.rectTransform, 414f, 56f);
+        Top(noticeLabel.rectTransform, 436f, 56f);
 
         banner.Build(area); // last, so it draws over everything else
     }
@@ -115,6 +137,9 @@ public class InventoryScreen : GameScreen
     {
         banner.Hide();
         Unsubscribe();
+        amounts.Clear();
+        refreshPending = false;
+        UiKit.ReleaseFocus();
     }
 
     void OnDestroy() => Unsubscribe();
@@ -144,31 +169,55 @@ public class InventoryScreen : GameScreen
         }
         banner.Tick();
 
+        if (refreshPending && !TypingInRows)
+        {
+            Refresh();
+            return;
+        }
+
         CampfireCooking cooking = CampfireCooking.Instance;
         AxeTool axe = AxeTool.Instance;
-        foreach (KeyValuePair<ItemDefinition, Text> pair in cookLabels)
+        foreach (QueueRow q in queueRows)
         {
-            if (pair.Value == null)
+            if (q.info == null)
                 continue;
-            ItemDefinition item = pair.Key;
-            bool split = AxeTool.IsSplittable(item.Id);
-            string idle = split ? "Split" : Cooking.IsBoilable(item.Id) ? "Boil" : "Cook";
-            bool queued = split ? axe != null && axe.IsSplitQueued(item) : cooking != null && cooking.IsQueued(item);
+            bool queued = q.split ? axe != null && axe.IsSplitQueued(q.item) : cooking != null && cooking.IsQueued(q.item);
+            if (q.cancel != null)
+                q.cancel.gameObject.SetActive(queued);
             if (!queued)
             {
-                pair.Value.text = idle;
+                q.info.text = q.idleInfo;
                 continue;
             }
-            float p = split ? axe.SplitProgressOf(item) : cooking.ProgressOf(item);
-            int left = split ? axe.SplitsLeft(item) : cooking.RemainingOf(item);
-            pair.Value.text = p >= 0f ? $"{p * 100f:0}%  ({left})" : $"Queued ({left})";
+            float p = q.split ? axe.SplitProgressOf(q.item) : cooking.ProgressOf(q.item);
+            int left = q.split ? axe.SplitsLeft(q.item) : cooking.RemainingOf(q.item);
+            q.info.text = p >= 0f ? $"{p * 100f:0}%  ({left} left)" : $"Queued ({left})";
+        }
+    }
+
+    // True while the player is typing in one of this screen's quantity boxes: a rebuild then would throw the typed amount away.
+    bool TypingInRows
+    {
+        get
+        {
+            if (!GameScreens.IsTyping || EventSystem.current == null)
+                return false;
+            GameObject selected = EventSystem.current.currentSelectedGameObject;
+            return selected != null && selected.transform.IsChildOf(list);
         }
     }
 
     void Refresh()
     {
+        if (TypingInRows)
+        {
+            refreshPending = true; // the typed amount must not be lost to a rebuild
+            return;
+        }
+
+        refreshPending = false;
         UiKit.Clear(list);
-        cookLabels.Clear();
+        queueRows.Clear();
         toolRows.Clear();
         InventoryManager inventory = InventoryManager.Instance;
         if (inventory == null)
@@ -201,9 +250,9 @@ public class InventoryScreen : GameScreen
         foreach ((ItemDefinition item, int quantity) in stacks)
             AddRow(item, quantity, item == equipped, atFire, player);
 
-        hintLabel.text = "Click a tool to equip it, food or water to use one, the Sleeping Bag to sleep. Drop: Shift = stack. Point at a tool, press 1-9/0 for a hotkey. " +
-                         (atFire ? "<color=#C7D68C>At the campfire: Cook meat and fish, Boil water (needs the Cooking Pot). Shift: whole stack.</color>"
-                                 : "Cook and boil at a burning campfire. With the Axe, Split Logs and Branches into Firewood.");
+        hintLabel.text = "Click a tool to equip it, food or water to use one. Set an amount with - / + / Max or type it; Shift-click Drop: the stack. Point at a tool, press 1-9/0: hotkey. " +
+                         (atFire ? "<color=#C7D68C>At the fire: Cook meat and fish, Boil water (needs the Pot).</color>"
+                                 : "Cook at a burning campfire; split Logs and Branches with the Axe.");
 
         // Weight against the thresholds.
         float carried = inventory.CarriedWeightKg, max = inventory.MaxCarryWeightKg, limit = inventory.EncumberedWeightKg;
@@ -263,8 +312,8 @@ public class InventoryScreen : GameScreen
         RefreshNotice();
     }
 
-    // Pours Lamp Oil into the Lantern: one bottle, or Shift-click as many as fit.
-    void RefillLantern()
+    // Pours Lamp Oil into the Lantern: the stepper's amount, or with Shift-click as many as fit. The tank takes what has room.
+    void RefillLantern(int amount, bool all)
     {
         PortableLight light = PortableLight.Instance;
         if (light == null)
@@ -274,13 +323,18 @@ public class InventoryScreen : GameScreen
             Notify("The Lantern's tank is full.");
             return;
         }
-        int used = light.Refill(ShiftHeld);
+        amounts.Remove(PortableLight.LampOilId); // back to 1 once the move has happened
+        int used = light.Refill(all ? int.MaxValue : amount);
         Notify($"Poured in {used} Lamp Oil — the Lantern has {light.LanternFuelHours:0.0} h of oil.", warning: false, seconds: 3f);
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.Pour);
+        Refresh();
     }
 
     bool inventoryHasLantern;
+
+    const float RowHeight = 84f;
+    const float ControlY = 5f; // line two's controls: this far above the row's bottom edge
 
     void AddRow(ItemDefinition item, int quantity, bool equipped, bool atFire, PlayerController player)
     {
@@ -291,16 +345,27 @@ public class InventoryScreen : GameScreen
                                              : isTool ? () => ToggleEquip(item)
                                              : item.IsFood ? () => Food.Consume(item)
                                              : (UnityEngine.Events.UnityAction)null;
-        Button row = UiKit.Button(list, item.Id, "", 20, click);
-        UiKit.Height(row, 46f);
-        row.interactable = click != null;
-        ColorBlock colors = row.colors;
-        colors.disabledColor = UiKit.RaisedColor; // plain items aren't clickable but shouldn't look greyed out
-        row.colors = colors;
-        UiKit.SetSelected(row, equipped);
 
-        var rt = (RectTransform)row.transform;
-        Destroy(row.GetComponentInChildren<Text>().gameObject);
+        // The row is a panel. Its top half is the old click-to-equip or eat row, a button so it lights up under the pointer; the bottom
+        // half holds the stepper and the action buttons, outside that button so a click there never equips or eats by accident.
+        Image panel = UiKit.Image(list, item.Id, equipped ? UiKit.SelectedColor : UiKit.RaisedColor);
+        RectTransform rt = panel.rectTransform;
+        UiKit.Height(rt, RowHeight);
+        if (click != null)
+        {
+            Button main = UiKit.Button(rt, "Main", "", 20, click);
+            Destroy(main.GetComponentInChildren<Text>().gameObject);
+            var mainRt = (RectTransform)main.transform;
+            mainRt.anchorMin = new Vector2(0f, 0.5f);
+            mainRt.anchorMax = Vector2.one;
+            mainRt.offsetMin = mainRt.offsetMax = Vector2.zero;
+            ColorBlock mainColors = main.colors;
+            var clear = new Color(0f, 0f, 0f, 0f);
+            mainColors.normalColor = mainColors.selectedColor = mainColors.disabledColor = clear;
+            mainColors.highlightedColor = new Color(UiKit.HoverColor.r, UiKit.HoverColor.g, UiKit.HoverColor.b, 0.6f);
+            main.colors = mainColors;
+        }
+
         string detail = item.IsFood ? FoodDetail(item) : CategoryName(item.Category);
         string tag = equipped ? "  <color=#C7D68C>• Equipped</color>" : "";
         PortableLight light = PortableLight.Instance;
@@ -312,36 +377,16 @@ public class InventoryScreen : GameScreen
         if (risk != null)
             tag += $"  <size=16><color=#E6A050>{risk}</color></size>";
 
-        // Cook / Boil, beside the name, while standing at a lit campfire.
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
         bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried;
-        // Lamp Oil gets a Refill button while a Lantern is carried (Portable Lighting).
-        bool refillable = item.Id == PortableLight.LampOilId && inventoryHasLantern;
-        float nameRight = QtyMin;
-        if ((atFire && (cookable || boilable)) || splittable || refillable)
-        {
-            nameRight = 0.36f;
-            Button cook = UiKit.Button(rt, "Cook", refillable ? "Refill" : splittable ? "Split" : boilable ? "Boil" : "Cook", 18,
-                                       refillable ? (UnityEngine.Events.UnityAction)RefillLantern :
-                                       splittable ? () => ToggleSplit(item) : () => ToggleCooking(item));
-            if (!refillable)
-                cookLabels[item] = cook.GetComponentInChildren<Text>();
-            var cookRt = (RectTransform)cook.transform;
-            cookRt.anchorMin = new Vector2(0.37f, 0f);
-            cookRt.anchorMax = new Vector2(0.49f, 1f);
-            cookRt.offsetMin = new Vector2(0f, 7f);
-            cookRt.offsetMax = new Vector2(0f, -7f);
-            ColorBlock cookColors = cook.colors;
-            cookColors.normalColor = new Color(0.36f, 0.25f, 0.13f, 1f);
-            cookColors.highlightedColor = new Color(0.5f, 0.34f, 0.16f, 1f);
-            cook.colors = cookColors;
-        }
+        bool refillable = item.Id == PortableLight.LampOilId && inventoryHasLantern; // Lamp Oil, while a Lantern is carried
+        bool cooks = atFire && (cookable || boilable);
         // Only Tools that clicking equips: the Sleeping Bag (sleeps), Tent (placed) and Weather Station (carried) are Tools by category but aren't held.
         bool hotkeyable = isTool && !InventoryManager.IsCarriedOnly(item.Id);
-        if (hotkeyable)
-            nameRight = 0.36f; // room for the hotkey button
-        Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, nameRight,
-               TextAnchor.MiddleLeft, UiKit.Cream, 21, 12f);
+
+        // Line one: name, the hotkey button, quantity, weight.
+        Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, hotkeyable ? 0.36f : QtyMin,
+               TextAnchor.MiddleLeft, UiKit.Cream, 21, 12f, 0f, 0.5f);
         // Tool Hotkeys (Inventory_System.md): the number key that equips this Tool. Click cycles 1-9, 0, none;
         // or point at the row and press a number key.
         if (hotkeyable)
@@ -352,23 +397,122 @@ public class InventoryScreen : GameScreen
             Button key = UiKit.Button(rt, "Hotkey", slot >= 0 ? $"Key {InventoryManager.HotkeyLabel(slot)}" : "Key —", 16,
                                       () => CycleHotkey(item));
             var keyRt = (RectTransform)key.transform;
-            keyRt.anchorMin = new Vector2(0.37f, 0f);
+            keyRt.anchorMin = new Vector2(0.37f, 0.5f);
             keyRt.anchorMax = new Vector2(0.49f, 1f);
-            keyRt.offsetMin = new Vector2(0f, 7f);
-            keyRt.offsetMax = new Vector2(0f, -7f);
+            keyRt.offsetMin = new Vector2(0f, 4f);
+            keyRt.offsetMax = new Vector2(0f, -4f);
+        }
+        Column(rt, $"×{quantity}", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 0f, 0.5f);
+        Column(rt, $"{item.WeightKg * quantity:0.0} kg", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 8f, 0.5f);
+
+        // Line two: the stepper (the most is what is carried), what the row's queue is doing, then the buttons from the right.
+        QuantityStepper stepper = QuantityStepper.Create(rt, amounts.TryGetValue(item.Id, out int chosen) ? chosen : 1, quantity);
+        RectTransform stepperRt = stepper.Root;
+        stepperRt.anchorMin = stepperRt.anchorMax = stepperRt.pivot = Vector2.zero;
+        stepperRt.anchoredPosition = new Vector2(12f, ControlY);
+
+        Button AddButton(string label, float fromRight, float width, UnityEngine.Events.UnityAction onClick)
+        {
+            Button b = UiKit.Button(rt, label, label, 18, onClick);
+            QuantityStepper.Style(b);
+            var brt = (RectTransform)b.transform;
+            brt.anchorMin = brt.anchorMax = brt.pivot = new Vector2(1f, 0f);
+            brt.sizeDelta = new Vector2(width, QuantityStepper.Height);
+            brt.anchoredPosition = new Vector2(-fromRight, ControlY);
+            return b;
         }
 
-        Column(rt, $"×{quantity}", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f);
-        Column(rt, $"{item.WeightKg * quantity:0.0} kg", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 8f);
+        // A button's click: whether Shift was held, the keyboard handed back to the screen, and the stepper's amount.
+        UnityEngine.Events.UnityAction Act(System.Action<bool, int> move) => () =>
+        {
+            bool shift = UiKit.ShiftHeld;
+            UiKit.ReleaseFocus();
+            move(shift, stepper.Amount);
+        };
 
-        // Drop (Inventory_System.md's Dropping Items): one, or Shift-click the whole stack. Works on tools too —
-        // dropping the last one puts it away first, since InventoryManager unequips a tool that's no longer carried.
-        Button drop = UiKit.Button(rt, "Drop", "Drop", 18, () => DropItem(item));
-        var dropRt = (RectTransform)drop.transform;
-        dropRt.anchorMin = new Vector2(0.86f, 0f);
-        dropRt.anchorMax = new Vector2(0.99f, 1f);
-        dropRt.offsetMin = new Vector2(0f, 7f);
-        dropRt.offsetMax = new Vector2(0f, -7f);
+        Button drop = AddButton("Drop", 8f, 112f, Act((shift, n) => DropItem(item, n, shift)));
+        Text dropLabel = drop.GetComponentInChildren<Text>();
+
+        Button action = null;
+        Text actionLabel = null;
+        QueueRow queue = null;
+        string idleInfo = "";
+        System.Func<string> actionText = null;
+        if (refillable)
+        {
+            PortableLight lantern = PortableLight.Instance;
+            int room = lantern != null ? lantern.RefillRoom : 0;
+            action = AddButton("Refill", 126f, 118f, Act((shift, n) => RefillLantern(n, shift)));
+            QuantityStepper.SetEnabled(action, lantern != null && lantern.CanRefill);
+            actionText = () => room > 0 ? $"Refill {QuantityRules.MaxOf(stepper.Amount, room)}" : "Refill";
+            idleInfo = room > 0 ? $"room for {room} in the tank" : "the tank is full";
+        }
+        else if (splittable)
+        {
+            AxeTool axe = AxeTool.Instance;
+            int splits = axe != null ? axe.SplitCapacity(item) : 0;
+            action = AddButton("Split", 126f, 118f, Act((shift, n) => QueueSplit(item, shift ? int.MaxValue : n)));
+            actionText = () => $"Split {Mathf.Min(stepper.Amount, Mathf.Max(1, splits))}";
+            idleInfo = splits > 0 ? $"{splits} to split" : "not enough to split";
+            queue = new QueueRow { item = item, split = true };
+        }
+        else if (cooks)
+        {
+            string verb = boilable ? "Boil" : "Cook";
+            bool potMissing = boilable && !Cooking.HasPot;
+            action = AddButton(verb, 126f, 118f, Act((shift, n) => QueueCooking(item, shift ? int.MaxValue : n)));
+            QuantityStepper.SetEnabled(action, QuantityRules.MaxOf(quantity, potMissing ? 0 : QuantityRules.MaxAmount) > 0); // boiling needs the Cooking Pot
+            actionText = () => $"{verb} {stepper.Amount}";
+            idleInfo = potMissing ? "needs the Cooking Pot" : "";
+            queue = new QueueRow { item = item, split = false };
+        }
+
+        if (action != null)
+        {
+            // Cook and Split are queues that run over time: a separate Cancel button stops one, so it never fights the stepper.
+            actionLabel = action.GetComponentInChildren<Text>();
+            var brownColors = action.colors;
+            brownColors.normalColor = new Color(0.36f, 0.25f, 0.13f, 1f);
+            brownColors.selectedColor = brownColors.normalColor;
+            brownColors.highlightedColor = new Color(0.5f, 0.34f, 0.16f, 1f);
+            action.colors = brownColors;
+            actionLabel.text = actionText();
+        }
+
+        Text info = UiKit.Text(rt, "Info", idleInfo, 16, UiKit.Muted, TextAnchor.MiddleLeft);
+        info.horizontalOverflow = HorizontalWrapMode.Overflow;
+        info.rectTransform.anchorMin = Vector2.zero;
+        info.rectTransform.anchorMax = new Vector2(1f, 0.5f);
+        info.rectTransform.offsetMin = new Vector2(250f, 0f);
+        info.rectTransform.offsetMax = new Vector2(action == null ? -130f : queue != null ? -356f : -256f, 0f);
+
+        if (queue != null)
+        {
+            Button cancel = AddButton("Cancel", 252f, 92f, () =>
+            {
+                UiKit.ReleaseFocus();
+                CancelQueue(item, queue.split);
+            });
+            cancel.gameObject.SetActive(false);
+            queue.cancel = cancel;
+            queue.info = info;
+            queue.idleInfo = idleInfo;
+            queueRows.Add(queue);
+        }
+
+        void Relabel()
+        {
+            dropLabel.text = $"Drop {stepper.Amount}";
+            if (actionLabel != null)
+                actionLabel.text = actionText();
+        }
+
+        stepper.Changed += () =>
+        {
+            amounts[item.Id] = stepper.Amount;
+            Relabel();
+        };
+        Relabel();
     }
 
     // Next slot for a Tool: 1..9, 0, then off.
@@ -421,16 +565,20 @@ public class InventoryScreen : GameScreen
         }
     }
 
-    void DropItem(ItemDefinition item)
+    // Drops the stepper's amount, or with Shift-click the whole stack.
+    void DropItem(ItemDefinition item, int amount, bool all)
     {
         PlayerController player = FindAnyObjectByType<PlayerController>();
         InventoryManager inventory = InventoryManager.Instance;
         if (inventory == null)
             return;
 
-        int count = ShiftHeld ? inventory.Player.Count(item.Id) : 1;
+        int count = all ? inventory.Player.Count(item.Id) : amount;
+        amounts.Remove(item.Id); // back to 1 once the move has happened (the rebuild the drop causes reads it)
         int dropped = DroppedItems.Drop(player, item.Id, count, out string reason);
         Notify(dropped > 0 ? $"Dropped {dropped} {item.DisplayName} on the ground in front of you." : reason, warning: dropped <= 0, seconds: 2.5f);
+        if (dropped <= 0)
+            Refresh();
     }
 
     static void ToggleEquip(ItemDefinition tool)
@@ -448,18 +596,16 @@ public class InventoryScreen : GameScreen
             AudioManager.Instance.Play(SoundCue.UiClick);
     }
 
-    // Queues one (Shift: the whole stack) at the fire, or stops it if it's already cooking.
-    static void ToggleCooking(ItemDefinition item)
+    // Queues count more at the fire (int.MaxValue: the whole stack). Cancel is its own button.
+    void QueueCooking(ItemDefinition item, int count)
     {
         CampfireCooking cooking = CampfireCooking.Instance;
         if (cooking == null)
             return;
-        if (cooking.IsQueued(item))
-            cooking.Cancel(item);
-        else
-            cooking.Enqueue(item, ShiftHeld ? int.MaxValue : 1);
-        if (AudioManager.Instance != null)
+        amounts.Remove(item.Id); // back to 1 once it is queued
+        if (cooking.Enqueue(item, count) && AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
+        Refresh();
     }
 
     // The Sleeping Bag: sleep right here (SleepManager), back to the world first.
@@ -480,22 +626,33 @@ public class InventoryScreen : GameScreen
         sleep.Sleep(null);
     }
 
-    // Queues one Log or lot of Branches (Shift: all of them) to split into Firewood, or stops it.
-    static void ToggleSplit(ItemDefinition item)
+    // Queues count more Logs, or lots of Branches, to split into Firewood (int.MaxValue: all of them). Cancel is its own button.
+    void QueueSplit(ItemDefinition item, int count)
     {
         AxeTool axe = AxeTool.Instance;
         if (axe == null)
             return;
-        if (axe.IsSplitQueued(item))
-            axe.CancelSplit(item);
-        else
-            axe.EnqueueSplit(item, ShiftHeld ? int.MaxValue : 1);
+        amounts.Remove(item.Id); // back to 1 once it is queued
+        if (axe.EnqueueSplit(item, count) && AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+        Refresh();
+    }
+
+    // Stops a queued cook, boil or split.
+    void CancelQueue(ItemDefinition item, bool split)
+    {
+        if (split)
+        {
+            if (AxeTool.Instance != null)
+                AxeTool.Instance.CancelSplit(item);
+        }
+        else if (CampfireCooking.Instance != null)
+        {
+            CampfireCooking.Instance.Cancel(item);
+        }
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
     }
-
-    static bool ShiftHeld =>
-        UnityEngine.InputSystem.Keyboard.current != null && UnityEngine.InputSystem.Keyboard.current.shiftKey.isPressed;
 
     // What eating or drinking one restores, e.g. "+30 food · +5 water".
     static string FoodDetail(ItemDefinition item)
@@ -517,11 +674,11 @@ public class InventoryScreen : GameScreen
     }
 
     static Text Column(RectTransform parent, string text, float xMin, float xMax, TextAnchor anchor, Color color, int size,
-                       float padLeft, float padRight = 0f)
+                       float padLeft, float padRight = 0f, float yMin = 0f)
     {
         Text label = UiKit.Text(parent, "Column", text, size, color, anchor);
         label.horizontalOverflow = HorizontalWrapMode.Overflow;
-        label.rectTransform.anchorMin = new Vector2(xMin, 0f);
+        label.rectTransform.anchorMin = new Vector2(xMin, yMin);
         label.rectTransform.anchorMax = new Vector2(xMax, 1f);
         label.rectTransform.offsetMin = new Vector2(padLeft, 0f);
         label.rectTransform.offsetMax = new Vector2(-padRight, 0f);

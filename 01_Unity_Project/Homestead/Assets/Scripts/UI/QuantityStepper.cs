@@ -135,6 +135,13 @@ public sealed class QuantityStepper
         Refresh();
     }
 
+    // Sets the amount from outside (a new selection, or back to 1 after a move), kept in range, without raising Changed.
+    public void SetAmount(int amount)
+    {
+        Amount = QuantityRules.Clamp(amount, Max);
+        Refresh();
+    }
+
     void Nudge(int sign)
     {
         Apply(QuantityRules.Step(Amount, sign * QuantityRules.StepFor(UiKit.ShiftHeld), Max));
@@ -174,7 +181,8 @@ public sealed class QuantityStepper
     {
         bool can = Max > 0;
         string text = Amount.ToString();
-        field.SetTextWithoutNotify(text);
+        if (!field.isFocused)
+            field.SetTextWithoutNotify(text); // never overwrite what the player is typing
         placeholder.text = text;
         field.interactable = can;
         SetEnabled(minus, can && Amount > 1);

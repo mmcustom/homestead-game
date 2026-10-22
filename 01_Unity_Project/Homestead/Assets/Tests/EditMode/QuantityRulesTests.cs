@@ -201,4 +201,48 @@ public class QuantityRulesTests
         Assert.That(QuantityRules.Clamp(30, max), Is.EqualTo(12));
         Assert.That(QuantityRules.Step(12, 1, max), Is.EqualTo(12));
     }
+
+    // --- UnitsThatFit (the lantern tank's room for bottles, in hundredths of an hour) ---
+
+    [TestCase(1601, 800, 2)]   // an empty 16 h tank with the 0.01 h tolerance: two 8 h bottles
+    [TestCase(801, 800, 1)]    // 8 h of oil already in: one more
+    [TestCase(1000, 800, 1)]
+    [TestCase(799, 800, 0)]    // not quite a whole bottle
+    [TestCase(1, 800, 0)]
+    public void WholeUnitsThatFitInTheSpace(long free, long each, int expected)
+    {
+        Assert.That(QuantityRules.UnitsThatFit(free, each), Is.EqualTo(expected));
+    }
+
+    [TestCase(0, 800)]
+    [TestCase(-50, 800)]
+    public void NoFreeSpaceFitsNothing(long free, long each)
+    {
+        Assert.That(QuantityRules.UnitsThatFit(free, each), Is.EqualTo(0));
+    }
+
+    [Test]
+    public void AUnitThatTakesNoRoomHasNoLimitButTheLargestAmount()
+    {
+        Assert.That(QuantityRules.UnitsThatFit(100, 0), Is.EqualTo(QuantityRules.MaxAmount));
+        Assert.That(QuantityRules.UnitsThatFit(100, -3), Is.EqualTo(QuantityRules.MaxAmount));
+        Assert.That(QuantityRules.UnitsThatFit(long.MaxValue, 1), Is.EqualTo(QuantityRules.MaxAmount));
+    }
+
+    [Test]
+    public void TheRefillMaximumIsTheSmallerOfOilCarriedAndRoomInTheTank()
+    {
+        int room = QuantityRules.UnitsThatFit(1601, 800);
+        Assert.That(QuantityRules.MaxOf(5, room), Is.EqualTo(2), "5 bottles carried, room for 2");
+        Assert.That(QuantityRules.MaxOf(1, room), Is.EqualTo(1), "1 bottle carried, room for 2");
+        Assert.That(QuantityRules.MaxOf(5, QuantityRules.UnitsThatFit(799, 800)), Is.EqualTo(0), "a full tank: nothing to pour");
+    }
+
+    [Test]
+    public void BoilingNeedsThePotSoWithoutOneNothingCanBeQueued()
+    {
+        const int carried = 6;
+        Assert.That(QuantityRules.MaxOf(carried, QuantityRules.MaxAmount), Is.EqualTo(6), "with a Cooking Pot: the carried count");
+        Assert.That(QuantityRules.MaxOf(carried, 0), Is.EqualTo(0), "without one: nothing");
+    }
 }

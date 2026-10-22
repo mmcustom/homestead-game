@@ -281,12 +281,19 @@ public class PortableLight : MonoBehaviour, ISaveable
         InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(LanternId) &&
         InventoryManager.Instance.Player.Has(LampOilId) && lanternFuelHours + LanternHoursPerOil <= LanternCapacityHours + 0.01f;
 
+    // How many bottles of Lamp Oil the tank has room for: a whole bottle has to fit, with the same 0.01 h tolerance as CanRefill.
+    public int RefillRoom =>
+        QuantityRules.UnitsThatFit(Mathf.FloorToInt((LanternCapacityHours + 0.01f - lanternFuelHours) * 100f), Mathf.RoundToInt(LanternHoursPerOil * 100f));
+
     // Pours Lamp Oil into the Lantern, one (or as many as fit). Returns how many were used.
-    public int Refill(bool all)
+    public int Refill(bool all) => Refill(all ? int.MaxValue : 1);
+
+    // Pours up to count bottles of Lamp Oil (the stepper's amount), as many as are carried and fit in the tank. Returns how many.
+    public int Refill(int count)
     {
         InventoryManager inventory = InventoryManager.Instance;
         int used = 0;
-        while (CanRefill && (all || used == 0))
+        while (used < count && CanRefill)
         {
             if (inventory.RemoveFromPlayer(LampOilId, 1) < 1)
                 break;
