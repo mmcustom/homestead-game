@@ -142,3 +142,9 @@ Decision: forage frequency follows the seasons using a pool of patches per type 
 
 ## 2026-10-11 - Winter Preparation playthrough passed; Alpha 0.1 survival loop proven fun as built (Mike)
 Result: Mike played the full Winter Preparation run (new Pioneer game, Spring through 14+ game days of Winter) and answered pass to all 25 checks, saying the playtest was fun. No bugs were reported. Mike also passed the three design questions (Fall tension without spoilage/preservation, firewood pressure, Trading Post income), which Claude reads as: the core loop works as built, so spoilage, smoking/drying and Winter water freezing are NOT required to call Alpha 0.1 proven. Whether to add them is now a post-Alpha 0.1 design choice for Mike, not a blocker. Record: 05_Documentation/Gameplay_Loops/Winter_Preparation_Playthrough.md and Current_Task_List.md (2026-10-11).
+
+
+---
+
+**2026-10-23 — Starting weapon fixed by difficulty; savings go to the debt on a loss (Mike)**
+Weapon choice removed from New Game: Pioneer (hardest) starts with the Recurve Bow and 20 arrows, Settler and Homesteader start with the Bolt-Action Rifle and 10 rounds. On a loss, all cash goes against everything owed on the loan (open payments and late fees first, then interest, then principal) before the loss screen totals what is still owed; shown as cash you had, taken for the debt, land loan still owed; display only, nothing saved. See Money_System.md and Difficulty_System.md.

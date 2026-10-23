@@ -557,3 +557,93 @@ Purchase categories (6): Tools; Hunting and fishing; Shelter and bedding; Cookin
 Limits: "Owed at end" in seasons skipped in one jump (debug skips, long loads) shows the amount owed today. Statement is cash-basis (interest and fees appear when paid). Untested by Claude Code: the real L key, real clicks, a real sleep across a season, a real payment on a season-close day, 180 seasons, the paper panel's contrast on a real monitor, release builds, F12 itself.
 
 Playtest: `06_AI_Collaboration\Money_Phase_B_Playtest_Checklist.md` (42 items).
+
+
+---
+
+# Phase C design: the loss screen (2026-10-23)
+
+Status: design draft. Nothing built. Code baseline 0f6b002, docs baseline 5487ccc. Phases A and B are committed and played.
+
+## What is already decided (earlier, by Mike)
+
+| Rule | Decision |
+|---|---|
+| Loss | Three missed payments open at once is a loss (2026-10-20). Catching up clears a missed payment, so the count is open payments, not payments ever missed. |
+| Loss wording | A banner or text telling the player that mother nature beat them (Mike's wording, kept). |
+| Loss screen | Offers Restart or Load Save. |
+| After a loss | Continue loads the last safe autosave. A loss never overwrites the autosave (the loss check runs before the autosave that day, or suppresses it). |
+| Restart | Must remember the weapon choice, which the game does not store today. |
+
+## Decisions (Mike, 2026-10-23)
+
+| Question | Decision |
+|---|---|
+| What Restart does | Same setup, fresh world: starts a new game at once with the same difficulty, weapon, parcel and savings split. |
+| What the loss screen shows | A short summary of the run besides the banner. |
+| Loss during sleep | The loss screen appears when the player wakes up. |
+
+## Claude's defaults (PROPOSED, accepted unless Mike objects)
+
+- **Wording:** big text "Mother Nature beat you." and a line under it "Three payments on the land went unpaid." (final wording is Mike's to change).
+- **Summary:** days survived, seasons completed, total income and total expenses since the start (from the ledger), loan balance still owed, the due days of the three missed payments, and cash at the end.
+- **Buttons:** Restart, Load Save (opens the slot panel in load mode; greyed with "no saves" if there are none), and Main Menu. Main Menu is an addition Mike did not ask for.
+- **Lost state:** a new game state with the clock stopped. The pause menu and every game window (T, I, L, M and so on) are blocked while it shows. Nothing in the world can be played.
+- **No save while lost:** the end-of-day autosave, the sleep autosave, the quit-to-menu autosave and the quit-game autosave are all suppressed while lost, and a lost game is never written to any slot. The last safe autosave stays exactly as it was.
+- **What Continue gives back:** the autosave from the day before the loss. The player is back with two missed payments open and the third payment overdue, so they get a real chance to pay it. This follows from "last safe autosave".
+- **Loss threshold:** a field on MoneyManager (default 3), next to the existing warning count, so Phase D can tune it per difficulty.
+- **Processing order each day:** money first (payments, fees, missed count), then the loss check, then the autosave, then the ledger close. A loss stops the autosave and the ledger close for that day.
+- **Sleep:** the lost flag is set at once so no autosave can happen, but the screen waits for the wake.
+- **Restart after loading:** the setup (difficulty, weapon, parcel, savings split) is saved so Restart works after a load. An old save without it makes Restart fall back to the New Game screens.
+- **Testing:** a debug key (editor and development builds only) forces the loss without waiting 178 days.
+
+## Open questions for the Claude Code build
+
+1. Where best to store the new-game setup so it survives a load (a small save section, or the loan section), and what an old save does.
+2. How to suppress every autosave path while lost (SaveManager day hook, SleepManager, ReturnToMainMenu, OnApplicationQuit) with one flag.
+3. Loading a save while in the Lost state inside the World scene: has this been exercised, and what must be reset (loan, ledger, market, time scale, input, screens)?
+4. Which pure logic can go in the Economy assembly for tests (the loss rule, the run summary, the setup record).
+
+
+---
+
+# Phase C build report (Claude Code, 2026-10-23), NOT committed, not yet played by Mike
+
+Built on code baseline 0f6b002. 475 of 475 edit-mode tests pass (427 existing + 48 new in LossTests). Console 0 errors and 0 warnings before and after. Saves folder backed up and restored (29 files, hashes identical). Bootstrap.unity untouched.
+
+What was built:
+- `Economy/LossRules.cs` (pure, engine-free): the loss rule (open missed payments against a threshold, default 3), the line "Three payments on the land went unpaid.", the RunSummary record, and the NewGameSetup record with its save struct.
+- `MoneyManager`: `lossMissedCount` field (default 3) next to the warning count, a Lost flag and LossSummary. The loss check runs after payments, fees and the missed count, and before any save. Cleared by a new loan, a reset or a load.
+- `GameManager`: a Lost state with timeScale 0 and pause ignored; moves to Lost only when the player is not asleep; stores the new-game setup (difficulty, weapon, parcel, savings split) in the player.json section "setup"; RestartGame() and MainMenuNote.
+- `SaveManager`: one SavingBlocked check guards manual save, autosave, quit save and queued saves while lost. A lost game is never written to any slot and the last safe autosave stays untouched.
+- `LedgerManager`: closes and starts no season once the game is lost.
+- `UI/LossScreen.cs`: "Mother Nature beat you." with a line under it, a summary (days survived, seasons completed, total income and expenses from the ledger, land loan still owed, cash at the end, the due days of the missed payments one per line), and three buttons: Restart (same difficulty, weapon, parcel and savings split, fresh world, no slot picked), Load Save (slot panel in load mode, greyed when there are no saves), Main Menu (my addition). The loss clears all banners.
+- A game saved before Phase C has no setup record, so Restart goes to the New Game screens with "That game did not record how it began, so pick your start again."
+- A sleep that crosses the loss sets Lost at once (no save can happen) and shows the screen after the wake.
+- Debug key: Insert (editor and development builds, while playing) forces the loss.
+
+Choices: "Land loan still owed" is principal only (late fees and interest on open payments are not included); Continue returns to the autosave from the day before the loss.
+
+Untested by Claude Code: real key presses and clicks, a real 178-day loss, a sleep started by a human, a real application quit, Load Save greyed with no saves, opening the slot panel from the Load Save button.
+
+Playtest: `06_AI_Collaboration\Money_Phase_C_Playtest_Checklist.md` (29 items).
+
+
+---
+
+# Phase C addition: savings go to the debt on a loss (Mike, 2026-10-23)
+
+Added after the Phase C build, before Mike played it. Mike's rule: on a loss, all the savings (cash) default to any debt that is still unpaid, before the screen totals what is still owed at the end.
+
+| Question | Decision |
+|---|---|
+| Which debt the cash goes against | Everything owed on the loan: open missed payments and late fees first, then interest, then principal (the same order as a payment, Phase A). |
+| How the loss screen shows it | Cash you had, then the amount taken for the debt, then what is left owed. Cash left is shown only when it is above $0.00. |
+
+How it works (PROPOSED details, Claude's reading of the rule):
+
+- It happens when the loss is declared. The cash is applied to a COPY of the loan state with the same rules as a payment (fee, interest, principal, then any rest as extra principal). The real loan, the real cash and the ledger are not changed and nothing is written to a save: a lost game is never saved and Continue still loads the last safe autosave, so the player gets their cash back there.
+- "Land loan still owed" on the screen now means everything still owed after the cash was applied (principal plus interest and late fees owed on open payments), no longer principal only. This also answers the open note in the Phase C playtest checklist.
+- If the cash is more than everything owed, the debt shows $0.00 and the leftover cash is shown. (A rare case: a player with enough cash to clear the loan would normally have paid.)
+- The seizure is not a ledger line, so the "total income and total expenses since the start" numbers on the screen are unchanged.
+- Pure logic goes in the Economy assembly with tests (cash 0, cash below the fees, cash between fees and everything, cash above everything).

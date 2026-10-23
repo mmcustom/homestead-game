@@ -3117,3 +3117,136 @@ Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, Project
 Docs waiting for their own commit: Money_System.md, Money_Phase_B_Playtest_Checklist.md, Current_Task_List.md.
 
 Money System remaining: Phase C (loss screen: restart or load save, banner "mother nature beat them", Continue loads last safe autosave) and Phase D (difficulty and rebalance).
+
+
+---
+
+## Docs committed and pushed: 5487ccc
+
+Docs commit 5487ccce488283a168bffe31c2d6bcbc123fb3cd on master (0f6b002..5487ccc), 3 files (1 new, 2 modified): Money_System.md, Money_Phase_B_Playtest_Checklist.md, Current_Task_List.md.
+
+Baselines now: code 0f6b002, docs 5487ccc. Nothing waiting to commit. Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Money Phase B is complete. Next piece of work to be chosen by Mike. Open list: Money Phase C (loss screen), Phase D (difficulty and rebalance), measure real income per game day, cash-only debug key (F12), check Weather weights array in Bootstrap (should it be 64 entries, not 49), drag and drop (backlog), update the Vision and Design Pillars Claude Doc, Structures_Roadmap Slice 2, GDD v3 gaps.
+
+
+---
+
+## Money Phase C started: design and decisions (2026-10-23)
+
+Mike chose Money Phase C (the loss screen) as the next piece of work. Decisions: Restart means same setup, fresh world (same difficulty, weapon, parcel and savings split); the loss screen shows a short summary of the run; if the third miss lands during sleep, the screen appears when the player wakes.
+
+Claude's defaults (accepted unless Mike objects): text "Mother Nature beat you." plus a line about three unpaid payments; summary of days survived, seasons completed, total income and expenses, loan balance owed, the three missed due days, cash at end; buttons Restart, Load Save and Main Menu (Main Menu is an addition); Lost game state with the clock stopped and all windows blocked; every autosave path suppressed while lost and a lost game never written to a slot; Continue returns to the autosave from the day before the loss; loss threshold as a MoneyManager field (default 3); order each day: money, loss check, autosave, ledger close; the setup is saved so Restart works after a load (old saves fall back to New Game screens); a debug key forces the loss.
+
+Design written to Money_System.md ("Phase C design"). Next: Claude Code build (the loss mechanics were already covered by the Phase A read-only pass), Play Mode checks, playtest checklist, commit.
+
+
+---
+
+## Money Phase C built, awaiting playtest (not committed) (2026-10-23)
+
+Claude Code reported Phase C built on top of 0f6b002. Nothing staged or committed.
+
+- Tests: 475 of 475 pass (427 existing + 48 new in LossTests: loss rule at 2 versus 3 open, loss on day 178, catching up clears a miss, run summary, setup record JSON round trip). Console 0 errors, 0 warnings before and after.
+- Created: Economy/LossRules.cs (loss rule, the "Three payments..." line, RunSummary, NewGameSetup and its save struct), Tests/EditMode/LossTests.cs, UI/LossScreen.cs (own canvas, sort order 140). Changed: Managers/MoneyManager.cs (lossMissedCount field default 3 next to the warning count, Lost flag and LossSummary, loss check after payments, fees and the missed count and before any save, cleared by a new loan, reset or load), Managers/LedgerManager.cs (no season closed or started once lost), Managers/GameManager.cs (Lost state with timeScale 0, pause ignored, moves to Lost only when not asleep, saves the setup record, RestartGame() and MainMenuNote), Managers/SaveManager.cs (one SavingBlocked check guards manual save, autosave, quit save and queued saves), UI/MainMenuController.cs (fallback note and New Game screens), Debug/TimeDebugControls.cs (debug key). Bootstrap.unity untouched (git shows no change), so the Weather block is intact.
+- Claude Code's choices: setup record stored as the player.json section "setup", travels with every slot like the loan and ledger, cleared by a load so an old save has none, and Restart then goes to the New Game screens with "That game did not record how it began, so pick your start again."; debug key is Insert (editor and dev builds, while Playing); Restart starts with no slot picked like any new game, and a game started without land restarts without land; "Land loan still owed" is principal only (late fees and interest on open payments not included); missed payments listed one due date per line (the day-178 case shows Spring 1, Summer 1 and Fall 1 of Year 2); the loss clears all banners; dim layer 97% black; GameState.Lost is deliberately not InGame so every in-game save and update path skips it; Lost is set during a sleep (state stays Menu) and the screen opens after the wake; Load and Restart from Lost rebuild the world from scratch.
+- Claude Code Play Mode checks passed: loss at day 178 with text and summary (178 days, 6 seasons, $0 income, $12,000 expenses, $48,000 loan, $2,000 cash) matching ledger and loan; clock stopped, timeScale 0, pause and windows blocked, cursor free; autosave byte-identical after the loss day, Main Menu, stopping Play Mode from the loss screen and two sleep-time losses; Continue loaded day 177 with 2 missed and paying cleared 3 open payments with no loss on the next day; Load Save from the loss screen loaded a manual slot cleanly (Lost cleared, banners gone, timeScale 1, cursor locked, clock runs); Restart gave the same Pioneer, parcel 1, $9,000 down and $1,000 reserve, both after a New Game and after a loaded save with a setup record, and slot1 (no setup) fell back to the New Game screens with the note; sleep timeline: sleep started 5.70 s, Lost set 5.73 s on day 178 while asleep, woke 7.95 s, screen opened 7.97 s, no autosave attempted; catching up: day 150 with 2 missed, paying the oldest left 1, day 178 showed 2 open and no loss, day 206 showed 3 open and the loss; layouts at 1920x1080 and 1024x768 including three due-date lines.
+- Open item: the "PlayerLoop internal function has been called recursively" messages appeared again after one screenshot (known harness artifact, unproven). Mike watches for it (item 29).
+- NOT covered by Claude Code (Mike to test): real key presses and clicks (Insert, the three buttons, Esc were driven through the methods they call), a real 178-day loss reached by playing, a sleep started by a human, a real application quit, Load Save greyed with no saves (the tool refused to rename the Saves folder, so it was not worked around; the button follows HasSaveGame like the main menu), and opening the slot panel from the loss screen's Load Save button (LoadSlot was called directly).
+- Weather weights: Bootstrap.unity untouched, Weather block found verbatim. (The BACKLOG item to check the Weather weights array against the intended 64 entries is still open.)
+- Playtest checklist written: 06_AI_Collaboration/Money_Phase_C_Playtest_Checklist.md (29 items).
+
+
+---
+
+## Phase C change before the playtest: savings go to the debt on a loss (2026-10-23)
+
+Mike asked that on a loss all the savings default to any debt that is still unpaid, before the screen totals what is still owed. Decisions: the cash goes against everything owed on the loan (open payments and late fees first, then interest, then principal); the loss screen shows cash you had, the amount taken for the debt, and what is left owed (cash left only when above $0.00).
+
+Claude's reading: applied to a copy of the loan state when the loss is declared, display only; the real loan, cash and ledger are untouched and nothing is saved, so Continue still returns the cash; "Land loan still owed" now means everything still owed after the cash was applied (no longer principal only); the seizure is not a ledger line.
+
+Written to Money_System.md ("Phase C addition"). Next: Claude Code makes the change, then the Phase C checklist (items 6, 7 and the notes) is updated and Mike plays it. Mike should hold the Phase C playtest until the change is in.
+
+
+---
+
+## Weapon by difficulty, replacing the weapon choice (2026-10-23)
+
+Mike's decision: remove the weapon choice at New Game. Each difficulty gets a fixed starting weapon: the hardest (Pioneer) gets the bow and arrows, and the other two (Settler and Homesteader) get the rifle. Ammunition counts stay as today (Claude Code reports the exact numbers and what Pioneer starts with now). Folded into the Phase C build, because the new-game setup record that Restart uses currently stores the weapon, so that field is never committed and then removed.
+
+Docs to update when built: Difficulty_System.md (starting kits by tier), GDD v2.0 if it names the weapon choice, the difficulty and weapon panel text. Phase C checklist gains new-game items.
+
+Mike should still hold the Phase C playtest until both changes (savings go to the debt, weapon by difficulty) are in.
+
+
+---
+
+## Phase C changes built: savings to the debt, weapon by difficulty (2026-10-23)
+
+Claude Code built both changes on top of the uncommitted Phase C build. Nothing staged or committed. Baseline still 0f6b002.
+
+Savings go to the debt on a loss:
+- Tests: 12 new in Tests/EditMode/LossSettlementTests.cs. Created: that file. Changed: Economy/LoanState.cs (Copy() and OpenPayment.Clone()), Economy/LossRules.cs (LossSettlement applies the cash to a copy of the loan with the same Pay rules and returns cash had, taken, still owed and cash left; RunSummary gained the settlement fields), Managers/MoneyManager.cs (DeclareLoss fills the settlement into the summary, display only), UI/LossScreen.cs (rows: Cash you had, Taken for the debt, Land loan still owed, and Cash left only when above $0.00; the old "Cash at the end" row is gone).
+- Choices: the cash follows a real payment's order (the oldest open payment is cleared whole, fee then interest then principal, before the next one is touched; totals are the same as fees first); "still owed" is principal plus open fees and interest, not interest on payments not yet due; rows are 46 px, panel 930 px tall, dates one per line, buttons moved down, with some empty space above the buttons when Cash left is hidden; a game with no loan takes nothing and keeps the cash.
+- Play Mode: $2,000 and no payments gave $2,000.00 had, $2,000.00 taken, $47,185.00 still owed ($48,000 + $150 fees + $960 interest + the $75 third fee on day 178 = $49,185.00, minus $2,000); $62,000 gave $49,185.00 taken, $0.00 still owed and $12,815.00 cash left; the real cash ($2,000.00) and loan ($48,000) were unchanged after the loss and after Main Menu and Continue (day 177, 2 missed); autosave byte-identical; layout readable at 1920x1080 and 1024x768.
+- Not tested: real clicks and Insert, a loss reached by playing 178 days, a sleep-time loss with the new rows, Load Save in that run.
+
+Weapon by difficulty:
+- Tests: 7 new in Tests/EditMode/StartingWeaponTests.cs; 492 of 492 pass in total (487 before the weapon change; net of the weapon cases removed from LossTests the total is up 5). Console 0 errors, 0 warnings.
+- Created: Economy/StartingWeapons.cs (StartingWeapon enum, For(difficulty), the ammo counts), Tests/EditMode/StartingWeaponTests.cs. Changed: DifficultyManager.cs (Kit(tier) takes the weapon from StartingWeapons; blurbs and header updated; old enum removed), GameManager.cs (StartNewGame no longer takes a weapon; RestartGame no longer reads one), Economy/LossRules.cs (weapon removed from NewGameSetup, Of and IsValid), UI/MainMenuController.cs (weapon row and buttons removed; now a difficulty panel), Tests/EditMode/LossTests.cs (weapon dropped from the setup tests).
+- Kits before the change: Homesteader (tent, sleeping bag, cooking pot, bucket, axe, pick axe, shovel, canteen, flint and steel, 3 cordage, knife, tarp, hammer, plus the chosen weapon), Settler (the same without tarp and hammer, plus the chosen weapon), Pioneer (only bucket, 3 cordage, knife, no weapon). Bow kit: recurve bow x1 and 20 arrows. Rifle kit: bolt-action rifle x1 and 10 rounds.
+- Choices: Pioneer gets the same 20 arrows; the setup record stays at version 1 and an old weapon field is ignored on load (JsonUtility skips unknown fields) and dropped on the next save; the panel stays 600 px tall (shortening it showed a strip of the main menu), with some empty space above Back and Start; blurbs reworded (Homesteader "a rifle with 10 rounds", Pioneer "a bow with 20 arrows", Settler "the camping kit, with its rifle and 10 rounds, without the hammer and tarp").
+- Play Mode: kits match; Restart after a loss on each tier gives the right weapon; slot1 (old save) loads as Settler with the rifle and no setup record; a slot with a setup section containing "weapon":1 loads without error and restarts as Pioneer with the bow (from the difficulty, not the old field); panel readable at both sizes.
+- Not tested: real clicks on tier buttons and Start, a full New Game through the land and slot screens (StartNewGame was called directly), a bow or rifle shot in the world.
+
+Docs: Difficulty_System.md (new "Starting weapon fixed by difficulty" section), Decisions_Log.md (new entry), Money_System.md (Phase C addition, written earlier).
+
+Playtest checklist updated: 06_AI_Collaboration/Money_Phase_C_Playtest_Checklist.md is now 36 items (items 1, 6, 7, 12, 17 reworded; new section J, items 30 to 36). Mike can now play it.
+
+
+---
+
+## New feature request: regions (2026-10-23)
+
+Mike wants options for what part of the country the property is in, with the available resources and environment changing with the climate and geographic location chosen. Decisions: three to five regions from the start; all four things change (climate and weather; plants, trees and crops; wildlife and fish; land prices and terrain); a NEW map is generated for every new game, seeded with the regional settings.
+
+Design written to the new Game_Systems/Regions_System.md (v0.1, PROPOSED): five proposed regions (Ohio Valley as the baseline, Appalachia, Pacific Northwest, High Desert Southwest, North Woods), a RegionData asset that every system reads, seeded generated maps (a save stores region id, seed and player changes; old saves load as the Ohio Valley "classic map"), a staged build plan (read-only pass, region foundation, generator for one region, then content one region at a time), open questions and the Claude Code read-only question list.
+
+Flags: this is the largest feature so far (the generator risk and the content and art cost per region). Real land prices for the four new regions still need to be researched. The Phase C setup record and Restart will later need a region and a seed. The Weather weights array backlog check becomes relevant.
+
+Next: Mike answers the five open questions, then the Claude Code read-only pass. Phase C playtest and commit come first; this goes on the roadmap after them.
+
+
+---
+
+## Regions parked until after Phase C (2026-10-23)
+
+Mike agreed to keep the regions feature for later and finish Money Phase C first. Regions_System.md stays at v0.1 PROPOSED with its five open questions (region list, calendar, difficulty rating, per-region content, Alpha 0.1 placement). No work on it until Phase C is played and committed.
+
+Current focus: Mike plays Money_Phase_C_Playtest_Checklist.md (36 items), then the Phase C commit (staging list from Claude Code, Mike's OK), then the docs commit.
+
+
+---
+
+## Money Phase C playtest: 36 of 36 pass (2026-10-23)
+
+Mike played Money_Phase_C_Playtest_Checklist.md. All 36 items passed, including the loss at day 178 with the new cash-to-debt lines, an unchanged autosave across the loss day, Main Menu, Continue and quitting, Load Save from the loss screen, Restart (same difficulty, parcel and split, after a New Game and after a loaded save, and the New Game fallback for an old save), the sleep-time loss, catching up with no loss, the layouts, the weapon by difficulty on all three tiers and a clean Console.
+
+Mike's answers to the notes: the wording "Mother Nature beat you." and its line are acceptable; the summary is enough; the Main Menu button stays; taking the cash from the oldest open payment first is fine; Load Save: yes; the weapon feel (bow and 20 arrows for Pioneer, rifle and 10 rounds for Settler and Homesteader): yes. The cash-to-debt rule, the weapon by difficulty and the wording stand as built.
+
+Next: commit Phase C code (about 20 paths, Claude Code shows the exact staging list and waits for Mike's OK), then the docs commit.
+
+
+---
+
+## Money Phase C committed and pushed: 08964d8
+
+Commit 08964d8 on master (5487ccc..08964d8), 20 files (12 new, 8 changed; 1224 insertions, 57 deletions), exactly the approved staging list. Covers the loss rule and loss screen, saving blocked while lost, the setup record and Restart, cash-to-debt settlement on a loss, and the starting weapon by difficulty. 492 of 492 tests at last run.
+
+Code baseline is now 08964d8. Docs baseline is still 5487ccc.
+
+Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Docs waiting for their own commit: Decisions_Log.md, Difficulty_System.md, Money_System.md, Regions_System.md (new), Money_Phase_C_Playtest_Checklist.md (new), Current_Task_List.md.
+
+Money System remaining: Phase D (difficulty and rebalance). Parked: Regions (Regions_System.md v0.1).

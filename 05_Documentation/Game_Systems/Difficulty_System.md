@@ -162,3 +162,16 @@ The "Temperature Offset Fix" section above was based on a wrong premise and is w
 - Everything reads the shifted value (body model, pause line and feels-like, F3, IsFreezing, rain-versus-snow, humidity and heat index, SeasonalGround melt, fishing heat check); nothing reads the unshifted one.
 
 **Proposed 2026-10-17 (Claude Code's option A; waiting on Mike to confirm):** keep the existing function and ramp. Only add a shift readout to the F3 Air line so the shift being applied is visible when testing. The spec's steeper ramp (full +/-3 C within 3 C of 20 C) is NOT adopted; the biggest difference from it is 1.5 C at about 17 C and 23 C.
+
+
+---
+
+# Starting weapon fixed by difficulty (Mike, 2026-10-23)
+
+Supersedes the "Bow or Rifle choice" at New Game and the line "Pioneer: Bucket, 3 Cordage, and the guaranteed Knife" in the starting kits above. Built with Money Phase C, not yet committed or played by Mike.
+
+- The weapon choice is removed from New Game. The difficulty panel is just the difficulty.
+- Pioneer (hardest) starts with the Recurve Bow and 20 arrows, plus the Bucket, 3 Cordage and the Knife. Before this change Pioneer started with no weapon.
+- Settler and Homesteader start with the Bolt-Action Rifle and 10 rifle rounds, plus their camping kits as before (Homesteader adds the Hammer and the Tarp). Before this change both could pick a bow or a rifle.
+- The weapon follows from the difficulty in one place (`Economy/StartingWeapons.cs`). Ammunition counts are as before: 20 arrows with the bow, 10 rounds with the rifle.
+- Starting money is no longer a thing: the old $50 and $0 starting cash was retired in Money Phase A. Savings by tier are in Money_System.md.
