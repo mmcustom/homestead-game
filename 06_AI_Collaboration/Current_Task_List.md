@@ -3045,3 +3045,75 @@ Code baseline is now 50d01d8. Docs baseline is still 84ba77e.
 Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
 
 Docs waiting for their own commit: Quantity_Controls.md, Current_Task_List.md, Quantity_Controls_Part2_Playtest_Checklist.md.
+
+
+---
+
+## Docs committed and pushed: 8e86393
+
+Docs commit 8e86393b7128235dd9f144404e93569a3e4f9ba1 on master (50d01d8..8e86393), 3 files (1 new, 2 modified): Quantity_Controls.md, Quantity_Controls_Part2_Playtest_Checklist.md, Current_Task_List.md.
+
+Baselines now: code 50d01d8, docs 8e86393. Nothing waiting to commit. Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Quantity controls are complete (Parts 1 and 2). Next piece of work to be chosen by Mike. Open list: Money Phase B (ledger and seasonal statement), Phase C (loss screen), Phase D (difficulty and rebalance), measure real income per game day, cash-only debug key (F12), check Weather weights array in Bootstrap, drag and drop (backlog), update the Vision and Design Pillars Claude Doc.
+
+
+---
+
+## Money Phase B started: design and decisions (2026-10-22)
+
+Mike chose Money Phase B (ledger and seasonal statement) as the next piece of work. Decisions: banner at season change and open with a key (no interruption); the statement is a tab in the Finances screen (L), with Loan and Statement tabs; history is a full season-by-season table.
+
+Claude's defaults (accepted unless Mike objects): ledger stores per-season per-category totals, not clicks; seasons kept for the whole game; categories listed in Money_System.md; F12 debug money excluded; statement reconciles (start cash + in - out = end cash) with a test; payments run before the ledger closes the season, then the banner; works for every save, old saves start history at load; new save section player/ledger.
+
+Design written to Money_System.md ("Phase B design"). Next: Claude Code read-only pass (nothing changed), then Mike's answers, then the build, playtest checklist, commit.
+
+
+---
+
+## Money Phase B read-only pass logged (2026-10-22)
+
+Claude Code's read-only report on Phase B is logged in Money_System.md ("Phase B read-only pass results"). Nothing changed in code. Headlines: ledger records at the hooks (TradingPost Buy/Sell, MoneyManager.Pay, a new-game opening hook); seasons close state-based from SaveManager.OnDayChanged before the autosave; the L key and Finances screen currently need a loan and must work without one; the single-string banner would lose messages (payment due and statement ready land on the same instant), so a banner queue plus a saved "unread statement" flag is proposed; the statement is cash-basis; Stocked sell-backs need an income category; debug money needs an "Other" line to reconcile. Size about 4 new files, 7 changed, 35-45 tests, 1,400-1,800 lines.
+
+Decisions pending from Mike: Finances without a loan, cash-basis memo line, "Other" line for unexplained cash, purchases split by group.
+
+
+---
+
+## Money Phase B built, awaiting playtest (not committed) (2026-10-22)
+
+Claude Code reported Phase B built on top of 50d01d8. Nothing staged or committed.
+
+- Tests: 427 of 427 pass (345 existing + 82 new: LedgerTests 71, BannerQueueTests 11). Console 0 errors, 0 warnings before and after.
+- Created: Economy/Ledger.cs, Economy/BannerQueue.cs, Managers/LedgerManager.cs, UI/StatementPanel.cs, Tests/EditMode/LedgerTests.cs, Tests/EditMode/BannerQueueTests.cs (each with .meta). Changed: TradingPost.cs (ledger lines for buys and sells), MoneyManager.cs (L key and day check work without a loan; payments write four ledger lines), SaveManager.cs (closes the ledger before the end-of-day autosave), GameManager.cs (new-game opening savings; ledger reset on load), FinancesScreen.cs (Loan and Statement tabs; no loan no longer blocks or closes the screen), ToolStatus.cs (banner queue), ToolHud.cs (ticks the queue; persistent "statement ready" line), Scenes/Bootstrap.unity (+13 lines, additions only).
+- Purchase categories (6, from the 19-item Stock array): Tools (axe, hammer, knife); Hunting and fishing (fishing rod, recurve bow, rifle, arrows, rifle rounds); Shelter and bedding (tent, tarp, sleeping bag); Cooking, water, fire (cooking pot, canteen, bucket, flint and steel, lamp oil); Building materials (lumber, cordage); Other goods (weather station). A test checks every stocked item is mapped.
+- Claude Code's unspecified choices: the season in progress is a row marked "(so far)" at the top and is included in This year and Since the start; the tab opens on the newest closed season; Finances opens on the Statement tab when a statement is unread or there is no loan; change from the season before is per game day (the line says so); expenses show as negative red figures; "Owed at end" is a red negative figure (zero black); category totals are one positive amount per category; late fees and interest are recorded when paid (cash basis); an old save's first season covers only from the load; the same banner asked for again keeps its place instead of piling up, at most 6 wait and the oldest drops first (this replaces the old rule that a new banner replaced the one showing), ClearBanners on a new game and load; BannerQueue split into its own tested class (not asked for); detail pane lists only categories with an amount and shows "Other (not in the ledger)" only when not zero; "Bought: cooking, water, fire" shortened to fit.
+- Claude Code Play Mode checks passed: ledger matches real cash ($14,000.00 + $45.66 - $12,311.00 = $1,734.66, Other $0.00); skip from day 112 to 263 closed 5 seasons in one call with the same cash and loan balance (limit: "Owed at end" in skipped seasons shows the amount owed today); sleep across a season change on a payment day: banner does not draw during the sleep fade (Menu state), three queued messages showed in order after waking; save and load kept the ledger (11 seasons) and unread flag; an old save with a loan but no ledger started empty at the load; a no-loan test save opened Finances on the Statement tab with the Loan tab saying "There is no land loan in this game"; layouts at 1920x1080 and 1024x768 with 21 rows scrolling. Two issues found and fixed during testing: stale default season selection, and a cramped detail line.
+- Weather weights: Bootstrap Weather block identical before and after (102 lines, same SHA-1). (The BACKLOG item to check the Weather weights array against the intended 64 entries is not closed by this; it only shows nothing changed.)
+- Open item: the "PlayerLoop internal function has been called recursively" messages appeared again in one Play Mode session, again alongside a blank screenshot, and also happened in Part 2 before any ledger code existed. Believed to be the screenshot tool, unproven. Mike watches for it (item 42).
+- NOT covered by Claude Code (Mike to test): the real L key press, clicking season rows and tabs, a real payment on the day a season closes, a real sleep started by a human, a long game's 180 seasons, monitor contrast of the paper panel, a release build's behaviour, F12 itself (Other stayed zero in every run).
+- Playtest checklist written: 06_AI_Collaboration/Money_Phase_B_Playtest_Checklist.md (42 items).
+
+
+---
+
+## Money Phase B playtest: 42 of 42 pass (2026-10-23)
+
+Mike played Money_Phase_B_Playtest_Checklist.md. All 42 items passed, including a new game and Finances, recording sales and purchases by group, the "Other" line after F12, the season-change banner and unread HUD line, the payment-day banner pair, sleeping across a season, a missed payment with the red "Owed at end" memo, skipping several seasons, save and load, an old save with no loan and an old save with a loan but no ledger, layout at both sizes, regression and a clean Console. No notes added, so the paper panel, the six purchase groups and the banner queue stand as built.
+
+Next: commit Phase B code (20 paths, Claude Code shows exact staging list and waits for Mike's OK), then the docs commit (Money_System.md, Money_Phase_B_Playtest_Checklist.md, Current_Task_List.md).
+
+
+---
+
+## Money Phase B committed and pushed: 0f6b002
+
+Commit 0f6b002bbc35c2be422612dd84ddfb0abd84aae4 on master (8e86393..0f6b002), 20 files (12 new, 8 changed), exactly the approved staging list. Bootstrap.unity +13 lines, additions only. 427 of 427 tests at last run, code unchanged since.
+
+Code baseline is now 0f6b002. Docs baseline is still 8e86393.
+
+Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Docs waiting for their own commit: Money_System.md, Money_Phase_B_Playtest_Checklist.md, Current_Task_List.md.
+
+Money System remaining: Phase C (loss screen: restart or load save, banner "mother nature beat them", Continue loads last safe autosave) and Phase D (difficulty and rebalance).

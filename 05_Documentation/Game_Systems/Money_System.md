@@ -398,3 +398,162 @@ What Claude Code chose that Mike did not specify (all PROPOSED, accepted unless 
 Not covered: the visual look (screenshots were not viewed; the 40-acre card is unchecked), the real L key press, sleeping over a due date in the real sleep fade, the Pioneer and Homesteader paths in play, and the payoff banner in play (the logic is tested). A missing loan section and an old money save are covered only by the Play Mode run, not by edit-mode tests.
 
 Playtest: `06_AI_Collaboration\Loan_Phase_A_Playtest_Checklist.md` (41 items).
+
+
+---
+
+# Phase B design: ledger and seasonal account statement (2026-10-22)
+
+Status: design draft. Nothing built. Code baseline 50d01d8, docs baseline 8e86393. Phase A (loan), the Trading Post market and quantity controls are all committed and played.
+
+## What Mike decided (2026-10-22)
+
+| Question | Decision |
+|---|---|
+| When the statement appears | A banner at each season change says the statement is ready, and the player opens it with a key when they want. Nothing interrupts play. |
+| Where it lives | A tab inside the Finances screen (key L). Finances gets two tabs: Loan (what exists today) and Statement. |
+| History | A full season-by-season table: every season since the start. |
+
+Carried over from the earlier decisions: positive figures in black, negative in red, on a light paper-style panel (the UI theme is dark); the statement shows income and expenses and numbers compiled over time, as the budget for the property and household; payments are processed before the statement is built.
+
+## Claude's defaults (PROPOSED, accepted unless Mike objects)
+
+- **The ledger stores totals, not clicks.** One record per season per category: money in and money out in cents. A per-click list could reach tens of thousands of rows, and totals are all the statement needs. Seasons are kept for the whole game (at most about 180 seasons for a full 180-payment loan, a few kilobytes).
+- **A season is TotalDays divided by 28** (zero-based), labelled "Spring, Year 1" and so on. The first season is 27.75 days long because a new game starts at 6:00 AM.
+- **Income categories:** Trading Post sales, split by market group (firewood, logs and stone; fish; game meat; hides and furs; forage; crafted goods; farm produce). Later systems add their own.
+- **Expense categories:** Land payment (interest), Land payment (principal), Extra payment (to principal), Late fees, Down payment (in season 1 only), Trading Post purchases (one line for now). Later systems add their own.
+- **Not in the ledger:** the F12 debug money. Starting savings are the opening cash, not income.
+- **The statement always reconciles:** cash at start of season, plus money in, minus money out, equals cash at end of season. A test checks the ledger against the real cash balance.
+- **The table:** one row per season, newest first, with Income, Expenses, Net, Cash at end and Loan balance at end. Totals rows for This year and Since the start. Click a season row to see its detail by category, per game day averages (income and expenses per game day) and the change from the season before.
+- **Black and red:** positive net, income and balances in black; negative net and expenses in red. Zero in black.
+- **Timing:** on SeasonChanged, payments, fees and missed-payment checks run first, then the ledger closes the season, then the banner appears. The first statement therefore includes any payment due on the same day.
+- **The statement works for every save,** with or without a loan. An old save starts its history at the load (no invented past seasons) and its first statement appears at the next season change after loading.
+- **Saving:** a new `player/ledger` save section; a missing section means an empty ledger. Old saves load unchanged.
+
+## Questions for the Claude Code read-only pass
+
+1. Every place money moves: TradingPost Buy, Sell (and the market SaleResult), TrySpend, loan payments, extra payments, late fees, the down payment at new game, F12 DebugAddMoney, ResetMoney. Which of them can write one ledger line, and which need a hook?
+2. What does LoanState record when a payment is made: can the interest part and the principal part be read for each payment, or only the totals? Do late fees and extra payments have their own record?
+3. Order of events on a season change: SeasonChanged against DayChanged against MoneyManager processing and the autosave. Where does closing the ledger go so payments come first and the autosave contains the closed season?
+4. How would a tabbed Finances screen fit the current FinancesScreen layout, and how big is the light paper-style panel on a 1024x768 window (canvas scale 0.616)? Any scrolling problems for a table that grows to about 180 rows?
+5. What the banner system offers (ScreenBanner) and whether it can carry a "Statement ready, press L" message without being lost during a sleep skip.
+6. Which of the pure logic (ledger totals, season index, reconciliation, per game day averages, trend) can live in the engine-free Economy assembly for testing.
+7. Size: files created, files changed, number of tests.
+
+
+---
+
+# Phase B read-only pass results (Claude Code, 2026-10-22)
+
+Claude Code read the code and changed nothing (no files created, no edits, no staging, no Play Mode). Items marked UNCONFIRMED were not verified from code.
+
+## Where money moves
+
+Only a few paths change cash: it is the private field `money` in TradingPost and a grep found no other writer.
+
+| Movement | Where | Ledger line |
+|---|---|---|
+| Buy | TradingPost.cs:95 | Directly: it knows the item, the count bought and the price. One expense line. |
+| Sell | TradingPost.cs:114 | Directly: it has the SaleResult total. SaleResult carries no group, so the income category comes from the item id through the market table (MarketManager.Table, MarketGroup). |
+| TrySpend(cents) | TradingPost.cs:124 | No: no category. Only caller is MoneyManager.Pay. |
+| Loan payment, extra payment, late fee | MoneyManager.Pay | Hook here. PayResult already splits toFee, toInterest, toPrincipal and toExtra, so one payment can write four expense lines. |
+| Late fee assessed | LoanState.Advance | Not cash. Cash leaves only when the fee is paid, so the statement is cash-basis. |
+| Down payment | GameManager.StartNewGame, BeginLoan | The player never holds it as cash (cash starts at the reserve). Needs a new hook. |
+| ResetMoney | TradingPost.cs:132 | Not a transaction: used for the new-game reserve, every load and the debug money. Must not write a line. |
+| F12 DebugAddMoney | TimeDebugControls.cs:157 | Goes through ResetMoney, so it looks like a reset. Compiled out of release builds. |
+
+## Loan records
+
+`Pay` returns a PayResult (applied, toFee, toInterest, toPrincipal, toExtra, payments cleared). LoanState stores only running totals (feesPaid, interestPaid, principalPaid, extraPaid) and the open payments, with no per-payment history, so the ledger must record from PayResult at payment time in MoneyManager.Pay. Nothing in LoanState needs to change. "Loan balance at end" is LoanState.balanceCents when the season closes.
+
+## Event order
+
+TimeManager.StartNewDay: totalDays++, then DayChanged, then SeasonChanged, then YearChanged. SaveManager.OnDayChanged runs MoneyManager.ProcessNow(), then MarketManager.ProcessNow(), then RequestAutoSave. Only WeatherManager listens to SeasonChanged, and the autosave is requested before it fires, so closing the ledger on SeasonChanged would leave the autosave without the closed season.
+
+Recommendation (adopted as the plan): close seasons state-based like the loan and the market. `LedgerManager.ProcessNow()` closes every season whose end day has passed; it calls MoneyManager.ProcessNow() first itself; it runs from SaveManager.OnDayChanged after the two existing calls and before RequestAutoSave, from Update (catch-up after loads and skips) and from CaptureState. A sleep closes at most one season; F5, F6 and F8 debug skips can close several in one call (the intermediate seasons take the same cash and loan balance, which is correct).
+
+## Finances screen and panel
+
+FinancesScreen is its own canvas (sorting 150, 1920x1080 reference, match 0.5), panel 1500x880 reference px. Two tab buttons ("Loan", "Statement") fit at about x=440 to 840, y=18, with the cash label moving to about x=900. The Statement would be its own class mounted in the panel. At 1024x768 (scale 0.616) a paper panel inset by 24 px is about 894x431 px on screen, text at 22 reference px draws at about 13.5 px (small but legible, as in Parts 1 and 2). Six columns plus a detail pane fit. `UiKit.ScrollList` with a scrollbar exists; 180 rows would be built when the tab opens, not on every event. The paper panel needs its own colors (ink, red, paper); UiKit's text colors are dark-theme cream and ScrollList has a 20% black background that would tint the paper.
+
+## Banner
+
+`ToolStatus.Banner` is one static string with a real-time timer, drawn by ToolHud only in the Playing state. A second call overwrites the first and it can expire during sleep or a menu. Payment due dates fall on season starts (day 112, then every 28 days), so a "payment due today" banner and a "statement ready" message always land on the same instant and one would be lost. Recommendation: a small FIFO queue in ToolStatus whose timer starts only when the banner can be drawn, plus an "unread statement" flag in the ledger (saved) that drives a persistent line until the statement is opened. UNCONFIRMED: whether the HUD banner draws during the sleep fade.
+
+## Pure code (Economy assembly)
+
+Season index and labels ("Spring, Year 1"), this-year grouping (index / 4), fractional first season (27.75 days), per-category totals, record and close, net, "This year" and "Since the start" rows, reconciliation (start + in - out = end, any difference shown as "Other"), per-game-day averages (in hours so partial seasons work), change from the previous season (cents and basis points), the black-or-red rule, and the save struct (like MarketSaveData). The recording hooks and LedgerManager's ProcessNow are checked in Play Mode.
+
+## Opening cash and saves
+
+LandRules.SavingsCents sets savings; LandPurchasePanel splits them into downCents and reserveCents; GameManager.StartNewGame calls TradingPost.ResetMoney(reserveCents) and MoneyManager.BeginLoan(acres, price, down). Plan: `LedgerManager.BeginNewGame(savings, down)` records the opening cash as the full savings and the down payment as a season-1 expense line, so season 1 reconciles. An old save with no ledger section starts the ledger at the first ProcessNow after the load, taking current cash as the opening balance.
+
+New `player/ledger` section from a LedgerManager : ISaveable (version, season length, open season, unread flag, array of season records with index, days covered, long[] in and out per category, cash at end and loan balance at end). Category ids are append-only. About 200 to 300 bytes of JSON per season (20 seasons about 6 KB, the 180-season maximum under 60 KB). A missing section loads exactly as before; older builds ignore the unknown section. GameManager gets ResetLedger next to ResetLoan and ResetMarket.
+
+## Size
+
+New: Economy/Ledger.cs (about 350 lines), Managers/LedgerManager.cs (about 250), UI/StatementPanel.cs (about 450), Tests/EditMode/LedgerTests.cs (about 500), plus .meta files. Changed: TradingPost.cs (about 10 lines), MoneyManager.cs (Pay hook, Update and L-key restructure so they work without a loan, about 40), SaveManager.cs (1 call), GameManager.cs (2 calls plus opening data), FinancesScreen.cs (tabs and no-loan handling, about 120), ToolStatus.cs (banner queue, about 30), ToolHud.cs (persistent line, about 20), Bootstrap.unity (adds the component). About 35 to 45 tests, roughly 1,400 to 1,800 lines with tests.
+
+## Risks found
+
+1. "Statement for every save" conflicts with Phase A: the L key and FinancesScreen.Open only work while a loan exists, and Refresh closes the screen if the loan is gone. This must change.
+2. "Payments first, then close" is moot: there is no auto-debit, so nothing is paid at the season boundary. Only the loan catch-up must run first so the "Loan balance at end" snapshot is current. The first payment (day 112) is due on the first day of Year 2, so it cannot be in the season-1 statement either way.
+3. Banner collision is certain, not occasional (see Banner).
+4. The statement is cash-basis: interest and late fees show only when paid, so a season of missed payments looks cheap while debt grows. Suggested memo line "Owed at end". Accrual would need new loan fields.
+5. The Stocked group (16 items sold back) is missing from the income list and needs a category.
+6. Debug money breaks reconciliation unless allowed for. Suggested: close each season with the actual cash and show any difference as an "Other" line (0 in release builds).
+7. The first season is fractional (27.75 days), so averages need hours or hundredths of a day.
+8. Season length (daysPerSeason, default 28) is an inspector value, so it is stored in the save to keep labels and averages stable.
+9. UNCONFIRMED: whether the HUD banner draws during the sleep fade; whether SleepManager leaves the game in Playing state during sleep; how the 5-seasons-at-once debug skip behaves in the real clock loop (test in Play Mode).
+10. Optional better way: split Trading Post purchases by group (almost free, same table lookup as sales) so later systems such as livestock feed are easier to add.
+
+## Proposed build order (Claude Code)
+
+1. Pure core in Economy with tests. 2. LedgerManager and wiring (ProcessNow, record API, save and load, Bootstrap component, GameManager reset and opening-savings hook, SaveManager line before the autosave). 3. Recording hooks (TradingPost Buy and Sell, MoneyManager.Pay, L key and Finances without a loan), then a Play Mode check that the ledger matches real cash, including a skip over several seasons. 4. Banner queue and the unread flag, with a check of a payment banner and a statement message on the same day and through a sleep. 5. The Statement tab. 6. Layout check at 1920x1080 and 1024x768, then the playtest checklist. 7. Docs.
+
+Decisions needed from Mike: items 1, 4 and 5 change the build most (items 6 and 10 as well).
+
+
+---
+
+# Decisions after the Phase B read-only pass (Mike, 2026-10-22)
+
+| Question | Decision |
+|---|---|
+| Finances screen on a save with no loan | YES, always openable. L opens Finances on every save. Without a loan the Loan tab says there is no loan, and the Statement tab works normally. (This reverses Phase A's "old saves have no Finances screen".) |
+| Unpaid debt on a cash-basis statement | Add a memo line "Owed at end" in red under the net: late fees and open payments still owed at the end of the season. |
+| Cash that does not match the ledger | Show an "Other" line so every season reconciles (zero in a normal game and in release builds; F12 debug money lands here in dev builds). |
+| Trading Post purchases | Split by group instead of one line. Claude Code proposes about 5 to 7 purchase categories from the Stock array and lists them in its report. |
+
+Adopted from the read-only pass (Claude's defaults, accepted unless Mike objects):
+
+- Seasons close state-based: LedgerManager.ProcessNow() closes every season whose end day has passed, calls MoneyManager.ProcessNow() first, and runs from SaveManager.OnDayChanged before RequestAutoSave, from Update (catch-up) and from CaptureState.
+- A small FIFO banner queue in ToolStatus, with its timer starting only when the banner can be drawn, plus a saved "unread statement" flag that drives a persistent HUD line until the statement is opened.
+- New income category "Stocked goods sold back" for sell-backs of stocked items.
+- Opening cash is recorded as the full savings and the down payment as a season-1 expense, so season 1 reconciles. An old save starts its ledger at the first ProcessNow after loading, taking current cash as the opening balance.
+- The season length is stored in the save. Per-day averages use hours, so the 27.75-day first season is correct.
+- The statement is built as its own class (StatementPanel) mounted in the Finances panel behind two tabs, Loan and Statement. The paper panel uses its own ink, red and paper colors, not the dark-theme UiKit colors.
+- Statement rows are built when the tab opens, not on every event.
+
+Build plan: one build, in the order proposed by Claude Code (pure core and tests; LedgerManager and wiring; recording hooks and the no-loan Finances screen with a Play Mode check that the ledger matches real cash, including a skip over several seasons; banner queue and unread flag; the Statement tab; layout check; then Mike plays a checklist).
+
+
+---
+
+# Phase B build report (Claude Code, 2026-10-22), NOT committed, not yet played by Mike
+
+Built on code baseline 50d01d8. 427 of 427 edit-mode tests pass (345 existing + 82 new: LedgerTests 71, BannerQueueTests 11). Console 0 errors and 0 warnings before and after. Saves folder backed up and restored (hashes identical). Bootstrap Weather block identical before and after.
+
+What was built:
+- `Economy/Ledger.cs` (pure, engine-free): LedgerCategory (append-only ids), per-season per-category totals in long cents, season index and labels, the fractional first season (27.75 days), close, net, reconciliation with an Other line, This year and Since the start, per-game-day averages (hours), change from the season before, the red rule, and the save struct with the season length stored.
+- `Managers/LedgerManager.cs`: running ledger, state-based ProcessNow (calls MoneyManager.ProcessNow first), save section player/ledger, an unread-statement flag. Closes seasons from SaveManager.OnDayChanged before the autosave, from Update and from CaptureState.
+- Hooks: TradingPost.Buy and Sell, MoneyManager.Pay (four lines from PayResult), GameManager.StartNewGame (opening savings, down payment as a season-1 expense).
+- `UI/StatementPanel.cs` and the Loan/Statement tabs in FinancesScreen: season-by-season table newest first (Season, Income, Expenses, Net, Cash at end, Loan balance at end), This year and Since the start rows, click a season for its detail pane (categories, net, "Owed at end", "Other (not in the ledger)" when not zero, per-game-day averages, change from the season before), light paper panel, positive figures black and negative red. Opens on the Statement tab when a statement is unread or there is no loan.
+- `Economy/BannerQueue.cs` with ToolStatus and ToolHud: a FIFO banner queue (timer counts only while a banner can be drawn; same message asked again keeps its place; at most 6 wait) and a persistent "Account statement ready: press L" HUD line.
+- The L key and the Finances screen now work on every save, with or without a loan.
+
+Purchase categories (6): Tools; Hunting and fishing; Shelter and bedding; Cooking, water, fire; Building materials; Other goods. Income categories: Trading Post sales by market group, plus "Stocked goods sold back".
+
+Limits: "Owed at end" in seasons skipped in one jump (debug skips, long loads) shows the amount owed today. Statement is cash-basis (interest and fees appear when paid). Untested by Claude Code: the real L key, real clicks, a real sleep across a season, a real payment on a season-close day, 180 seasons, the paper panel's contrast on a real monitor, release builds, F12 itself.
+
+Playtest: `06_AI_Collaboration\Money_Phase_B_Playtest_Checklist.md` (42 items).
