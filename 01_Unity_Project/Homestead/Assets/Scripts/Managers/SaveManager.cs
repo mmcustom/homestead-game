@@ -187,15 +187,17 @@ public class SaveManager : MonoBehaviour
         }
     }
 
-    // The land loan and the Trading Post market are brought up to the new day BEFORE the autosave is requested (handler order between
-    // managers isn't fixed), so the end-of-day save never holds either behind the calendar. Their CaptureState does the same for every
-    // other save.
+    // The land loan, the Trading Post market and the account ledger are brought up to the new day BEFORE the autosave is requested (handler
+    // order between managers isn't fixed, and TimeManager fires DayChanged before SeasonChanged), so the end-of-day save never holds any of
+    // them behind the calendar: a season that just ended is already closed in it. Their CaptureState does the same for every other save.
     void OnDayChanged()
     {
         if (MoneyManager.Instance != null)
             MoneyManager.Instance.ProcessNow();
         if (MarketManager.Instance != null)
             MarketManager.Instance.ProcessNow();
+        if (LedgerManager.Instance != null)
+            LedgerManager.Instance.ProcessNow();
         RequestAutoSave("End of day");
     }
 

@@ -2,11 +2,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
+// Money_System.md Phase B: the screen has two tabs, Loan and Statement (StatementPanel, the seasonal account statement). It opens on every
+// save, with or without a loan: without one the Loan tab says so and the Statement tab works as usual. It opens on the Statement tab
+// when a statement is unread (or there is no loan), otherwise on the tab last used.
+//
 // Money_System.md Phase A's Finances screen, on its own key (L), separate from the T window: the land loan at a glance, every open
 // payment, and where to pay. "Pay what is due" pays every open payment as far as cash goes; the amount box pays any amount, oldest
 // open payment first (late fee, interest, principal), and what is left over is an extra payment to principal. Built in code in the
-// game's dark UI look. Only available in a game with a loan (MoneyManager); while it is open GameManager is in the Menu state, so
-// the clock stops, like the other game screens.
+// game's dark UI look. While it is open GameManager is in the Menu state, so the clock stops, like the other game screens.
 public class FinancesScreen : MonoBehaviour
 {
     static FinancesScreen instance;
@@ -15,7 +18,7 @@ public class FinancesScreen : MonoBehaviour
 
     public static void Open()
     {
-        if (MoneyManager.Instance == null || !MoneyManager.Instance.Active)
+        if (MoneyManager.Instance == null)
             return;
         if (instance == null)
         {
@@ -41,8 +44,17 @@ public class FinancesScreen : MonoBehaviour
 
     const float PanelWidth = 1500f, PanelHeight = 880f;
 
+    enum Tab { Loan, Statement }
+
+    static Tab lastTab = Tab.Loan;
+
     bool open, subscribed;
+    Tab tab;
     GameObject root;
+    RectTransform loanRoot;
+    Text titleLabel, noLoanLabel;
+    Button loanTabButton, statementTabButton;
+    StatementPanel statement;
     Text cashLabel, warningLabel, statusLabel, openHeading;
     readonly Text[] values = new Text[Labels.Length];
     RectTransform openList;
@@ -84,52 +96,67 @@ public class FinancesScreen : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        Text title = UiKit.Text(panel, "Title", "Land Loan", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
-        Place(title.rectTransform, 32f, 14f, 400f, 54f);
+        titleLabel = UiKit.Text(panel, "Title", "Land Loan", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Place(titleLabel.rectTransform, 32f, 14f, 400f, 54f);
+        loanTabButton = UiKit.Button(panel, "Loan Tab", "Loan", 22, () => ShowTab(Tab.Loan));
+        Place((RectTransform)loanTabButton.transform, 440f, 18f, 190f, 46f);
+        statementTabButton = UiKit.Button(panel, "Statement Tab", "Statement", 22, () => ShowTab(Tab.Statement));
+        Place((RectTransform)statementTabButton.transform, 640f, 18f, 190f, 46f);
         cashLabel = UiKit.Text(panel, "Cash", "", 28, UiKit.Cream, TextAnchor.MiddleRight);
-        Place(cashLabel.rectTransform, 560f, 14f, 700f, 54f);
+        Place(cashLabel.rectTransform, 860f, 14f, 400f, 54f);
         Button close = UiKit.Button(panel, "Close", "Close  [L]", 20, () => Hide(true));
         Place((RectTransform)close.transform, PanelWidth - 32f - 170f, 18f, 170f, 46f);
 
         Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
         Place(rule.rectTransform, 24f, 80f, PanelWidth - 48f, 2f);
 
+        loanRoot = UiKit.Rect("Loan", panel);
+        loanRoot.Fill();
+
         const float rowTop = 100f, rowStep = 40f;
         for (int i = 0; i < Labels.Length; i++)
         {
-            Text label = UiKit.Text(panel, Labels[i], Labels[i], 22, UiKit.Muted, TextAnchor.MiddleLeft);
+            Text label = UiKit.Text(loanRoot, Labels[i], Labels[i], 22, UiKit.Muted, TextAnchor.MiddleLeft);
             Place(label.rectTransform, 40f, rowTop + i * rowStep, 330f, rowStep);
-            values[i] = UiKit.Text(panel, Labels[i] + " Value", "", 22, UiKit.Cream, TextAnchor.MiddleLeft);
+            values[i] = UiKit.Text(loanRoot, Labels[i] + " Value", "", 22, UiKit.Cream, TextAnchor.MiddleLeft);
             values[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(values[i].rectTransform, 380f, rowTop + i * rowStep, 360f, rowStep);
         }
 
-        openHeading = UiKit.Text(panel, "Open Heading", "Open payments", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        openHeading = UiKit.Text(loanRoot, "Open Heading", "Open payments", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
         Place(openHeading.rectTransform, 780f, 98f, 600f, 40f);
-        openList = UiKit.ScrollList(panel, "Open Payments", 4f, true);
+        openList = UiKit.ScrollList(loanRoot, "Open Payments", 4f, true);
         Place((RectTransform)openList.parent, 780f, 144f, PanelWidth - 780f - 40f, 400f);
 
-        warningLabel = UiKit.Text(panel, "Warning", "", 24, UiKit.Warning, TextAnchor.MiddleLeft, FontStyle.Bold);
+        warningLabel = UiKit.Text(loanRoot, "Warning", "", 24, UiKit.Warning, TextAnchor.MiddleLeft, FontStyle.Bold);
         Place(warningLabel.rectTransform, 40f, 640f, PanelWidth - 80f, 44f);
 
-        Image rule2 = UiKit.Image(panel, "Rule 2", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule2 = UiKit.Image(loanRoot, "Rule 2", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
         Place(rule2.rectTransform, 24f, 696f, PanelWidth - 48f, 2f);
 
-        payDueButton = UiKit.Button(panel, "Pay Due", "Pay what is due", 22, PayDue);
+        payDueButton = UiKit.Button(loanRoot, "Pay Due", "Pay what is due", 22, PayDue);
         Place((RectTransform)payDueButton.transform, 40f, 720f, 280f, 56f);
 
-        Text amountLabel = UiKit.Text(panel, "Amount Label", "Any amount:", 22, UiKit.Muted, TextAnchor.MiddleRight);
+        Text amountLabel = UiKit.Text(loanRoot, "Amount Label", "Any amount:", 22, UiKit.Muted, TextAnchor.MiddleRight);
         Place(amountLabel.rectTransform, 340f, 720f, 170f, 56f);
-        amountField = UiKit.Input(panel, "Amount", "$0.00", 24, false);
+        amountField = UiKit.Input(loanRoot, "Amount", "$0.00", 24, false);
         amountField.characterLimit = 20;
         Place((RectTransform)amountField.transform, 520f, 720f, 280f, 56f);
-        payAmountButton = UiKit.Button(panel, "Pay Amount", "Pay amount", 22, PayAmount);
+        payAmountButton = UiKit.Button(loanRoot, "Pay Amount", "Pay amount", 22, PayAmount);
         Place((RectTransform)payAmountButton.transform, 820f, 720f, 220f, 56f);
 
-        Text hint = UiKit.Text(panel, "Hint", "Extra money goes straight to the balance and lowers the interest. Esc or L closes.", 18, UiKit.Muted, TextAnchor.MiddleLeft);
+        Text hint = UiKit.Text(loanRoot, "Hint", "Extra money goes straight to the balance and lowers the interest. Esc or L closes.", 18, UiKit.Muted, TextAnchor.MiddleLeft);
         Place(hint.rectTransform, 40f, 790f, PanelWidth - 80f, 34f);
-        statusLabel = UiKit.Text(panel, "Status", "", 22, UiKit.Cream, TextAnchor.MiddleLeft);
+        statusLabel = UiKit.Text(loanRoot, "Status", "", 22, UiKit.Cream, TextAnchor.MiddleLeft);
         Place(statusLabel.rectTransform, 40f, 826f, PanelWidth - 80f, 40f);
+
+
+        noLoanLabel = UiKit.Text(panel, "No Loan", "There is no land loan in this game.\nThe Statement tab shows your income and expenses season by season.",
+                                 26, UiKit.Muted, TextAnchor.MiddleCenter);
+        Place(noLoanLabel.rectTransform, 100f, 300f, PanelWidth - 200f, 140f);
+
+        statement = new StatementPanel();
+        statement.Build(panel, 24f, 96f, PanelWidth - 48f, PanelHeight - 96f - 24f);
 
         root.SetActive(false);
     }
@@ -154,9 +181,34 @@ public class FinancesScreen : MonoBehaviour
         Subscribe();
         statusLabel.text = "";
         amountField.text = "";
-        Refresh();
+
+        bool hasLoan = MoneyManager.Instance != null && MoneyManager.Instance.Active;
+        bool unread = LedgerManager.Instance != null && LedgerManager.Instance.Unread;
+        ShowTab(!hasLoan || unread ? Tab.Statement : lastTab);
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
+    }
+
+    // Loan or Statement. The Statement tab builds its rows now and marks the new statement as read.
+    void ShowTab(Tab to)
+    {
+        tab = to;
+        lastTab = to;
+        bool hasLoan = MoneyManager.Instance != null && MoneyManager.Instance.Active;
+        loanRoot.gameObject.SetActive(to == Tab.Loan && hasLoan);
+        noLoanLabel.gameObject.SetActive(to == Tab.Loan && !hasLoan);
+        statement.Root.gameObject.SetActive(to == Tab.Statement);
+        titleLabel.text = to == Tab.Loan ? "Land Loan" : "Account Statement";
+        UiKit.SetSelected(loanTabButton, to == Tab.Loan);
+        UiKit.SetSelected(statementTabButton, to == Tab.Statement);
+        if (to == Tab.Statement)
+        {
+            statement.Show();
+            if (LedgerManager.Instance != null)
+                LedgerManager.Instance.MarkRead();
+        }
+        UiKit.ReleaseFocus();
+        Refresh();
     }
 
     void Hide(bool closeMenu)
@@ -221,17 +273,15 @@ public class FinancesScreen : MonoBehaviour
     {
         MoneyManager money = MoneyManager.Instance;
         LoanState loan = money != null ? money.Loan : null;
-        if (!open || loan == null)
-        {
-            if (open && loan == null)
-                Hide(true);
+        if (!open)
             return;
-        }
 
         TimeManager time = TimeManager.Instance;
         TradingPost post = TradingPost.Instance;
         long cash = post != null ? post.Cents : 0;
         cashLabel.text = "Cash  " + Money.Format(cash);
+        if (loan == null || tab != Tab.Loan)
+            return; // no loan (the Loan tab says so), or the Statement tab: nothing of the loan to fill in
 
         string next = "None: the loan is paid";
         if (loan.nextDueDay >= 0)

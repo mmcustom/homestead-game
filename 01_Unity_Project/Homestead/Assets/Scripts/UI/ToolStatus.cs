@@ -55,18 +55,25 @@ public static class ToolStatus
         flashUntil = Time.unscaledTime + seconds;
     }
 
-    static string banner;
-    static float bannerUntil;
+    // Banners are a small FIFO queue (BannerQueue, tested): a payment due and a statement ready on the same day both show, one after the
+    // other. The one on show keeps its time only while it can be drawn (ToolHud ticks it when the world is live), so none is lost to a sleep
+    // or a menu.
+    static readonly BannerQueue banners = new BannerQueue();
 
     // A large message across the top of the screen, for something the player must not miss (a Small Cabin site that
-    // just got its last material). ToolHud draws it.
-    public static void Banner(string message, float seconds = 8f)
-    {
-        banner = message;
-        bannerUntil = Time.unscaledTime + seconds;
-    }
+    // just got its last material, a payment due, a statement ready). ToolHud draws it. The same message again keeps the one already up
+    // (or waiting) instead of piling up.
+    public static void Banner(string message, float seconds = 8f) => banners.Add(message, seconds);
 
-    public static string BannerMessage => Time.unscaledTime < bannerUntil ? banner : null;
+    // ToolHud, every frame: canDraw is whether a banner can be seen right now (the world is live: not a menu, not asleep). The one on show
+    // counts down only then, and the next in line takes its place when it runs out.
+    public static void TickBanner(bool canDraw, float deltaSeconds) => banners.Tick(canDraw, deltaSeconds);
+
+    // A new or loaded game starts without the last one's banners.
+    public static void ClearBanners() => banners.Clear();
+
+    public static string BannerMessage => banners.Current;
+    public static int BannersWaiting => banners.Waiting;
 
     static bool Current => Time.frameCount - reportedFrame <= 1;
 

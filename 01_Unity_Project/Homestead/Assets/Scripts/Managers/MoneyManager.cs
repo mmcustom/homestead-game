@@ -117,11 +117,13 @@ public class MoneyManager : MonoBehaviour, ISaveable
     void Update()
     {
         GameManager game = GameManager.Instance;
-        if (loan == null || game == null || !game.InGame)
+        if (game == null || !game.InGame)
             return;
 
+        // The Finances screen (L) opens on every save, with or without a loan (the Statement tab always works). Only the loan's own
+        // catch-up needs a loan.
         TimeManager time = TimeManager.Instance;
-        if (time != null && time.TotalDays != processedDay)
+        if (loan != null && time != null && time.TotalDays != processedDay)
             ProcessNow();
 
         HandleKey(game);
@@ -181,10 +183,14 @@ public class MoneyManager : MonoBehaviour, ISaveable
             return default;
 
         ProcessNow();
+        if (LedgerManager.Instance != null)
+            LedgerManager.Instance.ProcessNow(); // a season that ended closes with the loan and cash as they were before this payment
         PayResult result = loan.Pay(post.Cents, amountCents);
         if (result.applied > 0)
         {
             post.TrySpend(result.applied);
+            if (LedgerManager.Instance != null)
+                LedgerManager.Instance.RecordLoanPayment(result); // late fees, interest, principal and extra payment lines
             if (result.paidOff)
                 ToolStatus.Banner($"Congratulations! The land is paid off. {Money.Format(loan.interestPaid)} in interest paid over the loan.", 12f);
         }

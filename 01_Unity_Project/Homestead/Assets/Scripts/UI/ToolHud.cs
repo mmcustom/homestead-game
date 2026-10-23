@@ -28,6 +28,7 @@ public class ToolHud : MonoBehaviour
 
     RectTransform spreadRoot, scopeRoot, bannerRoot;
     Text bannerLabel;
+    Text statementLabel; // "statement ready" until the player opens it (LedgerManager.Unread)
     readonly Image[] ticks = new Image[4];
     Image spreadDot, scopeDot;
     Image[] scopeLines;
@@ -57,10 +58,13 @@ public class ToolHud : MonoBehaviour
         if (!string.IsNullOrEmpty(flash))
             flashLabel.text = flash;
 
+        ToolStatus.TickBanner(playing, Time.unscaledDeltaTime);
         string banner = playing ? ToolStatus.BannerMessage : null;
         bannerRoot.gameObject.SetActive(!string.IsNullOrEmpty(banner));
         if (!string.IsNullOrEmpty(banner))
             bannerLabel.text = banner;
+
+        statementLabel.enabled = playing && LedgerManager.Instance != null && LedgerManager.Instance.Unread;
 
         UpdateSights(reticle);
     }
@@ -191,6 +195,16 @@ public class ToolHud : MonoBehaviour
         bannerLabel.rectTransform.Fill(22f, 8f, 22f, 8f);
         bannerLabel.fontStyle = FontStyle.Bold;
         bannerRoot.gameObject.SetActive(false);
+
+        // A small line at the top until the player has opened the new account statement.
+        statementLabel = UiKit.Text(root, "Statement Ready", "Account statement ready: press L", 20, new Color(0.96f, 0.72f, 0.30f, 1f), TextAnchor.UpperCenter);
+        statementLabel.rectTransform.anchorMin = statementLabel.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+        statementLabel.rectTransform.pivot = new Vector2(0.5f, 1f);
+        statementLabel.rectTransform.sizeDelta = new Vector2(600f, 28f);
+        statementLabel.rectTransform.anchoredPosition = new Vector2(0f, -8f);
+        statementLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+        statementLabel.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.9f);
+        statementLabel.enabled = false;
     }
 
     static Image Block(RectTransform parent, string name, Vector2 size)

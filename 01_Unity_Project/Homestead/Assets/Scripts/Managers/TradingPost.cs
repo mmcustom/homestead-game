@@ -92,7 +92,10 @@ public class TradingPost : MonoBehaviour, ISaveable
             return 0;
         }
         n = inventory.AddToPlayer(itemId, n);
-        money = Money.Sub(money, Money.Mul(price, n));
+        long spent = Money.Mul(price, n);
+        if (LedgerManager.Instance != null)
+            LedgerManager.Instance.Record(LedgerCategories.ForPurchase(itemId), spent); // before the cash changes
+        money = Money.Sub(money, spent);
         MoneyChanged?.Invoke();
         if (n < count)
             problem = affordable < count ? "Ran out of money." : "Ran out of room.";
@@ -111,6 +114,8 @@ public class TradingPost : MonoBehaviour, ISaveable
         if (sold <= 0)
             return default;
         SaleResult result = Market.Sell(itemId, sold);
+        if (LedgerManager.Instance != null && Market.Table.TryGetRow(itemId, out MarketRow soldRow))
+            LedgerManager.Instance.Record(LedgerCategories.ForSale(soldRow.group), result.totalCents); // before the cash changes
         money = Money.Add(money, result.totalCents);
         MoneyChanged?.Invoke();
         return result;

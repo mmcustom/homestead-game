@@ -76,6 +76,12 @@ public class GameManager : MonoBehaviour
             TradingPost.Instance.ResetMoney(land.HasValue ? land.Value.reserveCents : 0);
         if (MarketManager.Instance != null)
             MarketManager.Instance.ResetMarket(true); // a new market: every price starts at its current-season target
+        if (LedgerManager.Instance != null)
+        {
+            // A new ledger: the opening cash is the whole savings and the down payment is a season-1 expense (cash starts at the reserve).
+            long down = land.HasValue ? land.Value.downCents : 0;
+            LedgerManager.Instance.BeginNewGame(land.HasValue ? land.Value.reserveCents + down : 0, down);
+        }
         if (MoneyManager.Instance != null)
         {
             if (land.HasValue)
@@ -180,6 +186,8 @@ public class GameManager : MonoBehaviour
             MoneyManager.Instance.ResetLoan(); // a save with no loan section (an old game) has no loan
         if (MarketManager.Instance != null)
             MarketManager.Instance.ResetMarket(false); // a save with no market section (an old game) starts at normal prices
+        if (LedgerManager.Instance != null)
+            LedgerManager.Instance.ResetLedger(); // a save with no ledger section (an old game) starts its ledger at the first ProcessNow
         ResetManagers();
         yield return LoadRoutine(WorldScene, GameState.Playing, () => SaveManager.Instance.LoadGame(slotId));
     }
