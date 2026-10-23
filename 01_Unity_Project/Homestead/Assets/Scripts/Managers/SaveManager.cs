@@ -108,6 +108,21 @@ public class SaveManager : MonoBehaviour
     static bool InGame =>
         GameManager.Instance != null && GameManager.Instance.InGame;
 
+    // Money_System.md Phase C: a lost game is never written to any slot, the autosave included. One flag covers every path (end of day,
+    // sleep, back to the main menu, quit, a manual save), and it is set the moment the third miss lands, even mid-sleep when the game state
+    // is still a game screen. The loan is caught up first so a save can never slip in between the miss and the flag.
+    static bool SavingBlocked
+    {
+        get
+        {
+            MoneyManager money = MoneyManager.Instance;
+            if (money == null)
+                return false;
+            money.ProcessNow();
+            return money.Lost;
+        }
+    }
+
     public static string SlotId(int number) => "slot" + number;
 
     public static IEnumerable<string> ManualSlotIds()
@@ -173,7 +188,7 @@ public class SaveManager : MonoBehaviour
     // autosave slot only, so quitting (or stopping Play Mode) can never overwrite a manual save.
     void OnApplicationQuit()
     {
-        if (!InGame)
+        if (!InGame || SavingBlocked)
             return;
 
         try
@@ -213,7 +228,7 @@ public class SaveManager : MonoBehaviour
     // Save_System.md's auto-save checkpoints (sleep, end of day). Ignored outside gameplay. Always the autosave slot.
     public void RequestAutoSave(string reason)
     {
-        if (!InGame)
+        if (!InGame || SavingBlocked)
             return;
 
         Debug.Log($"[SaveManager] Auto-save: {reason}");
@@ -231,6 +246,13 @@ public class SaveManager : MonoBehaviour
         if (!IsValidSlot(slotId))
         {
             Debug.LogError($"[SaveManager] Not a save slot: '{slotId}'.");
+            return;
+        }
+
+        if (SavingBlocked)
+        {
+            pendingSaves.Clear();
+            Debug.Log("[SaveManager] Save skipped: the game is lost.");
             return;
         }
 
@@ -257,6 +279,8 @@ public class SaveManager : MonoBehaviour
                 if (slot != AutosaveId && SlotExists(slot))
                     SetActiveSlot(slot);
                 SaveCompleted?.Invoke();
+                if (SavingBlocked)
+                    pendingSaves.Clear();
                 slot = pendingSaves.Count > 0 ? pendingSaves.Dequeue() : null;
             }
         }
@@ -501,6 +525,8 @@ public class SaveManager : MonoBehaviour
     void DrainPendingSaves()
     {
         WaitForPendingWrite();
+        if (SavingBlocked)
+            pendingSaves.Clear();
         while (pendingSaves.Count > 0)
         {
             string slot = pendingSaves.Dequeue();

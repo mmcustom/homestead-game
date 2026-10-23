@@ -5,11 +5,13 @@ using UnityEngine.SceneManagement;
 
 // Menu: a full-screen game screen (Inventory, Journal, World Map) is open. Like Paused, the clock and gameplay stop,
 // but the pause menu stays hidden and world audio keeps playing.
-public enum GameState { Booting, MainMenu, Loading, Playing, Paused, Menu }
+// Lost: three payments on the land went unpaid (Money_System.md Phase C). The clock is stopped, the pause menu and every game window are
+// blocked, and the loss screen (LossScreen) is up. It is not InGame, so nothing is saved from it.
+public enum GameState { Booting, MainMenu, Loading, Playing, Paused, Menu, Lost }
 
 // Application lifecycle, scene transitions and system initialization (Unity_Architecture.md).
 // Bootstrap is loaded first, managers initialize there, then Bootstrap loads MainMenu.
-public class GameManager : MonoBehaviour
+public class GameManager : MonoBehaviour, ISaveable
 {
     public const string BootstrapScene = "Bootstrap";
     public const string MainMenuScene = "MainMenu";
@@ -28,6 +30,14 @@ public class GameManager : MonoBehaviour
     // In the World with a game underway, whether playing, paused or in a game screen.
     public bool InGame => state == GameState.Playing || state == GameState.Paused || state == GameState.Menu;
     public bool HasSaveGame => SaveManager.Instance != null && SaveManager.Instance.HasSave;
+
+    // How this game began (difficulty, parcel, savings split; the weapon follows from the difficulty), so the loss screen's Restart can start the same one again. Saved
+    // with the game (player/setup); a save made before it existed has none and Restart falls back to the New Game screens.
+    NewGameSetup? setup;
+    public bool HasRestartSetup => setup.HasValue;
+
+    // A line for the main menu to show once, then clear (set when Restart had to fall back to the New Game screens).
+    public string MainMenuNote { get; set; }
 
     // 0–1 progress of the scene currently loading behind the Loading scene.
     public float LoadProgress { get; private set; }
@@ -53,6 +63,8 @@ public class GameManager : MonoBehaviour
     // Start runs after every manager's Awake, so all singletons are available here.
     void Start()
     {
+        if (Instance == this && SaveManager.Instance != null)
+            SaveManager.Instance.Register(this);
         if (SceneManager.GetActiveScene().name == BootstrapScene)
             GoToMainMenu();
     }
@@ -62,13 +74,17 @@ public class GameManager : MonoBehaviour
     // up front, and nothing is written to it (or to any other slot) until a save.
     // land is the parcel and savings split chosen at the land purchase (LandPurchasePanel): the cash reserve becomes the player's money
     // and the rest of the price becomes the land loan. Without it (nothing calls it that way today) there is no loan and no cash.
-    public void StartNewGame(Difficulty difficulty = Difficulty.Settler, StartingWeapon weapon = StartingWeapon.Bow, string slotId = null, LandChoice? land = null)
+    public void StartNewGame(Difficulty difficulty = Difficulty.Settler, string slotId = null, LandChoice? land = null)
     {
         if (IsLoading)
             return;
 
         if (SaveManager.Instance != null)
             SaveManager.Instance.SetActiveSlot(slotId);
+
+        setup = land.HasValue
+            ? NewGameSetup.Of((int)difficulty, true, land.Value.parcelIndex, land.Value.downCents, land.Value.reserveCents)
+            : NewGameSetup.Of((int)difficulty, false, 0, 0, 0);
 
         if (DifficultyManager.Instance != null)
             DifficultyManager.Instance.Begin(difficulty);
@@ -97,7 +113,7 @@ public class GameManager : MonoBehaviour
 
         ResetManagers(() =>
         {
-            foreach ((string item, int count) in DifficultyManager.Kit(difficulty, weapon))
+            foreach ((string item, int count) in DifficultyManager.Kit(difficulty))
                 InventoryManager.Instance.AddToPlayer(item, count);
         });
 
@@ -175,8 +191,31 @@ public class GameManager : MonoBehaviour
         yield return LoadSlotRoutine(slotId);
     }
 
+    // The loss screen's Restart: a new game at once with the same difficulty, parcel and savings split, in a fresh world, with no
+    // slot picked (like any new game until its first manual save). A game with no setup record (an old save) goes back to the New Game
+    // screens instead, with a line saying so.
+    public void RestartGame()
+    {
+        if (IsLoading)
+            return;
+
+        if (!setup.HasValue || !setup.Value.IsValid)
+        {
+            MainMenuNote = "That game did not record how it began, so pick your start again.";
+            ReturnToMainMenu();
+            return;
+        }
+
+        NewGameSetup s = setup.Value;
+        LandChoice? land = s.hasLand
+            ? new LandChoice { parcelIndex = s.parcelIndex, downCents = s.downCents, reserveCents = s.reserveCents }
+            : (LandChoice?)null;
+        StartNewGame((Difficulty)s.difficulty, null, land); // the weapon follows from the difficulty
+    }
+
     IEnumerator LoadSlotRoutine(string slotId)
     {
+        setup = null; // a save with no setup section (an old game) has none; one that has it restores it
         // Saves from before difficulty and money existed have nothing to restore for them: Settler, no cash.
         if (DifficultyManager.Instance != null)
             DifficultyManager.Instance.ResetForLoad();
@@ -221,6 +260,8 @@ public class GameManager : MonoBehaviour
     {
         if (SleepManager.Instance != null && SleepManager.Instance.IsSleeping)
             return; // asleep: nothing to pause or back out of
+        if (state == GameState.Lost)
+            return; // the loss screen has its own buttons
         if (state == GameState.Paused)
             ResumeGame();
         else if (state == GameState.Menu)
@@ -290,6 +331,19 @@ public class GameManager : MonoBehaviour
         SetState(stateWhenLoaded);
     }
 
+    // A lost game (MoneyManager.Lost) goes to the Lost state, but never over the sleep fade: if the third miss lands during a sleep the
+    // flag is already set (so nothing saves) and the screen waits until the player has woken.
+    void Update()
+    {
+        if (state == GameState.Lost || !InGame || MoneyManager.Instance == null || !MoneyManager.Instance.Lost)
+            return;
+        if (SleepManager.Instance != null && SleepManager.Instance.IsSleeping)
+            return;
+
+        SetState(GameState.Lost);
+        LossScreen.Open();
+    }
+
     void SetState(GameState newState)
     {
         if (newState == state)
@@ -304,7 +358,7 @@ public class GameManager : MonoBehaviour
     // gameplay (and TimeManager, which reads deltaTime) stops together.
     void ApplyState()
     {
-        Time.timeScale = state == GameState.Paused || state == GameState.Menu ? 0f : 1f;
+        Time.timeScale = state == GameState.Paused || state == GameState.Menu || state == GameState.Lost ? 0f : 1f;
 
         TimeManager time = TimeManager.Instance;
         if (time == null)
@@ -315,4 +369,11 @@ public class GameManager : MonoBehaviour
         else
             time.Pause();
     }
+
+    // --- Saving (player/setup) ---
+
+    string ISaveable.SaveFile => "player";
+    string ISaveable.SaveKey => "setup";
+    object ISaveable.CaptureState() => NewGameSetupSaveData.Of(setup);
+    void ISaveable.RestoreState(string json) => setup = JsonUtility.FromJson<NewGameSetupSaveData>(json).ToSetup();
 }

@@ -36,6 +36,8 @@ public class OpenPayment
     public int stage;        // the last warning given: 1 due, 2 late, 3 missed
 
     public long Owed => Money.Add(Money.Add(fee, interest), principal);
+
+    public OpenPayment Clone() => (OpenPayment)MemberwiseClone();
 }
 
 public enum LoanNoticeKind { DueSoon, DueToday, Late, Missed }
@@ -142,6 +144,17 @@ public class LoanState
             nextDueDay = loan > 0 ? terms.firstDueDay : -1,
             terms = terms,
         };
+    }
+
+    // An independent copy (the open payments too), for working out "what if" payments without touching this loan.
+    public LoanState Copy()
+    {
+        Normalize();
+        var copy = (LoanState)MemberwiseClone();
+        copy.open = new List<OpenPayment>(open.Count);
+        foreach (OpenPayment p in open)
+            copy.open.Add((OpenPayment)p.Clone());
+        return copy;
     }
 
     // JsonUtility can leave a list null.

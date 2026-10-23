@@ -4,8 +4,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // The MainMenu scene's buttons. All game flow goes through GameManager; this only wires the UI to it.
-// New Game asks for a difficulty first (Difficulty_System.md): Homesteader, Settler or Pioneer, each described, plus the
-// Bow or Rifle choice for the two tiers that pack a weapon. The choice is locked in for the save. That panel is built
+// New Game asks for a difficulty first (Difficulty_System.md): Homesteader, Settler or Pioneer, each described. The starting weapon is
+// fixed by the tier (StartingWeapons), not chosen. The choice is locked in for the save. That panel is built
 // in code, in the game's UI look. Then the land purchase (LandPurchasePanel) and the slot pick.
 public class MainMenuController : MonoBehaviour
 {
@@ -24,11 +24,9 @@ public class MainMenuController : MonoBehaviour
     Button loadGameButton; // built in code beside Continue
     GameObject difficultyPanel;
     readonly Button[] tierButtons = new Button[3];
-    Button bowButton, rifleButton, startButton, backButton;
-    Text blurbLabel;
-    GameObject weaponRow;
+    Button startButton, backButton;
+    Text blurbLabel, noteLabel;
     Difficulty chosenTier = Difficulty.Settler;
-    StartingWeapon chosenWeapon = StartingWeapon.Bow;
     LandChoice? chosenLand; // the parcel and savings split from the land purchase step (LandPurchasePanel)
 
     void Awake()
@@ -80,6 +78,15 @@ public class MainMenuController : MonoBehaviour
         SetInteractable(continueButton, GameManager.Instance.HasSaveGame);
         SetInteractable(loadGameButton, GameManager.Instance.HasSaveGame);
         Select(continueButton.interactable ? continueButton : newGameButton);
+
+        // The loss screen's Restart found no record of how the lost game began: say so and go straight to the New Game screens.
+        string note = GameManager.Instance.MainMenuNote;
+        if (!string.IsNullOrEmpty(note))
+        {
+            GameManager.Instance.MainMenuNote = null;
+            noteLabel.text = note;
+            ShowDifficulty();
+        }
     }
 
     // A second button under Continue, cloned from it so it matches the scene's look and sits in its layout group.
@@ -130,6 +137,7 @@ public class MainMenuController : MonoBehaviour
 
     void HideDifficulty()
     {
+        noteLabel.text = "";
         difficultyPanel.SetActive(false);
         SetMainButtonsInteractable(true);
         Select(newGameButton);
@@ -141,15 +149,6 @@ public class MainMenuController : MonoBehaviour
         for (int i = 0; i < tierButtons.Length; i++)
             UiKit.SetSelected(tierButtons[i], i == (int)tier);
         blurbLabel.text = DifficultyManager.Blurb(tier);
-        weaponRow.SetActive(tier != Difficulty.Pioneer);
-        ChooseWeapon(chosenWeapon);
-    }
-
-    void ChooseWeapon(StartingWeapon weapon)
-    {
-        chosenWeapon = weapon;
-        UiKit.SetSelected(bowButton, weapon == StartingWeapon.Bow);
-        UiKit.SetSelected(rifleButton, weapon == StartingWeapon.Rifle);
     }
 
     // After the difficulty step: buy the land (parcel, savings split, loan summary), then pick the slot this game will use, then start.
@@ -180,7 +179,7 @@ public class MainMenuController : MonoBehaviour
     void PickSlot()
     {
         SlotPanel.Open(newGameButton.transform, SlotPanel.Mode.NewGame, inGame: false,
-                       onPick: slotId => GameManager.Instance.StartNewGame(chosenTier, chosenWeapon, slotId, chosenLand),
+                       onPick: slotId => GameManager.Instance.StartNewGame(chosenTier, slotId, chosenLand),
                        onClosed: () => ShowLand(chosenLand));
     }
 
@@ -224,17 +223,10 @@ public class MainMenuController : MonoBehaviour
         }
 
         blurbLabel = UiKit.Text(p, "Blurb", "", 22, UiKit.Cream, TextAnchor.UpperLeft);
-        Place(blurbLabel.rectTransform, 364f, 104f, 700f, 220f);
+        Place(blurbLabel.rectTransform, 364f, 104f, 700f, 290f);
 
-        weaponRow = UiKit.Rect("Weapon", p).gameObject;
-        var weaponRect = (RectTransform)weaponRow.transform;
-        Place(weaponRect, 364f, 340f, 700f, 56f);
-        Text weaponLabel = UiKit.Text(weaponRect, "Label", "Your weapon:", 22, UiKit.Muted, TextAnchor.MiddleLeft);
-        Place(weaponLabel.rectTransform, 0f, 0f, 170f, 56f);
-        bowButton = UiKit.Button(weaponRect, "Bow", "Bow + 20 arrows", 20, () => { ChooseWeapon(StartingWeapon.Bow); PlaySound(SoundCue.UiClick); });
-        Place((RectTransform)bowButton.transform, 180f, 0f, 250f, 56f);
-        rifleButton = UiKit.Button(weaponRect, "Rifle", "Rifle + 10 rounds", 20, () => { ChooseWeapon(StartingWeapon.Rifle); PlaySound(SoundCue.UiClick); });
-        Place((RectTransform)rifleButton.transform, 445f, 0f, 250f, 56f);
+        noteLabel = UiKit.Text(p, "Note", "", 22, UiKit.Accent, TextAnchor.MiddleLeft);
+        Place(noteLabel.rectTransform, 32f, 440f, 1036f, 56f);
 
         backButton = UiKit.Button(p, "Back", "Back", 24, () => { HideDifficulty(); PlaySound(SoundCue.UiBack); });
         Place((RectTransform)backButton.transform, 32f, 520f, 200f, 56f);

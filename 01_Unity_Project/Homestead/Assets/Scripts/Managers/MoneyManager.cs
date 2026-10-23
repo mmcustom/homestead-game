@@ -34,6 +34,8 @@ public class MoneyManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0)] long lateFeeCents = 7500;
     [Tooltip("Open payments at which the Finances screen and the messages show the red warning.")]
     [SerializeField, Min(1)] int missedWarningCount = 3;
+    [Tooltip("Missed payments open at once that lose the game (Money_System.md Phase C). 0 turns the loss off.")]
+    [SerializeField, Min(0)] int lossMissedCount = LossRules.DefaultThreshold;
 
     LoanState loan;
     int processedDay = -1;
@@ -43,6 +45,12 @@ public class MoneyManager : MonoBehaviour, ISaveable
     public LoanState Loan => loan;
     public int MissedWarningCount => missedWarningCount;
     public bool WarnMissed => loan != null && loan.MissedCount >= missedWarningCount;
+
+    // The game is lost: the missed payments open at once reached lossMissedCount. Set the moment day processing finds it (even in the
+    // middle of a sleep), cleared by a new loan, a reset or a load. While it is set nothing may be saved (SaveManager) and no season closes.
+    public bool Lost { get; private set; }
+    public RunSummary LossSummary { get; private set; }
+    public int LossThreshold => lossMissedCount;
 
     // The loan changed (a payment, a due date, a late fee, a new or loaded loan).
     public event Action Changed;
@@ -100,6 +108,7 @@ public class MoneyManager : MonoBehaviour, ISaveable
     {
         loan = LoanState.Create(acres, priceCents, downCents, Terms);
         processedDay = -1;
+        ClearLoss();
         Changed?.Invoke();
     }
 
@@ -108,6 +117,7 @@ public class MoneyManager : MonoBehaviour, ISaveable
     {
         loan = null;
         processedDay = -1;
+        ClearLoss();
         FinancesScreen.HideIfOpen();
         Changed?.Invoke();
     }
@@ -140,8 +150,59 @@ public class MoneyManager : MonoBehaviour, ISaveable
         List<LoanNotice> notices = loan.Advance(time.TotalDays);
         foreach (LoanNotice notice in notices)
             Announce(notice, time);
+        if (!Lost && LossRules.IsLoss(loan.MissedCount, lossMissedCount))
+            DeclareLoss(time);
         Changed?.Invoke();
     }
+
+    void ClearLoss()
+    {
+        Lost = false;
+        LossSummary = default;
+    }
+
+    // Money_System.md Phase C. Lost is set FIRST so nothing below (the ledger rows, a banner) can close a season or save a lost game. The
+    // summary is taken now, from the ledger and the loan as they stand on the day of the third miss.
+    void DeclareLoss(TimeManager time)
+    {
+        Lost = true;
+
+        long income = 0, expenses = 0;
+        if (LedgerManager.Instance != null)
+        {
+            StatementRow since = LedgerState.SinceStart(LedgerManager.Instance.Rows());
+            income = since.income;
+            expenses = since.expenses;
+        }
+
+        var dueDays = new List<int>();
+        if (loan != null)
+        {
+            foreach (OpenPayment payment in loan.open)
+            {
+                if (payment.missed)
+                    dueDays.Add(payment.dueDay);
+            }
+        }
+
+        TradingPost post = TradingPost.Instance;
+        LossSummary = RunSummary.Build(time.TotalDays, time.DaysPerSeason, income, expenses, loan != null ? loan.balanceCents : 0,
+                                       dueDays, post != null ? post.Cents : 0)
+            .WithSettlement(LossSettlement.Of(loan, post != null ? post.Cents : 0)); // the cash goes to the debt on a copy: display only
+        ToolStatus.ClearBanners(); // the loss screen is what the player sees now, not a queue of payment banners
+    }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Testing only (TimeDebugControls, Insert): loses the game now, as if the last missed payment had just landed.
+    public void DebugForceLoss()
+    {
+        TimeManager time = TimeManager.Instance;
+        if (Lost || time == null)
+            return;
+        DeclareLoss(time);
+        Changed?.Invoke();
+    }
+#endif
 
     string DateOf(TimeManager time, int day) => time != null ? time.FormatDate(day) : "day " + day;
 
@@ -225,6 +286,7 @@ public class MoneyManager : MonoBehaviour, ISaveable
     {
         loan = data.ToLoan();
         processedDay = -1;
+        ClearLoss();
         Changed?.Invoke();
     }
 

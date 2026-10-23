@@ -3,9 +3,6 @@ using UnityEngine;
 
 public enum Difficulty { Homesteader, Settler, Pioneer }
 
-// The weapon a Homesteader or Settler packs: one or the other, chosen at New Game.
-public enum StartingWeapon { Bow, Rifle }
-
 [Serializable]
 public struct DifficultySaveData
 {
@@ -18,10 +15,12 @@ public struct DifficultySaveData
 //   Starting kit — one full "packed for a week of camping" kit; each harder tier takes things out of it. The Knife comes
 //     on every tier.
 //       Homesteader: Tent, Sleeping Bag, Tarp, Cooking Pot, Bucket, Axe, Hammer, Pick Axe, Shovel, Canteen, Flint and
-//                    Steel, 3 Cordage, Knife, and a Bow with 20 arrows or a Rifle with 10 rounds — and $50.
+//                    Steel, 3 Cordage, Knife and a Rifle with 10 rounds — and $50.
 //       Settler:     the same without the Hammer, the Tarp.
-//       Pioneer:     a Bucket, 3 Cordage and the Knife. Nothing else, not even a way to light a fire — sell something at
-//                    the Trading Post first.
+//       Pioneer:     a Bucket, 3 Cordage, the Knife and a Bow with 20 arrows. Nothing else, not even a way to light a fire — sell
+//                    something at the Trading Post first.
+//     The weapon is fixed by the tier, with no choice at New Game (StartingWeapons): the rifle for Homesteader and Settler, the
+//     bow for Pioneer.
 //   Trading Post — open on every tier (TradingPost); only the savings differ (they replaced the starting cash).
 //   Survival severity — how forgiving the survival systems are, as multipliers on their own numbers:
 //                  Hunger/Hydration/Warmth drain   weather           wildlife alertness   spoilage (not built yet)
@@ -62,23 +61,28 @@ public class DifficultyManager : MonoBehaviour, ISaveable
         {
             case Difficulty.Homesteader:
                 return "Packed for a week of camping: tent, sleeping bag, tarp, cooking pot, bucket, axe, hammer, pick axe, " +
-                       "shovel, canteen, flint and steel, knife, cordage and a bow or rifle — plus savings of 40% of your land's price (up to $30,000). " +
+                       "shovel, canteen, flint and steel, knife, cordage and a rifle with 10 rounds — plus savings of 40% of your land's price (up to $30,000). " +
                        "Hunger, thirst and cold come on slowly; the weather is milder and the game less wary.";
             case Difficulty.Pioneer:
-                return "A bucket, a knife and a little cordage. No shelter, no fire-starter, no weapon, no savings: the land is fully financed. Sell what " +
-                       "you gather at the Trading Post to buy the rest. Hunger, thirst and cold bite harder; the weather is " +
+                return "A bucket, a knife, a little cordage and a bow with 20 arrows. No shelter, no fire-starter, no savings: the land is fully financed. " +
+                       "Sell what you gather at the Trading Post to buy the rest. Hunger, thirst and cold bite harder; the weather is " +
                        "harsher and the game warier.";
             default:
-                return "The camping kit without the hammer and tarp, and savings of 20% of your land's price (up to $30,000) to split " +
+                return "The camping kit, with its rifle and 10 rounds, without the hammer and tarp, and savings of 20% of your land's price (up to $30,000) to split " +
                        "between a down payment and a cash reserve. Survival as it's meant to be.";
         }
     }
 
-    // What a new game on this tier starts carrying: item id and count.
-    public static (string item, int count)[] Kit(Difficulty tier, StartingWeapon weapon)
+    // What a new game on this tier starts carrying: item id and count. The weapon follows from the tier (StartingWeapons).
+    public static (string item, int count)[] Kit(Difficulty tier)
     {
+        StartingWeapon weapon = StartingWeapons.For((int)tier);
         if (tier == Difficulty.Pioneer)
-            return new[] { (WaterSource.BucketItemId, 1), ("cordage", 3), (Knife.Id, 1) };
+        {
+            var pioneer = new System.Collections.Generic.List<(string, int)> { (WaterSource.BucketItemId, 1), ("cordage", 3), (Knife.Id, 1) };
+            pioneer.AddRange(StartingWeapons.Items(weapon));
+            return pioneer.ToArray();
+        }
 
         var kit = new System.Collections.Generic.List<(string, int)>
         {
@@ -86,16 +90,7 @@ public class DifficultyManager : MonoBehaviour, ISaveable
             (AxeTool.AxeId, 1), (AxeTool.PickAxeId, 1), (AxeTool.ShovelId, 1), (WaterQualities.CanteenId, 1),
             (FireManager.IgnitionId, 1), ("cordage", 3), (Knife.Id, 1),
         };
-        if (weapon == StartingWeapon.Rifle)
-        {
-            kit.Add(("bolt_action_rifle", 1));
-            kit.Add(("rifle_rounds", 10));
-        }
-        else
-        {
-            kit.Add(("recurve_bow", 1));
-            kit.Add(("arrows", 20));
-        }
+        kit.AddRange(StartingWeapons.Items(weapon));
         if (tier == Difficulty.Homesteader)
         {
             kit.Add((SleepManager.TarpId, 1));

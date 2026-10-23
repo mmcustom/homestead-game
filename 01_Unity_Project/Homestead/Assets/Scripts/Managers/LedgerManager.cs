@@ -120,6 +120,8 @@ public class LedgerManager : MonoBehaviour, ISaveable
         MoneyManager money = MoneyManager.Instance;
         if (money != null)
             money.ProcessNow(); // payments and dates first, so the loan figures the season closes with are current
+        if (money != null && money.Lost)
+            return; // a lost game closes and starts nothing, so its day of loss leaves the books as they stand
 
         int seasonLength = time.DaysPerSeason;
         int today = LedgerState.SeasonOf(time.TotalDays, seasonLength);
