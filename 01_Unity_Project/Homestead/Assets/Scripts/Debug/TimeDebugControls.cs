@@ -21,6 +21,8 @@ using UnityEngine.InputSystem;
 //       a Knife, a Canteen, a Weather Station and 6 Firewood
 //   End    export the ledger to a CSV file, one row per season (Money_System.md Phase D1), under Exports/ in the persistent data path;
 //          the full path is printed in the Console and the file name shows on screen
+//   PageUp add $1,000 cash per press (Shift+PageUp: set cash to $0, to test being broke, missed payments and the loss). Cash only, no
+//          ledger entry: it is never income and shows only as the statement's "Other" line. F11 was already taken by the starting kit
 //   Insert lose the game now, as if the third missed land payment had just landed (shows the loss screen; nothing is saved from it)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
@@ -66,6 +68,22 @@ public class TimeDebugControls : MonoBehaviour
         {
             MoneyManager.Instance.DebugForceLoss();
             Show("Loss forced", time);
+            return;
+        }
+
+        if (keyboard.pageUpKey.wasPressedThisFrame && TradingPost.Instance != null)
+        {
+            TradingPost post = TradingPost.Instance;
+            if (keyboard.shiftKey.isPressed)
+            {
+                post.ResetMoney(DebugCash.ZeroCents);
+                Show(DebugCash.ZeroedMessage, time);
+            }
+            else
+            {
+                post.ResetMoney(DebugCash.After(post.Cents));
+                Show(DebugCash.AddedMessage(post.Cents), time);
+            }
             return;
         }
 
