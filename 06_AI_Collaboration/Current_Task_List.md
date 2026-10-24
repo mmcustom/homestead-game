@@ -3513,3 +3513,120 @@ Code commit **7f2ed4a** "Felled tree: take what you want instead of picking up e
 
 **Baselines now:** code 7f2ed4a, docs ceb1d36 (until the docs commit below).
 Next: docs commit of 5 paths (Current_Task_List.md, Well_Water_Table.md, Workshop_and_Handmade_Goods.md, Felled_Tree_Take_Screen_Checklist.md, Measurements/Income_Measuring_Log.md), then the well B1 message.
+
+## Commit: docs (2026-10-24)
+
+Docs commit **0bf08f1** "Docs: well water table design, workshop and handmade goods research, felled-tree checklist and log", 5 files (610 insertions), pushed to master (7f2ed4a..0bf08f1). Measurements/ held only Income_Measuring_Log.md. **Baselines now:** code 7f2ed4a, docs 0bf08f1. (This entry and the one above it are the only uncommitted doc changes; they ride in the next docs commit.)
+
+Note: Claude Code's prompt box suggested "Next task: the well Bucket rule". That rule was DROPPED by Mike (the well has its own bucket), so that suggestion must not be accepted. The real next code task is well B1 (pure WellWater helper and tests).
+
+## Report: well B1 built, WellWater pure helper (2026-10-24)
+
+Claude Code built B1. **Not committed; awaiting Mike's OK.** Pure helper only: nothing is wired into gameplay, DrawWater and WellPrompt untouched, no save, UI or scene change. **613 of 613 edit-mode tests pass** (603 + 10 new). Console clean.
+
+- **`Survival/Setbacks/WellWater.cs`** (Homestead.Setbacks assembly, no references): depth = 1.5 + 0.5 x max(0, ground - water). Tiers: Shallow under 3 m; Medium 3 m up to 6 m; Deep 6 m up to the 9 m cap (exactly 9 m is still Deep); TooDeep past 9 m (real depth, all-zero numbers, Diggable false). Added a **Legacy** tier: depth 0 or less returns today's numbers (40 blows, 10 Stone, 150 L, 6 L/h, 3 L/h drought); `WellWater.Legacy()` is the shortcut. Result struct `WellWaterResult`. One tuning table `WellWaterRules.Defaults` (slope, base depth, tier lines, cap, all tier numbers).
+- **Tier numbers (first pass):** Shallow 20 blows / 6 Stone / 200 L / 8 L/h (drought 4 L/h); Medium 40 / 10 / 150 / 6 (drought 3); Deep 70 / 16 / 100 / 3.5 (drought 3.5). Shallow drought 4 L/h (half its normal rate) was Claude Code's choice because no number was given; change in the table if wanted.
+- **`Tests/EditMode/WellWaterTests.cs`** (10 tests): depth formula, boundaries at exactly 3 and 6 m, the cap and TooDeep, per-tier numbers, drought per tier, Legacy, a computed depth is never 0, Medium and Legacy equal the real `WellsAndOuthouses` defaults (read by reflection), slope is tunable (0.8 refuses the cabin ridge, 0.5 does not).
+- **Tier split measured** (terrain asset, water levels approximate about +/-1 m, 5 m grid, floodplain and spring and pond zones excluded):
+
+  | Slope | Area | Shallow | Medium | Deep | TooDeep |
+  |---|---|---|---|---|---|
+  | 0.5 | Whole property (8,019 cells) | 10.3% | 81.0% | 8.7% | 0% |
+  | 0.5 | Within 60 m of cabin (455 cells) | 0% | 19.3% | 80.7% | 0% |
+  | 0.4 | Whole property | 20.4% | 75.9% | 3.8% | 0% |
+  | 0.4 | Within 60 m of cabin | 0% | 49.0% | 51.0% | 0% |
+
+  The cabin site is Deep at 0.5 (8.6 m). No slope gives Shallow near the cabin (the ridge is 6 to 14.5 m above water), so Shallow is a lowland feature.
+- **Stone and carrying:** Stone is 5 kg each, so 16 Stone is 80 kg (Medium 10 = 50 kg, Shallow 6 = 30 kg). The only carry cap is the pack (45 kg, 55 with a Pouch); a starting Settler kit weighs 20.4 kg, leaving room for 4 Stone per trip, so a Deep well is about 4 trips (3 with a Pouch). Encumbered line (30 kg) only slows. Delivery has no cap of its own (R at a staged site stores min(needed, carried)). Today's Well already needs 50 kg of Stone. **Supply is finite:** the South Ridge outcrop holds 40 Stone and never regrows; loose fieldstone is about 490 scattered in World.unity (count from script-reference lines, not verified in the scene). Competing uses: Small Cabin 12 Stone, Kitchen hearth 4, Rock Pile storage. Not verified: exact loose-Stone count, whether lining Stone is used up elsewhere.
+- **Proposed staging list (4 paths):** WellWater.cs, WellWater.cs.meta, WellWaterTests.cs, WellWaterTests.cs.meta. Kept out: AudioManager.cs, Homestead.slnx, ProjectSettings.asset, 08_Backups/. Current_Task_List.md modified (docs commit, separate).
+- Claude Code's prompt box showed "OK, stage those 4 paths and commit it." That is a suggestion, not approval.
+
+**Open (for B3, not blocking B1):** most home-area wells are Deep tier at slope 0.5 (80.7% near the cabin), worse than today's well (100 L and 3.5 L/h against 150 L and 6 L/h, 16 Stone against 10). Numbers do nothing until B3, so decide the final slope and tier numbers when B3 is built. Options: keep 0.5 and soften Deep, move to slope 0.4 (51% Deep near the cabin), or move the tier lines.
+
+## Commit: well B1 (2026-10-24)
+
+Code commit **2d1e866** "Well water table B1: pure depth-to-water helper", 4 files (241 insertions), pushed to master (0bf08f1..2d1e866). Exactly the 4 approved paths. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/. Current_Task_List.md is modified (my log entries; rides in the next docs commit).
+
+**Baselines now:** code 2d1e866, docs 0bf08f1.
+
+**Next: B2, the placement preview.** Decision made while planning it: B2 must NOT show dig blows, Stone, buffer or recovery yet, because those would be false until B3 wires the effects. B2 shows depth to water, the tier name, and the real flood and hazard warnings, with the amber ghost for a legal spot that carries a warning.
+
+## Report: well B2 built, placement preview (2026-10-24)
+
+Claude Code built B2. **Not committed; awaiting playtest, OK and commit message.** All **625 of 625 edit-mode tests pass** (613 + 12 new). Console clean. Dig, lining, buffer, recovery, saves, DrawWater and WellPrompt untouched. The preview deliberately shows no dig blows, Stone, buffer or recovery (they would be false until B3).
+
+- **Preview:** legal spot with no warning is green and the HUD shows "Place Well Site here", "Depth to water: X.X m (Tier)", "Nearby: ..." (nearest three hazards within 100 m: outhouse, animal pen, creek, pond or spring), then the keys line. A legal spot within 40 m of the creek is **amber** with "Floods can foul this well here: the creek is N m away and a flash flood reaches 40 m." plus "Higher ground is safer but deeper." (the hint also shows for Shallow spots). Refused spots stay red with the existing reasons. TooDeep is red with "The water is too deep to dig by hand here (a drilled well needs a rig)." (put in `CanPlace` so the ghost and the real build agree; never happens at slope 0.5 on this property).
+- **40 m reach** comes from the existing `wellFloodReachMetres` field, passed in, not copied. "Within" is the same test the hourly flood check uses, so exactly 40 m warns. The 25 m refusal stays in the existing Floods rule.
+- **New pure code (Homestead.Setbacks):** `WellPreview.cs` (text builder and warning rule) and `Tests/EditMode/WellPreviewTests.cs` (12 tests: clear, amber at 30 m, refused at 20 m, TooDeep, exactly 40 m and 40.01 m, reach is a parameter, hint, hazard ordering, no-water, and a guard that the text never mentions blows, Stone or per-hour numbers).
+- **Edited:** `WellsAndOuthouses.cs` (new NearestWater, WellWaterAt, PreviewWell, plus the TooDeep refusal; no public wrappers were needed, PreviewWell is the one read-only entry), `PlacementMode.cs` (gets the preview, passes the amber flag), `PlacementGhost.cs` (`SetValid(valid, warn = false)`, lazy amber material; every other ghost unchanged), `ToolStatus.cs` and `ToolHud.cs` (a `multiLine` option on Report: the HUD label was one line high and cut off everything after the first line, so even the existing keys line was never visible; multi-line is on only for the Well preview).
+- **Lookup checks:** water surface heights are good (Water layer 15.14 to 16.82 m along the creek; `IsOverWater` found water at all 65 creek samples and at both the pond centre 15.14 and spring centre 16.82). The earlier estimate was off near the pond (real surface 15.14, not about 13 m; mean difference 0.13 m, worst 2.11 m), so some depths near the pond had been overstated. Cost negligible (NearestWater 0.056 ms, PreviewWell 0.16 ms), nothing cached.
+- **Tier split with real surfaces and real placement rules (3% of cells refused):** whole property Shallow 10.2% / Medium 81.0% / Deep 8.8%; within 60 m of the cabin Shallow 0% / Medium 19.3% / Deep 80.7%.
+- **Cosmetic:** zone edges are not the visible water's edge (Spring Hollow zone 14 m vs disc about 5 m; Bass Hole zone 32 m vs disc about 24 m), so "Bass Hole pond 0 m" can appear for a legal spot about 8 m from the real water.
+- **Play check (throwaway game, 1920x1080 and 1024x768):** cabin ridge (18, -68) green, 8.6 m Deep; about 30 m from creek (-72, 0) amber, 3.6 m Medium, creek 31 m, flood warning and hint; within 25 m low ground (-153, -135) red "This ground floods."; higher bank within 25 m (-78, 3) legal, amber, 3.5 m, flood warning at 25 m (text only); lowest legal near the pond (-216, -141) legal, amber, 1.7 m Shallow, hint (text only). Text readable at both resolutions. Outhouse ghost unchanged.
+- **Unexplained:** at the ridge the green ghost rendered pink with a green fringe in four screenshots (green in an earlier run; state reads GREEN, material colour correct; same pink shows on the Cabin Site marker in the compass strip). Suspected render artefact around the marker; **Mike to check** (checklist item 2).
+- **Not tested:** placing a real Well Site by clicking; TooDeep in play (no spot reaches it at 0.5, pure test covers it). Saves backed up and restored, 0 differences, slot10 untouched.
+- **Proposed staging list (9 paths, Claude Code first said 10 then corrected):** WellPreview.cs, WellPreview.cs.meta, WellPreviewTests.cs, WellPreviewTests.cs.meta, WellsAndOuthouses.cs, PlacementMode.cs, PlacementGhost.cs, ToolStatus.cs, ToolHud.cs. Kept out: AudioManager.cs, Homestead.slnx, ProjectSettings.asset, 08_Backups/. Current_Task_List.md modified (mine; docs commit).
+
+**Done (Claude):** wrote `Well_Preview_B2_Playtest_Checklist.md` (14 items). Next: Mike plays it and reports by item number; then I verify the 9-path staging list and give the commit message.
+
+Uncommitted docs: Current_Task_List.md, Well_Preview_B2_Playtest_Checklist.md (new).
+
+## Mike's note #5: skills and use-based progression (2026-10-24, discussion only)
+
+Mike wants to discuss skill upgrades and bonuses (carry weight, fewer dig blows, fewer axe swings or cuts, other minor tweaks) earned by doing an activity a number of times, so the player progresses faster than real time. Asked for Claude's thoughts before his B2 playtest.
+
+**Context found in the docs:** mechanics-level skills are deferred to post-Alpha (Decisions_Log 2026-09-25; Crafting_System.md "Not decided here": skills, stations, durability and recipe discovery stay post-Alpha). Core_Survival_System.md already has an open question about a skill-based Bow Drill success bonus. Feature_Backlog.md is where the deferred items live.
+
+**Claude's recommendation (in chat):** a good fit, but design it now and build it after the D2 income measurements, so the measuring build stays stable; skills should buy the player time, not cash (market caps already limit income); few skills, threshold tiers (not a smooth curve), counting completed tasks not swings, capped bonuses (about 30 to 40 percent fewer blows, about +10 kg carry), one appended counter per skill in the save (0 means unskilled). Carry bonus eases the Deep well Stone trips (16 Stone = 80 kg, about 4 trips). Decision pending: draft `Skills_and_Progression.md` (docs only)?
+
+**Done (Claude, docs only, 2026-10-24):** drafted `05_Documentation/Game_Systems/Skills_and_Progression.md` v0.1 PROPOSED for Mike's note #5. Four v1 skills (Felling, Digging, Mining, Hauling), three tiers each (Novice, Practiced, Skilled), effort x 0.9 / 0.8 / 0.7 with a 50 percent floor, Felling also cuts stamina per swing (4 to 2.8), Hauling +3 / +6 / +10 kg on the 45 kg cap and the 30 kg Encumbered line; counts first pass (Felling 10 / 40 / 120 trees, Digging 3 / 10 / 25, Mining 10 / 40 / 120 Stone, Hauling 5 / 20 / 60 km); counters-only save (tier computed, old saves load untrained); six build steps S0 to S5, none before D2; twelve open questions. Finding: felling is already about 9 s a tree, so the felt benefit is stamina and the long jobs (Deep well about 63 s to 44 s; whole outcrop about 144 s to 100 s); Skilled Hauling turns a Deep well's 16 Stone from 4 trips into 3. Nothing built; Decisions_Log and Crafting_System.md are not changed until Mike approves.
+
+Uncommitted docs: Current_Task_List.md, Well_Preview_B2_Playtest_Checklist.md (new), Skills_and_Progression.md (new).
+
+**Mike's answers on the skills draft (2026-10-24):** (3) counts "still a little hard", so lowered to roughly half (Felling 5 / 20 / 60, Digging 2 / 6 / 15, Mining 5 / 20 / 60, Hauling 3 / 10 / 30); (5) yes, the Pouch and Skilled Hauling stack (65 kg cap). (1) He asked "what post-Alpha deferral?": it is the Decisions_Log 2026-09-25 entry (a generalized Crafting/Resources/Tools layer, workbenches, tool durability and skills, deferred to post-Alpha); explained in chat, his yes or no still pending. Other open questions (2, 4, 6 to 12) not yet answered. `Skills_and_Progression.md` updated.
+
+**Skills decision parked (Mike, 2026-10-24: "yes, defer that decision"):** the decision whether to lift the post-Alpha deferral for gathering and carry skills is deferred until after D2. Decisions_Log and Crafting_System.md are unchanged; `Skills_and_Progression.md` stays a parked Design Draft with open questions 2, 4 and 6 to 12 unanswered. Revisit after D2 sets the tier numbers. Nothing to build.
+
+## Bug report: magenta Cabin Site marker (Mike, 2026-10-24, B2 playtest, slot 4 save)
+
+Mike posted a screenshot from his slot 4 save at the cabin site: the **Cabin Site marker itself** (post, flat roof plate and blobs at the base) renders solid bright magenta. No placement HUD text is on screen, so this is the marker, not the Well ghost. Magenta in Unity is the missing or incompatible shader or material colour (in HDRP typically a Built-in or Legacy shader, or a material that failed to load). This matches Claude Code's unexplained pink on the ridge during the B2 check ("same pink shows on that marker in the compass strip"). **Not yet known:** whether it predates B2 or was caused by it (B2 changed PlacementGhost.cs, but the marker is a separate object), and whether it only happens on older saves like slot 4 or also in a new game. Read-only diagnosis message for Claude Code written in chat.
+
+**Correction (2026-10-24):** Mike replied "thats Not my build ghost" to the magenta screenshot. So it is not the well ghost, and my "Cabin Site marker" identification is unconfirmed: the shape (a narrow tall box with a slanted roof plate) may be an Outhouse or another structure. The Claude Code diagnosis message is on hold until Mike says what the object is.
+
+## Report: magenta object diagnosed (2026-10-24)
+
+Claude Code's read-only diagnosis: the magenta object is **not** the Cabin Site marker (that is "Marker (Placeholder)" in World.unity, Rock A mesh on DefaultHDMaterial, fine) and **not a game bug**. It is a **leftover Well Site placement ghost from Claude Code's own first B2 play-check**: it started a Well Site placement at the ridge (18, 30.14, -68) and stopped Play Mode without cancelling. Objects created with `HideFlags.DontSave` survive leaving Play Mode in the editor; its materials were destroyed, so all 30 material slots are null and Unity draws solid magenta. Console: 0 shader or material errors. It shows on slot 4 and in a brand-new game alike (it does not depend on the save; slot 4 has no Well). It is also the "pink with a green fringe" ghost reported earlier (the stale one overlapping the live one).
+
+- **B2 did not cause it.** `git diff` on PlacementGhost.cs shows B2 added only the amber colour, `SetValid(valid, warn = false)` and the amber material destroy; the ghost creation and `MakeMaterial` lines are untouched (last changed in ce229d6, earliest 6fd820a). Not confirmed against a pre-B2 build (no worktree was made to avoid a second leak): any ghost left active when Play Mode stops would leak the same way.
+- **Wider:** the editor currently holds 226 orphaned DontSave objects, one set per past Play session (Placement Mode, Wells And Outhouses, Stream Manager, Pond Manager, Creek Crossing and so on). Inert (no renderers), only a ghost is visible.
+- **Fix now, no code:** restart the Unity Editor (clears all 226). Claude Code left the orphan in place because it was told to change nothing.
+- **Optional code fix (about 6 lines, not applied):** make PlacementMode destroy its ghost when Play Mode ends (`Application.quitting`, `DestroyImmediate`). Recommended as a **separate fix commit**, after the B2 commit; it also hits the Outhouse, Cabin and trap ghosts, editor-only. Decision pending with Mike.
+- Saves backed up and restored, 0 differences (only slot 4's Continue and a new game used). Working tree unchanged.
+- **Checklist item 2 updated:** restart the editor first.
+
+**Decision (Mike, 2026-10-24, "agreed"):** do the small fix so a Placement Ghost cannot outlive Play Mode in the editor (destroy it when Play Mode ends). **Separate fix commit, AFTER the B2 commit** (it touches PlacementMode.cs / PlacementGhost.cs, which B2 also changed, so building it first would tangle the staging lists). Claude Code message written in chat; send it only after B2 is played, passed and committed.
+
+## Result: well B2 placement preview playtest (2026-10-24)
+
+Mike played `Well_Preview_B2_Playtest_Checklist.md` after restarting the editor: **14 of 14 pass**, including the clean green ridge ghost (item 2, the pink object was the editor leftover), the amber flood warning, red refusals, setbacks still winning, other ghosts unchanged, a real well still 40 blows, 10 Stone and 150 L, both layouts and a clean Console.
+
+Next: Claude Code stages the 9 paths (WellPreview.cs + .meta, WellPreviewTests.cs + .meta, WellsAndOuthouses.cs, PlacementMode.cs, PlacementGhost.cs, ToolStatus.cs, ToolHud.cs) and commits on Mike's OK. Then the ghost-lifetime fix (separate commit), then the docs commit (Current_Task_List.md, Well_Preview_B2_Playtest_Checklist.md, Skills_and_Progression.md).
+
+## Report: placement ghost must not outlive Play Mode (2026-10-24)
+
+Mike sent the ghost-fix message before the B2 commit, so **B2 is still uncommitted** (HEAD 2d1e866, B2 and the fix both in the working tree). Claude Code built the fix anyway and held staging. **Not committed.** 625 of 625 edit-mode tests pass, Console clean.
+
+- **`PlacementGhost.cs`:** new `DestroyNow()` (DestroyImmediate on the ghost root and on the valid, invalid and lazily made amber materials) via a shared `Release` and `Dispose` helper; normal `Destroy()` still uses plain Destroy.
+- **`PlacementMode.cs`:** subscribes once to `Application.quitting` (inside the existing SubsystemRegistration reset, unsubscribing first so it never doubles); on quit it drops placing and calls `DestroyNow()` on its ghost. No Editor-namespace code, safe in a built game.
+- **`TrapSetter.cs`:** the trap ghost had the same gap; `OnDisable` and `OnDestroy` now use `DestroyNow()`; putting the trap away in play still uses plain Destroy.
+- **Check by play (three throwaway games, Saves restored, 0 differences, slot 10 untouched):** stopped Play Mode mid-placement with a Well Site, an Outhouse and a Fish Trap in hand; after each Stop no new "Placement Ghost" remained. Editor baseline before: 1 old ghost (the magenta Well Site at 18, 30.14, -68, still there; only an editor restart clears it) and 233 inert DontSave orphans, rising to 240, 247, 254 (7 per Play session, the existing manager pattern, left alone). No new unit test (object lifetime, no pure logic).
+- **Staging problem:** PlacementMode.cs and PlacementGhost.cs contain both B2 hunks and fix hunks, and the two overlap in `Destroy()`, so splitting with `git add -p` is fiddly and could leave a B2-only commit that does not compile.
+- **Decision (Claude's recommendation to Mike):** one combined commit of B2 plus the fix, 10 paths (the 9 B2 paths plus TrapSetter.cs), with a commit message that says both. Noted: Mike's 14/14 B2 playtest was on code without the fix; the fix itself was verified by Claude Code's play check only.
+
+## Commit: well B2 plus ghost-lifetime fix (2026-10-24)
+
+Code commit **9842600** "Well water table B2: placement preview, and placement ghosts no longer outlive Play Mode", 10 files (401 insertions, 21 deletions), pushed to master (2d1e866..9842600). One combined commit (no `git add -p`), exactly the 10 approved paths. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/.
+
+**Baselines now:** code 9842600, docs 0bf08f1 (until the docs commit below). Mike to restart the Unity Editor to clear the old magenta ghost.
+
+Next: docs commit of 3 paths (Current_Task_List.md, Skills_and_Progression.md, Well_Preview_B2_Playtest_Checklist.md). Then B3 (effects), which needs the tier-numbers decision first (80.7% of land near the cabin is Deep tier at slope 0.5).
