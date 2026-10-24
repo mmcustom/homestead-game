@@ -6,7 +6,9 @@ using UnityEngine.UI;
 // individual inventory screen for each structure that we can put items in individually and remove individually. maybe
 // when working with one of the structures open 2 seperate inventory windows"). Opened by GameScreens.OpenStorage when
 // the player presses E or R on a built storage pile — Wood Pile, Rock Pile, Water Barrel, Food Cache, Storage Bin or
-// Tool Rack (WoodPile.UsesTransferScreen) — targeting that one pile. Two panels in the one window, so the other tabs
+// Tool Rack (WoodPile.UsesTransferScreen) — targeting that one pile. A felled tree's pile (WoodPile.UsesTakeScreen) reuses it in a
+// take-only mode: no pack panel, no store or take-down buttons, one full-width list, and every take is all or nothing (WoodPile.TakeWhole,
+// CarryRules): a choice that will not fit the carry limit moves nothing and the status line says why. Two panels in the one window, so the other tabs
 // stay reachable: the player's pack on the left (only what this structure holds), the structure's contents on the
 // right, each with its weight or capacity. Every row is two lines (QuantityRowUi): the name and what is there, then a quantity stepper
 // (Quantity_Controls.md) with the button. Click moves the amount shown in the stepper (1 by default, back to 1 after every move),
@@ -22,18 +24,19 @@ public class StorageTransferScreen : GameScreen
     // Water best quality first, the order the barrel and the Bucket have always used.
     static readonly string[] WaterOrder = { Cooking.PurifiedWaterId, "water_excellent", "water_good", "water_questionable", "water_unsafe" };
 
-    RectTransform packList, structureList;
-    Text packWeight, structureWeight, statusLabel;
+    RectTransform packList, structureList, packPanel, structurePanel;
+    Text packWeight, structureWeight, statusLabel, structureHeading;
     Button storeAllButton, takeAllButton, removeButton;
     WoodPile target;
     bool confirmingRemove;
+    bool takeOnly; // a felled tree's pile: choose what to take, everything else stays
 
     // The amount chosen in each row's stepper, by item id (the pack side and the structure side separately). The rows are rebuilt on
     // every refresh, so the amounts live here; they go back to 1 after a move and are cleared when the screen hides.
     readonly Dictionary<string, int> storeAmounts = new Dictionary<string, int>();
     readonly Dictionary<string, int> takeAmounts = new Dictionary<string, int>();
 
-    public override string Title => target != null && target.State != null ? WoodManager.PileName(target.State.kind) : "Storage";
+    public override string Title => takeOnly ? "Fallen Tree" : target != null && target.State != null ? WoodManager.PileName(target.State.kind) : "Storage";
 
     public override void Build(RectTransform area)
     {
@@ -54,8 +57,11 @@ public class StorageTransferScreen : GameScreen
         RectTransform body = UiKit.Rect("Body", area);
         body.Fill(0f, 34f, 0f, 0f);
         // (Region repositions the rect it's called on, so each side needs its own.)
-        BuildPanel(UiKit.Rect("Pack", body).Region(0f, 0f, 0.495f, 1f), "You're carrying", out packList, out packWeight, out storeAllButton, StoreAll);
-        BuildPanel(UiKit.Rect("Structure", body).Region(0.505f, 0f, 1f, 1f), "In the structure", out structureList, out structureWeight, out takeAllButton, TakeShortcut);
+        packPanel = UiKit.Rect("Pack", body).Region(0f, 0f, 0.495f, 1f);
+        BuildPanel(packPanel, "You're carrying", out packList, out packWeight, out storeAllButton, StoreAll);
+        structurePanel = UiKit.Rect("Structure", body).Region(0.505f, 0f, 1f, 1f);
+        BuildPanel(structurePanel, "In the structure", out structureList, out structureWeight, out takeAllButton, TakeShortcut);
+        structureHeading = structurePanel.Find("Heading").GetComponent<Text>();
     }
 
     // One side: a heading, a weight/capacity line, a shortcut button, and a scrolling list.
@@ -75,13 +81,32 @@ public class StorageTransferScreen : GameScreen
         ((RectTransform)list.parent).Fill(0f, 0f, 0f, 112f);
     }
 
-    public void SetTarget(WoodPile pile) => target = pile;
+    public void SetTarget(WoodPile pile)
+    {
+        target = pile;
+        takeOnly = pile != null && pile.UsesTakeScreen;
+    }
+
+    // The two layouts: the usual two panels, or (take-only) the pile's list across the whole window with the status line the full width.
+    void ApplyLayout()
+    {
+        packPanel.gameObject.SetActive(!takeOnly);
+        if (takeOnly)
+            structurePanel.Region(0f, 0f, 1f, 1f);
+        else
+            structurePanel.Region(0.505f, 0f, 1f, 1f);
+        statusLabel.rectTransform.anchorMax = new Vector2(takeOnly ? 1f : 0.62f, 0f);
+        statusLabel.color = UiKit.Muted;
+        structureHeading.text = takeOnly ? "In the pile" : "In the structure";
+    }
 
     // No Player.Changed subscription: GameManager is in the Menu state while this is open, so nothing can change the
     // pile or the player's pack except this screen's own buttons — which call Refresh themselves after.
     public override void OnShow()
     {
-        statusLabel.text = "Click moves the amount shown; Shift-click moves the whole stack.";
+        ApplyLayout();
+        statusLabel.text = takeOnly ? "Click takes the amount shown; Shift-click takes the whole stack. A choice that won't fit takes nothing."
+                                    : "Click moves the amount shown; Shift-click moves the whole stack.";
         storeAmounts.Clear();
         takeAmounts.Clear();
         Refresh();
@@ -106,6 +131,14 @@ public class StorageTransferScreen : GameScreen
             takeAllButton.gameObject.SetActive(false);
             removeButton.gameObject.SetActive(false);
             packWeight.text = structureWeight.text = "";
+            if (takeOnly)
+                UiKit.Height(UiKit.Text(structureList, "Empty", "The pile is empty and has gone.", 20, UiKit.Muted), 50f);
+            return;
+        }
+
+        if (takeOnly)
+        {
+            RefreshTakeOnly(inventory, target.State);
             return;
         }
 
@@ -123,6 +156,37 @@ public class StorageTransferScreen : GameScreen
 
         RefreshPack(inventory, state, barrel);
         RefreshStructure(state, barrel);
+    }
+
+    // A felled tree's pile: one list, what is in the pile with each thing's weight, the pack's load in the readout, Take All at the top.
+    // The stepper's most is everything in the pile, not what fits: a choice that is too heavy is refused with the reason, not trimmed.
+    void RefreshTakeOnly(InventoryManager inventory, WoodPileState state)
+    {
+        removeButton.gameObject.SetActive(false);
+        storeAllButton.gameObject.SetActive(false);
+        takeAllButton.gameObject.SetActive(true);
+        takeAllButton.GetComponentInChildren<Text>().text = "Take All";
+        takeAllButton.interactable = !state.IsEmpty;
+
+        structureWeight.text = (state.IsEmpty ? "Empty" : $"{state.Total} in the pile") +
+                               $"   ·   you are carrying {inventory.CarriedWeightKg:0.0} / {inventory.MaxCarryWeightKg:0} kg";
+        if (state.IsEmpty)
+        {
+            UiKit.Height(UiKit.Text(structureList, "Empty", "The pile is empty and has gone.", 20, UiKit.Muted), 50f);
+            return;
+        }
+
+        foreach (KeyValuePair<string, int> pair in WoodPile.Contents(state))
+        {
+            if (pair.Value <= 0)
+                continue;
+            string itemId = pair.Key;
+            ItemDefinition item = ItemDatabase.Get(itemId);
+            string unit = $"×{pair.Value}" + MoistureOfPile(state, itemId) + (item != null ? $"  ·  {item.WeightKg:0.##} kg each" : "");
+            int inPile = pair.Value;
+            MoveRow(structureList, itemId, unit, null, "Take", inPile, false, takeAmounts,
+                    (amount, all) => TakeWholeAndRefresh(itemId, all ? inPile : amount));
+        }
     }
 
     // Left: carried weight against the cap, then each kind of thing carried that this structure holds.
@@ -280,6 +344,26 @@ public class StorageTransferScreen : GameScreen
         Refresh();
     }
 
+    // The take-only screen's click, Shift-click: all of the choice or none of it. A refusal keeps the amount in the stepper so it can be lowered.
+    void TakeWholeAndRefresh(string itemId, int count)
+    {
+        if (target == null)
+            return;
+        int taken = target.TakeWhole(itemId, count, out string message);
+        if (taken > 0)
+            takeAmounts.Remove(itemId); // back to 1 once the move has happened
+        Report(message, taken > 0);
+        Refresh();
+    }
+
+    void Report(string message, bool ok)
+    {
+        statusLabel.text = message;
+        statusLabel.color = ok ? UiKit.Cream : UiKit.Warning;
+        if (ok && AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+    }
+
     void StoreAll()
     {
         if (target == null || target.State == null)
@@ -315,6 +399,13 @@ public class StorageTransferScreen : GameScreen
     {
         if (target == null || target.State == null)
             return;
+        if (takeOnly)
+        {
+            bool ok = target.TakeEverythingWhole(out string message);
+            Report(message, ok);
+            Refresh();
+            return;
+        }
         statusLabel.text = target.State.IsWaterBarrel ? target.DrawWaterToStatus() : target.TakeAllToStatus();
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);

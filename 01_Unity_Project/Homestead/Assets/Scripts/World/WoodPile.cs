@@ -43,6 +43,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                                 state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack ||
                                 state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving;
 
+    // A felled tree's pile (and anything dropped as one) opens the take-only screen on E: the player picks what to take and the rest stays
+    // (Mike, 2026-10-24). A Small Cabin's CabinSite keeps its instant E.
+    public bool UsesTakeScreen => state != null && state.kind == PileKind.Felled;
+
     // --- Taking (E) ---
 
     public string InteractionPrompt
@@ -57,7 +61,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                 return IsCabinSite ? WithSiteNeeds($"Remove {Name}  (empty — {(WoodManager.HammerEquipped ? "nothing to take back" : "equip the Hammer to take it down")})")
                                    : $"{Name}  (empty)";
             string contents = Describe(state);
-            string verb = state.kind == PileKind.CabinSite ? "Take Materials" : "Take Wood";
+            string verb = state.kind == PileKind.CabinSite ? "Take Materials" : UsesTakeScreen ? "Choose what to take" : "Take Wood";
             if (IsCabinSite && WellsAndOuthouses.MaterialsLocked(state))
                 return WithSiteNeeds($"{Name}  ({contents})"); // the Hammer has begun: nothing can be taken back
             return WithSiteNeeds(AnythingFits() ? $"{verb}  ({contents})" : $"{Name}  ({contents}) — no room to carry more");
@@ -105,6 +109,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (IsCabinSite && WellsAndOuthouses.MaterialsLocked(state))
         {
             ToolStatus.Flash("The materials are built in now - keep hammering to finish it.", 3f);
+            return;
+        }
+
+        if (UsesTakeScreen)
+        {
+            OpenScreen();
             return;
         }
 
@@ -186,6 +196,72 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             return true;
         reason = "too heavy to carry more";
         return false;
+    }
+
+    // --- The felled tree pile's take screen: all or nothing ---
+
+    // Moves up to count of an item (the stepper's amount, or the whole stack) into the pack, but only if every one of them fits under the
+    // carry limit; otherwise nothing moves and message says why (CarryRules). Returns how many were taken (0 or the whole choice).
+    public int TakeWhole(string itemId, int count, out string message)
+    {
+        message = "";
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        int want = Mathf.Min(count, state != null ? state.Count(itemId) : 0);
+        if (item == null || Inventory == null || want <= 0)
+        {
+            message = "Nothing to take.";
+            return 0;
+        }
+
+        float add = item.WeightKg * want;
+        if (!CarryRules.Fits(Inventory.Player.FreeWeightKg, add) || Inventory.Player.SpaceFor(item) < want)
+        {
+            message = CarryRules.Refusal($"{want} {item.DisplayName}", Inventory.Player.FreeWeightKg, add, Inventory.MaxCarryWeightKg);
+            return 0;
+        }
+
+        int taken = TakeInto(itemId, want);
+        if (taken > 0 && WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state); // an emptied felled pile goes away here
+        message = $"Took {taken} {item.DisplayName}.";
+        return taken;
+    }
+
+    // Everything in the pile, or nothing: the whole load has to fit at once.
+    public bool TakeEverythingWhole(out string message)
+    {
+        message = "";
+        if (state == null || Inventory == null || state.IsEmpty)
+        {
+            message = "Nothing to take.";
+            return false;
+        }
+
+        float add = 0f;
+        foreach (WoodStack stack in state.contents)
+        {
+            ItemDefinition item = ItemDatabase.Get(stack.itemId);
+            if (item != null)
+                add += item.WeightKg * stack.count;
+        }
+        if (!CarryRules.Fits(Inventory.Player.FreeWeightKg, add))
+        {
+            message = CarryRules.Refusal("everything in the pile", Inventory.Player.FreeWeightKg, add, Inventory.MaxCarryWeightKg);
+            return false;
+        }
+
+        var ids = new List<string>();
+        foreach (WoodStack stack in state.contents)
+            if (!ids.Contains(stack.itemId))
+                ids.Add(stack.itemId);
+        ids.Sort((a, b) => WeightOf(a).CompareTo(WeightOf(b)));
+        foreach (string itemId in ids)
+            TakeInto(itemId, state.Count(itemId));
+
+        message = state.IsEmpty ? "Took everything." : $"Took what could be taken. Left in the pile: {Describe(state)}";
+        if (WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(state);
+        return true;
     }
 
     // The old one-press "take everything"/"fill from the best quality" — now a shortcut inside the transfer screen.
