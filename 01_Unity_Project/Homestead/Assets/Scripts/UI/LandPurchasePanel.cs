@@ -8,8 +8,8 @@ using UnityEngine.UI;
 //   Land    - choose one of the three starter parcels (LandRules.Starters), with price, price per acre and the payment preview.
 //   Split   - split the savings (tier percentage of the price, capped) between a down payment and a cash reserve. Skipped for a
 //             tier with no savings (Pioneer), where the full price is financed.
-//   Summary - the loan: amount, rate, number and spacing of payments, the payment, the first due date and the total interest if no
-//             extra payments are made. Confirm hands the choice back; Back (or Esc) steps back, and from the first step closes.
+//   Summary - the loan: amount, rate, number and spacing of payments, the payment, the first due date, the total interest if no
+//             extra payments are made, and the tier's other terms (late fee, missed payments that lose the game, the Trading Post's share). Confirm hands the choice back; Back (or Esc) steps back, and from the first step closes.
 // All the numbers come from LandRules and LoanState; this only shows them.
 public class LandPurchasePanel : MonoBehaviour
 {
@@ -19,6 +19,7 @@ public class LandPurchasePanel : MonoBehaviour
 
     Difficulty tier;
     LoanTerms terms;
+    TierTerms tierTerms;
     Step step = Step.Land;
     int parcel;
     long savings, down;
@@ -29,7 +30,7 @@ public class LandPurchasePanel : MonoBehaviour
     Text titleLabel, noteLabel, splitProblem, savingsText;
     readonly Button[] cards = new Button[3];
     readonly Text[] splitValues = new Text[4];
-    readonly Text[] summaryValues = new Text[10];
+    readonly Text[] summaryValues = new Text[12];
     InputField downField;
     Button backButton, nextButton;
     bool settingField;
@@ -37,7 +38,7 @@ public class LandPurchasePanel : MonoBehaviour
     static readonly string[] SummaryLabels =
     {
         "Land", "Price", "Down payment", "Cash reserve", "Loan amount", "Interest", "Payments", "Each payment",
-        "First payment due", "Interest if you make no extra payments",
+        "First payment due", "Interest if you make no extra payments", "If you miss payments", "Trading Post pays",
     };
 
     // underCanvas is anything inside the canvas to cover. resume (coming back from the slot pick) reopens on the summary of that choice.
@@ -57,7 +58,9 @@ public class LandPurchasePanel : MonoBehaviour
 
         var panel = shade.gameObject.AddComponent<LandPurchasePanel>();
         panel.tier = tier;
-        panel.terms = MoneyManager.Instance != null ? MoneyManager.Instance.Terms : LoanTerms.Default;
+        MoneyManager money = MoneyManager.Instance;
+        panel.terms = money != null ? money.TermsFor(tier) : TierRules.LoanTermsFor(LoanTerms.Default, TierRules.For((int)tier));
+        panel.tierTerms = money != null ? money.TierFor(tier) : TierRules.For((int)tier);
         panel.onConfirmed = onConfirmed;
         panel.onBack = onBack;
         panel.Build();
@@ -186,10 +189,10 @@ public class LandPurchasePanel : MonoBehaviour
         for (int i = 0; i < SummaryLabels.Length; i++)
         {
             Text label = UiKit.Text(summaryGroup, SummaryLabels[i], SummaryLabels[i], 24, UiKit.Muted, TextAnchor.MiddleLeft);
-            Place(label.rectTransform, 40f, 96f + i * 46f, 520f, 44f);
+            Place(label.rectTransform, 40f, 96f + i * 42f, 520f, 40f);
             summaryValues[i] = UiKit.Text(summaryGroup, SummaryLabels[i] + " Value", "", 26, UiKit.Cream, TextAnchor.MiddleLeft);
             summaryValues[i].horizontalOverflow = HorizontalWrapMode.Overflow;
-            Place(summaryValues[i].rectTransform, 580f, 96f + i * 46f, 580f, 44f);
+            Place(summaryValues[i].rectTransform, 580f, 96f + i * 42f, 580f, 40f);
         }
     }
 
@@ -365,6 +368,8 @@ public class LandPurchasePanel : MonoBehaviour
             Money.Format(payment),
             first,
             Money.Format(LoanState.TotalInterest(loan, terms)),
+            $"{Money.Format(terms.lateFeeCents)} late fee; lose at {TierRules.MissedLine(tierTerms.missedBeforeLoss)}",
+            tierTerms.sellBasisPoints == TierRules.FullSellBasisPoints ? "100% of the market price" : $"{TierRules.PercentText(tierTerms.sellBasisPoints)} of the market price",
         };
         for (int i = 0; i < summaryValues.Length; i++)
             summaryValues[i].text = texts[i];

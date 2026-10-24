@@ -55,7 +55,7 @@ public class FinancesScreen : MonoBehaviour
     Text titleLabel, noLoanLabel;
     Button loanTabButton, statementTabButton;
     StatementPanel statement;
-    Text cashLabel, warningLabel, statusLabel, openHeading;
+    Text cashLabel, warningLabel, statusLabel, openHeading, termsHeading, termsLabel;
     readonly Text[] values = new Text[Labels.Length];
     RectTransform openList;
     InputField amountField;
@@ -126,7 +126,13 @@ public class FinancesScreen : MonoBehaviour
         openHeading = UiKit.Text(loanRoot, "Open Heading", "Open payments", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
         Place(openHeading.rectTransform, 780f, 98f, 600f, 40f);
         openList = UiKit.ScrollList(loanRoot, "Open Payments", 4f, true);
-        Place((RectTransform)openList.parent, 780f, 144f, PanelWidth - 780f - 40f, 400f);
+        Place((RectTransform)openList.parent, 780f, 144f, PanelWidth - 780f - 40f, 290f);
+
+        termsHeading = UiKit.Text(loanRoot, "Terms Heading", "Terms of this game", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Place(termsHeading.rectTransform, 780f, 450f, 600f, 40f);
+        termsLabel = UiKit.Text(loanRoot, "Terms", "", 22, UiKit.Cream, TextAnchor.UpperLeft);
+        termsLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+        Place(termsLabel.rectTransform, 780f, 494f, PanelWidth - 780f - 40f, 130f);
 
         warningLabel = UiKit.Text(loanRoot, "Warning", "", 24, UiKit.Warning, TextAnchor.MiddleLeft, FontStyle.Bold);
         Place(warningLabel.rectTransform, 40f, 640f, PanelWidth - 80f, 44f);
@@ -324,6 +330,15 @@ public class FinancesScreen : MonoBehaviour
             values[owedRow].color = UiKit.Warning;
         if (loan.FeesOwed > 0)
             values[feesRow].color = UiKit.Warning;
+
+        // The loan's own rate and late fee (frozen when it was made), and the tier's loss threshold and sell share now.
+        TierTerms tierNow = money.Tier;
+        string terms = $"Interest: {TierRules.PercentText(loan.terms.rateBasisPoints)} a year, fixed\n" +
+                       $"Late fee: {Money.Format(loan.terms.lateFeeCents)} after {loan.terms.graceDays} days\n" +
+                       $"The game is lost at {TierRules.MissedLine(tierNow.missedBeforeLoss)}";
+        if (tierNow.sellBasisPoints != TierRules.FullSellBasisPoints)
+            terms += $"\nTrading Post pays {TierRules.PercentText(tierNow.sellBasisPoints)} of a sale";
+        termsLabel.text = terms;
 
         warningLabel.text = money.WarnMissed
             ? $"WARNING: {missed} missed payments are open. Pay them as soon as you can."

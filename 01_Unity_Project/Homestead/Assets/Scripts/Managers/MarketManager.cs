@@ -154,11 +154,11 @@ public class MarketManager : MonoBehaviour, ISaveable
         return MarketRules.Clamp(rule.TargetFor(Season), rule.floorBp);
     }
 
-    // What the store pays for one now, in cents (0: it doesn't buy it).
+    // What the store pays for one now, in cents (0: it doesn't buy it), after the tier's sell share.
     public long SellPrice(string itemId)
     {
         long baseCents = table.SellBaseCents(itemId);
-        return baseCents > 0 ? MarketRules.UnitPrice(baseCents, Multiplier(itemId)) : 0;
+        return baseCents > 0 ? TierRules.ApplySell(MarketRules.UnitPrice(baseCents, Multiplier(itemId)), SellShareBp) : 0;
     }
 
     public long SellBase(string itemId) => table.SellBaseCents(itemId);
@@ -175,13 +175,28 @@ public class MarketManager : MonoBehaviour, ISaveable
 
     // --- Selling ---
 
-    public SaleResult Quote(string itemId, int count) => state.Quote(table, itemId, count);
+    // The tier's share of a sale total (Money_System.md Phase D1): 10000 pays exactly the market price. The market's own multipliers and
+    // the falling price are not touched; only what the store pays out is scaled, on the total, in the quote and the real sale alike.
+    static int SellShareBp => MoneyManager.CurrentTier.sellBasisPoints;
+
+    static SaleResult WithTierShare(SaleResult result)
+    {
+        int bp = SellShareBp;
+        if (bp == TierRules.FullSellBasisPoints || result.count <= 0)
+            return result;
+        result.totalCents = TierRules.ApplySell(result.totalCents, bp);
+        result.firstUnitCents = TierRules.ApplySell(result.firstUnitCents, bp);
+        result.lastUnitCents = TierRules.ApplySell(result.lastUnitCents, bp);
+        return result;
+    }
+
+    public SaleResult Quote(string itemId, int count) => WithTierShare(state.Quote(table, itemId, count));
 
     // Sells count units unit by unit at the falling price. The caller has already taken the items and pays the total.
     public SaleResult Sell(string itemId, int count)
     {
         ProcessNow();
-        SaleResult result = state.Sell(table, itemId, count);
+        SaleResult result = WithTierShare(state.Sell(table, itemId, count));
         if (result.count > 0)
             Changed?.Invoke();
         return result;

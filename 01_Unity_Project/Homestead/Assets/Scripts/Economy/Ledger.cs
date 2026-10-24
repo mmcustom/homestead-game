@@ -118,6 +118,7 @@ public class LedgerSeason
     public long cashEnd;         // closed seasons only
     public long loanEnd;         // loan balance when closed
     public long owedEnd;         // late fees and open payments still owed when closed
+    public long realMillis;      // real (unscaled) milliseconds played in this season: OPTIONAL, 0 in a save from before it was recorded
     public long[] cents = new long[LedgerCategories.Count];
 
     public void Normalize()
@@ -159,6 +160,7 @@ public struct StatementRow
     public int index;            // the season, or -1 for a totals row
     public bool inProgress;      // the season is still open: its figures are so far
     public long minutes;         // how long the row covers
+    public long realMillis;      // real milliseconds played in it (0: not recorded)
     public long cashStart, income, expenses, cashEnd, loanEnd, owedEnd;
     public long[] cents;         // by category
 
@@ -244,6 +246,14 @@ public sealed class LedgerState
         Open = new LedgerSeason { index = Math.Max(0, seasonIndex), startMinute = nowMinute, cashStart = openingCashCents };
     }
 
+    // Real time played: adds milliseconds to the open season. Ignores anything not positive, or if the ledger hasn't started.
+    public void AddRealMillis(long millis)
+    {
+        if (!Started || millis <= 0)
+            return;
+        Open.realMillis = Money.Add(Open.realMillis, millis);
+    }
+
     // Adds money that moved to the open season. Ignores anything that isn't positive, or if the ledger hasn't started.
     public void Record(LedgerCategory category, long cents)
     {
@@ -286,6 +296,7 @@ public sealed class LedgerState
         index = season.index,
         inProgress = inProgress,
         minutes = Math.Max(0, minutes),
+        realMillis = Math.Max(0, season.realMillis),
         cashStart = season.cashStart,
         income = season.Income,
         expenses = season.Expenses,
@@ -331,6 +342,7 @@ public sealed class LedgerState
             }
             total.cashStart = row.cashStart; // ends as the oldest match's
             total.minutes += row.minutes;
+            total.realMillis = Money.Add(total.realMillis, row.realMillis);
             total.income = Money.Add(total.income, row.income);
             total.expenses = Money.Add(total.expenses, row.expenses);
             for (int c = 0; c < LedgerCategories.Count && row.cents != null; c++)
@@ -352,6 +364,28 @@ public sealed class LedgerState
         long scaled = Money.Mul(Math.Abs(cents), MinutesPerDay);
         long perDay = Money.Add(scaled, minutes / 2) / minutes;
         return cents < 0 ? Money.Negate(perDay) : perDay;
+    }
+
+    // Money per real hour played: cents over the real milliseconds, in cents, half up (half away from zero for a loss). 0 when nothing is
+    // recorded (use HasRealTime to tell that from a season that earned nothing).
+    public static long PerRealHour(long cents, long realMillis)
+    {
+        if (realMillis <= 0)
+            return 0;
+        long scaled = Money.Mul(Math.Abs(cents), 3600000L);
+        long perHour = Money.Add(scaled, realMillis / 2) / realMillis;
+        return cents < 0 ? Money.Negate(perHour) : perHour;
+    }
+
+    public static bool HasRealTime(long realMillis) => realMillis > 0;
+
+    // "42.5": real milliseconds as minutes, one decimal, half up. "-" when none was recorded.
+    public static string RealMinutesText(long realMillis)
+    {
+        if (!HasRealTime(realMillis))
+            return "-";
+        long tenths = Money.Add(realMillis, 3000) / 6000;
+        return $"{tenths / 10}.{tenths % 10}";
     }
 
     // "27.75 days": minutes as game days, two decimals.

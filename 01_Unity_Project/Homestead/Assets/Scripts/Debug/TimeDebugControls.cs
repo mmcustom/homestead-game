@@ -19,6 +19,8 @@ using UnityEngine.InputSystem;
 //   Shift+F10 set Health to 0, to test Player Collapse (SleepManager.CollapseRoutine)
 //   F11 give the starting kit to older saves: Flint and Steel, a Bucket, the Axe, a Cooking Pot, a Sleeping Bag, a Tent,
 //       a Knife, a Canteen, a Weather Station and 6 Firewood
+//   End    export the ledger to a CSV file, one row per season (Money_System.md Phase D1), under Exports/ in the persistent data path;
+//          the full path is printed in the Console and the file name shows on screen
 //   Insert lose the game now, as if the third missed land payment had just landed (shows the loss screen; nothing is saved from it)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
@@ -64,6 +66,13 @@ public class TimeDebugControls : MonoBehaviour
         {
             MoneyManager.Instance.DebugForceLoss();
             Show("Loss forced", time);
+            return;
+        }
+
+        if (keyboard.endKey.wasPressedThisFrame && LedgerManager.Instance != null)
+        {
+            string path = LedgerManager.Instance.DebugExportCsv();
+            Show(path != null ? "Ledger exported: " + System.IO.Path.GetFileName(path) : "No ledger to export yet", time);
             return;
         }
 

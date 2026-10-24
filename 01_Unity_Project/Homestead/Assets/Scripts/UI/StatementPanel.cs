@@ -9,6 +9,8 @@ using UnityEngine.UI;
 // the ledger and the real cash disagree, per game day averages and the change from the season before. Positive figures (income, net,
 // balances) are black, negative ones (expenses, a loss, what is owed) are red, zero is black. It is built when the tab opens (Show), not on
 // every event: the clock is stopped while the screen is open, so the figures cannot change under it. The figures come from LedgerManager.
+// The detail also shows the real minutes played in the season and the income per real hour (Money_System.md Phase D1), a dash when the
+// season has no recorded real time (an older save).
 public class StatementPanel
 {
     static readonly Color Paper = new Color(0.96f, 0.94f, 0.86f, 1f);
@@ -241,6 +243,10 @@ public class StatementPanel
         StatementRow row = rows[at];
         Line(detailList, SeasonText(row), "", 28, true, Ink, Ink, 40f);
         Line(detailList, LedgerState.DaysText(row.minutes) + (row.inProgress ? " so far" : ""), "", 18, false, InkMuted, InkMuted, 26f);
+        bool hasReal = LedgerState.HasRealTime(row.realMillis);
+        long incomeHour = LedgerState.PerRealHour(row.income, row.realMillis);
+        Line(detailList, "Real minutes played", LedgerState.RealMinutesText(row.realMillis), 20, false, Ink, Ink, 28f);
+        Line(detailList, "Income per real hour", hasReal ? Money.Format(incomeHour) + " /hr" : "-", 20, false, Ink, hasReal ? InkFor(incomeHour) : Ink, 28f);
         Gap(detailList, 4f);
         Line(detailList, "Cash at start", Money.Format(row.cashStart), 22, false, Ink, InkFor(row.cashStart), 32f);
 

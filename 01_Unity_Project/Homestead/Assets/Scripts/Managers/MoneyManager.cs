@@ -12,15 +12,27 @@ using UnityEngine.InputSystem;
 // passing, a sleep that skips many days, a debug skip and a load, (2) from SaveManager.OnDayChanged BEFORE the end-of-day autosave is
 // requested, and (3) from CaptureState, so no save can ever be written with the loan behind the calendar.
 //
-// It lives on the Managers object in the Bootstrap scene, where the loan terms below are inspector fields (a loan keeps the terms it was
-// made with). Only if a game starts without a Bootstrap instance (a scene played on its own) does it create itself, after the first scene's
-// Awakes have run, so a scene instance always wins and there is never a second one.
+// Difficulty tiers (Money_System.md Phase D1): the interest rate, the late fee, the missed payments that lose the game and the Trading Post's
+// sell share come from the tier table (TierRules), by the game's difficulty. The inspector fields of the same names are an OVERRIDE for
+// testing: only when "Override Tier Terms" is ticked do they replace the table, for every tier. A new loan freezes its rate and late fee
+// (a loan keeps the terms it was made with); the loss threshold and the sell share are read from the tier each time.
+//
+// It lives on the Managers object in the Bootstrap scene, where the loan terms below are inspector fields. Only if a game starts without
+// a Bootstrap instance (a scene played on its own) does it create itself, after the first scene's Awakes have run, so a scene instance
+// always wins and there is never a second one.
 public class MoneyManager : MonoBehaviour, ISaveable
 {
     public static MoneyManager Instance { get; private set; }
 
+    [Header("Tier override (testing only)")]
+    [Tooltip("Off (the normal state): the interest rate, late fee, missed payments before a loss and sell share come from the tier table (TierRules). " +
+             "On: the four fields marked 'override' below replace the table for every tier.")]
+    [SerializeField] bool overrideTierTerms;
+    [Tooltip("Override only: the Trading Post's share of a sale total in basis points (10000 = 100%).")]
+    [SerializeField, Min(1)] int sellBasisPoints = TierRules.FullSellBasisPoints;
+
     [Header("Land loan (Money_System.md)")]
-    [Tooltip("Yearly interest in basis points: 800 is 8%, spread over 12 payments a year.")]
+    [Tooltip("Override only (see above): yearly interest in basis points: 800 is 8%, spread over 12 payments a year.")]
     [SerializeField, Min(0)] int rateBasisPoints = 800;
     [Tooltip("Payments in the whole loan (15 years).")]
     [SerializeField, Min(1)] int payments = 180;
@@ -30,11 +42,11 @@ public class MoneyManager : MonoBehaviour, ISaveable
     [SerializeField, Min(1)] int firstDueDay = 112;
     [Tooltip("A payment still unpaid this many days after its due day gets the late fee and counts as missed.")]
     [SerializeField, Min(0)] int graceDays = 10;
-    [Tooltip("The one-time late fee, in cents ($75).")]
+    [Tooltip("Override only (see above): the one-time late fee, in cents ($75).")]
     [SerializeField, Min(0)] long lateFeeCents = 7500;
     [Tooltip("Open payments at which the Finances screen and the messages show the red warning.")]
     [SerializeField, Min(1)] int missedWarningCount = 3;
-    [Tooltip("Missed payments open at once that lose the game (Money_System.md Phase C). 0 turns the loss off.")]
+    [Tooltip("Override only (see above): missed payments open at once that lose the game (Money_System.md Phase C). 0 turns the loss off.")]
     [SerializeField, Min(0)] int lossMissedCount = LossRules.DefaultThreshold;
 
     LoanState loan;
@@ -50,12 +62,25 @@ public class MoneyManager : MonoBehaviour, ISaveable
     // middle of a sleep), cleared by a new loan, a reset or a load. While it is set nothing may be saved (SaveManager) and no season closes.
     public bool Lost { get; private set; }
     public RunSummary LossSummary { get; private set; }
-    public int LossThreshold => lossMissedCount;
+    public int LossThreshold => Tier.missedBeforeLoss;
 
     // The loan changed (a payment, a due date, a late fee, a new or loaded loan).
     public event Action Changed;
 
-    public LoanTerms Terms => new LoanTerms
+    // The terms of the game's difficulty tier now (the table, or the inspector override).
+    public TierTerms Tier => TierFor(DifficultyManager.Tier);
+
+    // The same for any tier, for the New Game summary before the difficulty is set.
+    public TierTerms TierFor(Difficulty tier) => overrideTierTerms
+        ? new TierTerms { missedBeforeLoss = lossMissedCount, lateFeeCents = lateFeeCents, rateBasisPoints = rateBasisPoints, sellBasisPoints = sellBasisPoints }
+        : TierRules.For((int)tier);
+
+    // The tier now, without needing a manager (a scene played on its own gets the table).
+    public static TierTerms CurrentTier => Instance != null ? Instance.Tier : TierRules.For((int)DifficultyManager.Tier);
+
+    // The loan terms a new loan starts with on this tier: the inspector's payments, spacing, first due day and grace days, with the tier's
+    // rate and late fee.
+    public LoanTerms TermsFor(Difficulty tier) => TierRules.LoanTermsFor(new LoanTerms
     {
         rateBasisPoints = rateBasisPoints,
         payments = payments,
@@ -63,7 +88,9 @@ public class MoneyManager : MonoBehaviour, ISaveable
         firstDueDay = firstDueDay,
         graceDays = graceDays,
         lateFeeCents = lateFeeCents,
-    };
+    }, TierFor(tier));
+
+    public LoanTerms Terms => TermsFor(DifficultyManager.Tier);
 
     // AfterSceneLoad runs after the first scene's Awakes, so the Bootstrap instance (inspector terms) has already claimed Instance.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -150,7 +177,7 @@ public class MoneyManager : MonoBehaviour, ISaveable
         List<LoanNotice> notices = loan.Advance(time.TotalDays);
         foreach (LoanNotice notice in notices)
             Announce(notice, time);
-        if (!Lost && LossRules.IsLoss(loan.MissedCount, lossMissedCount))
+        if (!Lost && LossRules.IsLoss(loan.MissedCount, Tier.missedBeforeLoss))
             DeclareLoss(time);
         Changed?.Invoke();
     }

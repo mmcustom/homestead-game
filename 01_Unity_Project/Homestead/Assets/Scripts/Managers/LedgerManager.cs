@@ -26,6 +26,8 @@ public class LedgerManager : MonoBehaviour, ISaveable
     readonly LedgerState state = new LedgerState();
     bool pendingNew;
     long pendingSavingsCents, pendingDownCents;
+    double realSeconds;   // real time played that has not yet reached a whole millisecond of the ledger
+    const float MaxRealStep = 5f; // a frame longer than this (a breakpoint, a long stall) counts as this much, not the whole gap
 
     public LedgerState State => state;
     public bool Active => state.Started;
@@ -80,6 +82,7 @@ public class LedgerManager : MonoBehaviour, ISaveable
     {
         ToolStatus.ClearBanners();
         state.Clear();
+        realSeconds = 0.0;
         pendingNew = true;
         pendingSavingsCents = Math.Max(0L, savingsCents);
         pendingDownCents = Math.Max(0L, downCents);
@@ -92,6 +95,7 @@ public class LedgerManager : MonoBehaviour, ISaveable
     {
         ToolStatus.ClearBanners();
         state.Clear();
+        realSeconds = 0.0;
         pendingNew = false;
         Changed?.Invoke();
     }
@@ -104,6 +108,26 @@ public class LedgerManager : MonoBehaviour, ISaveable
         if (game == null || !game.InGame)
             return;
         ProcessNow();
+        CountRealTime(game);
+    }
+
+    // Money_System.md Phase D1: real minutes played per season, for measuring income per real hour. Real (unscaled) time counts only while
+    // the game is in the Playing state: not in a menu, the Finances or Trading Post screen (Menu), the pause menu, the loss screen, a
+    // sleep, or while the clock is stopped. It goes to the open season.
+    void CountRealTime(GameManager game)
+    {
+        TimeManager time = TimeManager.Instance;
+        MoneyManager money = MoneyManager.Instance;
+        bool sleeping = SleepManager.Instance != null && SleepManager.Instance.IsSleeping;
+        if (!state.Started || game.State != GameState.Playing || time == null || !time.IsRunning || sleeping || (money != null && money.Lost))
+            return;
+
+        realSeconds += Mathf.Min(Time.unscaledDeltaTime, MaxRealStep);
+        long millis = (long)(realSeconds * 1000.0);
+        if (millis <= 0)
+            return;
+        realSeconds -= millis / 1000.0;
+        state.AddRealMillis(millis);
     }
 
     static long NowMinutes(TimeManager time) => (long)Math.Round(time.TotalHours * 60.0);
@@ -221,9 +245,28 @@ public class LedgerManager : MonoBehaviour, ISaveable
     public void RestoreState(LedgerSaveData data)
     {
         state.Restore(data);
+        realSeconds = 0.0;
         pendingNew = false;
         Changed?.Invoke();
     }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Testing only (TimeDebugControls, End): writes the ledger as a CSV, one row per season, to Exports/ under the persistent data path.
+    // Returns the full path, or null when there is no ledger yet.
+    public string DebugExportCsv()
+    {
+        List<StatementRow> rows = Rows();
+        if (rows.Count == 0)
+            return null;
+
+        string folder = System.IO.Path.Combine(Application.persistentDataPath, "Exports");
+        System.IO.Directory.CreateDirectory(folder);
+        string path = System.IO.Path.GetFullPath(System.IO.Path.Combine(folder, $"ledger_{DateTime.Now:yyyyMMdd_HHmmss}.csv"));
+        System.IO.File.WriteAllText(path, LedgerCsv.Build(rows), new System.Text.UTF8Encoding(false));
+        Debug.Log("[Ledger] CSV exported: " + path);
+        return path;
+    }
+#endif
 
     string ISaveable.SaveFile => "player";
     string ISaveable.SaveKey => "ledger";
