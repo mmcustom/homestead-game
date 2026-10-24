@@ -3380,3 +3380,28 @@ Weather_System.md: "Scene gotcha" marked RESOLVED earlier; DayNightCycle note ad
 ## Weather drift test committed (2026-10-24)
 
 Code commit **1d220cf** "Add weather weights drift test", pushed to master (0e8f0b8..1d220cf): 2 files (both new), 135 insertions. Code baseline is now 1d220cf. The weather weights check is **closed** (the "49 vs 64" note was a misreading). Open follow-up on the backlog: DayNightCycle per-weather arrays are 8 entries in World.unity and only grow in OnValidate, so a built game would show a slightly off Heat Wave sky; fix before any build. Docs commit pending (Weather_System.md, Current_Task_List.md). Still waiting on Mike's income measuring sessions, then D2.
+
+
+## DayNightCycle build gap fixed (2026-10-24)
+
+**Status:** BUILT AND TESTED, NOT COMMITTED. Code baseline 1d220cf, docs baseline a14495b.
+
+**Change (Claude Code):** `Scripts/World/DayNightCycle.cs`: the code that used to sit in OnValidate is now one method, `EnsureArrays()`, called from both OnValidate and a new Awake (8 insertions, 1 deletion; the existing Grow step is reused, nothing copied). Each per-weather array (`weatherSunlight`, `weatherFogDistance`, `weatherCloudCover`) is padded to 9 entries when shorter; the new entry takes the Heat Wave default (sunlight 1, fog 380, cloud cover 0.1) and the scene's existing 8 values are never touched, so Inspector tuning stays. Arrays already at 9 are left alone. No scene, weather weights or other behaviour changed.
+
+**Tests:** new `Tests/EditMode/DayNightCycleArraysTests.cs` (+ .meta), 4 tests via a bare DayNightCycle and reflection: 8-entry arrays with tuned values grow to 9 with the first 8 unchanged and the ninth the Heat Wave default; 9-entry arrays with a tuned ninth are left alone; code defaults end in the Heat Wave values; a missing array is filled with defaults. 595 edit-mode tests pass (591 plus 4), console clean.
+
+**Play check:** new game (not slot10): as loaded, all three arrays 9 entries with the same values as before. Build case simulated by cutting the arrays back to 8 and calling Awake: they came back to 9, identical. Saves restored (SavesBackup15, 43 files, 0 differences). No .unity file changed.
+
+**Not tested:** a real build, a live Heat Wave sky by eye, Precipitation and TimeManager (read only).
+
+**Same pattern elsewhere (reported, not fixed):**
+- `Precipitation.cs` lines 40 and 85-91: rainPerSecond and snowPerSecond resized only in OnValidate, WeatherTypeCount hard-coded to 8; the scene has 8 entries so a Heat Wave (index 8) is past the end and PerWeather (line 202) returns 0, which is the intended no precipitation. Harmless today; would break if a ninth value ever mattered (for example a Heat Wave dust or ash effect).
+- `TimeManager.cs` lines 152-156: sunriseSunset resized to 4 only in OnValidate; the scene has 4, so no gap.
+- WeatherManager already grows in Awake. Search was by array declaration and by indexing with a weather value, so other forms are not ruled out.
+
+Weather_System.md: the DayNightCycle open item marked FIXED. Backlog item "DayNightCycle build gap" is done once committed; Precipitation note stays as a low-priority carry-over.
+
+
+## DayNightCycle fix committed (2026-10-24)
+
+Code commit **70bc5a0** "Fix DayNightCycle per-weather arrays in built games", pushed to master (a14495b..70bc5a0): 3 files (1 modified, 2 new), 118 insertions, 1 deletion. Code baseline is now 70bc5a0; docs baseline a14495b. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/. The DayNightCycle build gap is **done**. Low-priority carry-over: Precipitation.cs hard-codes WeatherTypeCount 8 and resizes only in OnValidate (harmless today). Docs commit pending (Weather_System.md, Current_Task_List.md). Still waiting on Mike's income measuring sessions, then D2.
