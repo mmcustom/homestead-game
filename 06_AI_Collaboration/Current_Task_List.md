@@ -3351,3 +3351,32 @@ Mike played `Debug_Cash_Keys_Checklist.md`: all 12 items passed (PageUp +$1,000.
 ## Debug cash keys committed (2026-10-23)
 
 Code commit **b312110** "Add debug cash keys: PageUp +$1,000, Shift+PageUp zero cash", pushed to master (7b80a8b..b312110): 5 files (1 modified, 4 new), 77 insertions. Code baseline is now b312110. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/. The cash-only debug key is **done** and off the backlog. Docs commit pending (Current_Task_List.md, Debug_Cash_Keys_Checklist.md). Still waiting on Mike's income measuring sessions, then D2.
+
+
+## Docs commit 0e8f0b8 and Weather weights check (2026-10-23)
+
+Docs commit **0e8f0b8** "Docs: debug cash keys report, checklist and task list entries" pushed (b312110..0e8f0b8): 2 files, 59 insertions. Docs baseline 0e8f0b8, code baseline b312110.
+
+**Weather weights check (Claude Code, read-only, nothing changed):** the old "49 vs 64" note was a misreading. 64 and 49 are two values of Summer's Clear weight, not array lengths. Weights are a serialized `SeasonClimate[] seasons` field in WeatherManager (one float[] per season, indexed `weights[(int)WeatherType]`, 9 weather types x 4 seasons = 36 numbers). The Bootstrap scene file still holds the old 8-entry arrays (Summer Clear 64) from before Heat Wave existed; `EnsureArrays()` (Awake and OnValidate) grows each to 9 and, for an old Summer, gives HeatWave 15 and takes 15 off Clear (64 becomes 49). Nothing overruns, wraps or clamps.
+
+Runtime weights read in Play Mode (Clear, Cloudy, LightRain, HeavyRain, Thunderstorm, ColdFront, Snow, Wind, HeatWave), each season sums to 100: Spring 30,30,22,10,3,2,0,3,0; Summer 49,25,3,1,2,0,0,5,15; Autumn 40,28,10,4,1,7,0,10,0; Winter 20,25,3,0,0,15,30,7,0. Matches code defaults and Weather_System.md (about one Heat Wave per Summer). Saves byte-identical after the check.
+
+Doc fix: Weather_System.md "Scene gotcha" line marked RESOLVED. Earlier Task List lines about "64 to 49 entries" stay as written (append-only); this entry corrects them.
+
+Findings: no tests cover WeatherManager (it is a MonoBehaviour, not in an engine-free assembly). Not checked: long-run weather frequency, and DayNightCycle's own per-weather arrays (`weatherSunlight`, `weatherFogDistance`, `weatherCloudCover`) which the doc says fall back to Clear if too short, so a Heat Wave could look like Clear. Options offered: A close as misreading; B update the scene file to 9 entries (cosmetic, scene diff noise); C reflection drift test; D extract a pure picker with a new Weather assembly. Claude Code suggests A plus C. Awaiting Mike's decision.
+
+
+## Weather drift test built; DayNightCycle gap found (2026-10-24)
+
+**Decision (Mike):** A plus C: close the "49 vs 64" note and add a drift test. No scene edit.
+
+**Built (Claude Code), NOT committed:** `Tests/EditMode/WeatherWeightsTests.cs` (+ .meta), 3 tests, reflection route (a bare WeatherManager on a hidden GameObject, private EnsureArrays called by reflection, same as SetbacksTests reaches WellsAndOuthouses). It checks code defaults and the Bootstrap.unity seasons block (read as plain text, never opened or written): 4 seasons, 9 weather types, 9 entries per season, no negatives, sums of 100, exact match to the table (Spring 30,30,22,10,3,2,0,3,0; Summer 49,25,3,1,2,0,0,5,15; Autumn 40,28,10,4,1,7,0,10,0; Winter 20,25,3,0,0,15,30,7,0). The expected table sits at the top of the test file, to be updated when weather is changed on purpose. Proved it can fail (temporarily set Summer to 48/26: both data tests failed with clear messages, then restored). 591 edit-mode tests pass (588 plus 3), console clean. No WeatherManager, Bootstrap or scene change. Saves restored after a Play Mode check (43 files, 0 differences; slot10 was rewritten by the test game and restored from SavesBackup14).
+
+**New finding (backlog, not fixed): DayNightCycle Heat Wave look in a BUILT game.** World.unity holds 8-entry arrays for `weatherSunlight`, `weatherFogDistance`, `weatherCloudCover`; the code defaults have 9. In the editor, OnValidate runs on scene load and grows them to 9 (Heat Wave sunlight 1, fog 380, cloud 0.1), so it looks right. In a built game OnValidate does not run, so the arrays stay at 8 and PerWeather falls back for the missing entry: sunlight 1 (same as intended), fog 400 instead of 380, cloud cover 0 instead of 0.1. Difference is small (a Heat Wave sky slightly clearer than intended) but it is a real editor-versus-build mismatch. Read from the code, no build made. Likely fix: grow the arrays at runtime in Awake (as WeatherManager's EnsureArrays does) or update the 8-entry arrays in World.unity; Mike to choose when it matters (before any build).
+
+Weather_System.md: "Scene gotcha" marked RESOLVED earlier; DayNightCycle note added below it. Code baseline b312110, docs baseline 0e8f0b8 (docs edits uncommitted: Weather_System.md, Current_Task_List.md).
+
+
+## Weather drift test committed (2026-10-24)
+
+Code commit **1d220cf** "Add weather weights drift test", pushed to master (0e8f0b8..1d220cf): 2 files (both new), 135 insertions. Code baseline is now 1d220cf. The weather weights check is **closed** (the "49 vs 64" note was a misreading). Open follow-up on the backlog: DayNightCycle per-weather arrays are 8 entries in World.unity and only grow in OnValidate, so a built game would show a slightly off Heat Wave sky; fix before any build. Docs commit pending (Weather_System.md, Current_Task_List.md). Still waiting on Mike's income measuring sessions, then D2.
