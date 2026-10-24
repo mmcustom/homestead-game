@@ -148,7 +148,14 @@ public class DayNightCycle : MonoBehaviour
             values[i] = defaults[i];
     }
 
-    void OnValidate()
+    // Inspector-serialized arrays keep what the scene saved and never pick up the C# defaults, so a scene saved before the Heat Wave has
+    // 8-entry weather arrays. OnValidate does not run in a built game, so Awake grows them too: the new entries get the defaults and
+    // the scene's own values are kept.
+    void Awake() => EnsureArrays();
+
+    void OnValidate() => EnsureArrays();
+
+    void EnsureArrays()
     {
         if (middayElevation == null || middayElevation.Length != SeasonCount)
             System.Array.Resize(ref middayElevation, SeasonCount);
