@@ -40,9 +40,29 @@ public class PlacementMode : MonoBehaviour
     float yaw;
     PlayerController player;
     PlacementGhost ghost;
+    // The Well Site's preview for the spot under the ghost (WellsAndOuthouses.PreviewWell): extra HUD lines, and whether the ghost is amber.
+    string previewInfo;
+    bool previewWarn;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void ResetStatics() => instance = null;
+    static void ResetStatics()
+    {
+        instance = null;
+        Application.quitting -= OnQuitting; // once only, however many times the statics are reset
+        Application.quitting += OnQuitting;
+    }
+
+    // Play Mode is ending (or the game is quitting) while a placement is on: take the ghost down at once. The ghost is a HideFlags.DontSave
+    // object, so in the editor it would otherwise outlive Play Mode with its materials destroyed and draw solid magenta; a plain Destroy
+    // does not run while Play Mode tears down.
+    static void OnQuitting()
+    {
+        if (instance == null)
+            return;
+        instance.placing = false;
+        instance.ghost?.DestroyNow();
+        instance.ghost = null;
+    }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Create() => Ensure();
@@ -154,14 +174,16 @@ public class PlacementMode : MonoBehaviour
         if (haveSpot)
         {
             ghost.SetPose(spot.point, yaw);
-            ghost.SetValid(valid);
+            ghost.SetValid(valid, previewWarn);
         }
         ghost.SetVisible(haveSpot);
 
         string keys = Rotatable ? "Left click: build    Mouse wheel: turn    Esc / Right click: cancel"
                                 : "Left click: build    Esc / Right click: cancel";
         string head = valid ? $"Place {Name} here" + (note != null ? $" — {note}" : "") : reason;
-        ToolStatus.Report(head + "\n" + keys, -1f, true);
+        if (valid && !string.IsNullOrEmpty(previewInfo))
+            head += "\n" + previewInfo;
+        ToolStatus.Report(head + "\n" + keys, -1f, true, !string.IsNullOrEmpty(previewInfo));
 
         if (settled && haveSpot && mouse != null && mouse.leftButton.wasPressedThisFrame)
             Confirm(spot, valid, reason);
@@ -230,6 +252,8 @@ public class PlacementMode : MonoBehaviour
         valid = false;
         reason = "";
         note = null;
+        previewInfo = null;
+        previewWarn = false;
 
         bool hit = player.AimRaycast(aimRange, out RaycastHit ray);
         BuildSpot aim = default;
@@ -281,6 +305,17 @@ public class PlacementMode : MonoBehaviour
                          : WoodManager.Instance.CanBuildPileAt(kind, player, spot, yaw, true, out reason);
         if (!campfire && kind == PileKind.WoodShedSite)
             note = WellsAndOuthouses.ShedOpeningNote(yaw);
+
+        // A Well Site also says how deep the water is, what is near, and whether floods can reach it (amber when they can).
+        if (!campfire && kind == PileKind.WellSite && WellsAndOuthouses.Instance != null)
+        {
+            WellPreviewResult preview = WellsAndOuthouses.Instance.PreviewWell(spot.point, valid, reason);
+            if (valid)
+            {
+                previewInfo = preview.text;
+                previewWarn = preview.level == PreviewLevel.Warning;
+            }
+        }
     }
 
     string TooFarText => $"Too far — come within {reach:0} m.";

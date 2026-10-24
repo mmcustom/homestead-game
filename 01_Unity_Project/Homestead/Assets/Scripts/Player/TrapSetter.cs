@@ -31,13 +31,18 @@ public class TrapSetter : MonoBehaviour
         attack = InputSystem.actions != null ? InputSystem.actions.FindAction("Player/Attack") : null;
     }
 
-    void OnDisable() => DropGhost();
+    // Going away (including Play Mode ending): the ghost is a HideFlags.DontSave object that a plain Destroy would leave behind in the editor,
+    // its materials destroyed and drawn solid magenta, so it is taken down at once.
+    void OnDisable() => DropGhost(true);
 
-    void OnDestroy() => DropGhost();
+    void OnDestroy() => DropGhost(true);
 
-    void DropGhost()
+    void DropGhost(bool immediately = false)
     {
-        ghost?.Destroy();
+        if (immediately)
+            ghost?.DestroyNow();
+        else
+            ghost?.Destroy();
         ghost = null;
     }
 

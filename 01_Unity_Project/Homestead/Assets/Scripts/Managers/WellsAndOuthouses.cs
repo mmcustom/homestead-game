@@ -758,8 +758,79 @@ public class WellsAndOuthouses : MonoBehaviour
         }
 
         List<SiteInfo> sites = Sites(ignore);
-        return well ? Setbacks.CanPlaceWell(point, sites, rules, out reason)
-                    : Setbacks.CanPlaceOuthouse(point, sites, WaterEdges(point), rules, out reason);
+        if (!well)
+            return Setbacks.CanPlaceOuthouse(point, sites, WaterEdges(point), rules, out reason);
+        if (!Setbacks.CanPlaceWell(point, sites, rules, out reason))
+            return false;
+
+        // Water too deep to hand-dig (Well Water Table: past 9 m, a drilled well needs a rig). Skipped when no permanent water can be found.
+        if (kind == PileKind.WellSite && WellWaterAt(point, out WellWaterResult water) && !water.Diggable)
+        {
+            reason = WellPreview.TooDeepMessage;
+            return false;
+        }
+        return true;
+    }
+
+    // --- Well Water Table B2: what the Well Site ghost shows ---
+
+    // The surface of the nearest permanent water (the creek's channel, a pond, the Spring Hollow) and its edge distance in metres. The
+    // surface is the Water layer's own height at the channel centre or the zone centre (the same read Floods uses); where that finds no
+    // water the ground there stands in. The creek is walked segment by segment (about 325 one-metre segments), which costs microseconds, so
+    // nothing is cached: the answer follows a moving pond level too.
+    public bool NearestWater(Vector3 point, out float surface, out string name, out float edgeMetres)
+    {
+        int segment = CreekFlow.NearestSegment(new Vector2(point.x, point.z), out float distance);
+        edgeMetres = distance - CreekFlow.HalfWidthOfSegment(segment);
+        Vector2 centre = CreekFlow.PathPoint(segment);
+        surface = SurfaceAt(centre.x, centre.y, point.y);
+        name = "the creek";
+
+        WaterSource source = Source();
+        if (source != null)
+        {
+            foreach (WaterSource.QualityZone zone in source.Zones)
+            {
+                float d = Vector2.Distance(new Vector2(point.x, point.z), new Vector2(zone.center.x, zone.center.z)) - zone.radius;
+                if (d < edgeMetres)
+                {
+                    edgeMetres = d;
+                    surface = SurfaceAt(zone.center.x, zone.center.z, point.y);
+                    name = zone.name;
+                }
+            }
+        }
+        return true;
+    }
+
+    static float SurfaceAt(float x, float z, float referenceY) =>
+        Animal.IsOverWater(new Vector3(x, referenceY, z), out float found) ? found : GroundAt(x, z, referenceY);
+
+    // Depth to water under a spot (WellWater, from the ground height there and the nearest permanent water surface).
+    public bool WellWaterAt(Vector3 point, out WellWaterResult result)
+    {
+        result = default;
+        if (!NearestWater(point, out float surface, out _, out _))
+            return false;
+        result = WellWater.Compute(point.y, surface);
+        return true;
+    }
+
+    // What the ghost says at a spot: legal and reason are what CanPlace already answered for it (so the rules are asked once). Read-only.
+    public WellPreviewResult PreviewWell(Vector3 point, bool legal, string reason)
+    {
+        WellWaterResult? water = WellWaterAt(point, out WellWaterResult found) ? found : (WellWaterResult?)null;
+
+        var hazards = new List<PreviewHazard>();
+        foreach (SiteInfo site in Sites(null))
+        {
+            if (site.kind == SiteKind.Outhouse || site.kind == SiteKind.AnimalPen)
+                hazards.Add(new PreviewHazard { name = site.kind == SiteKind.Outhouse ? "outhouse" : "animal pen", metres = Setbacks.Flat(point, site.position) });
+        }
+        foreach (WaterEdge edge in WaterEdges(point))
+            hazards.Add(new PreviewHazard { name = edge.name, metres = edge.distanceMetres });
+
+        return WellPreview.Build(legal ? null : reason, water, CreekEdgeDistance(point), wellFloodReachMetres, hazards);
     }
 
     // --- The Covered Outdoor Kitchen's sheltered meal ---

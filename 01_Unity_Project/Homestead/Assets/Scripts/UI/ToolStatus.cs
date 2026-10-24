@@ -28,13 +28,18 @@ public static class ToolStatus
     static float flashUntil;
 
     // hudLine: e.g. "Arrows: 11" or "Bite! Click to set the hook". progress: 0-1 for a bar, or negative for none.
-    public static void Report(string hudLine, float barProgress = -1f, bool showCrosshair = true)
+    // multiLine: every line is drawn (the Well Site preview's several lines). The HUD label is one line high and cuts off the rest by default.
+    public static void Report(string hudLine, float barProgress = -1f, bool showCrosshair = true, bool multiLine = false)
     {
         line = hudLine;
         progress = barProgress;
         crosshair = showCrosshair;
+        lines = multiLine;
         reportedFrame = Time.frameCount;
     }
+
+    static bool lines;
+    public static bool MultiLine => Current && lines;
 
     // A weapon's sight picture this frame. spread: the shot's spread cone in degrees (drawn as the reticle's size).
     // scope: 0-1 how far the rifle's scope is raised.

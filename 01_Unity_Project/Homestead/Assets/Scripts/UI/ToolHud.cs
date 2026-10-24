@@ -46,7 +46,10 @@ public class ToolHud : MonoBehaviour
         string line = playing ? ToolStatus.Line : null;
         statusLabel.enabled = !string.IsNullOrEmpty(line);
         if (statusLabel.enabled)
+        {
             statusLabel.text = line;
+            statusLabel.verticalOverflow = ToolStatus.MultiLine ? VerticalWrapMode.Overflow : VerticalWrapMode.Truncate;
+        }
 
         float progress = playing ? ToolStatus.Progress : -1f;
         bar.gameObject.SetActive(progress >= 0f);

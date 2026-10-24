@@ -15,11 +15,12 @@ public sealed class PlacementGhost
 {
     static readonly Color Valid = new Color(0.25f, 0.9f, 0.3f, 0.45f);
     static readonly Color Invalid = new Color(0.95f, 0.25f, 0.2f, 0.45f);
+    static readonly Color Warn = new Color(1f, 0.65f, 0.1f, 0.45f);
 
     readonly GameObject root;
     readonly List<Renderer> renderers = new List<Renderer>();
-    Material validMaterial, invalidMaterial;
-    int shown = -1; // 1 valid, 0 invalid, -1 not yet painted
+    Material validMaterial, invalidMaterial, warnMaterial;
+    int shown = -1; // 1 valid, 2 valid with a warning (amber), 0 invalid, -1 not yet painted
 
     public GameObject Root => root;
 
@@ -110,15 +111,18 @@ public sealed class PlacementGhost
             root.SetActive(visible);
     }
 
-    // Green or red. Cheap to call every frame: it only repaints when the answer changes.
-    public void SetValid(bool valid)
+    // Green or red; or, for a legal spot that has a warning, amber (warn is off by default, so every other ghost is unchanged). Cheap to
+    // call every frame: it only repaints when the answer changes. The amber material is made the first time it is wanted.
+    public void SetValid(bool valid, bool warn = false)
     {
-        int want = valid ? 1 : 0;
+        int want = valid ? (warn ? 2 : 1) : 0;
         if (want == shown)
             return;
         shown = want;
-        Material material = valid ? validMaterial : invalidMaterial;
-        Color tint = valid ? Valid : Invalid;
+        if (want == 2 && warnMaterial == null)
+            warnMaterial = MakeMaterial(Warn);
+        Material material = want == 2 ? warnMaterial : valid ? validMaterial : invalidMaterial;
+        Color tint = want == 2 ? Warn : valid ? Valid : Invalid;
         foreach (Renderer renderer in renderers)
         {
             if (renderer == null)
@@ -137,15 +141,31 @@ public sealed class PlacementGhost
         }
     }
 
-    public void Destroy()
+    public void Destroy() => Release(false);
+
+    // Gone this instant, with its materials. For when Play Mode is ending: a plain Destroy never runs while it tears down, and a ghost made
+    // with HideFlags.DontSave then outlives it in the editor with its materials destroyed (solid magenta).
+    public void DestroyNow() => Release(true);
+
+    void Release(bool immediately)
     {
         if (root != null)
-            Object.Destroy(root);
+            Dispose(root, immediately);
         if (validMaterial != null)
-            Object.Destroy(validMaterial);
+            Dispose(validMaterial, immediately);
         if (invalidMaterial != null)
-            Object.Destroy(invalidMaterial);
+            Dispose(invalidMaterial, immediately);
+        if (warnMaterial != null)
+            Dispose(warnMaterial, immediately);
         renderers.Clear();
+    }
+
+    static void Dispose(Object target, bool immediately)
+    {
+        if (immediately)
+            Object.DestroyImmediate(target);
+        else
+            Object.Destroy(target);
     }
 
     // --- Building the look ---
