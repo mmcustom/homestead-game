@@ -3405,3 +3405,111 @@ Weather_System.md: the DayNightCycle open item marked FIXED. Backlog item "DayNi
 ## DayNightCycle fix committed (2026-10-24)
 
 Code commit **70bc5a0** "Fix DayNightCycle per-weather arrays in built games", pushed to master (a14495b..70bc5a0): 3 files (1 modified, 2 new), 118 insertions, 1 deletion. Code baseline is now 70bc5a0; docs baseline a14495b. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/. The DayNightCycle build gap is **done**. Low-priority carry-over: Precipitation.cs hard-codes WeatherTypeCount 8 and resizes only in OnValidate (harmless today). Docs commit pending (Weather_System.md, Current_Task_List.md). Still waiting on Mike's income measuring sessions, then D2.
+
+
+## Income measuring started; Mike's first note; Workshop research (2026-10-24)
+
+Mike started the income measuring sessions (log: `06_AI_Collaboration\Measurements\Income_Measuring_Log.md`, code baseline 70bc5a0). He will mention things he notices while playing; they get logged here.
+
+**Mike's note #1 (while playing):** early money feels thin. He wants more profitable things to craft and sell in the early game, a new Workshop structure to craft wood, clay, straw, and furs and hides, and asked for internet research on viable crafts and skills for beginning homesteaders plus a list of what is needed to craft them.
+
+**Done (Claude, research only, no code):** new design draft `05_Documentation\Game_Systems\Workshop_and_Handmade_Goods.md` v0.1 PROPOSED. Contents: research on what beginning homesteaders and Ohio frontier settlers actually made and sold (including ashes and potash as the first cash for clearing settlers), how clay, bricks, shakes, spoons, straw and hides really work, a proposal of a Workshop shed plus three yard stations (Tanning frame, Clay table and clamp kiln, Drying rack), about 30 candidate items with inputs, time and proposed base prices, a list of what the game would need (Ash, temper, tallow, bark, froe and maul and other tools, stations, a workshop job queue reusing the cooking queue, failure chance for clay), income math from the market simulation (extra income depends on variety: roughly $12 light, $29 casual per game day; realistic gain about $10 to $25), risks (fiber goods and clay could become a new lantern loop), and six decisions for Mike. Findings: no solid real-world prices found for shakes, baskets, bricks, pottery or leather goods, so game prices are balance numbers. It conflicts with the "no stations, instant crafting" rule in Crafting_System.md and moves the Workshop (Structures_Roadmap Slice 6) earlier, so it needs Mike's yes. Recommendation: finish the measuring sessions on the current build first, then build W1 (wood and fiber) and W2 (tanning), then re-measure and do D2 once.
+
+Uncommitted docs: Workshop_and_Handmade_Goods.md (new), Current_Task_List.md, Income_Measuring_Log.md (new, under Measurements).
+
+
+## Mike's note #2: log sales, lumber mill, leather (2026-10-24)
+
+Mike's thoughts while measuring: (1) sell logs to lumberyards for money until the player can build a lumber mill that makes boards and planks for building other structures; (2) a hide tanning station that turns hides into leather used to craft other items.
+
+**Done (Claude, research and docs only):** added an addendum to `Workshop_and_Handmade_Goods.md`. Findings: logs already sell at the Trading Post for $3 (group "Firewood, logs and stone"); Lumber exists ($8, nothing consumes it); the Lumber Mill, wood species and board uses are not built (Mike's 2026-09-26 decisions on boards inheriting wood quality stand). Ohio sawlog prices (Fall 2025, per MBF): walnut about $2,317, white oak $1,150, hard maple $825, red oak $596, cherry $585, poplar $524, hickory $464, which gives realistic species multipliers. Sawing alone is a thin margin in real life, so board sell-back should stay near the log price. Pioneers used pit saws (about 12 boards a day for two men) and later water-powered sash mills, and often paid the miller with a share of their logs. Proposal: keep selling logs now (optionally their own market group, later species and quality), add a Lumberyard sawing service in the T window as the bridge (2 logs in, 1 board out, or a cash fee), then a Saw Pit, then a creek-side water mill. Raw log income is capped by the market at about $8 to $13 a game day for 4 to 12 logs a day. Leather becomes a real intermediate material (Deer Hide to Leather in about 3 game days) for pouch upgrade, satchel, moccasins or boots, gloves, belt, quiver, waterskin and rawhide strips. Four more decisions (7 to 10) are in the doc. Uncommitted docs: Workshop_and_Handmade_Goods.md, Current_Task_List.md, Measurements/Income_Measuring_Log.md.
+
+
+## Mike's note #3: well drinks without a bucket; see water quality before building (2026-10-24)
+
+Mike noticed pressing E at the well with no Bucket equipped drinks straight from it, and asked whether the water quality a well will give can be seen when deciding where to build it.
+
+**Decisions (Mike):** (1) the well is **Bucket only**: with no Bucket equipped E says "You need a Bucket to draw water" (a dug well is 10 to 30 ft deep); Canteen and pot are filled from the Bucket. (2) **Preview plus ground that varies:** the placement ghost shows expected quality, depth to water, supply and risks, and the land itself changes the well (depth to water from terrain height above the nearest permanent water, dig time, lining cost, yield, exposure).
+
+**Done (Claude, research and design only):** new draft `05_Documentation\Game_Systems\Well_Water_Table.md` v0.1 PROPOSED. Research: the water table follows the land (shallower in valleys and near water, deeper under hills), a well must reach it or it runs dry, shallow wells feel the neighbourhood, deeper water is harder and more iron-heavy, Ohio rule OAC 3701-28-07 distances (100 ft leaching privy, 50 ft septic, vault privy and pens, 25 ft streams and ponds, up-gradient, not in floodplain), southwest Ohio carbonate wells yield under 5 gpm with hard, sulfate-rich water. Proposal: depth-to-water helper (pure, in the Setbacks assembly), a depth ladder (shallow: quick, generous, exposed; deep: long dig, stingy, safe and drought-resistant; past about 9 m refused, pointing to a drilled well), ghost info line with three-colour result, optional overlay, a regions hook. Build plan in 7 steps; five open questions for Mike. Next: Claude Code read-only pass (message below in chat), then the Bucket rule as its own small fix.
+
+Uncommitted docs: Well_Water_Table.md (new), Workshop_and_Handmade_Goods.md (new), Current_Task_List.md, Measurements/Income_Measuring_Log.md (new).
+
+
+## Mike's note #4: choose what to take from a felled tree (2026-10-24)
+
+Mike noticed that after chopping a tree down, pressing E to pick everything up gives no choice; he wants to decide what to take from the chopped-down tree pile.
+
+**Decisions (Mike):** (1) E on the felled tree pile opens a take-what-you-want screen in the style of the Storage screen: list of what is in the pile, quantity stepper, click takes the stepper amount, Shift-click takes the stack, a Take All button, leftovers stay in the pile. (2) If the pack cannot carry the choice: **warn and refuse** (nothing taken if the choice will not fit), not take-what-fits.
+
+**Status:** Claude Code message written, build not started. Needs a short checklist after the build. Related design: Quantity_Controls.md (stepper, QuantityRowUi, transfer screens), Wood_Gathering_System.md (felling), Primitive_Storage_System.md. Open check for Claude Code: whether Take All should also refuse when not everything fits (consistent with Mike's choice, but makes Take All useless when heavy; report if awkward).
+
+
+## Report: well read-only pass (2026-10-24)
+
+Claude Code read the code only (nothing changed). Findings:
+
+- **The bug:** `PlacedStructure.DrawWater` (World/PlacedStructure.cs, about line 738). Bucket or Canteen equipped fills the pack; anything else falls through to drinking 1 L for 20 Hydration with the illness roll. The prompt `WellPrompt` always says "Draw water". The well has its own path, separate from `WaterSource` (creek, ponds, Spring Hollow drink by hand, which is correct). Barrels and the Kitchen Sink never drink.
+- **Water is loose items in the pack.** Capacity is Buckets x 10 L plus Canteens x 2 L. The pot never holds raw water, so "pour from Bucket into Canteen" has no meaning in the current code.
+- **Smallest fix (about 6 lines):** if the equipped item is not a Bucket, flash "You need a Bucket to draw water." and return; delete the drink branch and the unused `wellLitresPerDrink` and `wellHydrationPerDrink`. The prompt becomes "Equip the Bucket to draw water". A Canteen would be refused (alternative: accept a Bucket carried instead of equipped).
+- **Preview:** `PlacementGhost.SetValid` has green and red only (amber needs a third material). HUD text through `ToolStatus.Report` works as a multi-line label. Refusals come from `Setbacks.CanPlaceWell` through `WellsAndOuthouses.CanPlace`. Floods, InHollow and Sites are private and need public wrappers. `CreekEdgeDistance` is public.
+- **"Questionable" quality never fires for a new well** (CanPlaceWell already refuses those cases); only old saves can show it.
+- **Flood reach is wider than the refusal:** flash floods contaminate wells within 40 m of the channel edge, but placement refuses only within 25 m. That gap is a real warning to show in the preview.
+- **Terrain:** 480 m square, 60 m max height, 513 x 513 heightmap. The creek is a 1 m spaced path (about 325 segments). Water surface comes from the `Animal.IsOverWater` raycast. Ponds and Spring Hollow are `WaterSource.Zones`. Drought is `WeatherManager.IsDrought` (Summer only, dry days 5 or more). There is no persistent water table.
+- **Height above nearest permanent water (whole property):** min 0.5 m, p10 3.0, median 5.2, p90 8.8, max 14.5. Ground height 15.4 to 30.4 m. The cabin site is 30.1 m ground, 14.2 m above the creek and 141 m away. The creek surface drops about 3.5 m from spring to pond.
+- **With my first-pass formula (1.5 m + 0.8 m per metre, cap 9 m):** whole property under 3 m deep 1%, 3 to 6 m 57%, 6 to 9 m 35%, refused 7%. But within 60 m of the cabin, 77% of the land is refused. With slope 0.6 the near-cabin split is 0 / 9 / 58 / 33% refused; with slope 0.5 it is 0 / 19 / 81 / 0%.
+- **Dig numbers** on `WellsAndOuthouses`: wellDigBlows 40, wellLiningStone 10, wellBufferLitres 150, recovery 6 L/h (drought 3 L/h). The "360 game minutes" no longer exist: digging is real time per blow (about 0.9 s a blow, 40 blows is about 36 s).
+- **Per-well variation:** dig blows is easy, buffer and recovery moderate, Stone lining is the hardest (FinishedCost, NeedOf, SiteNeeds, SiteAccepts, StoreMaterials and Dismantle refund all key on kind). Lining of 16 Stone would be 80 kg, with no weight check today.
+- **Save:** `WoodPileState` fields are id, kind, position, yaw, contents, litres, contaminatedHours, digProgress, builtDay, buildProgress (JsonUtility, missing means 0). Recommended: append one float `depthToWater` (0 means an old well with the old numbers). The `Homestead.Setbacks` assembly (no references) can host a `WellWater` static class.
+- **Unverified:** water-layer surface heights (about 1 m), HUD label size, `IsOverWater` at pond and spring centres, Stone supply and trip weights.
+- Claude Code: "Waiting for your decision."
+
+**Done (Claude):** corrected `Well_Water_Table.md` to v0.2 (digging is real time, depth slope, Questionable only for old saves, flood-reach warning, lining weight, save design, new build order). Decisions for Mike are listed in chat (depth slope, Canteen at the well, build order).
+
+## Report: felled-tree take screen built (2026-10-24)
+
+Claude Code built Mike's note #4. **Not committed; awaiting playtest, OK and commit message.**
+
+- **Take-only mode** in the existing `StorageTransferScreen`: title "Fallen Tree", list "In the pile", pack panel hidden, stepper starts at 1 and resets after a take, Take button per row, Take All button, status line. The stepper maximum is what is in the pile, not what fits; a refusal keeps the stepper amount.
+- **`WoodPile.cs`:** `UsesTakeScreen` is true for `PileKind.Felled`; prompt verb "Choose what to take"; E opens the screen. `TakeWhole` and `TakeEverythingWhole` are all-or-nothing. An empty felled pile despawns through `WoodManager.NotifyChanged`.
+- **New `Economy/CarryRules.cs`** (+ .meta): `Fits(freeKg, addKg)` with tolerance and `Refusal(...)` messages: "Too heavy: 3 Logs weighs 24 kg and you can carry only 21.6 kg more (limit 45 kg). Nothing was taken." and "No room: you are already carrying the most you can (45 kg). Nothing was taken." (under 0.1 kg of room counts as no room).
+- **New `Tests/EditMode/CarryRulesTests.cs`** (+ .meta), 8 tests. **603 of 603 edit-mode tests pass** (595 + 8). Console clean.
+- **Findings:** the felled pile is a `WoodPile` with `PileKind.Felled` (also used for DropPile leftovers). The old E took everything that fits, lightest first ("Left behind: ..."). The Encumbered line is 30 kg in code and in Bootstrap (not 40) and only slows the player. Max carry 45 kg (55 with the Pouch). No save change.
+- **Play check** (throwaway game, real buttons, backup restored with 0 diffs, slot9 removed, not slot10): take 3 branches ok; over-weight 3 logs refused; Take All refused when too heavy; take 2 logs and a whole stack ok; close and reopen kept the part-taken pile; save then Continue kept the pile; Take All emptied and despawned the pile; layouts fine at 1920x1080 and 1024x768. **Not tested:** the real Shift key (tested through Max then Take), physically chopping a tree (a Felled pile was created directly), audio and mouse feel.
+- **Awkward:** Take All is all-or-nothing, so with heavy logs (8 kg each, 45 kg max) a 27.5 kg pile against 21.6 kg of room is refused. Offered option: Take All takes what fits. Left as Mike chose (refuse) pending his word.
+- **Proposed staging list (6 paths):** WoodPile.cs, StorageTransferScreen.cs, CarryRules.cs, CarryRules.cs.meta, CarryRulesTests.cs, CarryRulesTests.cs.meta. Kept out: AudioManager.cs, Homestead.slnx, ProjectSettings.asset, 08_Backups/. Docs go in a separate commit.
+- Claude Code: "Waiting for your OK on the list and a commit message. Your prompt-box suggestions aren't approval."
+
+**Done (Claude):** wrote `Felled_Tree_Take_Screen_Checklist.md` in 06_AI_Collaboration. Next: Mike plays it and reports by item number; then I verify the staging list and give the commit message.
+
+Uncommitted docs: Well_Water_Table.md (new), Workshop_and_Handmade_Goods.md (new), Current_Task_List.md, Measurements/Income_Measuring_Log.md (new), Felled_Tree_Take_Screen_Checklist.md (new).
+
+
+## Mike's decisions on the well (2026-10-24)
+
+1. **Depth slope 0.5** (depth = 1.5 m + 0.5 m per metre above the nearest permanent water, cap 9 m). Nothing near the cabin is refused. Side effect flagged: about 81% of land within 60 m of the cabin is deep tier, so B1 must report the real tier split and the tier numbers may need recentring.
+2. **The Bucket-only rule is reversed.** A well has its own bucket attached: no Bucket is needed at the well; you can drink, fill an equipped Bucket or fill an equipped Canteen. This is what the code already does, so **Part A (the Bucket rule) is dropped and needs no code change.** Optional cosmetic polish (prompt wording, bucket and rope on the model) not decided.
+3. **Build order OK for now** (B1 pure helper, B2 preview, B3 effects, lining last).
+
+`Well_Water_Table.md` updated to v0.3. Next: Claude Code message for B1 (pure `WellWater` helper and tests, no gameplay wiring).
+
+Uncommitted docs: Well_Water_Table.md (new), Workshop_and_Handmade_Goods.md (new), Current_Task_List.md, Measurements/Income_Measuring_Log.md (new), Felled_Tree_Take_Screen_Checklist.md (new).
+
+
+**Addition (Mike, 2026-10-24): the cooking pot can be filled at the well too.** Not current behaviour (Claude Code found the pot never holds raw water; with the pot equipped E drinks). Needs a read-only check of how the pot gets water for cooking and boiling today, then a small change; open whether creeks, ponds and the spring should do the same. Recorded in `Well_Water_Table.md` Part A.
+
+**Correction (Mike, 2026-10-24): cooking pot at the well is OFF the list.** The pot is not filled at the well or any other source. It will be filled by pouring water from the Bucket into the pot once cooking recipes are worked on (backlog item for the cooking recipes work). No code change now. The pot check (item 5) is cancelled; send the B1 message with items 1 to 4 only.
+
+
+## Result: felled-tree take screen playtest (2026-10-24)
+
+Mike played `Felled_Tree_Take_Screen_Checklist.md`: **19 of 19 pass**, including a real chopped tree (items 1 to 3), over-weight refusals, Take All both ways, save and Continue, the CabinSite and storage regressions, both layouts and a clean Console. Take All question not answered, so it stays **all-or-nothing** (Mike's warn-and-refuse rule); revisit only if he asks for "take what fits".
+
+Next: Claude Code stages the 6 paths (WoodPile.cs, StorageTransferScreen.cs, CarryRules.cs + .meta, CarryRulesTests.cs + .meta) and commits on Mike's OK. Then the docs commit (Current_Task_List.md, Well_Water_Table.md, Workshop_and_Handmade_Goods.md, Measurements/Income_Measuring_Log.md, Felled_Tree_Take_Screen_Checklist.md). Then the well B1 message.
+
+## Commit: felled-tree take screen (2026-10-24)
+
+Code commit **7f2ed4a** "Felled tree: take what you want instead of picking up everything", 6 files (265 insertions, 9 deletions), pushed to master (ceb1d36..7f2ed4a). Staged exactly the 6 approved paths. Only warnings were LF-to-CRLF notices. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/.
+
+**Baselines now:** code 7f2ed4a, docs ceb1d36 (until the docs commit below).
+Next: docs commit of 5 paths (Current_Task_List.md, Well_Water_Table.md, Workshop_and_Handmade_Goods.md, Felled_Tree_Take_Screen_Checklist.md, Measurements/Income_Measuring_Log.md), then the well B1 message.
