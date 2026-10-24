@@ -647,3 +647,71 @@ How it works (PROPOSED details, Claude's reading of the rule):
 - If the cash is more than everything owed, the debt shows $0.00 and the leftover cash is shown. (A rare case: a player with enough cash to clear the loan would normally have paid.)
 - The seizure is not a ledger line, so the "total income and total expenses since the start" numbers on the screen are unchanged.
 - Pure logic goes in the Economy assembly with tests (cash 0, cash below the fees, cash between fees and everything, cash above everything).
+
+
+---
+
+# Phase D design: difficulty and rebalance (2026-10-23)
+
+Status: design draft. Nothing built. Code baseline 08964d8, docs baseline 2049f3c. Phases A, B and C are committed and played. Real income per game day has never been measured; every income number so far comes from Claude's simulation (about $29, $50 and $82 per game day for survivor, casual and grinder play with one price pool per item).
+
+## Decisions (Mike, 2026-10-23)
+
+| Question | Decision |
+|---|---|
+| Approach | Add a small MEASURING hook first, then tune from real play. Phase D is split into D1 (infrastructure and measuring, no change in behaviour) and D2 (set the numbers from the measurements). |
+| The 40-acre parcel | LEAVE IT as the late-game parcel. With the $30,000 savings cap its payment is about $143 a game day, more than wild goods alone can earn. It needs livestock, crops and other income systems that are not built yet, so it stays very hard for now and is tuned when those systems exist. |
+| What differs between tiers, besides savings and the starting weapon | ALL FOUR levers: missed payments before a loss, the late fee amount, the interest rate, and the Trading Post sell prices. |
+
+Payments per game day for reference (8% over 180 payments, one every 28 days): 5 acres about $16 a day with 20% down, about $20 with nothing down; 10 acres about $38 with $28,000 down, about $48 with nothing down; 40 acres about $143 a day with $30,000 down.
+
+## D1: what gets built (PROPOSED)
+
+- **A tier rules table** (`TierRules`, pure, in the Economy assembly): per difficulty tier, the missed payments before a loss, the late fee in cents, the interest rate in basis points, and the Trading Post sell price in basis points (10000 = 100%). In D1 every tier holds TODAY'S values (3 missed, $75, 8.00%, 100%), so nothing changes in play. D2 changes only the numbers.
+- **Wiring:** a new loan takes its rate and late fee from the tier (the terms are saved with the loan, so a save keeps the terms it started with); the loss check uses the tier's threshold; sells at the Trading Post use the tier's sell price (the live total, the real sale and the ledger line must all match). Buy prices are not changed.
+- **Shown to the player:** the loan summary at New Game and the Loan tab show the tier's terms (rate, late fee, missed payments before a loss).
+- **Measuring:** the ledger already gives income and expenses per game day. D1 adds real minutes played per season (recorded in the ledger, an optional field so old saves load unchanged), shown on the season's detail pane with income per real hour, and a development-only key that writes the ledger to a CSV file (one row per season) so the numbers can be read and compared.
+- **Measuring plan for Mike:** play each tier for a few seasons the way you really play, read the Statement per season, note anything unusual, and export the CSV. A plan sheet (`Income_Measuring_Plan.md`) is written once D1 is built.
+
+## D2: tuning from the data (after the measurements)
+
+- Set the four tier levers. PROPOSED starting point, NOT decided and NOT to be built until the data is in: Homesteader loses at 4 missed payments, $50 late fee, 7% rate, sell prices +10%; Settler 3, $75, 8%, 0% (as today); Pioneer 2 or 3, $100, 9%, -10%. Pioneer has no savings, so its first miss counts on day 122 and a threshold of 2 would end the game on day 150; the measured income decides whether that is fair.
+- Check the early game: with real income per game day, does a typical player on each tier reach the first payment (day 112) on a 5-acre parcel?
+- Rebalance Trading Post prices and market numbers if the data says wild goods earn too much or too little.
+- Revisit the savings table (20%, 40%, none, capped at $30,000) against how long the reserve lasts.
+- Update Difficulty_System.md, the GDD and the New Game blurbs with the final numbers.
+
+## Open for D2
+
+The real tier numbers; whether Pioneer's threshold should be 2 or 3; whether the sell price lever stays or is replaced by a price-floor change; and what "winning" the early game looks like in dollars (for example paying the 5-acre loan down by a set amount by the end of Year 3).
+
+## Phase D1 build report (2026-10-23)
+
+**Status:** built, awaiting playtest and commit. No change in behaviour at default values.
+
+**Tier levers (TierRules, pure, Economy assembly).** One row per tier with four values: missed payments before a loss, late fee (cents), interest rate (basis points), Trading Post sell share (basis points, 10000 = 100%, rounded half up on the sale total). All three tiers currently hold 3 / $75 / 800 / 10000.
+
+| Tier | Missed before loss | Late fee | Rate | Sell share |
+|---|---|---|---|---|
+| Homesteader | 3 | $75 | 8% | 100% |
+| Settler | 3 | $75 | 8% | 100% |
+| Pioneer | 3 | $75 | 8% | 100% |
+
+**How terms are applied.**
+- The loan freezes its rate and late fee when it is created, so an old save keeps the terms it was made under. The loss threshold and the sell share are read from the tier each time, so changing them in D2 affects games already in progress.
+- A dev-only "Override Tier Terms" tickbox on MoneyManager lets the old rate / late fee / loss count fields (and the new sell share field) override the table for testing. Off by default.
+- Terms are shown to the player on the New Game loan summary and in a "Terms of this game" block on the Loan tab.
+- The sell share scales the sale total and the per-unit price shown; market multipliers are untouched. Stepper quote, sale, cash change and ledger line all agree (checked at 90%: 13 firewood 925 cents against 1,028 cents at 100%).
+
+**Measuring tools.**
+- Real play time is stored per season in the ledger (milliseconds), counted only while the game is in the Playing state with the clock running; not during menus, Finances, Trading Post, pause, sleep or a loss. Per-frame cap 5 s so editor recompile stalls cannot add time. Clean-window accuracy 99.6%.
+- The Statement season detail shows "Real minutes played" and "Income per real hour". Older seasons without a recording show nothing rather than 0.
+- CSV export (End key in editor and dev builds) writes `ledger_YYYYMMDD_HHMMSS.csv` to `...\AppData\LocalLow\MM Custom\Homestead\Exports\`. Dollars as 1234.56, oldest season first, columns include Total income, Total expenses and Real minutes; the open season is marked "(so far)".
+
+**Open D2 questions carried forward.**
+- The red warning still fires at 3 open payments, so a tier with a lower threshold would never see it before losing.
+- Pioneer starts with $0 savings, so its first missed payment counts on day 122; a threshold of 2 would end the game around day 150.
+- Real income per game day is still unmeasured; see `06_AI_Collaboration\Income_Measuring_Plan.md`.
+- The NOT-decided starting proposal in "Phase D design" stands as a proposal only until measurements are in.
+
+**Tests.** 583 edit-mode tests pass (91 new in TierRulesTests and LedgerMeasuringTests).

@@ -3250,3 +3250,70 @@ Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, Project
 Docs waiting for their own commit: Decisions_Log.md, Difficulty_System.md, Money_System.md, Regions_System.md (new), Money_Phase_C_Playtest_Checklist.md (new), Current_Task_List.md.
 
 Money System remaining: Phase D (difficulty and rebalance). Parked: Regions (Regions_System.md v0.1).
+
+
+---
+
+## Docs committed and pushed: 2049f3c
+
+Docs commit 2049f3c on master (08964d8..2049f3c), 6 files (452 insertions, no deletions): Decisions_Log.md, Difficulty_System.md, Money_System.md, Regions_System.md (new), Money_Phase_C_Playtest_Checklist.md (new), Current_Task_List.md.
+
+Baselines now: code 08964d8, docs 2049f3c. Nothing waiting to commit. Still uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/.
+
+Money Phase C is complete. Money System remaining: Phase D (difficulty and rebalance). Open list: measure real income per game day, cash-only debug key (F12), check Weather weights array in Bootstrap (should it be 64 entries, not 49), drag and drop (backlog), update the Vision and Design Pillars Claude Doc, Regions (parked, Regions_System.md v0.1), Structures_Roadmap Slice 2, GDD v3 gaps, Alpha 0.1 placement of the money system.
+
+
+---
+
+## Vision and Design Pillars doc updated (2026-10-23)
+
+The Claude Doc "Homestead: Vision and Design Pillars" now matches the decisions made since 2026-10-20. Edited in place: the core loop's "Buy the land" step (5, 10 or 40 acre parcels at about $60,000, $140,000 and $450,000, a payment every 28 days, savings 40% Homesteader, 20% Settler, none for Pioneer, capped at $30,000); the Money section (payment every 28 days); the Land price, Starting savings, Loan terms (example now the 5-acre parcel, about $459 against $573), Losing and Starting region decisions (the statement's Statement tab and L key, the "Mother Nature beat you." screen with cash applied to the debt, Restart and Continue, the regions plan). New closing section "Also decided, 2026-10-23": built and played so far, the Trading Post market, quantity controls, the account statement, the starting weapon by difficulty, and regions (parked).
+
+Not changed: the byline as-of date still shows 2026-10-20 (the date chip was left alone), the pillars table, and the "Roadmap impact" list (item 1, money earlier than Slice 6, is now built but still reads as accepted).
+
+
+---
+
+## Money Phase D started: design and decisions (2026-10-23)
+
+Mike chose Phase D (difficulty and rebalance). Decisions: add a small measuring hook first and tune from real play (Phase D split into D1 infrastructure and measuring, D2 set the numbers); leave the 40-acre parcel as the late-game parcel (about $143 a game day with the $30,000 cap, not reachable from wild goods alone, tuned when livestock and crops exist); all four tier levers (missed payments before a loss, late fee, interest rate, Trading Post sell prices) differ by tier.
+
+D1 plan (PROPOSED): a pure TierRules table holding today's values for every tier (3 missed, $75, 8.00%, 100%), wired into the loan, the loss check and Trading Post sells; tier terms shown on the New Game loan summary and the Loan tab; real minutes played per season recorded in the ledger (optional field), shown on the season detail with income per real hour; a development-only key that exports the ledger to a CSV. D2 sets the numbers after Mike's measurements (a starting proposal is in the doc, not decided).
+
+Design written to Money_System.md ("Phase D design"). Next: Claude Code builds D1, Mike plays a short checklist and commits, then Mike measures with the plan sheet (Income_Measuring_Plan.md, written after the build), then D2.
+
+
+## Money Phase D1 built: tier levers and measuring (2026-10-23)
+
+**Status:** BUILT, NOT YET PLAYTESTED, NOT COMMITTED. Code baseline is still 08964d8; docs baseline 2049f3c.
+
+**Goal of D1:** add the difficulty levers and the measuring tools with NO change in how the game plays at default values. D2 sets the real numbers from Mike's measurements.
+
+**What was built (Claude Code report):**
+- New `Economy/TierRules.cs` (pure, engine-free): one table row per difficulty tier holding missed payments before a loss, late fee, interest rate (basis points) and Trading Post sell share (basis points, 10000 = 100%). Every tier holds today's values: 3 missed, $75, 800 bp, 10000. Sell share rounds half up.
+- New `Economy/LedgerCsv.cs`: CSV text builder. Dollars as 1234.56, oldest season first, "Real minutes" empty when not recorded, open season marked "(so far)", extra columns Total income and Total expenses.
+- `Ledger.cs`: optional real milliseconds per season, income per real hour, minutes text.
+- `MoneyManager.cs`: loan terms and loss threshold now come from the tier. The old rateBasisPoints / lateFeeCents / lossMissedCount fields stay and only apply when the new "Override Tier Terms" tickbox is on (off by default). New sellBasisPoints field, default 10000.
+- `MarketManager.cs`: sell share applied in Quote, Sell and SellPrice (market multipliers unchanged).
+- `LedgerManager.cs`: counts real time only in the Playing state with the clock running and no sleep or loss; per-frame cap 5 s. CSV export to Application.persistentDataPath/Exports/ledger_YYYYMMDD_HHMMSS.csv, full path in the Console, message on the HUD.
+- `LandPurchasePanel.cs`: tier terms shown on the loan summary. `FinancesScreen.cs`: "Terms of this game" block on the Loan tab (open-payments list shortened 400 to 290 px, summary rows 42 px apart). `StatementPanel.cs`: two new lines under the days line, "Real minutes played" and "Income per real hour". `TimeDebugControls.cs`: End key exports the CSV.
+- New tests: `TierRulesTests.cs`, `LedgerMeasuringTests.cs` (with .meta). 583 edit-mode tests pass (492 before plus 91 new). Console 0 errors, 0 warnings (only the known MCP "WebSocket is not initialised" message).
+
+**Claude Code's play checks:** same payments, fee and loss at 3 on every tier; override test at 9%, $100 fee, loss at 2, 90% sell share behaved correctly and values were restored; an old test save kept its saved terms; real minutes: clean 15 s window recorded 14.97 s (99.6%), no growth with Finances open; CSV matched the Statement; layouts checked at 1920x1080 and 1024x768. Saves restored (36 files, 0 mismatches).
+
+**Not tested by Claude Code:** the real End key, real mouse clicks (tier buttons, stepper row), clock stopped during sleep and pause live, live save and reload of real minutes, loss text under a changed threshold, Pioneer at 2 missed.
+
+**Choices Claude Code made:** the loan freezes rate and late fee at creation; threshold and sell share are read from the tier each time. The red warning still fires at 3 open payments (D2 question for tiers with a lower threshold). Real minutes show empty, not 0, when unrecorded.
+
+**Docs written:** `Money_Phase_D1_Playtest_Checklist.md`, `Income_Measuring_Plan.md`. Next: Mike plays the checklist (back up Saves first), then the D1 code commit, then the docs commit, then Mike's measuring sessions, then D2.
+
+
+
+## Money Phase D1 playtest result (2026-10-23)
+
+Mike played `Money_Phase_D1_Playtest_Checklist.md`: all 31 items passed (terms and payments identical on every tier, loss at 3, old saves keep their terms, Trading Post sells unchanged at 100%, real minutes counted only while playing and kept across save and Continue, End key CSV written and matching the Statement, layouts at both sizes, regression and console clean). The items Claude Code could not test live (real End key, sleep and pause, save and reload of real minutes) passed in Mike's play. D1 is ready to commit; waiting for the staging list and Mike's OK. Next: docs commit, then Mike's measuring sessions (`Income_Measuring_Plan.md`), then D2.
+
+
+## Money Phase D1 committed (2026-10-23)
+
+Code commit **3f8d123** "Money Phase D1: tier levers and income measuring", pushed to master (2049f3c..3f8d123): 16 files (8 modified, 8 new), 829 insertions, 23 deletions. Staged exactly the verified list. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/. Code baseline is now 3f8d123. Docs commit pending (Money_System.md, Current_Task_List.md, Income_Measuring_Plan.md, Money_Phase_D1_Playtest_Checklist.md). Next: Mike's measuring sessions per `Income_Measuring_Plan.md`, then D2.
