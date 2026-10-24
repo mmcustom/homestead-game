@@ -3630,3 +3630,58 @@ Code commit **9842600** "Well water table B2: placement preview, and placement g
 **Baselines now:** code 9842600, docs 0bf08f1 (until the docs commit below). Mike to restart the Unity Editor to clear the old magenta ghost.
 
 Next: docs commit of 3 paths (Current_Task_List.md, Skills_and_Progression.md, Well_Preview_B2_Playtest_Checklist.md). Then B3 (effects), which needs the tier-numbers decision first (80.7% of land near the cabin is Deep tier at slope 0.5).
+
+## Commit: docs (2026-10-24, later)
+
+Docs commit **e031eaa** "Docs: skills and progression draft (parked), well B2 checklist, task list updates", 3 files (286 insertions), pushed to master (9842600..e031eaa). **Baselines now:** code 9842600, docs e031eaa. (This entry is the only uncommitted doc change; it rides in the next docs commit.) Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/.
+
+**Next: B3 (the well actually uses the depth).** Waiting on Mike's pick of Deep-tier numbers (options laid out in chat: keep as drafted, soften Deep slightly, slope 0.4, or move the Medium/Deep line). Not checked: how much water a player or livestock uses per day, which decides whether 3.5 to 4.5 L/h is enough.
+
+## Decision: well Deep-tier numbers (Mike, 2026-10-24: "i'll take your recommendation, 2")
+
+Deep tier softened slightly: **60 blows, 14 Stone, 120 L buffer, 4.5 L/h recovery, 4.5 L/h in drought** (first draft 70 / 16 / 100 L / 3.5 / 3.5). Shallow 20 / 6 / 200 L / 8 L/h (drought 4) and Medium 40 / 10 / 150 L / 6 L/h (drought 3, today's numbers) unchanged; Legacy (old wells) = Medium numbers. Recorded in `Well_Water_Table.md` ("Decided tier numbers"). Next: B3 message to Claude Code (per-well dig blows, then buffer, recovery and drought, then Stone lining, one appended `depthToWater` in `WoodPileState`, preview updated to show the now-true numbers, report-only check of daily water use, report-only estimate for the shallow-well setback factor).
+
+Uncommitted docs: Current_Task_List.md, Well_Water_Table.md.
+
+## Report: well B3 built, the effects (2026-10-24)
+
+Claude Code built B3 as one build. **Not committed; awaiting playtest, OK and commit message.** **636 of 636 edit-mode tests pass** (625 + 11 new). Console: only the usual MCP WebSocket noise.
+
+- **Save field:** one appended float `depthToWater` on `WoodPileState`, set in `BuildPile` when a Well Site is placed (same lookup as the preview). 0 = old well, Legacy numbers. Old-save test extended; round-trip tests added.
+- **Dig blows:** `DigBlow` and the shaft-percent logic in `AxeTool` use the well's own blow count. **Buffer and recovery** (and the drought rate) per well: finishing a well fills its own buffer, the hourly refill uses its own rate, dry-well message and debug tools follow.
+- **Stone lining:** new `FinishedCostFor(state)` (Stone line swapped for the well's tier amount); `NeedOf`, `SiteNeeds`, `SiteAccepts`, `StoreMaterials` use it (state-based methods with different names on purpose: an overload made 5 reflection-based tests ambiguous); new `WoodManager.CostOf(state)` is the lining the well actually used, so Dismantle and its prompt refund half of that. Kind-based methods unchanged, so the Kitchen and Outhouse Stone are unaffected.
+- **Preview** now shows "Dig: N blows, lining N Stone" and "Supply: N L, refills N L/h (N L/h in a drought)", from the same result the built well gets (the old "never mentions blows" guard test is now the opposite). Text that said 40 / 10 / 150 / 6 (site prompt, well prompt, dry message, Dismantle prompt, water-level visual, debug readout, Build tab help) follows the well's own numbers. Medium and Legacy come from the component tunables; Shallow and Deep from `WellWaterRules.Defaults` (Deep now 60 / 14 / 120 / 4.5 / 4.5).
+- **New tests:** `WellDepthTests.cs` (10: field round-trip and old-save 0, Stone asked 6 / 10 / 14 and 10 for depth 0, Outhouse and Kitchen Stone unaffected, cap timber same at every depth, site acceptance stops at the tier amount, needs text, numbers by depth, Legacy equals Medium, Deep is Mike's row).
+- **Play check (throwaway game, Saves restored, 0 differences, slot 10 untouched), real code paths:**
+
+  | Well | Depth | Dig blows | Stone / trips | Buffer | 10 h refill from empty | Dismantle refund |
+  |---|---|---|---|---|---|---|
+  | Shallow (by the pond) | 1.7 m | 20 | 6 / 2 | 200 L | 80 L | 3 Stone, 1 Log, 2 Branches |
+  | Medium | 5.4 m | 40 | 10 / 3 | 150 L | 60 L | 5 Stone, 1 Log, 2 Branches |
+  | Deep (cabin ridge) | 8.6 m | 60 | 14 / 4 | 120 L | 45 L | 7 Stone, 1 Log, 2 Branches |
+  | Old-style (depth forced 0) | n/a | 40 | 10 / 3 | 150 L | 60 L | 5 Stone |
+
+  Extra Stone is refused (pile stays at its tier amount, pack keeps the extra). Save then Continue kept a finished Deep well (8.61 m, 77 L) and a half-dug Shallow site (1.70 m, 50% dug, 3 Stone, still wants 6). The Medium dismantle flash said "4 Stone, 2 Branches back in your pack; 1 Stone, 1 Log left on the ground": the existing "what does not fit is left on the ground" behaviour, not a loss.
+- **Pre-existing quirk, unchanged:** dig counts come out one blow over (41 Medium, 61 Deep) from float rounding in the progress sum; Shallow came out exactly 20; old wells did the same.
+- **Not re-checked:** the longer eight-line preview at 1024x768 (checked at 1920x1080).
+- **Report-only a: water use.** Player drain is 2.8 Hydration per hour at base (20 Hydration = 1 L), about 3.4 L per game day at difficulty 1; a hot working day roughly 6 to 8 L (sweat adds 12 Hydration per kW per hour in air above 18 C); difficulty multiplier not checked. Livestock not designed in code; the research doc gives about 5 to 10 L per sheep or goat and 40 to 55 L per cow per day (Ontario figures); Goats.md "1 unit/day, 2 in Summer" unverified. **4.5 L/h (108 L per game day) is enough:** for a player by more than 10 to 1; for stock roughly 8 to 10 goats or sheep, or about 2 cows, on top of the player; tight only for a large herd. The 120 L buffer is 12 Bucket fills, or about a day of a 3 to 5 cow herd. Deep's drought rate 4.5 beats today's 3.
+- **Report-only b: shallow-well setback factor (about 1.5x).** About 60 lines and 8 tests: `SiteInfo` gets a setback factor (0 = 1x); `CanPlaceWell`, `CanPlaceOuthouse` and `Fouls` multiply the privy-from-well or well-from-pen distance by the well's factor; `Sites()` fills it from each well's saved depth; a new well asks for its prospective factor. Additive and safe later (old wells stay 1x); existing setback tests need default-factor overloads. Effect: an outhouse would be refused within 45 m of a Shallow well rather than 30 m. **Not built; decision for Mike.**
+- **Proposed staging list (13 paths, Claude Code first said 14):** WellsAndOuthouses.cs, WoodManager.cs, PlacedStructure.cs, AxeTool.cs, CraftingScreen.cs, RainDebugControls.cs, WellWater.cs, WellPreview.cs, WellWaterTests.cs, WellPreviewTests.cs, SetbacksTests.cs, WellDepthTests.cs, WellDepthTests.cs.meta. Kept out: AudioManager.cs, Homestead.slnx, ProjectSettings.asset, 08_Backups/.
+
+**Done (Claude):** wrote `Well_Depth_B3_Playtest_Checklist.md` (14 items). Next: Mike plays it and reports by item number; then I verify the 13-path staging list and give the commit message.
+
+Uncommitted docs: Current_Task_List.md, Well_Water_Table.md (modified: "Decided tier numbers" added after the last docs commit), Well_Depth_B3_Playtest_Checklist.md (new).
+
+## Result: well B3 (depth effects) playtest (2026-10-24)
+
+Mike played `Well_Depth_B3_Playtest_Checklist.md`: **14 of 14 pass**, including preview numbers on three kinds of ground, 1920x1080 and 1024x768 layouts, per-depth dig blows, Stone and buffer, refill rates, dismantle refunds, save and Continue, an older-save well (item 12) and a clean Console.
+
+Next: Claude Code stages the 13 paths (WellsAndOuthouses.cs, WoodManager.cs, PlacedStructure.cs, AxeTool.cs, CraftingScreen.cs, RainDebugControls.cs, WellWater.cs, WellPreview.cs, WellWaterTests.cs, WellPreviewTests.cs, SetbacksTests.cs, WellDepthTests.cs, WellDepthTests.cs.meta) and commits on Mike's OK. Then the docs commit (Current_Task_List.md, Well_Water_Table.md, Well_Depth_B3_Playtest_Checklist.md). The shallow-well setback factor stays unbuilt pending Mike's decision.
+
+## Commit: well B3 (2026-10-24)
+
+Code commit **64ffc69** "Well water table B3: wells dig, line and fill by depth to water", 13 files (300 insertions, 46 deletions), pushed to master (e031eaa..64ffc69). Exactly the 13 approved paths; only LF-to-CRLF warnings. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/. **Baselines now:** code 64ffc69, docs e031eaa (until the docs commit below).
+
+**Well water table status:** A dropped; B1, B2 and B3 built, playtested and committed. Not built, parked: shallow-well setback factor (decision for Mike: later or never), water-table overlay (B4), drilled wells, mineral effects.
+
+Next: docs commit of 3 paths (Current_Task_List.md, Well_Water_Table.md, Well_Depth_B3_Playtest_Checklist.md). Then back to the main line: Mike's income measuring sessions for Money Phase D2.

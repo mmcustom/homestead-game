@@ -1,7 +1,7 @@
 # Homestead
 ## Well Water Table and Placement Preview v0.3
 
-Status: Design Draft (PROPOSED), written 2026-10-24, corrected the same day after Claude Code's read-only pass (see "Corrections from the read-only pass" below). **v0.3 (2026-10-24): Mike reversed the Bucket-only rule (a well has its own bucket attached; see Part A) and chose depth slope 0.5.** Nothing is built. Builds on Structures_Slice1_Dry_And_Clean.md (Well, Phase A built) and Water_System.md.
+Status: Design Draft (PROPOSED), written 2026-10-24, corrected the same day after Claude Code's read-only pass (see "Corrections from the read-only pass" below). **v0.3 (2026-10-24): Mike reversed the Bucket-only rule (a well has its own bucket attached; see Part A) and chose depth slope 0.5.** **Built and playtested 2026-10-24: B1 (WellWater helper, commit 2d1e866), B2 (placement preview and flood warning, 9842600, with the ghost-lifetime fix) and B3 (dig blows, Stone lining, buffer, refill and drought by depth, saved as `depthToWater`, 64ffc69). Not built: the shallow-well setback factor (about 1.5x, estimated about 60 lines and 8 tests, safe to add later), the water-table overlay (B4), drilled wells, mineral effects.** Builds on Structures_Slice1_Dry_And_Clean.md (Well, Phase A built) and Water_System.md.
 
 # What Mike asked for (2026-10-24, playing Phase A)
 
@@ -47,7 +47,7 @@ For any spot on the property the game computes a **depth to water** (metres to t
 |---|---|---|---|---|
 | Shallow, under 3 m (low ground near water) | Quick, about 20 blows | Light, about 6 Stone | Best, about 200 L and 8 L per hour, but the table can drop in a drought | Most exposed: needs the full setbacks and a bigger setback (about 1.5 times) from pens and privies; higher flood risk |
 | Medium, 3 to 6 m | The current 40 blows, 10 Stone | The current amount | The current 150 L and 6 L per hour | As built today |
-| Deep, 6 to 9 m (high ground) | Long, about 70 blows (about a minute of real digging) | Heavy, about 16 Stone (80 kg, needs several trips and a weight check that does not exist yet) | Lower, about 100 L and 3 to 4 L per hour, but it keeps working in a drought | Safest from surface contamination; harder and iron-tasting water as a label |
+| Deep, 6 to 9 m (high ground) | **Decided 2026-10-24 (Mike, option 2): 60 blows (about 54 s of real digging)**; first draft was 70 | **14 Stone (70 kg, 3 to 4 trips)**; first draft was 16 (80 kg) | **120 L and 4.5 L per hour, drought 4.5 L per hour** (keeps working in a drought, better than today's 3); first draft was 100 L and 3.5 | Safest from surface contamination; harder and iron-tasting water as a label |
 
 The trade-off is the real one: low ground is easy and generous but exposed; high ground is hard work and stingy but safe and drought-resistant. Mineral character (Hard, Iron taste) is a descriptive tag in version 1 and has no health effect; it can feed boiling and later water treatment.
 
@@ -79,6 +79,19 @@ Regions_System.md already plans regions with their own terrain and resources. A 
 5. **B3: effects, in this order:** per-well dig blows first (easy), then buffer and recovery (moderate), and Stone lining last (hardest: FinishedCost, NeedOf, SiteNeeds, SiteAccepts, StoreMaterials and the Dismantle refund all key on kind, and 16 Stone is 80 kg with no carry check). Per-well setback factor needs `SiteInfo`. Save: append one float `depthToWater` to `WoodPileState`; 0 means an old well with the old fixed numbers. Test: an old pile save loads with the new field at 0.
 6. **B4 (optional): overlay** of the water table near the player in Placement Mode.
 7. Playtest checklist after A, then after B2, then after B3.
+
+# Decided tier numbers (Mike, 2026-10-24: "i'll take your recommendation, 2")
+
+Slope 0.5 puts about 81% of the land near the cabin in the Deep tier, so Deep was softened slightly from the first draft. Final first-pass numbers (still tunable in `WellWaterRules.Defaults`):
+
+| Tier | Blows | Stone | Buffer | Recovery | Drought recovery |
+|---|---|---|---|---|---|
+| Shallow (under 3 m) | 20 | 6 | 200 L | 8 L/h | 4 L/h |
+| Medium (3 to 6 m) | 40 | 10 | 150 L | 6 L/h | 3 L/h |
+| Deep (6 to 9 m) | 60 | 14 | 120 L | 4.5 L/h | 4.5 L/h |
+| Legacy (old wells, depth 0) | 40 | 10 | 150 L | 6 L/h | 3 L/h |
+
+Not checked: how much water a player or livestock use per day, which decides whether 4.5 L/h is enough; B3 includes a report-only check.
 
 # Open questions for Mike
 
