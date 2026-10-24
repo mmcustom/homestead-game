@@ -30,15 +30,15 @@ public class WellsAndOuthouses : MonoBehaviour
     public float floodplainRiseMetres = 1.5f;
 
     [Header("Well: building (a staged site)")]
-    [Tooltip("Shovel blows to dig the shaft (one about every 0.9 s, real time only; the clock is not advanced).")]
+    [Tooltip("Medium-depth wells and wells from before depth existed: shovel blows to dig the shaft (one about every 0.9 s, real time only; the clock is not advanced). Shallow and Deep wells take their own (WellWaterRules.Defaults).")]
     public int wellDigBlows = 40;
-    [Tooltip("Stone for the lining, delivered over trips (5 Stone is 25 kg).")]
+    [Tooltip("Medium-depth and old wells: Stone for the lining, delivered over trips (5 Stone is 25 kg).")]
     public int wellLiningStone = 10;
     [Tooltip("Cap and windlass.")]
     public int wellCapLogs = 2;
     public int wellCapBranches = 4;
 
-    [Header("Well: supply and water")]
+    [Header("Well: supply and water (Medium-depth and old wells; Shallow and Deep take WellWaterRules.Defaults)")]
     public int wellBufferLitres = 150;
     public float wellRecoveryLitresPerHour = 6f;
     [Tooltip("Recovery during a drought (the weather's own drought flag).")]
@@ -233,6 +233,10 @@ public class WellsAndOuthouses : MonoBehaviour
         }
     }
 
+    // What this one site takes in total: its kind's cost, except a Well's Stone lining, which is its own depth's (WellNumbers).
+    public static WoodStack[] FinishedCostFor(WoodPileState site) =>
+        site.kind == PileKind.WellSite || site.kind == PileKind.Well ? WellCostFor(site) : FinishedCost(site.kind);
+
     static WoodStack[] Stored(PileKind finished, params (string id, int count)[] fallback)
     {
         if (WoodManager.Instance != null)
@@ -280,6 +284,15 @@ public class WellsAndOuthouses : MonoBehaviour
         return 0;
     }
 
+    // The same for one site, so a Well asks for the Stone its own depth needs.
+    public static int NeedOf(WoodPileState site, string itemId)
+    {
+        foreach (WoodStack c in FinishedCostFor(site))
+            if (c.itemId == itemId)
+                return c.count;
+        return 0;
+    }
+
     // Total weight of a list of materials (kg), from the item assets.
     public static float WeightKg(IEnumerable<WoodStack> cost)
     {
@@ -307,7 +320,7 @@ public class WellsAndOuthouses : MonoBehaviour
         if (RequiresDig(site.kind) && site.digProgress < 1f)
             return "the shaft dug (Shovel)";
         var parts = new List<string>();
-        foreach (WoodStack c in FinishedCost(site.kind))
+        foreach (WoodStack c in FinishedCostFor(site))
         {
             int missing = c.count - site.Count(c.itemId);
             if (missing > 0)
@@ -326,9 +339,9 @@ public class WellsAndOuthouses : MonoBehaviour
         foreach (string[] group in DeliveryOrder(site.kind))
         {
             if (System.Array.IndexOf(group, itemId) >= 0)
-                return earlierFull && site.Count(itemId) < NeedOf(site.kind, itemId);
+                return earlierFull && site.Count(itemId) < NeedOf(site, itemId);
             foreach (string id in group)
-                if (site.Count(id) < NeedOf(site.kind, id))
+                if (site.Count(id) < NeedOf(site, id))
                     earlierFull = false;
         }
         return false;
@@ -422,7 +435,7 @@ public class WellsAndOuthouses : MonoBehaviour
         site.buildProgress = 0f;
         if (site.kind == PileKind.Well)
         {
-            site.litres = wellBufferLitres;
+            site.litres = NumbersOf(site).bufferLitres;
             site.contaminatedHours = 0f;
         }
         site.builtDay = Today;
@@ -565,6 +578,16 @@ public class WellsAndOuthouses : MonoBehaviour
             new WoodStack { itemId = WoodManager.LogsId, count = w != null ? w.wellCapLogs : 2 },
             new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.wellCapBranches : 4 },
         };
+    }
+
+    // The finished Well's total for this one well: the lining Stone its depth needs, and the cap.
+    public static WoodStack[] WellCostFor(WoodPileState well)
+    {
+        WoodStack[] cost = WellCost();
+        for (int i = 0; i < cost.Length; i++)
+            if (cost[i].itemId == WoodManager.StoneId)
+                cost[i] = new WoodStack { itemId = WoodManager.StoneId, count = WellNumbers(well).liningStone };
+        return cost;
     }
 
     public static WoodStack[] OuthouseCost()
@@ -812,7 +835,7 @@ public class WellsAndOuthouses : MonoBehaviour
         result = default;
         if (!NearestWater(point, out float surface, out _, out _))
             return false;
-        result = WellWater.Compute(point.y, surface);
+        result = WellWater.Compute(point.y, surface, WellRules());
         return true;
     }
 
@@ -869,10 +892,42 @@ public class WellsAndOuthouses : MonoBehaviour
         return wellCleanQuality;
     }
 
-    public float RecoveryPerHour()
+    // --- Well Water Table B3: each well has its own numbers, from the depth to water saved where its site was placed ---
+
+    // The tier table with this component's tunables as the Medium and Legacy rows (today's numbers, tuned here); Shallow and Deep come
+    // from WellWaterRules.Defaults.
+    public WellWaterRules WellRules()
     {
+        WellWaterRules rules = WellWaterRules.Defaults;
+        var medium = new WellTierNumbers
+        {
+            digBlows = wellDigBlows, liningStone = wellLiningStone, bufferLitres = wellBufferLitres,
+            recoveryLitresPerHour = wellRecoveryLitresPerHour, droughtRecoveryLitresPerHour = wellDroughtRecoveryLitresPerHour,
+        };
+        rules.medium = medium;
+        rules.legacy = medium;
+        return rules;
+    }
+
+    // This well's tier numbers. A depth of 0 is an old well (Legacy: today's). A depth that cannot be dug (never saved, since placement
+    // refuses it) falls back to Legacy too, so nothing ever divides by zero.
+    public WellWaterResult NumbersOf(WoodPileState well)
+    {
+        WellWaterResult result = WellWater.ForDepth(well.depthToWater, WellRules());
+        return result.Diggable ? result : WellWater.ForDepth(0f, WellRules());
+    }
+
+    // The same when the component is not there (Edit Mode tests): the defaults.
+    public static WellWaterResult WellNumbers(WoodPileState well) =>
+        Instance != null ? Instance.NumbersOf(well) : WellWater.ForDepth(well.depthToWater);
+
+    public int DigBlowsOf(WoodPileState well) => Mathf.Max(1, NumbersOf(well).digBlows);
+
+    public float RecoveryPerHour(WoodPileState well)
+    {
+        WellWaterResult numbers = NumbersOf(well);
         WeatherManager weather = WeatherManager.Instance;
-        return weather != null && weather.IsDrought ? wellDroughtRecoveryLitresPerHour : wellRecoveryLitresPerHour;
+        return weather != null && weather.IsDrought ? numbers.droughtRecoveryLitresPerHour : numbers.recoveryLitresPerHour;
     }
 
     // One game hour (sleep and day skips cross hours one at a time): wells refill, flood water clears, and a flash flood fouls any
@@ -884,11 +939,12 @@ public class WellsAndOuthouses : MonoBehaviour
             return;
 
         bool flood = StreamManager.State == StreamState.FlashFlood;
-        float rate = RecoveryPerHour();
         foreach (WoodPileState pile in wood.Piles)
         {
             if (pile.kind != PileKind.Well)
                 continue;
+            float rate = RecoveryPerHour(pile);
+            int buffer = NumbersOf(pile).bufferLitres;
 
             bool changed = false;
             if (pile.contaminatedHours > 0f)
@@ -902,7 +958,7 @@ public class WellsAndOuthouses : MonoBehaviour
                 changed = true;
             }
 
-            if (pile.litres < wellBufferLitres)
+            if (pile.litres < buffer)
             {
                 recoveryCarry.TryGetValue(pile.id, out float carry);
                 carry += rate;
@@ -910,7 +966,7 @@ public class WellsAndOuthouses : MonoBehaviour
                 recoveryCarry[pile.id] = carry - whole;
                 if (whole > 0)
                 {
-                    pile.litres = Mathf.Min(wellBufferLitres, pile.litres + whole);
+                    pile.litres = Mathf.Min(buffer, pile.litres + whole);
                     changed = true;
                 }
             }
@@ -927,7 +983,7 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         if (site.digProgress >= 1f)
             return false;
-        float step = efficiency / Mathf.Max(1, wellDigBlows);
+        float step = efficiency / DigBlowsOf(site);
         site.digProgress = Mathf.Min(1f, site.digProgress + step);
         return site.digProgress >= 1f;
     }
@@ -1129,7 +1185,7 @@ public class WellsAndOuthouses : MonoBehaviour
         if (mode == 2)
             well.contaminatedHours = wellContaminatedHours;
         else
-            well.litres = mode == 1 ? wellBufferLitres : 0;
+            well.litres = mode == 1 ? NumbersOf(well).bufferLitres : 0;
         recoveryCarry.Remove(well.id);
         WoodManager.Instance.NotifyChanged(well);
     }

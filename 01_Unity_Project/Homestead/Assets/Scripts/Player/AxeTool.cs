@@ -347,7 +347,7 @@ public class AxeTool : MonoBehaviour
             ToolStatus.Banner("The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
             WoodManager.Instance.NotifyChanged(state);
         }
-        else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - Efficiency / Mathf.Max(1, rules.wellDigBlows)) * 10f))
+        else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - Efficiency / rules.DigBlowsOf(state)) * 10f))
         {
             WoodManager.Instance.NotifyChanged(state); // the visible shaft deepens a tenth at a time
         }

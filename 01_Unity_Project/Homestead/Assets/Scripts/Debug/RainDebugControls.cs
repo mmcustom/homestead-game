@@ -179,7 +179,7 @@ public class RainDebugControls : MonoBehaviour
             return;
         }
         rules.DebugSetWell(well, contaminate ? 2 : fill ? 1 : 0);
-        ToolStatus.Flash($"Well: {well.litres} of {rules.wellBufferLitres} L, {rules.WellQuality(well, out _)} water" +
+        ToolStatus.Flash($"Well: {well.litres} of {rules.NumbersOf(well).bufferLitres} L, {rules.WellQuality(well, out _)} water" +
                          (well.contaminatedHours > 0f ? $" ({well.contaminatedHours:0} h of flood water)" : ""), 3f);
     }
 

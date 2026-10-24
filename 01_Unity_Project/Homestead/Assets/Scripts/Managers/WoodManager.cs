@@ -57,6 +57,9 @@ public class WoodPileState
     public int builtDay;
     // A staged site pounded with the Hammer (0-1; WellsAndOuthouses.BuildBlow). Above 0 its delivered materials are locked in. Appended, so older saves load 0.
     public float buildProgress;
+    // Well Water Table B3 (appended, so older saves load 0): metres to the water where a Well Site was placed (WellWater). It sets the well's dig,
+    // Stone, buffer and recovery for good. 0 is a well from before depth existed: it keeps today's numbers (WellWater's Legacy result).
+    public float depthToWater;
 
     public int Count(string itemId)
     {
@@ -823,6 +826,10 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     // What building one takes. A CabinSite is free to place — what Small Cabin needs is deposited into it afterwards,
     // over as many trips as it takes (WoodPileState.Accepts caps each material at CabinRequired).
+    // What this one standing structure took: the same as its kind's, except a Well, whose Stone lining is its own depth's (what Dismantle halves).
+    public WoodStack[] CostOf(WoodPileState pile) =>
+        pile.kind == PileKind.Well ? WellsAndOuthouses.WellCostFor(pile) : CostOf(pile.kind);
+
     public WoodStack[] CostOf(PileKind kind)
     {
         switch (kind)
@@ -1124,6 +1131,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             yaw = yaw,
             builtDay = 0, // an Outhouse's pit starts when its site is completed (WellsAndOuthouses.FinishSite)
         };
+        // A Well Site remembers how deep the water is where it was placed (the same lookup the ghost's preview showed).
+        if (kind == PileKind.WellSite && WellsAndOuthouses.Instance != null && WellsAndOuthouses.Instance.WellWaterAt(spot.point, out WellWaterResult water) && water.Diggable)
+            pile.depthToWater = water.depthToWater;
         piles.Add(pile);
         // A Wood-Fired Grill comes with its fire: a second furnished campfire in the firebox, unlit and out of fuel like the hearth.
         if (kind == PileKind.Grill && FireManager.Instance != null)

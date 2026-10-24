@@ -17,7 +17,7 @@ public class WellPreviewTests
     {
         WellPreviewResult r = WellPreview.Build(null, AtDepth(4f), 120f, Reach, new List<PreviewHazard>());
         Assert.That(r.level, Is.EqualTo(PreviewLevel.Clear));
-        Assert.That(r.text, Is.EqualTo("Depth to water: 4.0 m (Medium)"));
+        Assert.That(r.text, Is.EqualTo("Depth to water: 4.0 m (Medium)\nDig: 40 blows, lining 10 Stone\nSupply: 150 L, refills 6 L/h (3 L/h in a drought)"));
     }
 
     [Test]
@@ -85,7 +85,7 @@ public class WellPreviewTests
 
         WellPreviewResult deep = WellPreview.Build(null, AtDepth(7.5f), 120f, Reach, null);
         Assert.That(deep.text, Does.Not.Contain("Higher ground"));
-        Assert.That(deep.text, Is.EqualTo("Depth to water: 7.5 m (Deep)"));
+        Assert.That(deep.text, Is.EqualTo("Depth to water: 7.5 m (Deep)\nDig: 60 blows, lining 14 Stone\nSupply: 120 L, refills 4.5 L/h (4.5 L/h in a drought)"));
     }
 
     [Test]
@@ -105,11 +105,13 @@ public class WellPreviewTests
     {
         WellPreviewResult r = WellPreview.Build(null, AtDepth(4f), 30f, Reach, new List<PreviewHazard> { Hazard("the creek", 30f) });
         string[] lines = r.text.Split('\n');
-        Assert.That(lines.Length, Is.EqualTo(4));
+        Assert.That(lines.Length, Is.EqualTo(6));
         Assert.That(lines[0], Does.StartWith("Depth to water"));
-        Assert.That(lines[1], Does.StartWith("Nearby: the creek 30 m"));
-        Assert.That(lines[2], Does.StartWith("Floods can foul"));
-        Assert.That(lines[3], Does.StartWith("Higher ground"));
+        Assert.That(lines[1], Does.StartWith("Dig:"));
+        Assert.That(lines[2], Does.StartWith("Supply:"));
+        Assert.That(lines[3], Does.StartWith("Nearby: the creek 30 m"));
+        Assert.That(lines[4], Does.StartWith("Floods can foul"));
+        Assert.That(lines[5], Does.StartWith("Higher ground"));
     }
 
     [Test]
@@ -122,15 +124,23 @@ public class WellPreviewTests
     }
 
     [Test]
-    public void ThePreviewNeverShowsTheDigStoneOrYieldNumbersThatB3HasNotWiredYet()
+    public void ThePreviewShowsTheDigStoneAndSupplyNumbersAndTheyMatchWellWaterForTheSpot()
     {
         foreach (float depth in new[] { 2f, 4f, 7.5f })
         {
-            string text = WellPreview.Build(null, AtDepth(depth), 30f, Reach, new List<PreviewHazard> { Hazard("outhouse", 50f) }).text.ToLowerInvariant();
-            Assert.That(text, Does.Not.Contain("blow"));
-            Assert.That(text, Does.Not.Contain("stone"));
-            Assert.That(text, Does.Not.Contain("per hour"));
-            Assert.That(text, Does.Not.Contain(" l "));
+            WellWaterResult spot = AtDepth(depth);
+            string text = WellPreview.Build(null, spot, 30f, Reach, new List<PreviewHazard> { Hazard("outhouse", 50f) }).text;
+            Assert.That(text, Does.Contain($"Dig: {spot.digBlows} blows, lining {spot.liningStone} Stone"));
+            Assert.That(text, Does.Contain($"Supply: {spot.bufferLitres} L"));
+            Assert.That(text, Does.Contain($"refills {spot.recoveryLitresPerHour:0.#} L/h"));
+            Assert.That(text, Does.Contain($"({spot.droughtRecoveryLitresPerHour:0.#} L/h in a drought)"));
         }
+    }
+
+    [Test]
+    public void ARefusedSpotShowsNoNumbersAndNoWaterMeansNoDigOrSupplyLines()
+    {
+        Assert.That(WellPreview.Build("This ground floods.", AtDepth(4f), 20f, Reach, null).text, Is.EqualTo("This ground floods."));
+        Assert.That(WellPreview.Build(null, null, 120f, Reach, null).text, Is.EqualTo(""));
     }
 }

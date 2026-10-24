@@ -31,12 +31,13 @@ public struct WellWaterRules
     public WellTierNumbers shallow, medium, deep, legacy;
 
     // Medium and Legacy are the numbers the Well has always had (WellsAndOuthouses: 40 blows, 10 Stone, 150 L, 6 L per hour, 3 in a drought).
+    // Deep is Mike's decision of 2026-10-24 (60 blows, 14 Stone, 120 L, 4.5 L per hour and the same in a drought).
     public static WellWaterRules Defaults => new WellWaterRules
     {
         baseDepthMetres = 1.5f, slopeMetresPerMetre = 0.5f, shallowBelowMetres = 3f, deepFromMetres = 6f, capMetres = 9f,
         shallow = new WellTierNumbers { digBlows = 20, liningStone = 6, bufferLitres = 200, recoveryLitresPerHour = 8f, droughtRecoveryLitresPerHour = 4f },
         medium = new WellTierNumbers { digBlows = 40, liningStone = 10, bufferLitres = 150, recoveryLitresPerHour = 6f, droughtRecoveryLitresPerHour = 3f },
-        deep = new WellTierNumbers { digBlows = 70, liningStone = 16, bufferLitres = 100, recoveryLitresPerHour = 3.5f, droughtRecoveryLitresPerHour = 3.5f },
+        deep = new WellTierNumbers { digBlows = 60, liningStone = 14, bufferLitres = 120, recoveryLitresPerHour = 4.5f, droughtRecoveryLitresPerHour = 4.5f },
         legacy = new WellTierNumbers { digBlows = 40, liningStone = 10, bufferLitres = 150, recoveryLitresPerHour = 6f, droughtRecoveryLitresPerHour = 3f },
     };
 }

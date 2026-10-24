@@ -3,8 +3,8 @@ using System.Text;
 
 // Well Water Table, B2: what the Well Site ghost says about the spot under it. Pure text and rules over numbers the caller measured, no scene
 // access, so the edit-mode tests can run it. A refusal stays red with its own reason; a legal spot is green, or amber when it has a warning.
-// It shows the depth to water and its tier only: dig blows, Stone, buffer and recovery are not shown, because the Well does not use them
-// until B3 and they would be false.
+// It shows the depth to water and its tier, and (B3, now that the Well uses them) the dig blows, lining Stone, buffer and recovery for the spot,
+// straight from the WellWaterResult the placed well will get.
 public enum PreviewLevel
 {
     Clear,    // legal, nothing to warn about: green
@@ -55,7 +55,12 @@ public static class WellPreview
 
         var text = new StringBuilder();
         if (water.HasValue)
-            text.Append($"Depth to water: {water.Value.depthToWater:0.0} m ({water.Value.tier})");
+        {
+            WellWaterResult w = water.Value;
+            text.Append($"Depth to water: {w.depthToWater:0.0} m ({w.tier})");
+            Append(text, DigLine(w));
+            Append(text, SupplyLine(w));
+        }
 
         string near = NearbyLine(hazards);
         if (near.Length > 0)
@@ -72,6 +77,13 @@ public static class WellPreview
 
         return new WellPreviewResult(floods ? PreviewLevel.Warning : PreviewLevel.Clear, text.ToString());
     }
+
+    // "Dig: 40 blows, lining 10 Stone"
+    public static string DigLine(WellWaterResult w) => $"Dig: {w.digBlows} blows, lining {w.liningStone} Stone";
+
+    // "Supply: 150 L, refills 6 L/h (3 L/h in a drought)"
+    public static string SupplyLine(WellWaterResult w) =>
+        $"Supply: {w.bufferLitres} L, refills {w.recoveryLitresPerHour:0.#} L/h ({w.droughtRecoveryLitresPerHour:0.#} L/h in a drought)";
 
     // "Nearby: outhouse 42 m, the creek 31 m" - the nearest few within range, nearest first; empty when there are none.
     public static string NearbyLine(IList<PreviewHazard> hazards)

@@ -162,12 +162,15 @@ public class SetbacksTests
         Assert.That(state.GetField("contaminatedHours").GetValue(pile), Is.EqualTo(0f));
         Assert.That(state.GetField("digProgress").GetValue(pile), Is.EqualTo(0f));
         Assert.That(state.GetField("builtDay").GetValue(pile), Is.EqualTo(0));
+        Assert.That(state.GetField("depthToWater").GetValue(pile), Is.EqualTo(0f), "Well Water Table B3: an old well has no depth and keeps today's numbers");
 
         state.GetField("litres").SetValue(pile, 120);
         state.GetField("digProgress").SetValue(pile, 0.5f);
+        state.GetField("depthToWater").SetValue(pile, 7.5f);
         object back = JsonUtility.FromJson(JsonUtility.ToJson(pile), state);
         Assert.That(state.GetField("litres").GetValue(back), Is.EqualTo(120), "the new fields round-trip");
         Assert.That(state.GetField("digProgress").GetValue(back), Is.EqualTo(0.5f));
+        Assert.That(state.GetField("depthToWater").GetValue(back), Is.EqualTo(7.5f));
     }
 
     object NewSite(out Type state, string kind = "WellSite")

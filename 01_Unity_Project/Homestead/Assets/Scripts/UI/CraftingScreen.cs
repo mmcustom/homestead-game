@@ -503,6 +503,13 @@ public class CraftingScreen : GameScreen
 
     static string ItemName(string itemId) => ItemDatabase.Get(itemId)?.DisplayName ?? itemId;
 
+    // "6, 10 or 14": the lining Stone a Well takes at its three depths (WellWaterRules), for the Build tab, where no spot is chosen yet.
+    static string WellStoneRange()
+    {
+        WellWaterRules rules = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.WellRules() : WellWaterRules.Defaults;
+        return $"{rules.shallow.liningStone}, {rules.medium.liningStone} or {rules.deep.liningStone}";
+    }
+
     List<Entry> CraftEntries()
     {
         var entries = new List<Entry>();
@@ -662,7 +669,9 @@ public class CraftingScreen : GameScreen
             {
                 e.notes.Add(($"The {WoodManager.PileName(finished)} needs, in total:", 0));
                 foreach (WoodStack c in WellsAndOuthouses.FinishedCost(kind))
-                    e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
+                    e.notes.Add(($"{ItemName(c.itemId)}   {(kind == PileKind.WellSite && c.itemId == WoodManager.StoneId ? WellStoneRange() : c.count.ToString())}", 0));
+                if (kind == PileKind.WellSite)
+                    e.notes.Add(("The Stone, the digging and the water supply depend on how deep the water is where you place it; the ghost shows them.", 0));
                 e.notes.Add(("Then " + (WellsAndOuthouses.RequiresDig(kind) ? "dig the shaft (Shovel) and " : "") + $"pound it with the Hammer (hold click) to build the {WoodManager.PileName(finished)}.", 0));
             }
         }
@@ -750,7 +759,7 @@ public class CraftingScreen : GameScreen
             case PileKind.TarpShelter: return "sleep under it (E), take it down for the Tarp and half the Sticks back (R). Keeps off most rain and half the wind, and a little cold. No Hammer needed.";
             case PileKind.LeanTo: return "sleep in it (E), take it down (R). Keeps off most rain and wind, and some cold.";
             case PileKind.Cabin: return "sleep in it (E) — permanent, the best shelter yet. Comes with a hearth to warm up and cook at.";
-            case PileKind.WellSite: return "a hand-dug well, built in stages. Mark the site out (free, no Hammer), dig the shaft with the Shovel (hold click; it takes game time), then deliver 10 Stone for the lining and 2 Logs and 4 Branches for the cap with R over as many trips as it takes (no Hammer). Fully stocked, equip the Hammer and hold click on the site until the Well is built. Gives a steady supply that recovers by the hour, Good water when clear of the outhouse. Needs high, dry ground 30 m from any outhouse.";
+            case PileKind.WellSite: return $"a hand-dug well, built in stages. Mark the site out (free, no Hammer), dig the shaft with the Shovel (hold click; the number of blows depends on how deep the water is), then deliver the lining Stone ({WellStoneRange()} by depth; the ghost shows it) and 2 Logs and 4 Branches for the cap with R over as many trips as it takes (no Hammer). Fully stocked, equip the Hammer and hold click on the site until the Well is built. Gives a steady supply that recovers by the hour, Good water when clear of the outhouse. Needs high, dry ground 30 m from any outhouse.";
             case PileKind.WaterBarrelSite: return "a hollowed-log barrel, built in stages because its Logs are heavy. Mark the site out (free, no Hammer), deliver 3 Logs with R over as many trips as it takes (no Hammer; E takes them back), then equip the Hammer and hold click on the site until the barrel is built (once you start, the Logs are built in). Holds 40 L.";
             case PileKind.RainBarrelSite: return "a rain barrel, built in stages because its Logs are heavy. Mark the site out under a Small Cabin's eave (it snaps there; free, no Hammer), deliver 3 Logs and 2 Branches with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the barrel is built (once you start, the wood is built in). The finished barrel stands where the site is and fills from the roof in rain. Holds 80 L.";
             case PileKind.FoodCacheSite: return "a lidded food cache, built in stages because its Logs are heavy. Mark the site out (free, no Hammer; turn it with the wheel), deliver 2 Logs and 4 Branches with R over as many trips as it takes (no Hammer), then equip the Hammer and hold click on the site until the cache is built (once you start, the wood is built in).";

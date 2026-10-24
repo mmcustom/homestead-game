@@ -269,7 +269,7 @@ public static class StructureVisuals
                 Stone(parent, pieces, new Vector3(Mathf.Cos(a) * 0.62f, 0.12f + layer * 0.22f, Mathf.Sin(a) * 0.62f), 0.3f, random);
             }
 
-        int buffer = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.wellBufferLitres : 150;
+        int buffer = WellsAndOuthouses.WellNumbers(state).bufferLitres; // this well's own (Shallow 200, Medium and old wells 150, Deep 120)
         float fill = Mathf.Clamp01(state.litres / (float)Mathf.Max(1, buffer));
         float contaminated = state.contaminatedHours > 0f ? 1f : 0f;
         Color water = Color.Lerp(WaterColor, new Color(0.3f, 0.22f, 0.12f), contaminated);
@@ -452,13 +452,14 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return Equipped(AxeTool.ShovelId) ? $"Dig the shaft: hold click ({state.digProgress * 100f:0}%)" : $"Dig the shaft: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
         if (state.kind == PileKind.WellSite)
         {
-            if (state.Count(WoodManager.StoneId) < w.wellLiningStone)
-                return $"Line it with Stone: {state.Count(WoodManager.StoneId)} of {w.wellLiningStone} (R stores Stone you carry)";
+            int lining = WellsAndOuthouses.NeedOf(state, WoodManager.StoneId); // this well's own: its depth to water sets it
+            if (state.Count(WoodManager.StoneId) < lining)
+                return $"Line it with Stone: {state.Count(WoodManager.StoneId)} of {lining} (R stores Stone you carry)";
             return $"Cap and windlass: {state.Count(WoodManager.LogsId)} of {w.wellCapLogs} Logs, {state.Count(WoodManager.BranchesId)} of {w.wellCapBranches} Branches (R stores them)";
         }
         // Any other staged site: what it holds against what it needs, material by material.
         var parts = new List<string>();
-        foreach (WoodStack c in WellsAndOuthouses.FinishedCost(state.kind))
+        foreach (WoodStack c in WellsAndOuthouses.FinishedCostFor(state))
             parts.Add($"{state.Count(c.itemId)} of {c.count} {ItemDatabase.Get(c.itemId)?.DisplayName ?? c.itemId}");
         string stageName = state.kind == PileKind.KitchenSite ? "Hearth stage: " : state.kind == PileKind.KitchenRoofSite ? "Hearth built. Roof stage: " : "";
         return stageName + "Needs " + string.Join(", ", parts) + " (R stores what you carry)";
@@ -617,8 +618,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         WaterQuality quality = w.WellQuality(state, out string note);
         string detail = note.Length > 0 ? $", {note}" : "";
         if (state.litres <= 0)
-            return $"Well  (dry for now - it recovers {w.RecoveryPerHour():0.#} L per hour){(state.contaminatedHours > 0f ? ", flood water got in" : "")}";
-        return $"Draw water  ({quality} water{detail}, {state.litres} of {w.wellBufferLitres} L)";
+            return $"Well  (dry for now - it recovers {w.RecoveryPerHour(state):0.#} L per hour){(state.contaminatedHours > 0f ? ", flood water got in" : "")}";
+        return $"Draw water  ({quality} water{detail}, {state.litres} of {w.NumbersOf(state).bufferLitres} L)";
     }
 
     string OuthousePrompt()
@@ -665,7 +666,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     string RefundText()
     {
         var parts = new List<string>();
-        foreach (WoodStack cost in WoodManager.Instance.CostOf(state.kind))
+        foreach (WoodStack cost in WoodManager.Instance.CostOf(state))
             if (cost.count / 2 > 0)
                 parts.Add($"{cost.count / 2} {ItemDatabase.Get(cost.itemId)?.DisplayName ?? cost.itemId}");
         return "half back, rounded down, so a single item refunds nothing: " + (parts.Count > 0 ? string.Join(", ", parts) : "nothing");
@@ -740,7 +741,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         WellsAndOuthouses w = Rules;
         if (state.litres <= 0)
         {
-            ToolStatus.Flash($"The well is dry for now - it recovers {w.RecoveryPerHour():0.#} L per hour", 3.5f);
+            ToolStatus.Flash($"The well is dry for now - it recovers {w.RecoveryPerHour(state):0.#} L per hour", 3.5f);
             return;
         }
 
@@ -885,7 +886,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             // Asked material by material in delivery order: the Well's lining fills first, which is what lets the cap timber in.
             if (!state.Accepts(id))
                 continue;
-            int need = WellsAndOuthouses.NeedOf(state.kind, id);
+            int need = WellsAndOuthouses.NeedOf(state, id);
             int n = Mathf.Min(need - state.Count(id), Inventory.Player.Count(id));
             if (n <= 0)
                 continue;
@@ -935,7 +936,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return;
         }
         var refund = new StructureRefund(state.position, transform);
-        foreach (WoodStack cost in WoodManager.Instance.CostOf(state.kind))
+        foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
         string name = Name;
         WoodManager.Instance.RemovePile(state);

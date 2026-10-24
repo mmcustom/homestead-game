@@ -63,7 +63,8 @@ public class WellWaterTests
         Assert.That((medium.digBlows, medium.liningStone, medium.bufferLitres, medium.recoveryLitresPerHour), Is.EqualTo((40, 10, 150, 6f)));
 
         WellWaterResult deep = AtDepth(7.5f);
-        Assert.That((deep.digBlows, deep.liningStone, deep.bufferLitres, deep.recoveryLitresPerHour), Is.EqualTo((70, 16, 100, 3.5f)));
+        Assert.That((deep.digBlows, deep.liningStone, deep.bufferLitres, deep.recoveryLitresPerHour), Is.EqualTo((60, 14, 120, 4.5f)));
+        Assert.That(deep.droughtRecoveryLitresPerHour, Is.EqualTo(4.5f), "Mike's Deep row, 2026-10-24");
     }
 
     [Test]
