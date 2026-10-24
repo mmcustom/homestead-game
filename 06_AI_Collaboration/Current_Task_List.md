@@ -3317,3 +3317,37 @@ Mike played `Money_Phase_D1_Playtest_Checklist.md`: all 31 items passed (terms a
 ## Money Phase D1 committed (2026-10-23)
 
 Code commit **3f8d123** "Money Phase D1: tier levers and income measuring", pushed to master (2049f3c..3f8d123): 16 files (8 modified, 8 new), 829 insertions, 23 deletions. Staged exactly the verified list. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset (runInBackground), 08_Backups/. Code baseline is now 3f8d123. Docs commit pending (Money_System.md, Current_Task_List.md, Income_Measuring_Plan.md, Money_Phase_D1_Playtest_Checklist.md). Next: Mike's measuring sessions per `Income_Measuring_Plan.md`, then D2.
+
+
+Docs commit **7b80a8b** "Docs: Money Phase D1 report, checklist and income measuring plan", pushed (3f8d123..7b80a8b): 4 files (2 modified, 2 new), 250 insertions. Docs baseline is now 7b80a8b; code baseline 3f8d123. This note and later entries ride the next docs commit. **Phase D1 is done.** Next: Mike's measuring sessions (Settler, Pioneer, Homesteader on 5 acres; optional Settler on 10 acres) per `Income_Measuring_Plan.md`, then D2.
+
+
+## Debug cash keys built (2026-10-23)
+
+**Status:** BUILT, NOT YET PLAYED BY MIKE, NOT COMMITTED. Code baseline 3f8d123, docs baseline 7b80a8b.
+
+Mike asked for a cash-only debug key (F12 gives the full kit on each press). His choices: $1,000 per press, plus a second key that sets cash to $0.
+
+**Keys (Claude Code report):** F11 was already taken (starting kit for older saves) and every other F-key and the numpad are used, so the keys are **PageUp** (+$1,000.00 per press) and **Shift+PageUp** (cash to $0). Same `#if UNITY_EDITOR || DEVELOPMENT_BUILD` guard as Insert and End, works only in the Playing state. F12 unchanged.
+
+**How it works:** cash lives in TradingPost; the keys call its ResetMoney (the same call New Game and Load use, fires MoneyChanged). Whole cents via Money.Add. HUD messages "Debug: +$1,000.00 (cash $X)" and "Debug: cash set to $0". New pure helper `Economy/DebugCash.cs` (step amount, zero rule, messages).
+
+**Ledger decision:** debug cash writes nothing to the ledger, so it never counts as income or expense and shows only as the Statement's "Other (not in the ledger)" line. A separate "Debug cash" category was rejected (would need new ledger category, save fields, Statement rows and CSV columns). Cost: "Other" mixes debug cash with any other untracked money, and the CSV "Cash at end" includes debug cash. Do not use the keys in a game being measured for income.
+
+**Files (5 paths):** `Scripts/Debug/TimeDebugControls.cs` (modified); new `Scripts/Economy/DebugCash.cs` and `Tests/EditMode/DebugCashTests.cs`, each with .meta. 588 edit-mode tests pass (583 plus 5 new). Console 0 errors, 0 warnings apart from the known MCP message.
+
+**Claude Code play checks:** new Settler game with $6,000: PageUp took cash 600000 to 700000 to 800000 cents; income stayed 0, expenses 600000, Other 200000; Shift+PageUp zeroed cash, Other -600000; save at $8,000, zero, load gave 800000 back; F12 gave +$50. Saves restored (36 files, 0 differences).
+
+**Not tested:** physical keyboard, the HUD text on screen, a missed payment or loss after zeroing cash, the Statement screen and exported CSV (ledger rows only), a development build.
+
+**Docs written:** `Debug_Cash_Keys_Checklist.md` (12 items). Next: Mike plays it, then code commit (5 paths), then docs commit.
+
+
+## Debug cash keys playtest result (2026-10-23)
+
+Mike played `Debug_Cash_Keys_Checklist.md`: all 12 items passed (PageUp +$1,000.00 per press, Shift+PageUp to $0, HUD messages, no income from debug cash, screens update, keys do nothing while a menu is open, save and Continue keep cash, F11 and F12 unchanged, broke-player missed payments normal, CSV matches). Ready to commit (5 paths); waiting for the staging approval.
+
+
+## Debug cash keys committed (2026-10-23)
+
+Code commit **b312110** "Add debug cash keys: PageUp +$1,000, Shift+PageUp zero cash", pushed to master (7b80a8b..b312110): 5 files (1 modified, 4 new), 77 insertions. Code baseline is now b312110. Left uncommitted by design: AudioManager.cs null guard, Homestead.slnx, ProjectSettings.asset, 08_Backups/. The cash-only debug key is **done** and off the backlog. Docs commit pending (Current_Task_List.md, Debug_Cash_Keys_Checklist.md). Still waiting on Mike's income measuring sessions, then D2.
