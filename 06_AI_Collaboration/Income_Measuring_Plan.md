@@ -52,3 +52,8 @@ At the end of every season press L and open that season on the Statement. Write 
 - Propose the tier numbers (the NOT-decided starting proposal in Money_System.md is only a starting point), including the Pioneer threshold and the red warning question.
 - Check the early game: can a careful player reach the first payment on day 112 on every tier, and is the 40-acre parcel hard in the intended way?
 - You decide. Nothing changes in the game until you approve the numbers; Claude Code then edits the TierRules table, and Difficulty_System.md, the GDD and the tier blurbs are updated to match.
+
+
+## Amendment 2026-10-24 (Mike): lighter first round
+
+A full year-1 run per tier is about 56 real hours each (game day 30 real minutes, season 28 days about 14 hours), too much for a first pass. **First round: finish Spring of year 1 on Settler (5 acres) and on Pioneer (5 acres), then send the numbers.** Homesteader and the Settler 10-acre session wait. Mike's observation while playing (2026-10-24): too few ways to earn when only furs and hides sell, so after these numbers the next step is building income sources (Ash first, then the wood and fiber workshop), then measuring again. The rest of this plan (what to record, the End-key CSV, naming, what Claude does with the results) is unchanged. Time-skip keys are fine when idle; say when used. No F12 and no cash keys.
