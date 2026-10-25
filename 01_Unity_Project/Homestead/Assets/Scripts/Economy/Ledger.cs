@@ -106,6 +106,16 @@ public static class LedgerCategories
     public static bool PurchaseIsListed(string itemId) => itemId != null && Purchases.ContainsKey(itemId);
 }
 
+// What one item sold for in one season (Trading Post sales only, stocked sell-backs included): units and cents, per item id. Saved with
+// the season; the measuring export (LedgerCsv.BuildItems) reads it. The category totals above stay the statement's figures.
+[Serializable]
+public struct LedgerItemSale
+{
+    public string itemId;
+    public int units;
+    public long cents;
+}
+
 // One season of the ledger: the totals per category (always positive amounts; the category says whether it is income or an expense), the
 // cash and loan at the start and end, and how long the ledger covers (a game started at 6:00 covers 27.75 days of its first season).
 [Serializable]
@@ -120,15 +130,36 @@ public class LedgerSeason
     public long owedEnd;         // late fees and open payments still owed when closed
     public long realMillis;      // real (unscaled) milliseconds played in this season: OPTIONAL, 0 in a save from before it was recorded
     public long[] cents = new long[LedgerCategories.Count];
+    public List<LedgerItemSale> items = new List<LedgerItemSale>(); // APPENDED: absent in a save from before it was recorded
 
     public void Normalize()
     {
+        if (items == null)
+            items = new List<LedgerItemSale>();
         if (cents != null && cents.Length == LedgerCategories.Count)
             return;
         var fixedUp = new long[LedgerCategories.Count];
         if (cents != null)
             Array.Copy(cents, fixedUp, Math.Min(cents.Length, fixedUp.Length));
         cents = fixedUp;
+    }
+
+    // Adds a sale to the item's row for this season (one row per item id).
+    public void AddItem(string itemId, int units, long saleCents)
+    {
+        if (items == null)
+            items = new List<LedgerItemSale>();
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (items[i].itemId != itemId)
+                continue;
+            LedgerItemSale row = items[i];
+            row.units = (int)Math.Min(int.MaxValue, (long)row.units + units);
+            row.cents = Money.Add(row.cents, saleCents);
+            items[i] = row;
+            return;
+        }
+        items.Add(new LedgerItemSale { itemId = itemId, units = units, cents = saleCents });
     }
 
     public long Income
@@ -163,6 +194,7 @@ public struct StatementRow
     public long realMillis;      // real milliseconds played in it (0: not recorded)
     public long cashStart, income, expenses, cashEnd, loanEnd, owedEnd;
     public long[] cents;         // by category
+    public List<LedgerItemSale> items; // sales per item (the season's own list; null in a totals row)
 
     public long Net => Money.Sub(income, expenses);
 
@@ -265,6 +297,20 @@ public sealed class LedgerState
         Open.cents[id] = Money.Add(Open.cents[id], cents);
     }
 
+    // A Trading Post sale: the category total, and the same cents and the units on the item's row, so the two always agree. The item row
+    // is skipped (the category is still written) for a missing item id or no units.
+    public void RecordSale(LedgerCategory category, string itemId, int units, long cents)
+    {
+        if (!Started || cents <= 0)
+            return;
+        int id = (int)category;
+        if (id < 0 || id >= LedgerCategories.Count)
+            return;
+        Record(category, cents);
+        if (!string.IsNullOrEmpty(itemId) && units > 0)
+            Open.AddItem(itemId, units, cents);
+    }
+
     // Closes every season before todaySeasonIndex, with the cash, loan balance and amount owed as they are now (a skip over several
     // seasons gives every one the same figures: nothing could change in between). Returns how many it closed.
     public int CloseThrough(int todaySeasonIndex, long cashNow, long loanBalanceNow, long owedNow)
@@ -304,6 +350,7 @@ public sealed class LedgerState
         loanEnd = loanEnd,
         owedEnd = owedEnd,
         cents = season.cents,
+        items = season.items,
     };
 
     // Every season since the start, newest first. The open season comes first, marked in progress, with the cash, loan balance and

@@ -115,7 +115,7 @@ public class TradingPost : MonoBehaviour, ISaveable
             return default;
         SaleResult result = Market.Sell(itemId, sold);
         if (LedgerManager.Instance != null && Market.Table.TryGetRow(itemId, out MarketRow soldRow))
-            LedgerManager.Instance.Record(LedgerCategories.ForSale(soldRow.group), result.totalCents); // before the cash changes
+            LedgerManager.Instance.RecordSale(LedgerCategories.ForSale(soldRow.group), itemId, result.count, result.totalCents); // before the cash changes
         money = Money.Add(money, result.totalCents);
         MoneyChanged?.Invoke();
         return result;

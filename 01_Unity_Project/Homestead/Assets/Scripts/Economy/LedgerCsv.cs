@@ -54,6 +54,41 @@ public static class LedgerCsv
         return Join(columns);
     }
 
+    // --- The item export (ledger_items_*.csv) ---
+
+    public static string ItemsHeader() => Join(new List<string> { "Season", "Item", "Units", "Dollars", "Average price" });
+
+    // One row per season and item, oldest season first, items A to Z by id within a season; a season with no sales has no rows. The
+    // open season's label says "(so far)". With no sales at all the file is the header alone.
+    public static string BuildItems(IList<StatementRow> newestFirst)
+    {
+        var text = new StringBuilder();
+        text.Append(ItemsHeader()).Append('\n');
+        for (int i = newestFirst.Count - 1; i >= 0; i--)
+        {
+            StatementRow row = newestFirst[i];
+            if (row.items == null || row.items.Count == 0)
+                continue;
+            var sorted = new List<LedgerItemSale>(row.items);
+            sorted.Sort((a, b) => string.CompareOrdinal(a.itemId, b.itemId));
+            foreach (LedgerItemSale item in sorted)
+                text.Append(ItemLine(row, item)).Append('\n');
+        }
+        return text.ToString();
+    }
+
+    public static string ItemLine(StatementRow row, LedgerItemSale item) => Join(new List<string>
+    {
+        LedgerState.SeasonLabel(row.index) + (row.inProgress ? " (so far)" : ""),
+        item.itemId,
+        item.units.ToString(CultureInfo.InvariantCulture),
+        Dollars(item.cents),
+        Dollars(AveragePrice(item.cents, item.units)),
+    });
+
+    // Cents per unit, half up. 0 when there are no units.
+    public static long AveragePrice(long cents, int units) => units <= 0 ? 0 : Money.Add(cents, units / 2) / units;
+
     static long Cent(StatementRow row, int category) => row.cents != null && category < row.cents.Length ? row.cents[category] : 0L;
 
     // Cents as dollars with two decimals, no symbol and no thousands comma: 123456 -> "1234.56", -7500 -> "-75.00".

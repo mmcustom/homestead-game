@@ -200,6 +200,15 @@ public class LedgerManager : MonoBehaviour, ISaveable
         state.Record(category, cents);
     }
 
+    // A Trading Post sale: the category total and the item's units and cents for the season, in one call (so both land in the same season).
+    public void RecordSale(LedgerCategory category, string itemId, int units, long cents)
+    {
+        if (cents <= 0)
+            return;
+        ProcessNow();
+        state.RecordSale(category, itemId, units, cents);
+    }
+
     // The four expense lines of a loan payment (what PayResult split it into).
     public void RecordLoanPayment(PayResult result)
     {
@@ -251,8 +260,9 @@ public class LedgerManager : MonoBehaviour, ISaveable
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-    // Testing only (TimeDebugControls, End): writes the ledger as a CSV, one row per season, to Exports/ under the persistent data path.
-    // Returns the full path, or null when there is no ledger yet.
+    // Testing only (TimeDebugControls, End): writes the ledger as a CSV, one row per season, to Exports/ under the persistent data path,
+    // and beside it ledger_items_<same timestamp>.csv with the units and dollars per item per season. Returns the full path of the first,
+    // or null when there is no ledger yet.
     public string DebugExportCsv()
     {
         List<StatementRow> rows = Rows();
@@ -261,9 +271,12 @@ public class LedgerManager : MonoBehaviour, ISaveable
 
         string folder = System.IO.Path.Combine(Application.persistentDataPath, "Exports");
         System.IO.Directory.CreateDirectory(folder);
-        string path = System.IO.Path.GetFullPath(System.IO.Path.Combine(folder, $"ledger_{DateTime.Now:yyyyMMdd_HHmmss}.csv"));
+        string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string path = System.IO.Path.GetFullPath(System.IO.Path.Combine(folder, $"ledger_{stamp}.csv"));
+        string itemsPath = System.IO.Path.GetFullPath(System.IO.Path.Combine(folder, $"ledger_items_{stamp}.csv"));
         System.IO.File.WriteAllText(path, LedgerCsv.Build(rows), new System.Text.UTF8Encoding(false));
-        Debug.Log("[Ledger] CSV exported: " + path);
+        System.IO.File.WriteAllText(itemsPath, LedgerCsv.BuildItems(rows), new System.Text.UTF8Encoding(false));
+        Debug.Log("[Ledger] CSV exported: " + path + " and " + itemsPath);
         return path;
     }
 #endif
