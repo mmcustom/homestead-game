@@ -470,7 +470,7 @@ Not Alpha 0.1
 - Veterinary systems
 - ~~Advanced temperature systems~~ — moved into current scope 2026-09-26 (Mike) as the new Warmth attribute; see the Fire System section above and Health_System.md's Exposure System. Clothing as an actual Warmth factor stays Future — no clothing/apparel system exists yet.
 - Beekeeping
-- Maple syrup production — spec drafted and ready in `Game_Systems/Maple_Sugaring.md` (confirmed 2026-09-24), still deferred until moved into active scope
+- Maple syrup production — spec drafted and ready in `Game_Systems/Maple_Sugaring.md` (confirmed 2026-09-24), still deferred until moved into active scope (**planned 2026-10-25, Mike: to be built after the Ash by-product; see Early_Income_Design.md**)
 
 These features are deferred until the core survival loop is proven fun.
 

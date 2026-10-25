@@ -172,7 +172,7 @@ Correction: the chat message that offered this choice said 30 lanterns would ear
 
 ## What changes in the Money System
 
-- Early income (the earlier "raise prices and add new sellable goods" picks) is replaced by this market. No new sellable goods are needed for Phase A.
+- Early income (the earlier "raise prices and add new sellable goods" picks) is replaced by this market. No new sellable goods are needed for Phase A. **SUPERSEDED 2026-10-25 (Mike):** the Spring Year 1 measurement (Settler about $4.29 and Pioneer about $1.19 per game day against a payment of about $18 to $20) contradicts this. New income sources are designed in `Early_Income_Design.md` (Ash, kindling, snares, crafted-goods groups). The target is now about $20 a game day (Mike's wording: "cover the payment"), met each 28-day month.
 - The target of about $25 a game day for a typical player is met by the market alone in the model (Survivor $21, Casual mixed $38). It must be confirmed in a playtest.
 - The Money System Phase A needs cents, and the market needs cents, so they should be built together or cents first (question 6).
 

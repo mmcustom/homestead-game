@@ -1,6 +1,8 @@
 # Homestead
 ## Maple Sugaring v1.0
 
+**Update 2026-10-25 (Mike): moved into planned scope, to be built after the Ash by-product (see Early_Income_Design.md, section 3 and question 7). Claude Code sizes it first; nothing is built.** The status line below is the original 2026-09-24 text.
+
 Status: Future System — Not Alpha 0.1. Design ready per Core_Survival_System.md's existing "Maple syrup production" deferral; not a current "Needs Claude Code" build item. Confirmed 2026-09-24 (Mike) — spec drafted now so it's ready to build once the core survival loop is proven and this is pulled into scope.
 
 ---

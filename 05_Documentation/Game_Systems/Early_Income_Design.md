@@ -19,7 +19,7 @@ This doc takes the measured gap, shows what the game can already pay if the play
 | Expenses | $6,015.00 (down payment $6,000, hunting and fishing $15) | $16 (shelter and bedding $8, cooking, water and fire $8) |
 | Loan at end | $54,000 | $60,000 |
 | Income per game day | $4.29 | $1.19 |
-| Payment per game day (loan payment divided by 28) | about $18.43 (my estimate, not read from the game) | $20.48 |
+| Payment per game day (loan payment divided by 28) | about $18.43 ($516.05 a payment, from Claude Code's Phase A report in Money_System.md) | $20.48 |
 | Share of the payment covered | about 23% | about 6% |
 
 Read plainly: at the measured rate a Pioneer reaches game day 112 (the first payment) with about $130 against a $573.39 payment, so the loan fails without a change in what the player can earn.
@@ -37,7 +37,22 @@ The game's own model had a Survivor at about $21 a game day, a Casual at about $
 
 # The target
 
-About **$20 a game day** covers a 5-acre payment ($18.43 Settler estimate, $20.48 Pioneer). The Homesteader loan ($112,000, $38.23 a game day) sits well above $20 and is left to the D2 levers at the end of this doc rather than to income alone.
+About **$20 a game day** covers a 5-acre payment ($18.43 Settler, $20.48 Pioneer).
+
+**Correction 2026-10-25:** an earlier version of this doc called the $112,000 loan ($1,070.33 a payment, $38.23 a game day) "the Homesteader loan". That is wrong. Reading Money_System.md, $112,000 is a **10-acre** loan: the 10-acre parcel is $140,000 and a Settler puts the whole $28,000 of savings (20%) down. The tier does not set the payment, the parcel and the down payment do. The parcel sizes are 5 acres at $60,000, 10 acres at $140,000 and 40 acres at $450,000; savings are 20% of price for Settler, 40% for Homesteader, none for Pioneer, each capped at $30,000. Payments at 8% over 180 payments, one every 28 days, work out as follows (my arithmetic from the Money System figures, scaled by loan size, assuming the whole savings goes to the down payment):
+
+| Parcel and tier | Loan | Payment per 28 days | Per game day |
+|---|---|---|---|
+| 5 acres, Homesteader (savings $24,000) | $36,000 | about $344 | about $12.30 |
+| 5 acres, Settler (savings $12,000, half down as measured) | $54,000 | $516.05 | $18.43 |
+| 5 acres, Pioneer | $60,000 | $573.39 | $20.48 |
+| 10 acres, Homesteader (savings capped at $30,000) | $110,000 | about $1,051 | about $37.50 |
+| 10 acres, Settler (savings $28,000) | $112,000 | $1,070.33 | $38.23 |
+| 10 acres, Pioneer | $140,000 | about $1,338 | about $47.80 |
+| 40 acres, Settler (savings capped at $30,000) | $420,000 | about $4,014 | about $143 |
+| 40 acres, Pioneer | $450,000 | about $4,300 | about $154 |
+
+So the $20 target holds for the 5-acre parcel only. A Homesteader on 5 acres actually faces about $12 a game day, which the early mix may already reach. The question for the doc is what to do about the 10-acre and 40-acre parcels, where the payment is about two and seven times the 5-acre figure.
 
 All income figures below come from the market simulation (25% of the price gap recovers each game day; a good's pool drops by the group's percentage per unit sold, down to the floor), run at steady state with seasonal targets ignored. They are balance estimates, not measurements, and the measuring sessions should re-check every one.
 
@@ -68,7 +83,7 @@ For the first season the usable Step 0 pools are only the goods the player neith
 
 Three cheap changes would make Step 0 work better without new items:
 
-- **Signpost the pools.** The T window could show a short "What sells well today" line using the current price multipliers, so a player sees that logs and forage are worth something. A one-line hint about selling surplus could go wherever the game gives early-game guidance.
+- **Signpost the pools. DECLINED 2026-10-25 (Mike: no hint line).** The T window could have shown a short "What sells well today" line using the current price multipliers, so a player sees that logs and forage are worth something. A one-line hint about selling surplus could go wherever the game gives early-game guidance.
 - **Give logs their own market group** (already proposed in the Workshop doc) so their drop and floor can be tuned alone.
 - **Sell-all-surplus button** in the T window that sells everything above a keep-amount per item, so the broad mix is one click, not thirty. Given Mike's answer, the keep-amount matters most: a player who is still building should be able to keep what the next build needs and sell only the rest.
 
@@ -157,12 +172,20 @@ So the odds change adds only about $1.30 a game day for a 6-snare player, becaus
 
 **Calibration warning.** For 6 snares the model predicts about $5 to $6 a game day in fur alone, but the Settler statement shows only $3.60 a game day for all hides and furs (which may include deer hides; the statement does not split them), and the Pioneer $1.08. So the real result is below the model, and the model's catch rate may be too high or the snares were set late, in poor spots, or the Knife requirement and Cordage repair cost time. This should be checked against a ledger CSV before any snare number is trusted. I also have not verified the Small Game Meat price (assumed $2).
 
-## 3. Maple sugaring (strong Ohio fit, spring only)
+## 3. Maple sugaring (strong Ohio fit, late Winter to early Spring)
 
-The Western Reserve pioneers made maple syrup (Workshop doc, research section), and a Spring Year 1 start lines up with sugaring season. Tap a maple, hang a bucket, and sap collects on its own (passive); boiling it down at a fire takes Firewood and attention (active). In real life it takes roughly 40 gallons of sap to make 1 of syrup (general knowledge, not sourced this round).
+The Western Reserve pioneers made maple syrup (Workshop doc, research section). **A full spec already exists: `Maple_Sugaring.md` v1.0, confirmed 2026-09-24 (Mike), deferred until it is moved into active scope** (also listed under Future Expansion in Core_Survival_System.md and in the roadmap). This section is read against that spec, and corrects two things I first wrote.
 
-- Proposed: Syrup at about $10 a jar, 6% drop. 1 jar a day earns about $8.47 a game day and 2 a day about $14.38, but only for the sugaring weeks.
-- **Blocked on trees:** the game has no wood species yet (Workshop doc: species and quality are not built). Maples need to exist as a species with a tap point. This is a larger piece of work than Ash and should be sized before it is promised.
+What the spec says: a tap (spile) on a qualifying mature hardwood tree and a sap bucket that fills over time (passive, but sap spoils faster than most goods, so taps need checking), then boiling the sap down at a fire into Maple Syrup, a low-yield, high-value good with a simplified lossy ratio (real life is about 40 to 1). Sap flows only in freeze-thaw weather (nights below 32°F, days above), keyed to WeatherManager's temperatures, so it falls in **late Winter into early Spring**, not on a calendar date. Only one tappable "Maple" category is needed, not real species. Exact rates, ratio and boil time were left to Claude Code.
+
+Corrections to what I first wrote:
+
+- **Species are not the blocker.** The terrain has three tree prototypes (Hardwood Broad, Hardwood Tall, Understory Shrub, read from PropertyTerrainBuilder.cs), no species, and the spec accepts that: it only asks for a subset of existing hardwood trees to be identified as tappable, by a tag or a size proxy (hardwood trees carry a random scale of about 0.8 to 1.35, so a "mature" cut-off on scale is one possible proxy; the spec leaves the choice to Claude Code). The real design questions are which trees qualify and whether a tapped tree is protected from felling, since trees do not regrow.
+- **A Spring Year 1 start mostly misses the sap season.** The sap season is late Winter into early Spring, so a player who starts in Spring has little or none of the first one. The first full season is the Winter Year 1 into Spring Year 2 stretch. The first payment is on game day 112 (the end of Winter Year 1), so a late-Winter tapping could land just before it, but that depends on the weather and on having set taps and a boiling fire by then.
+
+Income, using my price assumption (Syrup about $10 a jar, 6% drop; the price is mine and not in the spec): 1 jar a day earns about $8.47 a game day and 2 a day about $14.38, only during the sap weeks. That helps the first payment and the late-Winter lean stretch, but it does not fix Spring and Summer Year 1.
+
+Syrup is also food (a sweetener), so a player who eats it is not selling it.
 
 ## 4. Shiitake logs and other log-based passives (later)
 
@@ -206,30 +229,30 @@ Reading it: the rows from "Step 0 half mix" down include logs, firewood and ston
 
 # Loan-term levers (D2) if income alone does not close the gap
 
-D1 gave levers that are equal for all tiers: missed payments before loss (3), late fee ($75), interest rate (8%), and sell share (100%). If the re-measurement after Step 0 and Ash still shows the Pioneer well short, the options are, in order of how little they change the design: a higher missed-payments allowance for Pioneer only, a lower first-year rate for the hard tiers, or a lower principal for Pioneer. This doc does not propose numbers for these until the next measurement is in; the Homesteader's $38.23 a game day is expected to need them regardless.
+D1 gave levers that are equal for all tiers: missed payments before loss (3), late fee ($75), interest rate (8%), and sell share (100%). If the re-measurement after Step 0 and Ash still shows the Pioneer well short, the options are, in order of how little they change the design: a higher missed-payments allowance for Pioneer only, a lower first-year rate for the hard tiers, or a lower principal for Pioneer. This doc does not propose numbers for these until the next measurement is in; the 10-acre parcels ($37.50 to $47.80 a game day, see the table in "The target") and the 40-acre parcels (about $143 to $154) are expected to need a different answer regardless, since no early income mix reaches those figures.
 
 # Proposed order (each step measured before the next)
 
 1. **Ash first:** Ash by-product from burning Firewood, an ash pan, Ash in the market. It is the one source that costs the player no building material. Re-measure Settler and Pioneer for Spring and Summer Y1.
 2. **Snare changes (Mike likes all five ideas):** the trapping pass is done (section 2). 2-catch snare, higher base odds and a spacing rule are small changes in TrapManager.cs. For a player who checks several times a day they add only about $1 to $2 a game day, so check the model against the ledger CSVs first and tune fur price through processed fur.
-3. **Then choose** between the Potash kettle and leaching hopper, maple sugaring (size the tree species work first), and Workshop W1 and W2, using what the measurements say.
-4. **Later-game market help:** "What sells well today" line, sell-surplus button with a keep-amount, logs in their own group. These matter once the player has a surplus, so they come after the early sources.
+3. **Maple Sugaring (decided 2026-10-25: after Ash is built):** Claude Code sizes it from `Maple_Sugaring.md` first. **Then choose** between the Potash kettle and leaching hopper and Workshop W1 and W2, using what the measurements say.
+4. **Later-game market help (decided 2026-10-25):** sell-surplus button with a player-set keep amount per item, and logs in their own market group. The "What sells well today" line was declined. These matter once the player has a surplus, so they come after the early sources.
 
 This respects Mike's measuring-first rule and keeps the Settler and Pioneer baselines clean after each change.
 
 # Open questions for Mike
 
 1. ANSWERED (2026-10-25): Mike did not sell logs, firewood, stone, fish or forage because he needed the materials for building and crafting. Follow-up answered (2026-10-25): what he did not eat of the fish and forage was saved as surplus, and the other spare item was sticks (see 1b). Final answer (2026-10-25): the fish and forage were kept as a food reserve, so they are not counted as early income; only surplus beyond a reserve is sellable.
-2. What was the Settler parcel size and loan? The statement shows $54,000 after the $6,000 down payment.
-3. Is $20 a game day the average to hit across a year, or the amount needed by game day 112 for the first payment?
-4. Accept the small change to fire so that burning Firewood leaves Ash (proposed 1 Ash per 3 Firewood)?
-5. Add the "What sells well today" line and the sell-surplus button to the T window?
-6. Crafted goods: Option A, B, C or D above, and if C, what should an hour of game time be worth?
-7. Maple sugaring: size the wood species work first, or leave it for a later slice?
+2. PARTLY ANSWERED (2026-10-25): the ledger CSV confirms the Settler loan is $54,000 after a $6,000 down payment. The parcel size is taken as 5 acres from the lighter-round plan; Mike to correct if it was different.
+3. ANSWERED (2026-10-25, Mike): every 28-day month should cover its own payment (about $20 a game day), so no month relies on savings. Measure against each season statement, not a year average.
+4. ANSWERED (2026-10-25, Mike): yes, burning Firewood leaves Ash (1 Ash per 3 Firewood), and sticks burn for Ash too (proposed about 1 Ash per 6 Sticks), which gives the spare sticks a use. Needs Claude Code to check how fires consume fuel today.
+5. ANSWERED (2026-10-25, Mike): (a) NO "What sells well today" hint line; (b) YES a sell-surplus button where the player sets a keep amount per item (saved with the game); (c) YES logs get their own market group. **Detail added 2026-10-25 (Mike, "make it adjustable"):** the Trading Post already has an amount stepper on every Sell row (default 1, live total, Shift-click sells the whole stack; TradingPostScreen.cs and Quantity_Controls.md), and that stays unchanged. Mike chose only one addition: the keep amount is adjustable per item, set with a stepper on each Sell row and saved with the game, and the sell-surplus button sells everything above it. He did not pick a review panel before the surplus sale, quick preset buttons, or remembering the last amount, so those are not planned. Claude's proposal, not decided: the keep amount defaults to "keep all" for logs, firewood, stone, sticks and food so the button can never sell building materials or the food reserve by accident, and to 0 for furs, hides and Ash. Not built.
+6. ANSWERED (2026-10-25, Mike): Option D (mixed). Goods made at a station (workshop, tanning, kiln) go in a milder "Handmade wares" group (about 6% drop, floor 0.25); instant recipes (lantern, pouch) keep the harsh crafted group (10%, floor 0.1). Not built; the group split needs a market-data change when W1/W2 exist.
+7. ANSWERED (2026-10-25, Mike): pull Maple Sugaring into scope, but only after Ash is built. The existing spec (`Maple_Sugaring.md`) is the base; Claude Code sizes the tappable-tree choice, taps, sap spoilage and boiling before any build. Species work is not needed.
 8. ANSWERED (2026-10-25): Mike ran 6 snares, checked several times a day, and likes all five ideas (2-catch snare, higher odds, spacing rule, snare bait, fur quality). Still open: do you have the Spring ledger CSVs (End key) so I can check the snare model against real catches, and do you want a better fur price through processed fur (Tanned Small Fur) rather than a higher raw price?
-9. How long should the next Pioneer run be? Fifty real minutes undersells that tier.
-10. Leave the Homesteader's higher payment to the D2 levers?
-11. Confirm this doc supersedes the 2026-10-20 "no new sellable goods needed" decision.
+9. ANSWERED (2026-10-25, Mike): the next Pioneer run happens after Ash is built (so it measures Pioneer with Ash and kindling, not a pre-change baseline). Length: full Spring, but speeding time up after setup, about 2 to 3 real hours (the first Pioneer run was 50 real minutes). Rules: build only what a new player needs first (shelter, water, fire, food), and press End at each season change to export the ledger. Not chosen: a ban on selling logs, firewood and stone, and noting snare count and check pattern. Claude note: because the pre-change baseline is skipped, the existing 50-minute Pioneer statement stays the only "before" figure for Pioneer, and it is a weak one.
+10. ANSWERED (2026-10-25, Mike), after a correction: the question was about the wrong tier. The $112,000 loan is a 10-acre loan (Settler, whole $28,000 down), not the Homesteader loan; the 5-acre Homesteader pays only about $12 a game day. Decision: the 10-acre ($37.50 to $47.80 a game day) and 40-acre (about $143 to $154) parcels are a **later-game goal, not an early-income target**. Early-income work stays aimed at the 5-acre parcel; income targets for bigger parcels are set when livestock, farming and workshop income exist. Nothing changes in the game now. Follow-up decided 2026-10-25 (Mike, "handle it"): the New Game land step shows the 10-acre and 40-acre cards locked with a reason ("Needs more income than the early game offers. Unlocks later."); only 5 acres can be picked. Editor and development builds keep a dev way to pick a locked parcel so the on-hold 10-acre measuring sessions can still run. Recorded in Money_System.md. Not built; message for Claude Code written (see the task list).
+11. ANSWERED (2026-10-25, Mike): yes, this doc supersedes the 2026-10-20 "no new sellable goods needed" decision. Trading_Post_Market.md now carries a SUPERSEDED note pointing here.
 
 # Cross-references
 
@@ -237,5 +260,5 @@ This respects Mike's measuring-first rule and keeps the Settler and Pioneer base
 - Workshop_and_Handmade_Goods.md: Ash, lye, potash, soap, tanning, W1 to W3, the log chain and leather (decisions 1 to 10 still open).
 - Money_System.md and Income_Measuring_Plan.md: Phase D, the measuring plan and the first-round amendment.
 - Measurements/Income_Measuring_Log.md: the Spring Year 1 statements this doc is based on.
-- Trapping_System.md and Hunting_System.md: snare and hunting income (not re-read for this draft).
+- Trapping_System.md and Hunting_System.md: snare and hunting income (Trapping_System.md and the trap code were read for section 2; Hunting_System.md was not re-read).
 - Difficulty_System.md: tiers, loan principal and the D1 levers.

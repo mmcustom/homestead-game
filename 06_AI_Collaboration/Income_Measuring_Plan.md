@@ -57,3 +57,12 @@ At the end of every season press L and open that season on the Statement. Write 
 ## Amendment 2026-10-24 (Mike): lighter first round
 
 A full year-1 run per tier is about 56 real hours each (game day 30 real minutes, season 28 days about 14 hours), too much for a first pass. **First round: finish Spring of year 1 on Settler (5 acres) and on Pioneer (5 acres), then send the numbers.** Homesteader and the Settler 10-acre session wait. Mike's observation while playing (2026-10-24): too few ways to earn when only furs and hides sell, so after these numbers the next step is building income sources (Ash first, then the wood and fiber workshop), then measuring again. The rest of this plan (what to record, the End-key CSV, naming, what Claude does with the results) is unchanged. Time-skip keys are fine when idle; say when used. No F12 and no cash keys.
+
+
+## Amendment 2026-10-25 (Mike): next Pioneer run
+
+- Timing: after the Ash by-product is built (see Early_Income_Design.md), so the run measures Pioneer with Ash and kindling in the game. No separate pre-change Pioneer baseline; the 50-real-minute Spring Y1 statement (income $33.16, $1.19 a game day) stays the only "before" figure and is a weak one.
+- Length: full Spring, building at a normal pace and then speeding time up after setup, about 2 to 3 real hours.
+- Rules: build only what a new player needs first (shelter, water, fire, food); press End at each season change to export the ledger (the main CSV plus the new ledger_items CSV); copy both to Measurements/ as `<tier>_<parcel>_ledger.csv` and `<tier>_<parcel>_ledger_items.csv`.
+- Not required (Mike did not choose them): a ban on selling logs, firewood and stone, and a note of snare count and check pattern. Without a snare note, the snare model can only be checked through the item rows (small_furs units and dollars), not through catch rates.
+- Settler and Homesteader sessions remain on hold as in the 2026-10-24 amendment.
