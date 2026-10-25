@@ -439,6 +439,18 @@ MonoBehaviour:
     baseCents: 200
     kind: 1
     seasonalBuy: 0
+  - itemId: ash
+    group: 8
+    pool: ash
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: kindling_bundle
+    group: 5
+    pool: kindling_bundle
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
   groups:
   - group: 0
     dropBp: 400
@@ -491,6 +503,13 @@ MonoBehaviour:
     winter: 10000
   - group: 7
     dropBp: 800
+    floorBp: 2500
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 10000
+  - group: 8
+    dropBp: 600
     floorBp: 2500
     spring: 10000
     summer: 10000

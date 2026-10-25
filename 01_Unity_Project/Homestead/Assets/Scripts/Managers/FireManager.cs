@@ -11,6 +11,9 @@ public class CampfireState
     public float yaw;
     public float fuelHours;
     public bool lit;
+    public float ashOwed;   // Ash the fuel still in the ring will leave (AshRules); absent in a save from before Ash
+    public float ashMade;   // Ash burnt and waiting in the ring to be collected; the fraction carries on to the next burn
+    public bool builtWithSticks; // built from Sticks, not Firewood, so a dismantle refunds half the Sticks; absent (false) in an older save
 }
 
 // The Bow Drill's tuning, in the Inspector on FireManager. Chances are 0-1.
@@ -182,10 +185,16 @@ public class FireManager : MonoBehaviour, ISaveable
             if (!fire.lit)
                 continue;
 
-            fire.fuelHours = Mathf.Max(0f, fire.fuelHours - hours);
+            float before = fire.fuelHours;
+            fire.fuelHours = Mathf.Max(0f, before - hours);
+            float released = AshRules.Release(fire.ashOwed, before, before - fire.fuelHours);
+            fire.ashOwed = Mathf.Max(0f, fire.ashOwed - released);
+            fire.ashMade += released;
             if (fire.fuelHours <= 0f)
             {
                 fire.lit = false;
+                fire.ashMade += fire.ashOwed; // burnt out: whatever was still owed is made now
+                fire.ashOwed = 0f;
                 Changed(fire);
             }
         }
@@ -310,6 +319,8 @@ public class FireManager : MonoBehaviour, ISaveable
             yaw = yaw,
             fuelHours = Mathf.Min(maxFuelHours, firstFuelHours),
             lit = false,
+            ashOwed = AshRules.Owed(payment, paid),
+            builtWithSticks = payment == WoodManager.SticksId,
         };
         fires.Add(fire);
         SpawnView(fire);
@@ -551,8 +562,99 @@ public class FireManager : MonoBehaviour, ISaveable
 
         Carried.Remove(id, count);
         fire.fuelHours = Mathf.Min(maxFuelHours, hours);
+        fire.ashOwed += AshRules.Owed(id, count);
         Changed(fire);
         return count;
+    }
+
+    // --- Dismantling a plain Campfire (Hammer in hand, fire out) ---
+
+    // A plain Campfire is one a hearth, a Kitchen or a Grill does not own: those go with their structure's own Dismantle.
+    public bool IsPlain(CampfireState fire) =>
+        fire != null && fires.Contains(fire) && !(WoodManager.Instance != null && WoodManager.Instance.IsStructureFire(fire));
+
+    public bool CanDismantle(CampfireState fire, out string reason)
+    {
+        reason = "";
+        if (!IsPlain(fire))
+        {
+            reason = "Not a plain Campfire.";
+            return false;
+        }
+        if (fire.lit)
+        {
+            reason = "Put the fire out first.";
+            return false;
+        }
+        if (!WoodManager.HammerEquipped)
+        {
+            reason = "Equip a Hammer to dismantle.";
+            return false;
+        }
+        return true;
+    }
+
+    FireRefundResult RefundOf(CampfireState fire) =>
+        FireRefund.Of(fire.builtWithSticks, firewoodToBuild, campfireSticksCost, fire.fuelHours, hoursPerFirewood, fire.ashMade);
+
+    // "1 Firewood, 2 Ash" for the prompt: what dismantling the fire gives back now; "nothing" when it gives nothing.
+    public string RefundText(CampfireState fire)
+    {
+        FireRefundResult r = RefundOf(fire);
+        var parts = new List<string>();
+        if (r.firewood > 0)
+            parts.Add($"{r.firewood} Firewood");
+        if (r.sticks > 0)
+            parts.Add($"{r.sticks} Sticks");
+        if (r.ash > 0)
+            parts.Add($"{r.ash} Ash");
+        return parts.Count == 0 ? "nothing" : string.Join(", ", parts);
+    }
+
+    // Takes a plain Campfire down: half the build materials, the unspent fuel as Firewood and the whole Ash go to the pack (what does not
+    // fit is left on the ground, like any refund), and the fire is removed from the world and from the saved list.
+    public string DismantleCampfire(CampfireState fire)
+    {
+        if (!CanDismantle(fire, out string reason))
+            return reason;
+
+        FireRefundResult r = RefundOf(fire);
+        Transform view = views.TryGetValue(fire.id, out Campfire v) && v != null ? v.transform : null;
+        var refund = new StructureRefund(fire.position, view);
+        refund.Return(FirewoodId, r.firewood);
+        refund.Return(WoodManager.SticksId, r.sticks);
+        refund.Return(AshRules.ItemId, r.ash);
+        RemoveFire(fire);
+        return refund.Describe("Campfire");
+    }
+
+    // --- Ash (Early_Income_Design.md section 1) ---
+
+    // Whole Ash waiting in a fire's ring, ready to collect (burning fuel makes it; the fraction carries on).
+    public static int AshReady(CampfireState fire) => fire != null ? AshRules.Whole(fire.ashMade) : 0;
+
+    // G at a fire, lit or out: takes the whole Ash in the ring into the pack and says how much. Returns how many it took.
+    public int CollectAsh(CampfireState fire)
+    {
+        int ready = AshReady(fire);
+        InventoryManager inventory = InventoryManager.Instance;
+        if (ready <= 0 || inventory == null)
+        {
+            ToolStatus.Flash("No Ash to collect yet", 2f);
+            return 0;
+        }
+
+        int taken = inventory.AddToPlayer(AshRules.ItemId, ready);
+        if (taken <= 0)
+        {
+            ToolStatus.Flash($"{ready} Ash in the ring — no room to carry it", 2f);
+            return 0;
+        }
+
+        fire.ashMade = AshRules.AfterCollect(fire.ashMade, taken);
+        Changed(fire);
+        ToolStatus.Flash(taken < ready ? $"Collected {taken} Ash — no room for the other {ready - taken}" : $"Collected {taken} Ash", 2f);
+        return taken;
     }
 
     // For Cooking and Water Purification: the closest burning campfire within range, or null.

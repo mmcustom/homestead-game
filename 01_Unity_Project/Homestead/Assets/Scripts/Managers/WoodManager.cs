@@ -1496,6 +1496,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         {
             FireManager fires = FireManager.Instance;
             refund.Return(FireManager.FirewoodId, Mathf.FloorToInt(hearth.fuelHours / fires.HoursPerFirewood));
+            refund.Return(AshRules.ItemId, FireManager.AshReady(hearth));
             fires.RemoveFire(hearth);
         }
 
@@ -1582,6 +1583,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         {
             FireManager fires = FireManager.Instance;
             refund.Return(FireManager.FirewoodId, Mathf.FloorToInt(hearth.fuelHours / fires.HoursPerFirewood));
+            refund.Return(AshRules.ItemId, FireManager.AshReady(hearth));
             fires.RemoveFire(hearth);
         }
 
@@ -1738,6 +1740,24 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     public float FireViewScale(CampfireState fire) => IsGrillFire(fire) ? GrillFireScale : 1f;
 
+    // Whether a fire belongs to a structure (a Grill, a Small Cabin's hearth, a Kitchen's hearth): those are taken down with the structure,
+    // never as a plain Campfire.
+    public bool IsStructureFire(CampfireState fire)
+    {
+        if (fire == null)
+            return false;
+        if (IsGrillFire(fire))
+            return true;
+        foreach (WoodPileState pile in piles)
+        {
+            if (pile.kind == PileKind.Cabin && HearthOf(pile) == fire)
+                return true;
+            if ((pile.kind == PileKind.Kitchen || pile.kind == PileKind.KitchenSite || pile.kind == PileKind.KitchenRoofSite) && KitchenHearthOf(pile) == fire)
+                return true;
+        }
+        return false;
+    }
+
     // Dismantling a Countertop, Grill or Slop Sink: the Hammer, a grill must be out, a sink empty (Shelving is WoodPile's, emptied first).
     public bool CanDismantleAddon(WoodPileState addon, out string reason)
     {
@@ -1785,6 +1805,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             {
                 FireManager fires = FireManager.Instance;
                 refund.Return(FireManager.FirewoodId, Mathf.FloorToInt(fire.fuelHours / fires.HoursPerFirewood));
+                refund.Return(AshRules.ItemId, FireManager.AshReady(fire));
                 fires.RemoveFire(fire);
             }
         }

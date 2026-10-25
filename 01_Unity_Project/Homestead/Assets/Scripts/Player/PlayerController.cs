@@ -268,8 +268,13 @@ public class PlayerController : MonoBehaviour, ISaveable
 
         // While choosing where to build (PlacementMode) nothing is interacted with, so a click or key can't do two things.
         bool placing = PlacementMode.Active || knockedDown;
-        if (!placing && focus is Campfire fire && Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
-            fire.CycleFuel();
+        if (!placing && focus is Campfire fire && Keyboard.current != null)
+        {
+            if (Keyboard.current.fKey.wasPressedThisFrame)
+                fire.CycleFuel();
+            if (Keyboard.current.gKey.wasPressedThisFrame) // G: collect the Ash the fire has made (free in the input map)
+                fire.CollectAsh();
+        }
 
         if (!placing && focus != null && interactAction.WasPressedThisFrame())
             focus.Interact(this);

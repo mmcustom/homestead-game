@@ -123,6 +123,7 @@ public static class MarketRules
             case MarketGroup.Forage: return "Forage";
             case MarketGroup.Crafted: return "Crafted goods";
             case MarketGroup.Farm: return "Farm produce";
+            case MarketGroup.Ash: return "Ash";
             default: return "Stocked goods";
         }
     }

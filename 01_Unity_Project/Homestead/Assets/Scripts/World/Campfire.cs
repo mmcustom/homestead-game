@@ -168,6 +168,13 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
         get
         {
             string prompt = FirePrompt;
+            FireManager fires = FireManager.Instance;
+            int ash = FireManager.AshReady(state);
+            if (prompt.Length > 0 && ash > 0)
+                prompt += $"  · G: Collect Ash ({ash})";
+            // A plain Campfire that is out can be dismantled with the Hammer in hand; say so to anyone who is not holding one.
+            if (prompt.Length > 0 && state != null && !state.lit && fires != null && fires.IsPlain(state) && !WoodManager.HammerEquipped)
+                prompt += "  · Equip a Hammer to dismantle";
             return prompt.Length > 0 && state != null && WoodManager.Instance != null && WoodManager.Instance.IsGrillFire(state) ? WoodManager.PileName(PileKind.Grill) + ":  " + prompt : prompt;
         }
     }
@@ -199,6 +206,14 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
             return pick != null ? $"Burnt out  — add wood to rebuild it  (no room for {FireManager.FuelName(pick)})" + change
                                 : "Burnt out  — add wood to rebuild it";
         }
+    }
+
+    // G while looking at the fire, lit or out: take the Ash it has made.
+    public void CollectAsh()
+    {
+        FireManager fires = FireManager.Instance;
+        if (state != null && fires != null)
+            fires.CollectAsh(state);
     }
 
     // F while looking at the fire: choose which carried fuel E adds.
@@ -254,6 +269,8 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
                 return "";
             if (state.lit)
                 return "Put Out Fire  (keeps the fuel left)";
+            if (fires.CanDismantle(state, out _))
+                return $"Dismantle the Campfire  (back: {fires.RefundText(state)})"; // Hammer in hand and the fire out, like the hearths
             if (state.fuelHours > 0f && fires.CanAddFuel(state))
                 return $"Add {fires.NextMoisture(FireManager.SelectedFuel)}{FireManager.FuelName(FireManager.SelectedFuel, false)} (+{fires.NextBurnHours(FireManager.SelectedFuel):0.##} h)";
             return "";
@@ -265,6 +282,12 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
         FireManager fires = FireManager.Instance;
         if (state == null || fires == null)
             return;
+
+        if (!state.lit && fires.CanDismantle(state, out _))
+        {
+            ToolStatus.Flash(fires.DismantleCampfire(state), 5f);
+            return;
+        }
 
         if (!fires.Extinguish(state) && state.fuelHours > 0f)
             fires.AddFuel(state);

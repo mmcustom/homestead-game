@@ -80,6 +80,7 @@ public static class LedgerCategories
             case MarketGroup.Forage: return LedgerCategory.SalesForage;
             case MarketGroup.Crafted: return LedgerCategory.SalesCrafted;
             case MarketGroup.Farm: return LedgerCategory.SalesFarm;
+            case MarketGroup.Ash: return LedgerCategory.SalesWoodStone; // a by-product of burnt wood; the item CSV tells it apart
             default: return LedgerCategory.SalesStockedBack;
         }
     }

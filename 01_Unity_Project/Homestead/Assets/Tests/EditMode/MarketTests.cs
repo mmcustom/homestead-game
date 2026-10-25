@@ -572,7 +572,7 @@ public class MarketTests
     public void TheDefaultCatalogHasNoProblems()
     {
         Assert.That(Table.Problems, Is.Empty);
-        Assert.That(Table.Rows.Count, Is.EqualTo(71));
+        Assert.That(Table.Rows.Count, Is.EqualTo(73), "the 71 of the old tables, plus Ash and the Kindling Bundle");
         Assert.That(Table.Stock.Count, Is.EqualTo(19));
     }
 
@@ -639,7 +639,8 @@ public class MarketTests
         Assert.That(counts[MarketGroup.GameMeat], Is.EqualTo(8));
         Assert.That(counts[MarketGroup.Hides], Is.EqualTo(5));
         Assert.That(counts[MarketGroup.Forage], Is.EqualTo(12));
-        Assert.That(counts[MarketGroup.Crafted], Is.EqualTo(12));
+        Assert.That(counts[MarketGroup.Crafted], Is.EqualTo(13), "12 and the Kindling Bundle");
+        Assert.That(counts[MarketGroup.Ash], Is.EqualTo(1));
         Assert.That(counts[MarketGroup.Farm], Is.EqualTo(4));
         Assert.That(counts[MarketGroup.Stocked], Is.EqualTo(19));
 
@@ -657,10 +658,12 @@ public class MarketTests
     [Test]
     public void BasePricesMatchTheFingerprintOfTheOldTradingPostTables()
     {
-        // 19 stocked items totalling $255.00 and 52 bought items totalling $110.00, taken from the b03ebc3 TradingPost.cs.
+        // 19 stocked items totalling $255.00 and 52 bought items totalling $110.00, taken from the b03ebc3 TradingPost.cs; Ash ($2.00) and the
+        // Kindling Bundle ($1.00) came later, so the bought items are now 54 totalling $113.00.
         Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(25500L));
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought).Count(), Is.EqualTo(52));
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought).Sum(r => r.baseCents), Is.EqualTo(11000L));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle").Count(), Is.EqualTo(52));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle").Sum(r => r.baseCents), Is.EqualTo(11000L));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought).Sum(r => r.baseCents), Is.EqualTo(11300L));
         Assert.That(Table.BuyBaseCents("tent"), Is.EqualTo(2500L));
         Assert.That(Table.BuyBaseCents("bolt_action_rifle"), Is.EqualTo(6000L));
         Assert.That(Table.SellBaseCents("deer_hide"), Is.EqualTo(800L));

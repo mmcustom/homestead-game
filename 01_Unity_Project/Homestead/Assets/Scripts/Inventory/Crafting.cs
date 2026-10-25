@@ -48,6 +48,8 @@ public static class Crafting
         // and a Stick with a Stone point, two arrows to a craft. The same `arrows` the Recurve Bow shoots.
         Make("primitive_bow", ("branches", 1), ("cordage", 1)),
         Make("arrows", 2, ("sticks", 1), ("stone", 1)),
+        // Early_Income_Design.md 1b: spare Sticks bundled for sale (a cheap crafted good; AshRules has the numbers).
+        Make(AshRules.KindlingItemId, (AshRules.SticksId, AshRules.SticksPerBundle)),
         Either("cordage", new[] { ("tall_grass", 3) }, new[] { ("cattail", 2) }, new[] { ("sinew", 1) }),
     };
 
@@ -92,6 +94,33 @@ public static class Crafting
             crafts++;
         }
         return crafts;
+    }
+
+    // How many crafts in a row the pack could pay for AND carry (CraftRules), up to cap: the materials, and the weight each craft adds
+    // (what it makes minus the ingredients it uses up) against the room left under the carry limit.
+    public static int MaxCraftsFitting(Recipe recipe, int cap = 99)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null)
+            return 0;
+
+        var sets = new System.Collections.Generic.List<System.Collections.Generic.IList<CraftIngredient>>();
+        var have = new System.Collections.Generic.Dictionary<string, int>();
+        foreach (Ingredient[] set in Sets(recipe))
+        {
+            var ingredients = new System.Collections.Generic.List<CraftIngredient>();
+            foreach (Ingredient i in set)
+            {
+                ItemDefinition item = ItemDatabase.Get(i.itemId);
+                ingredients.Add(new CraftIngredient(i.itemId, i.quantity, item != null ? item.WeightKg : 0f));
+                have[i.itemId] = inventory.Player.Count(i.itemId);
+            }
+            sets.Add(ingredients);
+        }
+
+        ItemDefinition output = ItemDatabase.Get(recipe.outputId);
+        float outputKg = output != null ? output.WeightKg * Mathf.Max(1, recipe.outputCount) : 0f;
+        return CraftRules.MaxCrafts(sets, have, outputKg, inventory.Player.FreeWeightKg, cap);
     }
 
     // The ingredient set the player can afford right now, or null.

@@ -573,6 +573,7 @@ public class LedgerTests
         Assert.That(LedgerCategories.ForSale(MarketGroup.Crafted), Is.EqualTo(LedgerCategory.SalesCrafted));
         Assert.That(LedgerCategories.ForSale(MarketGroup.Farm), Is.EqualTo(LedgerCategory.SalesFarm));
         Assert.That(LedgerCategories.ForSale(MarketGroup.Stocked), Is.EqualTo(LedgerCategory.SalesStockedBack));
+        Assert.That(LedgerCategories.ForSale(MarketGroup.Ash), Is.EqualTo(LedgerCategory.SalesWoodStone), "Ash is counted with the wood");
     }
 
     [Test]

@@ -58,7 +58,9 @@ public class CraftingScreen : GameScreen
     Text[] categoryLabels = new Text[6];
     RectTransform list;
     Text nameLabel, helpLabel, infoLabel, reqHeading, reqLabel, reasonLabel;
-    QuantityStepper quantityStepper; // for the multi-craft recipes (Arrows, Cordage)
+    QuantityStepper quantityStepper; // the amount to craft, for every Craft recipe
+    readonly Dictionary<string, int> craftAmounts = new Dictionary<string, int>(); // the amount chosen per recipe while the screen is open
+    bool craftMax;                   // Shift-click on Craft: make as many as the materials and the pack allow
     string stepperKey;               // the entry the stepper's amount belongs to: a new selection starts again at 1
     Button actionButton;
     Text actionLabel;
@@ -152,7 +154,13 @@ public class CraftingScreen : GameScreen
         RectTransform stepperRt = quantityStepper.Root;
         stepperRt.anchorMin = stepperRt.anchorMax = stepperRt.pivot = Vector2.zero;
         stepperRt.anchoredPosition = new Vector2(0f, 71f);
-        quantityStepper.Changed += UpdateDetail;
+        quantityStepper.Changed += () =>
+        {
+            Entry current = Selected();
+            if (current != null)
+                craftAmounts[current.key] = quantityStepper.Amount;
+            UpdateDetail();
+        };
 
         actionButton = UiKit.Button(right, "Action", "", 28, OnAction);
         var actionRt = (RectTransform)actionButton.transform;
@@ -198,6 +206,7 @@ public class CraftingScreen : GameScreen
         banner.Hide();
         Unsubscribe();
         stepperKey = null;
+        craftAmounts.Clear();
         quantityStepper.SetAmount(1);
         UiKit.ReleaseFocus();
     }
@@ -420,12 +429,13 @@ public class CraftingScreen : GameScreen
         quantityStepper.Root.gameObject.SetActive(showQuantity);
         if (showQuantity)
         {
-            // The most is what the materials allow (Crafting.MaxCrafts, at most 99); picking another recipe starts again at 1.
+            // The most is what the materials allow and the pack can carry (CraftRules, at most 99). Picking another recipe brings back the
+            // amount last chosen for it, or 1.
             quantityStepper.SetMax(chosen.maxCrafts);
             if (stepperKey != chosen.key)
             {
                 stepperKey = chosen.key;
-                quantityStepper.SetAmount(1);
+                quantityStepper.SetAmount(craftAmounts.TryGetValue(chosen.key, out int remembered) ? remembered : 1);
             }
         }
         if (hasAction)
@@ -437,7 +447,7 @@ public class CraftingScreen : GameScreen
 
     // How many crafts the button will make: the stepper's amount, no more than the materials allow (at least one, so the
     // button still reads sensibly while it's greyed).
-    int CraftTimes(Entry e) => Mathf.Max(1, Mathf.Min(quantityStepper.Amount, e.maxCrafts));
+    int CraftTimes(Entry e) => craftMax && e.maxCrafts > 0 ? e.maxCrafts : Mathf.Max(1, Mathf.Min(quantityStepper.Amount, e.maxCrafts));
 
     string Notice => notice != null && Time.unscaledTime < noticeUntil ? notice : null;
 
@@ -529,10 +539,10 @@ public class CraftingScreen : GameScreen
                 actionLabel = "Craft",
                 failHeading = $"Can't make {Crafting.OutputName(r)}",
                 recipe = r,
-                multi = r.outputId == "arrows" || r.outputId == "cordage",
+                multi = true, // every Craft recipe is instant, so every one gets the amount stepper
             };
             e.can = Crafting.CanCraft(r, out e.reason);
-            e.maxCrafts = Crafting.MaxCrafts(r);
+            e.maxCrafts = CraftRules.StepperMax(Crafting.MaxCrafts(r), Crafting.MaxCraftsFitting(r));
             foreach (Crafting.Ingredient[] set in Crafting.IngredientSets(r))
             {
                 var reqs = new List<Req>();
@@ -560,6 +570,7 @@ public class CraftingScreen : GameScreen
         if (made <= 0)
             return;
         quantityStepper.SetAmount(1); // back to 1 once the move has happened
+        craftAmounts[e.key] = 1;
         int total = made * Mathf.Max(1, e.recipe.outputCount);
         string itemName = ItemName(e.recipe.outputId);
         string text = total == 1 ? $"Made a {itemName}." : $"Made {total} {itemName}.";
@@ -729,7 +740,17 @@ public class CraftingScreen : GameScreen
             banner.NotifyCant(e.failHeading, e.reason);
             return;
         }
-        e.act();
+        // Shift-click on Craft makes as many as the materials and the pack allow.
+        var keyboard = UnityEngine.InputSystem.Keyboard.current;
+        craftMax = mode == Mode.Craft && keyboard != null && keyboard.shiftKey.isPressed;
+        try
+        {
+            e.act();
+        }
+        finally
+        {
+            craftMax = false;
+        }
         if (this != null && gameObject.activeInHierarchy)
             Refresh();
     }
@@ -793,6 +814,7 @@ public class CraftingScreen : GameScreen
             case "bow_drill": return "equip it, face a Campfire with fuel and hold click to start a fire without Flint and Steel. Doesn't always catch.";
             case "primitive_bow": return "equip it, hold click to draw and release to shoot. Shorter range and less accurate than a Recurve Bow, but it's made from a Branch.";
             case "arrows": return "shoot them from either bow; a killing arrow can often be recovered when field dressing.";
+            case "kindling_bundle": return "sell it at the Trading Post: a cheap way to turn spare Sticks into a little money.";
             case "lantern": return "equip it and click to light it. Burns Lamp Oil (Trading Post) — refill it in the Inventory with the Refill button.";
             default: return "equip it to set it.";
         }
