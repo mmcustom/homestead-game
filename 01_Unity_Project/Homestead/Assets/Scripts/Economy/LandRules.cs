@@ -36,6 +36,13 @@ public static class LandRules
         new Parcel(40, 450000),
     };
 
+    // The early game offers only the first parcel (5 acres): the bigger ones need more income than the early game gives. This is the ONE
+    // place the rule lives (LandPurchasePanel reads it), so unlocking later is a change here. It is an availability rule for the New Game
+    // choice only: Choose, NewGameSetup and the loan maths accept any parcel, so saves and restarts of a 10 or 40 acre game are unaffected.
+    public static bool IsAvailable(int parcelIndex) => parcelIndex == 0;
+
+    public const string LockedReason = "Needs more income than the early game offers. Unlocks later.";
+
     public const long SavingsCapCents = 3000000; // $30,000
 
     // Savings as a percentage of the land price, by tier: Homesteader 40, Settler 20, Pioneer none. Tier numbers follow the

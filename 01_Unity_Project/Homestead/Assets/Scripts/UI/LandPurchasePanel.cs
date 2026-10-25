@@ -10,6 +10,8 @@ using UnityEngine.UI;
 //             tier with no savings (Pioneer), where the full price is financed.
 //   Summary - the loan: amount, rate, number and spacing of payments, the payment, the first due date, the total interest if no
 //             extra payments are made, and the tier's other terms (late fee, missed payments that lose the game, the Trading Post's share). Confirm hands the choice back; Back (or Esc) steps back, and from the first step closes.
+// Only the parcels LandRules.IsAvailable allows can be chosen: the others are greyed out and say why when clicked. In the editor and
+// development builds Shift-click picks a locked one anyway ("dev unlock"), for the measuring sessions; a release build has no way around it.
 // All the numbers come from LandRules and LoanState; this only shows them.
 public class LandPurchasePanel : MonoBehaviour
 {
@@ -23,6 +25,8 @@ public class LandPurchasePanel : MonoBehaviour
     Step step = Step.Land;
     int parcel;
     long savings, down;
+    bool devUnlocked;   // the selected parcel is a locked one picked by the dev unlock (or resumed from one)
+    string lockNote;    // the reason shown after clicking a locked card
     Action<LandChoice> onConfirmed;
     Action onBack;
 
@@ -67,9 +71,19 @@ public class LandPurchasePanel : MonoBehaviour
         if (resume.HasValue)
         {
             panel.parcel = Mathf.Clamp(resume.Value.parcelIndex, 0, LandRules.Starters.Length - 1);
-            panel.savings = panel.SavingsFor(panel.parcel);
-            panel.down = resume.Value.downCents;
-            panel.GoTo(Step.Summary);
+            if (!LandRules.IsAvailable(panel.parcel) && !DevUnlockEnabled)
+            {
+                // A locked parcel can only come back here from a dev unlock; a release build starts over at the first parcel.
+                panel.parcel = 0;
+                panel.GoTo(Step.Land);
+            }
+            else
+            {
+                panel.devUnlocked = !LandRules.IsAvailable(panel.parcel); // the resume path skips the lock check
+                panel.savings = panel.SavingsFor(panel.parcel);
+                panel.down = resume.Value.downCents;
+                panel.GoTo(Step.Summary);
+            }
         }
         else
         {
@@ -84,6 +98,42 @@ public class LandPurchasePanel : MonoBehaviour
         Keyboard keyboard = Keyboard.current;
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
             Back();
+    }
+
+    // The dev unlock exists only in the editor and development builds; in a release build this is a constant false.
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    const bool DevUnlockEnabled = true;
+    static bool ShiftHeld() => Keyboard.current != null && Keyboard.current.shiftKey.isPressed;
+#else
+    const bool DevUnlockEnabled = false;
+    static bool ShiftHeld() => false;
+#endif
+
+    // The selected parcel can be taken: it is available, or it was picked with the dev unlock.
+    bool SelectedAllowed => LandRules.IsAvailable(parcel) || (DevUnlockEnabled && devUnlocked);
+
+    void ClickCard(int index)
+    {
+        if (LandRules.IsAvailable(index))
+        {
+            parcel = index;
+            devUnlocked = false;
+            lockNote = null;
+            Play(SoundCue.UiClick);
+        }
+        else if (DevUnlockEnabled && ShiftHeld())
+        {
+            parcel = index;
+            devUnlocked = true;
+            lockNote = null;
+            Play(SoundCue.UiClick);
+        }
+        else
+        {
+            lockNote = LandRules.LockedReason; // not selected, nothing advances
+            Play(SoundCue.UiBack);
+        }
+        RefreshLand();
     }
 
     // --- Numbers ---
@@ -142,7 +192,7 @@ public class LandPurchasePanel : MonoBehaviour
         for (int i = 0; i < cards.Length; i++)
         {
             int index = i;
-            cards[i] = UiKit.Button(landGroup, "Parcel " + i, "", 21, () => { parcel = index; Play(SoundCue.UiClick); RefreshLand(); });
+            cards[i] = UiKit.Button(landGroup, "Parcel " + i, "", 21, () => ClickCard(index));
             Place((RectTransform)cards[i].transform, 40f + i * 385f, 100f, 370f, 440f);
         }
     }
@@ -222,6 +272,7 @@ public class LandPurchasePanel : MonoBehaviour
         {
             case Step.Land:
                 titleLabel.text = "Choose your land";
+                lockNote = null;
                 nextButton.GetComponentInChildren<Text>().text = "Next";
                 RefreshLand();
                 break;
@@ -244,6 +295,8 @@ public class LandPurchasePanel : MonoBehaviour
     {
         if (step == Step.Land)
         {
+            if (!SelectedAllowed)
+                return;
             savings = SavingsFor(parcel);
             if (HasSavings)
             {
@@ -303,10 +356,35 @@ public class LandPurchasePanel : MonoBehaviour
             {
                 text += $"No savings: fully financed\n\n{every}:\n<b>{Money.Format(LoanState.PaymentFor(p.priceCents, terms))}</b>";
             }
-            cards[i].GetComponentInChildren<Text>().text = text;
+            Text label = cards[i].GetComponentInChildren<Text>();
+            bool locked = !LandRules.IsAvailable(i);
+            if (locked)
+            {
+                text += "\n\n<b>Locked.</b> " + LandRules.LockedReason;
+                if (DevUnlockEnabled)
+                    text += "\n(Shift-click: dev unlock)";
+            }
+            label.text = text;
+            label.color = locked ? UiKit.Muted : UiKit.Cream;
             UiKit.SetSelected(cards[i], i == parcel);
+            if (locked && i != parcel)
+            {
+                ColorBlock colors = cards[i].colors;
+                Color dim = UiKit.RaisedColor;
+                dim.a = 0.45f;
+                colors.normalColor = dim;
+                colors.selectedColor = dim;
+                colors.highlightedColor = dim;
+                cards[i].colors = colors;
+            }
         }
 
+        nextButton.interactable = SelectedAllowed;
+        if (lockNote != null)
+        {
+            noteLabel.text = lockNote;
+            return;
+        }
         int percent = DifficultyManager.SavingsPercent(tier);
         noteLabel.text = percent > 0
             ? $"{DifficultyManager.Name(tier)}: savings of {percent}% of the price, up to {Money.Format(LandRules.SavingsCapCents)}."
