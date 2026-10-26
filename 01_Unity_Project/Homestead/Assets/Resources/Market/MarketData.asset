@@ -451,6 +451,12 @@ MonoBehaviour:
     baseCents: 100
     kind: 1
     seasonalBuy: 0
+  - itemId: maple_syrup
+    group: 9
+    pool: maple_syrup
+    baseCents: 1000
+    kind: 1
+    seasonalBuy: 0
   groups:
   - group: 0
     dropBp: 400
@@ -510,6 +516,13 @@ MonoBehaviour:
     winter: 10000
   - group: 8
     dropBp: 600
+    floorBp: 2500
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 10000
+  - group: 9
+    dropBp: 500
     floorBp: 2500
     spring: 10000
     summer: 10000

@@ -6,8 +6,8 @@ using System.Collections.Generic;
 // default set and the fallback if the asset is missing.
 
 // What an item is grouped as for selling pressure and the seasonal price curve.
-// Ash was appended after Stocked: the ids are saved in MarketData, so never reorder them.
-public enum MarketGroup { WoodStone, Fish, GameMeat, Hides, Forage, Crafted, Farm, Stocked, Ash }
+// Ash and Maple were appended after Stocked: the ids are saved in MarketData, so never reorder them.
+public enum MarketGroup { WoodStone, Fish, GameMeat, Hides, Forage, Crafted, Farm, Stocked, Ash, Maple }
 
 // Stocked: the store sells it (and buys it back at the sell-back share). Bought: the store only buys it from the player.
 public enum MarketKind { Stocked, Bought }
@@ -147,6 +147,8 @@ public static class MarketCatalog
         // Early_Income_Design.md: raw Ash from burnt fuel (its own group), and 10 Sticks crafted into a cheap Kindling Bundle.
         Row(AshRules.ItemId, MarketGroup.Ash, AshRules.BaseCents, MarketKind.Bought),
         Row(AshRules.KindlingItemId, MarketGroup.Crafted, AshRules.KindlingBaseCents, MarketKind.Bought),
+        // Early_Income_Design.md section 3: Maple Syrup, boiled from sap (MapleRules). Sap itself is not bought.
+        Row(MapleRules.SyrupId, MarketGroup.Maple, MapleRules.SyrupBaseCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =
@@ -160,6 +162,7 @@ public static class MarketCatalog
         Rule(MarketGroup.Farm, 500, 2500, 10000, 10000, 10000, 10000),
         Rule(MarketGroup.Stocked, 800, 2500, 10000, 10000, 10000, 10000),
         Rule(MarketGroup.Ash, AshRules.DropBp, AshRules.FloorBp, 10000, 10000, 10000, 10000),
+        Rule(MarketGroup.Maple, MapleRules.DropBp, MapleRules.FloorBp, 10000, 10000, 10000, 10000),
     };
 
     static MarketTable table;
