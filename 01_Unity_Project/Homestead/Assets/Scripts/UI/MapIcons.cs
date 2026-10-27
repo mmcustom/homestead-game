@@ -14,7 +14,7 @@ public static class MapIcons
     static readonly Color Glyph = new Color(0.95f, 0.92f, 0.82f, 1f);
 
     static readonly Dictionary<string, Sprite> markers = new Dictionary<string, Sprite>();
-    static Sprite circle, ring, arrow;
+    static Sprite circle, ring, arrow, droplet, pail;
 
     public static Color CategoryColor(DiscoveryCategory category)
     {
@@ -68,6 +68,36 @@ public static class MapIcons
         if (InArrow(x / 0.98f, y / 0.98f)) return Outline;
         return Color.clear;
     });
+
+    // Maple D's markers. Both are drawn white inside a dark edge, so the Image tint is the colour (the edge stays dark under any tint).
+
+    // A droplet for an untapped Maple (MapleMarkerHud): a round bottom and a point at the top.
+    public static Sprite Droplet => droplet != null ? droplet : droplet = Draw("Maple Droplet", IconSize, (x, y) =>
+    {
+        if (InDroplet(x, y))
+            return InDroplet(x / 0.72f, (y + 0.05f) / 0.72f - 0.05f) ? Color.white : Outline;
+        return Color.clear;
+    });
+
+    static bool InDroplet(float x, float y) =>
+        InCircle(x, y, 0f, -0.28f, 0.52f) || InTriangle(x, y, new Vector2(0f, 0.95f), new Vector2(-0.46f, -0.08f), new Vector2(0.46f, -0.08f));
+
+    // A pail with a handle for a tapped Maple (MapleMarkerHud in the world, MinimapHud as a pin).
+    public static Sprite Pail => pail != null ? pail : pail = Draw("Maple Pail", IconSize, (x, y) =>
+    {
+        float u = x / 0.66f, v = (y - 0.5f) / 0.46f, m = Mathf.Sqrt(u * u + v * v);
+        if (y > 0.5f && m <= 1f && m >= 0.62f) // the handle: a pale wire in a dark edge
+            return m >= 0.72f && m <= 0.9f ? Color.white : Outline;
+        if (y >= -0.8f && y <= 0.5f && Mathf.Abs(x) <= PailHalfWidth(y))
+        {
+            bool inside = y >= -0.66f && y <= 0.36f && Mathf.Abs(x) <= PailHalfWidth(y) - 0.14f;
+            if (!inside) return Outline;
+            return y >= 0.2f ? new Color(0.78f, 0.78f, 0.78f, 1f) : Color.white; // the rim band is a shade darker
+        }
+        return Color.clear;
+    });
+
+    static float PailHalfWidth(float y) => 0.52f + (y + 0.8f) / 1.3f * 0.26f; // narrower at the bottom
 
     static bool InArrow(float x, float y) =>
         InTriangle(x, y, new Vector2(0f, 1f), new Vector2(-0.75f, -0.8f), new Vector2(0f, -0.4f)) ||

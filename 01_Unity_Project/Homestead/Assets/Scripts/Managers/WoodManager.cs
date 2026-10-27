@@ -563,6 +563,51 @@ public class WoodManager : MonoBehaviour, ISaveable
     public float HeightScale(int index) => originalTrees[index].heightScale;
     public float WidthScale(int index) => originalTrees[index].widthScale;
 
+    // How tall a tree stands above its base, in metres: its prototype's own height (measured once from the prefab's meshes) times the tree's height
+    // scale. 0 if the prefab has no mesh to measure; the Maple markers then use their fallback height and say so in the Console.
+    public float TreeHeight(int index) => PrototypeHeight(Prototype(index)) * HeightScale(index);
+
+    float[] prototypeHeights;
+
+    float PrototypeHeight(int prototype)
+    {
+        if (data == null || prototype < 0 || prototype >= data.treePrototypes.Length)
+            return 0f;
+        if (prototypeHeights == null || prototypeHeights.Length != data.treePrototypes.Length)
+        {
+            prototypeHeights = new float[data.treePrototypes.Length];
+            for (int i = 0; i < prototypeHeights.Length; i++)
+                prototypeHeights[i] = MeasureHeight(data.treePrototypes[i].prefab);
+        }
+        return prototypeHeights[prototype];
+    }
+
+    // The highest point of a prefab's meshes above its root, in the prefab's own units.
+    public static float MeasureHeight(GameObject prefab)
+    {
+        if (prefab == null)
+            return 0f;
+        Matrix4x4 toRoot = prefab.transform.worldToLocalMatrix;
+        float top = 0f;
+        foreach (MeshFilter filter in prefab.GetComponentsInChildren<MeshFilter>())
+        {
+            Mesh mesh = filter.sharedMesh;
+            if (mesh == null)
+                continue;
+            Matrix4x4 toPrefab = toRoot * filter.transform.localToWorldMatrix;
+            Bounds bounds = mesh.bounds;
+            for (int corner = 0; corner < 8; corner++)
+            {
+                var point = new Vector3(
+                    (corner & 1) == 0 ? bounds.min.x : bounds.max.x,
+                    (corner & 2) == 0 ? bounds.min.y : bounds.max.y,
+                    (corner & 4) == 0 ? bounds.min.z : bounds.max.z);
+                top = Mathf.Max(top, toPrefab.MultiplyPoint3x4(point).y);
+            }
+        }
+        return top;
+    }
+
     public float TrunkRadius(int index)
     {
         int prototype = Prototype(index);
