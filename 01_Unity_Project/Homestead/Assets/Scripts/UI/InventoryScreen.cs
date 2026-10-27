@@ -251,7 +251,7 @@ public class InventoryScreen : GameScreen
             AddRow(item, quantity, item == equipped, atFire, player);
 
         hintLabel.text = "Click a tool to equip it, food or water to use one. Set an amount with - / + / Max or type it; Shift-click Drop: the stack. Point at a tool, press 1-9/0: hotkey. " +
-                         (atFire ? "<color=#C7D68C>At the fire: Cook meat and fish, Boil water (needs the Pot).</color>"
+                         (atFire ? "<color=#C7D68C>At the fire: Cook meat and fish, Boil water or 10 L of sap (needs the Pot).</color>"
                                  : "Cook at a burning campfire; split Logs and Branches with the Axe.");
 
         // Weight against the thresholds.
@@ -378,9 +378,10 @@ public class InventoryScreen : GameScreen
             tag += $"  <size=16><color=#E6A050>{risk}</color></size>";
 
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
+        bool sapBoil = Cooking.IsSapBoil(item.Id); // Maple Sap boils down to Syrup in 10 L batches
         bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried;
         bool refillable = item.Id == PortableLight.LampOilId && inventoryHasLantern; // Lamp Oil, while a Lantern is carried
-        bool cooks = atFire && (cookable || boilable);
+        bool cooks = atFire && (cookable || boilable || sapBoil);
         // Only Tools that clicking equips: the Sleeping Bag (sleeps), Tent (placed) and Weather Station (carried) are Tools by category but aren't held.
         bool hotkeyable = isTool && !InventoryManager.IsCarriedOnly(item.Id);
 
@@ -458,12 +459,16 @@ public class InventoryScreen : GameScreen
         }
         else if (cooks)
         {
-            string verb = boilable ? "Boil" : "Cook";
-            bool potMissing = boilable && !Cooking.HasPot;
-            action = AddButton(verb, 126f, 118f, Act((shift, n) => QueueCooking(item, shift ? int.MaxValue : n)));
-            QuantityStepper.SetEnabled(action, QuantityRules.MaxOf(quantity, potMissing ? 0 : QuantityRules.MaxAmount) > 0); // boiling needs the Cooking Pot
-            actionText = () => $"{verb} {stepper.Amount}";
-            idleInfo = potMissing ? "needs the Cooking Pot" : "";
+            string verb = boilable || sapBoil ? "Boil" : "Cook";
+            bool potMissing = (boilable || sapBoil) && !Cooking.HasPot;
+            // The stepper counts sap in litres (Drop shares it), so a sap Boil makes one Syrup for every 10 L it shows, at least one, and never
+            // more than the sap carried allows. Shift-click boils every batch there is.
+            System.Func<int, int> batches = n => sapBoil ? Mathf.Max(1, n / MapleRules.SapPerSyrup) : n;
+            int canDo = sapBoil ? MapleRules.SyrupFrom(quantity) : quantity;
+            action = AddButton(verb, 126f, 118f, Act((shift, n) => QueueCooking(item, shift ? int.MaxValue : batches(n))));
+            QuantityStepper.SetEnabled(action, QuantityRules.MaxOf(canDo, potMissing ? 0 : QuantityRules.MaxAmount) > 0); // boiling needs the Cooking Pot
+            actionText = () => sapBoil ? $"Boil {Mathf.Min(batches(stepper.Amount), Mathf.Max(1, canDo))}" : $"{verb} {stepper.Amount}";
+            idleInfo = potMissing ? "needs the Cooking Pot" : sapBoil ? MapleRules.BoilInfo(quantity) : "";
             queue = new QueueRow { item = item, split = false };
         }
 

@@ -54,6 +54,7 @@ public class CampfireCooking : MonoBehaviour
     public float SecondsFor(ItemDefinition item)
     {
         if (item == null) return 1f;
+        if (Cooking.IsSapBoil(item.Id)) return MapleRules.SecondsPerSyrup; // a whole 10 L batch
         if (Cooking.IsBoilable(item.Id)) return boilSeconds;
         switch (item.Id)
         {
@@ -66,11 +67,25 @@ public class CampfireCooking : MonoBehaviour
         }
     }
 
-    // Queues count more of an item (int.MaxValue = the whole stack). Returns false if it can't be cooked here.
+    // Queues count more of an item (int.MaxValue = the whole stack). Returns false if it can't be cooked here. For Maple Sap the count is
+    // batches of 10 L (one Syrup each), not litres.
     public bool Enqueue(ItemDefinition item, int count)
     {
-        if (item == null || count <= 0 || !(Cooking.IsCookable(item.Id) || Cooking.IsBoilable(item.Id)))
+        if (item == null || count <= 0 || !(Cooking.IsCookable(item.Id) || Cooking.IsBoilable(item.Id) || Cooking.IsSapBoil(item.Id)))
             return false;
+        if (Cooking.IsSapBoil(item.Id))
+        {
+            if (!Cooking.HasPot)
+            {
+                ToolStatus.Flash("Boiling sap needs a Cooking Pot — the wooden Bucket would burn");
+                return false;
+            }
+            if (MapleRules.SyrupFrom(Carried(item)) <= 0)
+            {
+                ToolStatus.Flash("Boiling " + MapleRules.NeedMessage(Carried(item)));
+                return false;
+            }
+        }
         if (Cooking.IsBoilable(item.Id) && !Cooking.HasPot)
         {
             ToolStatus.Flash("Boiling water needs a Cooking Pot — the wooden Bucket would burn");
@@ -104,11 +119,13 @@ public class CampfireCooking : MonoBehaviour
         return Mathf.Clamp01(progress / SecondsFor(item));
     }
 
-    // How many of this item are still to cook, capped at what's actually carried.
+    // How many of this item are still to cook, capped at what's actually carried (for sap: the whole batches it still makes).
     public int RemainingOf(ItemDefinition item)
     {
         Job job = Find(item);
-        return job == null ? 0 : Mathf.Min(job.remaining, Carried(item));
+        if (job == null)
+            return 0;
+        return Mathf.Min(job.remaining, Cooking.IsSapBoil(item.Id) ? MapleRules.SyrupFrom(Carried(item)) : Carried(item));
     }
 
     Job Find(ItemDefinition item)
@@ -148,7 +165,8 @@ public class CampfireCooking : MonoBehaviour
             return NoSound; // paused or loading
 
         Job current = queue[0];
-        bool boiling = Cooking.IsBoilable(current.item.Id);
+        bool sap = Cooking.IsSapBoil(current.item.Id);
+        bool boiling = Cooking.IsBoilable(current.item.Id) || sap;
         string verb = boiling ? "Boiling" : "Cooking";
         int left = RemainingOf(current.item);
 
@@ -161,10 +179,11 @@ public class CampfireCooking : MonoBehaviour
         }
         sizzleAt = fire.position;
 
-        // Pour the next potful in before boiling it.
-        if (boiling && litresInPot <= 0 && progress <= 0f)
+        // Pour the next potful in before boiling it (sap: the pot is poured as each 10 L batch starts, and topped up as it boils down).
+        if (boiling && progress <= 0f && (sap || litresInPot <= 0))
         {
-            litresInPot = Mathf.Min(potLitres, left);
+            if (!sap)
+                litresInPot = Mathf.Min(potLitres, left);
             if (AudioManager.Instance != null)
                 AudioManager.Instance.Play(SoundCue.Pour);
         }
@@ -174,7 +193,8 @@ public class CampfireCooking : MonoBehaviour
         float seconds = SecondsFor(current.item);
         if (state == GameState.Playing)
         {
-            string what = boiling ? $"{current.item.DisplayName}, {left} L to go" : $"{current.item.DisplayName}, {left} to go";
+            string what = sap ? $"{current.item.DisplayName}, {left} Syrup to go"
+                        : boiling ? $"{current.item.DisplayName}, {left} L to go" : $"{current.item.DisplayName}, {left} to go";
             ToolStatus.Report($"{verb} {what}", Mathf.Clamp01(progress / seconds), false);
         }
 
@@ -187,8 +207,12 @@ public class CampfireCooking : MonoBehaviour
         {
             if (current.remaining != int.MaxValue)
                 current.remaining--;
-            if (boiling)
+            if (boiling && !sap)
                 litresInPot--;
+        }
+        else if (sap)
+        {
+            queue.Remove(current); // no Pot or no room: stop rather than try again every 12 s (the sap is untouched)
         }
         return playing;
     }

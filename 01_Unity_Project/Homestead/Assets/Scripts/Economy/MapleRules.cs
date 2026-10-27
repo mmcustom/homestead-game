@@ -147,6 +147,37 @@ public static class MapleRules
     // Litres of sap that do not make a whole Syrup and stay in the pack.
     public static int LitresLeftOver(int litres) => litres <= 0 ? 0 : litres % SapPerSyrup;
 
+    // Maple C: a boil works in whole batches of SapPerSyrup litres. The sap is taken only when a batch finishes; a pack with less than a batch
+    // keeps its sap as it is.
+    public struct Boiled
+    {
+        public int litresUsed, syrup, litresLeft;
+    }
+
+    // What boiling up to batchesWanted batches does to a pack holding litresCarried: never more batches than the sap allows, and every litre
+    // is either used or left (litresUsed + litresLeft is what was carried).
+    public static Boiled Boil(int litresCarried, int batchesWanted)
+    {
+        int carried = Math.Max(0, litresCarried);
+        int batches = Math.Max(0, Math.Min(batchesWanted, SyrupFrom(carried)));
+        int used = batches * SapPerSyrup;
+        return new Boiled { litresUsed = used, syrup = batches, litresLeft = carried - used };
+    }
+
+    // The Inventory row's note: why a sap stack can't be boiled yet, or what a boil of all of it would make.
+    public static string NeedMessage(int litres) => $"needs {SapPerSyrup} L of sap, have {Math.Max(0, litres)} L";
+
+    public static string BoilInfo(int litres)
+    {
+        int syrup = SyrupFrom(litres), left = LitresLeftOver(litres);
+        if (syrup <= 0)
+            return NeedMessage(litres);
+        return left > 0 ? $"{litres} L -> {syrup} Syrup, {left} L left over" : $"{litres} L -> {syrup} Syrup";
+    }
+
+    public static string BoiledMessage(int syrup, int litres) =>
+        $"Boiled {litres} L of Maple Sap into {syrup} Maple Syrup";
+
     // --- What the tap kit costs to make (the recipes themselves arrive with Maple B) ---
 
     public const int SpileSticks = 3;

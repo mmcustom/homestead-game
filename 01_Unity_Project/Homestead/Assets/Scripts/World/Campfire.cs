@@ -233,6 +233,8 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
             InventoryManager inventory = InventoryManager.Instance;
             if (inventory == null)
                 return false;
+            if (inventory.Player.Count(MapleRules.SapId) >= MapleRules.SapPerSyrup)
+                return true; // enough sap for a Syrup
             foreach (ItemStack stack in inventory.Player.Stacks)
                 if (Cooking.IsCookable(stack.itemId) || Cooking.IsBoilable(stack.itemId))
                     return true;

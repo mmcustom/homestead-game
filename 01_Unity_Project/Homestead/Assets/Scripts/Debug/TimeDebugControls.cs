@@ -28,6 +28,7 @@ using UnityEngine.InputSystem;
 //          fills every Sap Bucket to the top with fresh sap
 //   PageDown teleport to the nearest Sugar Maple, standing about 2 m from the trunk and facing it. Press again for the next nearest, Shift+PageDown
 //          for the one before (the order is fixed by where you stood at the first press); the message gives the distance and the new position
+//   Delete give 20 L of Maple Sap (to try a boil at a fire without tapping a tree; End already exports the ledger, even with Shift held)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -86,6 +87,13 @@ public class TimeDebugControls : MonoBehaviour
         if (keyboard.pageDownKey.wasPressedThisFrame)
         {
             Show(TeleportToMaple(keyboard.shiftKey.isPressed ? -1 : 1), time);
+            return;
+        }
+
+        if (keyboard.deleteKey.wasPressedThisFrame && InventoryManager.Instance != null)
+        {
+            int litres = InventoryManager.Instance.AddToPlayer(MapleRules.SapId, 20);
+            Show($"Maple Sap given: {litres} of 20 L fit", time);
             return;
         }
 
