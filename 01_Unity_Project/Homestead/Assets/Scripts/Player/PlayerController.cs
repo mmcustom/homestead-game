@@ -299,7 +299,10 @@ public class PlayerController : MonoBehaviour, ISaveable
     }
 
     // Moves the player without the CharacterController fighting the teleport.
-    public void Teleport(Vector3 position, float newYaw)
+    public void Teleport(Vector3 position, float newYaw) => Teleport(position, newYaw, pitch);
+
+    // The same, looking up or down by newPitch degrees (the Maple debug teleport faces the trunk).
+    public void Teleport(Vector3 position, float newYaw, float newPitch)
     {
         controller.enabled = false;
         transform.position = position;
@@ -309,6 +312,9 @@ public class PlayerController : MonoBehaviour, ISaveable
         transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         horizontalVelocity = Vector3.zero;
         verticalVelocity = 0f;
+        pitch = Mathf.Clamp(newPitch, -maxPitch, maxPitch);
+        if (cameraTransform != null)
+            cameraTransform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
         CreekCrossing.ResetCrossing(); // a load or a collapse's move: no lockout or immunity carries over
     }
 

@@ -50,6 +50,9 @@ public static class Crafting
         Make("arrows", 2, ("sticks", 1), ("stone", 1)),
         // Early_Income_Design.md 1b: spare Sticks bundled for sale (a cheap crafted good; AshRules has the numbers).
         Make(AshRules.KindlingItemId, (AshRules.SticksId, AshRules.SticksPerBundle)),
+        // Early_Income_Design.md section 3, Maple B: the tap kit (MapleRules has the numbers).
+        Make(MapleRules.SpileId, ("sticks", MapleRules.SpileSticks)),
+        Make(MapleRules.SapBucketId, ("logs", MapleRules.BucketLogs), ("branches", MapleRules.BucketBranches), ("cordage", MapleRules.BucketCordage)),
         Either("cordage", new[] { ("tall_grass", 3) }, new[] { ("cattail", 2) }, new[] { ("sinew", 1) }),
     };
 

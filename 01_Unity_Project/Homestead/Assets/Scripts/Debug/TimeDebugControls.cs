@@ -24,6 +24,10 @@ using UnityEngine.InputSystem;
 //   PageUp add $1,000 cash per press (Shift+PageUp: set cash to $0, to test being broke, missed payments and the loss). Cash only, no
 //          ledger entry: it is never income and shows only as the statement's "Other" line. F11 was already taken by the starting kit
 //   Insert lose the game now, as if the third missed land payment had just landed (shows the loss screen; nothing is saved from it)
+//   Home   toggle "sap always runs": every hour is a sap flow hour at every tap, whatever the season or the weather (TapManager). Shift+Home
+//          fills every Sap Bucket to the top with fresh sap
+//   PageDown teleport to the nearest Sugar Maple, standing about 2 m from the trunk and facing it. Press again for the next nearest, Shift+PageDown
+//          for the one before (the order is fixed by where you stood at the first press); the message gives the distance and the new position
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -38,6 +42,8 @@ public class TimeDebugControls : MonoBehaviour
     string message;
     float messageUntil;
     GUIStyle style;
+    System.Collections.Generic.List<int> mapleOrder; // standing Maples, nearest first from where PageDown was first pressed
+    int mapleAt;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Create()
@@ -58,11 +64,30 @@ public class TimeDebugControls : MonoBehaviour
         // Leaving the game (menu, loading) drops back to normal speed; pausing keeps it.
         if (time != null && speedIndex != 0 && (game == null || !game.InGame))
             SetSpeed(time, 0);
+        if (game == null || !game.InGame)
+            mapleOrder = null; // a new world has different trees
 
         if (time == null || keyboard == null || !playing)
             return;
 
         UpdateBodyReadout(time, keyboard);
+
+        if (keyboard.homeKey.wasPressedThisFrame && TapManager.Instance != null)
+        {
+            if (keyboard.shiftKey.isPressed)
+                Show($"Filled {TapManager.Instance.DebugFillBuckets()} sap buckets", time);
+            else
+            {
+                TapManager.DebugForceFlow = !TapManager.DebugForceFlow;
+                Show(TapManager.DebugForceFlow ? "Sap always runs: ON" : "Sap always runs: OFF", time);
+            }
+        }
+
+        if (keyboard.pageDownKey.wasPressedThisFrame)
+        {
+            Show(TeleportToMaple(keyboard.shiftKey.isPressed ? -1 : 1), time);
+            return;
+        }
 
         if (keyboard.insertKey.wasPressedThisFrame && MoneyManager.Instance != null)
         {
@@ -240,6 +265,72 @@ public class TimeDebugControls : MonoBehaviour
         speedIndex = index;
         time.DebugSpeed = Speeds[index];
     }
+
+    // PageDown: stands the player about 2 m from the trunk of the next Maple (step 1) or the one before (step -1), on the side they came from,
+    // looking at it. Teleport lifts nothing and keeps no fall speed, so the player is set just above the terrain and settles under gravity.
+    string TeleportToMaple(int step)
+    {
+        const float StandOffMetres = 2f;
+        const float LookDownDegrees = 10f;
+
+        WoodManager wood = WoodManager.Instance;
+        PlayerController player = FindAnyObjectByType<PlayerController>();
+        Terrain terrain = Terrain.activeTerrain;
+        if (wood == null || player == null || terrain == null || !wood.TreesReady)
+            return "No trees to go to yet";
+
+        Vector3 from = player.transform.position;
+        if (mapleOrder == null)
+        {
+            mapleOrder = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < wood.TreeCount; i++)
+                if (wood.IsStanding(i) && MapleRules.IsMaple(i, wood.Prototype(i), wood.HeightScale(i)))
+                    mapleOrder.Add(i);
+            mapleOrder.Sort((a, b) => FlatDistance(wood.WorldPosition(a), from).CompareTo(FlatDistance(wood.WorldPosition(b), from)));
+            mapleAt = step > 0 ? -1 : 1; // the first press always goes to the nearest
+        }
+        if (mapleOrder.Count == 0)
+            return "No Maples on this map";
+
+        int count = mapleOrder.Count;
+        int tree = -1;
+        for (int tries = 0; tries < count && tree < 0; tries++)
+        {
+            mapleAt = ((mapleAt + step) % count + count) % count;
+            if (wood.IsStanding(mapleOrder[mapleAt]))
+                tree = mapleOrder[mapleAt]; // one felled since the list was made is skipped
+        }
+        if (tree < 0)
+            return "No standing Maples left";
+
+        Vector3 trunk = wood.WorldPosition(tree);
+        Vector3 away = new Vector3(from.x - trunk.x, 0f, from.z - trunk.z);
+        away = away.sqrMagnitude > 0.01f ? away.normalized : Vector3.back;
+        float reach = wood.TrunkRadius(tree) + StandOffMetres;
+
+        // The side the player came from first; if something solid is there, the next side round.
+        Vector3 stand = trunk;
+        for (int k = 0; k < 8; k++)
+        {
+            Vector3 dir = Quaternion.Euler(0f, k * 45f, 0f) * away;
+            Vector3 spot = trunk + dir * reach;
+            spot.y = terrain.SampleHeight(spot) + terrain.transform.position.y + 0.05f;
+            if (k == 0)
+                stand = spot;
+            if (!Physics.CheckSphere(spot + Vector3.up * 1f, 0.4f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                stand = spot;
+                break;
+            }
+        }
+
+        Vector3 toTrunk = trunk - stand;
+        float yaw = Mathf.Atan2(toTrunk.x, toTrunk.z) * Mathf.Rad2Deg;
+        player.Teleport(stand, yaw, LookDownDegrees);
+        return $"Maple {mapleAt + 1} of {count}: {Vector3.Distance(from, stand):0} m from where you were, now at ({stand.x:0}, {stand.y:0}, {stand.z:0})";
+    }
+
+    static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
 
     void Show(string text, TimeManager time)
     {

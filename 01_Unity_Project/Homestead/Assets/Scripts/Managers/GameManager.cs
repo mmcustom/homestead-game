@@ -155,6 +155,8 @@ public class GameManager : MonoBehaviour, ISaveable
             GrassManager.Instance.ResetGrass();
         if (GroundWoodManager.Instance != null)
             GroundWoodManager.Instance.ResetGroundWood();
+        if (TapManager.Instance != null)
+            TapManager.Instance.ResetTaps();
         if (PortableLight.Instance != null)
             PortableLight.Instance.ResetLight();
         if (PondManager.Instance != null)

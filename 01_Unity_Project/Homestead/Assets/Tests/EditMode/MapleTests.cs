@@ -394,16 +394,4 @@ public class MapleTests
         Assert.That(Prop(bucket, "Id"), Is.EqualTo("sap_bucket"));
         Assert.That(Prop(bucket, "Category").ToString(), Is.EqualTo("Tool"));
     }
-
-    [Test]
-    public void NoOneCanCraftTheTapKitYet()
-    {
-        // The recipes arrive with Maple B so no one can make a Spile that does nothing.
-        Array recipes = (Array)Find("Crafting").GetField("Recipes").GetValue(null);
-        Type recipeType = recipes.GetType().GetElementType();
-        var outputs = recipes.Cast<object>().Select(r => (string)recipeType.GetField("outputId").GetValue(r)).ToList();
-        Assert.That(outputs, Does.Not.Contain("spile"));
-        Assert.That(outputs, Does.Not.Contain("sap_bucket"));
-        Assert.That(outputs, Does.Not.Contain("maple_syrup"));
-    }
 }

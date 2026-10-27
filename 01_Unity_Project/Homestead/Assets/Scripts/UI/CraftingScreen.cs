@@ -497,6 +497,7 @@ public class CraftingScreen : GameScreen
             case "shovel":
             case "primitive_axe":
             case "knife":
+            case "spile":
             case "hammer": return CraftCategories[0];
             case "primitive_bow":
             case "arrows": return CraftCategories[1];
@@ -506,7 +507,8 @@ public class CraftingScreen : GameScreen
             case "rabbit_snare":
             case "box_trap":
             case "fish_trap": return CraftCategories[3];
-            case "pouch": return CraftCategories[4];
+            case "pouch":
+            case "sap_bucket": return CraftCategories[4];
             default: return CraftCategories[5]; // cordage, and anything added later
         }
     }
@@ -815,6 +817,8 @@ public class CraftingScreen : GameScreen
             case "primitive_bow": return "equip it, hold click to draw and release to shoot. Shorter range and less accurate than a Recurve Bow, but it's made from a Branch.";
             case "arrows": return "shoot them from either bow; a killing arrow can often be recovered when field dressing.";
             case "kindling_bundle": return "sell it at the Trading Post: a cheap way to turn spare Sticks into a little money.";
+            case "spile": return "equip it and click a Sugar Maple within reach to tap it (needs a Sap Bucket too). About 1 large hardwood in 7 is a Maple; look at one to see.";
+            case "sap_bucket": return "hangs under a tap to catch the sap. It is used up when you tap a tree, and comes back when you take the tap down.";
             case "lantern": return "equip it and click to light it. Burns Lamp Oil (Trading Post) — refill it in the Inventory with the Refill button.";
             default: return "equip it to set it.";
         }

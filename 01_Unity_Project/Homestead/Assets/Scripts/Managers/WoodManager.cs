@@ -495,6 +495,10 @@ public class WoodManager : MonoBehaviour, ISaveable
     }
 
     bool WorldLoaded => terrain != null && data != null && originalTrees != null;
+
+    // Whether the terrain's trees are loaded (TapManager checks its taps against them once the world is up).
+    public bool TreesReady => WorldLoaded;
+    public int TreeCount => WorldLoaded ? originalTrees.Length : 0;
     public bool InWorld => WorldLoaded;
 
     // Takes every felled tree out of the terrain and (re)spawns stumps and piles.
@@ -653,6 +657,8 @@ public class WoodManager : MonoBehaviour, ISaveable
 
         felled.Add(new FelledTree { index = index, stump = prototype != Shrub });
         felledSet.Add(index);
+        if (TapManager.Instance != null)
+            TapManager.Instance.OnTreeFelled(index); // a tapped maple gives its Spile and Sap Bucket back (the Axe and a storm both come here)
         RebuildTrees();
         if (prototype != Shrub)
             SpawnStump(index);
