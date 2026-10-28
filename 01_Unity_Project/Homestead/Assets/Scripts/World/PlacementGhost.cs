@@ -96,6 +96,23 @@ public sealed class PlacementGhost
         return ghost;
     }
 
+    // A ghost of a Tripod: three poles leaning in to a point above the fire it will stand over.
+    public static PlacementGhost ForTripod()
+    {
+        var ghost = new PlacementGhost("Placement Ghost: Tripod");
+        var top = new Vector3(0f, 1.6f, 0f);
+        for (int i = 0; i < 3; i++)
+        {
+            float a = i * 120f * Mathf.Deg2Rad;
+            Vector3 bottom = new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * 0.6f;
+            Vector3 along = top - bottom;
+            ghost.Primitive(PrimitiveType.Cylinder, (top + bottom) * 0.5f, Quaternion.FromToRotation(Vector3.up, along).eulerAngles,
+                            new Vector3(0.07f, along.magnitude * 0.5f, 0.07f));
+        }
+        ghost.Finish();
+        return ghost;
+    }
+
     PlacementGhost(string name)
     {
         root = new GameObject(name);

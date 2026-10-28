@@ -14,6 +14,8 @@ public class CampfireState
     public float ashOwed;   // Ash the fuel still in the ring will leave (AshRules); absent in a save from before Ash
     public float ashMade;   // Ash burnt and waiting in the ring to be collected; the fraction carries on to the next burn
     public bool builtWithSticks; // built from Sticks, not Firewood, so a dismantle refunds half the Sticks; absent (false) in an older save
+    public bool tripod;     // a Tripod stands over the fire (TripodRules); absent (false) in a save from before the tripod
+    public string vessel;   // what hangs on it: cooking_pot, potash_kettle, or empty/absent for nothing
 }
 
 // The Bow Drill's tuning, in the Inspector on FireManager. Chances are 0-1.
@@ -356,6 +358,14 @@ public class FireManager : MonoBehaviour, ISaveable
     {
         if (fire == null || !fires.Remove(fire))
             return;
+        // Whatever fire this was (a hearth with its Cabin or Kitchen, say), a tripod over it and the vessel hung on it come back whole.
+        if (fire.tripod || !string.IsNullOrEmpty(fire.vessel))
+        {
+            Transform tripodView = views.TryGetValue(fire.id, out Campfire shown) && shown != null ? shown.transform : null;
+            var refund = new StructureRefund(fire.position, tripodView);
+            ReturnTripod(fire, refund);
+            ToolStatus.Flash(refund.Describe("tripod"), 5f);
+        }
         if (views.TryGetValue(fire.id, out Campfire view) && view != null)
             Destroy(view.gameObject);
         views.Remove(fire.id);
@@ -595,7 +605,7 @@ public class FireManager : MonoBehaviour, ISaveable
     }
 
     FireRefundResult RefundOf(CampfireState fire) =>
-        FireRefund.Of(fire.builtWithSticks, firewoodToBuild, campfireSticksCost, fire.fuelHours, hoursPerFirewood, fire.ashMade);
+        FireRefund.Of(fire.builtWithSticks, firewoodToBuild, campfireSticksCost, fire.fuelHours, hoursPerFirewood, fire.ashMade, fire.tripod, fire.vessel);
 
     // "1 Firewood, 2 Ash" for the prompt: what dismantling the fire gives back now; "nothing" when it gives nothing.
     public string RefundText(CampfireState fire)
@@ -608,6 +618,10 @@ public class FireManager : MonoBehaviour, ISaveable
             parts.Add($"{r.sticks} Sticks");
         if (r.ash > 0)
             parts.Add($"{r.ash} Ash");
+        if (r.tripod > 0)
+            parts.Add("1 " + ItemName(TripodRules.TripodId));
+        if (!string.IsNullOrEmpty(r.vessel))
+            parts.Add("1 " + ItemName(r.vessel));
         return parts.Count == 0 ? "nothing" : string.Join(", ", parts);
     }
 
@@ -624,8 +638,116 @@ public class FireManager : MonoBehaviour, ISaveable
         refund.Return(FirewoodId, r.firewood);
         refund.Return(WoodManager.SticksId, r.sticks);
         refund.Return(AshRules.ItemId, r.ash);
+        ReturnTripod(fire, refund); // the tripod and its vessel come back whole
         RemoveFire(fire);
         return refund.Describe("Campfire");
+    }
+
+    // --- The Tripod (the Cooking Pot redesign; TripodRules has the rules) ---
+
+    static string ItemName(string itemId) => ItemDatabase.Get(itemId)?.DisplayName ?? itemId;
+
+    // Whether the Build tab's Set Up can start: a Tripod in the pack and a fire to put it on.
+    public bool CanStartTripod(PlayerController player, out string reason)
+    {
+        if (player == null || Carried == null)
+        {
+            reason = "Not available here.";
+            return false;
+        }
+        if (!Carried.Has(TripodRules.TripodId))
+        {
+            reason = $"Needs a Tripod: craft one from {TripodRules.Branches} Branches and {TripodRules.Cordage} Cordage.";
+            return false;
+        }
+        if (fires.Count == 0)
+        {
+            reason = "Needs a fire to set it up on.";
+            return false;
+        }
+        reason = "";
+        return true;
+    }
+
+    // Whether a Tripod can go on this fire: not the Grill's, not one that has a tripod already.
+    public bool CanSetUpTripod(CampfireState fire, out string reason)
+    {
+        bool grill = fire != null && WoodManager.Instance != null && WoodManager.Instance.IsGrillFire(fire);
+        TripodRules.SetUpResult result = TripodRules.CanSetUp(Carried != null && Carried.Has(TripodRules.TripodId), fire != null && fire.tripod, grill);
+        reason = TripodRules.SetUpMessage(result);
+        return fire != null && fires.Contains(fire) && result == TripodRules.SetUpResult.Ok;
+    }
+
+    // Puts the Tripod from the pack onto the fire (no Hammer). The item is placed, not used up: dismantling returns it.
+    public bool SetUpTripod(CampfireState fire)
+    {
+        if (!CanSetUpTripod(fire, out _) || InventoryManager.Instance == null)
+            return false;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        if (InventoryManager.Instance.RemoveFromPlayer(TripodRules.TripodId, 1) != 1)
+            return false;
+        fire.tripod = true;
+        fire.vessel = "";
+        Changed(fire);
+        return true;
+    }
+
+    // E on the tripod: hangs the Pot (else the Kettle), swaps one for the other, or takes the vessel down into the pack (or onto the ground
+    // by the fire when the pack cannot carry it). Allowed while the fire burns. Returns the message to show.
+    public string TripodStep(CampfireState fire)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (fire == null || !fire.tripod || inventory == null)
+            return "";
+
+        TripodRules.Step step = TripodRules.NextStep(fire.vessel, inventory.Player.Has(TripodRules.PotId), inventory.Player.Has(TripodRules.KettleId));
+        if (step.kind == TripodRules.StepKind.None)
+            return TripodRules.StepDone(step, ItemName);
+
+        if (step.hang != null)
+        {
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.SilenceNextRemoval();
+            if (inventory.RemoveFromPlayer(step.hang, 1) != 1)
+                return "";
+        }
+        if (step.takeDown != null)
+        {
+            Transform view = views.TryGetValue(fire.id, out Campfire v) && v != null ? v.transform : null;
+            new StructureRefund(fire.position, view).Return(step.takeDown, 1);
+        }
+
+        fire.vessel = step.hang ?? "";
+        Changed(fire);
+        return TripodRules.StepDone(step, ItemName);
+    }
+
+    // R with the Hammer on the tripod, fire out: the tripod comes down and it and its vessel come back whole.
+    public string DismantleTripod(CampfireState fire)
+    {
+        if (fire == null || !fire.tripod)
+            return "";
+        TripodRules.DismantleResult result = TripodRules.CanDismantle(fire.lit, WoodManager.HammerEquipped);
+        if (result != TripodRules.DismantleResult.Ok)
+            return TripodRules.DismantleMessage(result);
+
+        Transform view = views.TryGetValue(fire.id, out Campfire v) && v != null ? v.transform : null;
+        var refund = new StructureRefund(fire.position, view);
+        ReturnTripod(fire, refund);
+        Changed(fire);
+        return refund.Describe("Tripod");
+    }
+
+    // Gives the tripod and its vessel back (whole) and clears them from the fire.
+    void ReturnTripod(CampfireState fire, StructureRefund refund)
+    {
+        if (!string.IsNullOrEmpty(fire.vessel))
+            refund.Return(fire.vessel, 1);
+        if (fire.tripod)
+            refund.Return(TripodRules.TripodId, 1);
+        fire.tripod = false;
+        fire.vessel = "";
     }
 
     // --- Ash (Early_Income_Design.md section 1) ---

@@ -75,22 +75,16 @@ public class CampfireCooking : MonoBehaviour
             return false;
         if (Cooking.IsSapBoil(item.Id))
         {
-            if (!Cooking.HasPot)
-            {
-                ToolStatus.Flash("Boiling sap needs a Cooking Pot — the wooden Bucket would burn");
+            if (!Cooking.CheckBoilVessel(player, "Boiling sap"))
                 return false;
-            }
             if (MapleRules.SyrupFrom(Carried(item)) <= 0)
             {
                 ToolStatus.Flash("Boiling " + MapleRules.NeedMessage(Carried(item)));
                 return false;
             }
         }
-        if (Cooking.IsBoilable(item.Id) && !Cooking.HasPot)
-        {
-            ToolStatus.Flash("Boiling water needs a Cooking Pot — the wooden Bucket would burn");
+        if (Cooking.IsBoilable(item.Id) && !Cooking.CheckBoilVessel(player, "Boiling water"))
             return false;
-        }
 
         Job job = Find(item);
         if (job == null)
@@ -170,9 +164,20 @@ public class CampfireCooking : MonoBehaviour
         string verb = boiling ? "Boiling" : "Cooking";
         int left = RemainingOf(current.item);
 
-        CampfireState fire = Cooking.FireInReach(player);
+        // A boil needs its vessel hung on a tripod at a lit fire in reach; cooking meat and fish needs any lit fire. A boil whose vessel was
+        // swapped or taken down stays queued but loses the batch's progress (the items are only used up when a batch finishes).
+        string vessel = boiling ? Cooking.BoilVessel(current.item.Id) : null;
+        CampfireState fire = vessel != null ? Cooking.VesselFireInReach(player, vessel) : Cooking.FireInReach(player);
         if (fire == null)
         {
+            if (vessel != null && Cooking.FireInReach(player) != null)
+            {
+                progress = 0f;
+                litresInPot = 0;
+                if (state == GameState.Playing)
+                    ToolStatus.Report(TripodRules.PausedMessage(verb, Cooking.VesselName(vessel)), -1f, false);
+                return NoSound;
+            }
             if (state == GameState.Playing)
                 ToolStatus.Report($"{verb} paused — get back to a burning campfire", ProgressOf(current.item), false);
             return NoSound;

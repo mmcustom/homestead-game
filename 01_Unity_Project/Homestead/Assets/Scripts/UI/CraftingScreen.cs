@@ -503,6 +503,7 @@ public class CraftingScreen : GameScreen
             case "arrows": return CraftCategories[1];
             case "bow_drill":
             case "torch":
+            case "tripod":
             case "lantern": return CraftCategories[2];
             case "rabbit_snare":
             case "box_trap":
@@ -630,6 +631,23 @@ public class CraftingScreen : GameScreen
             e.sets.Add(new List<Req> { new Req { label = ItemName(WoodManager.SticksId), have = inventory != null ? inventory.Player.Count(WoodManager.SticksId) : 0, need = fires.CampfireSticksCost } });
             e.act = () => DoBuildCampfire(fires);
             entries.Add(e);
+
+            // The Tripod is crafted (Craft tab) and set up here on a fire within reach; no Hammer, and it comes back whole when dismantled.
+            var tripod = new Entry
+            {
+                key = "tripod",
+                name = "Tripod",
+                category = BuildCategories[2],
+                help = Capitalize(TripodHelp),
+                info = "Aim at a fire within 3 m: a ghost snaps to it. No Hammer needed.",
+                cost = "1 Tripod",
+                actionLabel = "Set Up",
+                failHeading = "Can't set up the Tripod",
+            };
+            tripod.can = fires.CanStartTripod(player, out tripod.reason);
+            tripod.sets.Add(new List<Req> { new Req { label = ItemName(TripodRules.TripodId), have = inventory != null ? inventory.Player.Count(TripodRules.TripodId) : 0, need = 1 } });
+            tripod.act = () => DoBuildTripod(fires);
+            entries.Add(tripod);
         }
         return entries;
     }
@@ -720,6 +738,18 @@ public class CraftingScreen : GameScreen
         PlacementMode.BeginCampfire();
     }
 
+    void DoBuildTripod(FireManager fires)
+    {
+        if (!fires.CanStartTripod(player, out string why))
+        {
+            banner.NotifyCant("Can't set up the Tripod", why);
+            return;
+        }
+        banner.Hide();
+        Close();
+        PlacementMode.BeginTripod();
+    }
+
     void DoBuildPile(WoodManager wood, PileKind kind)
     {
         if (!wood.CanStartBuild(kind, player, out string why))
@@ -768,6 +798,8 @@ public class CraftingScreen : GameScreen
 
     public const string CampfireHelp = "builds where you aim. Light it with Flint and Steel, or a Bow Drill.";
 
+    public const string TripodHelp = "stands over a fire (not the Grill's) and carries a Cooking Pot for boiling water and sap. Craft it from 3 Branches and 1 Cordage, then set it up on a fire within 3 m. Aim at it and press E to hang the Pot, swap it, or take it down; R with the Hammer, fire out, dismantles it and everything on it comes back.";
+
     public static string PileHelp(PileKind kind)
     {
         switch (kind)
@@ -812,6 +844,7 @@ public class CraftingScreen : GameScreen
             case "pouch": return "carried, it lets you carry 10 kg more.";
             case "cordage": return "twisted from whichever fibre you have.";
             case "hammer": return "equip it to build a Small Cabin, or to dismantle a finished structure for half its materials.";
+            case "tripod": return "stands over a fire and carries a Cooking Pot for boiling water and sap. Set it up from the Build tab on a fire within 3 m; it is placed, not used up, and comes back whole when dismantled.";
             case "torch": return "equip it and click to light it (needs Flint and Steel, or stand by a burning Campfire). Burns about 3 hours, then it's gone.";
             case "bow_drill": return "equip it, face a Campfire with fuel and hold click to start a fire without Flint and Steel. Doesn't always catch.";
             case "primitive_bow": return "equip it, hold click to draw and release to shoot. Shorter range and less accurate than a Recurve Bow, but it's made from a Branch.";

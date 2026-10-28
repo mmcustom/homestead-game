@@ -29,6 +29,7 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
     float flickerSeed;
     bool shownLit;
     float fadeStart = -1f, fadeFromIntensity, fadeFromVolume;
+    Tripod tripodView;
 
     public CampfireState State => state;
 
@@ -58,6 +59,8 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
     {
         if (state == null)
             return;
+
+        SyncTripod();
 
         bool lit = state.lit;
         if (logs != null)
@@ -93,6 +96,30 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
         }
 
         shownLit = lit;
+    }
+
+    // A tripod over the fire (CampfireState.tripod) is a child object with its own prompts; it follows the fire if the fire moves.
+    void SyncTripod()
+    {
+        if (state.tripod)
+        {
+            if (tripodView == null)
+            {
+                var go = new GameObject("Tripod");
+                go.transform.SetParent(transform, false);
+                tripodView = go.AddComponent<Tripod>();
+                tripodView.Bind(state);
+            }
+            else
+            {
+                tripodView.Refresh();
+            }
+        }
+        else if (tripodView != null)
+        {
+            Destroy(tripodView.gameObject);
+            tripodView = null;
+        }
     }
 
     static void SetPlaying(ParticleSystem system, bool on)
@@ -193,7 +220,9 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
                      : InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(BowDrill.ItemId)
                          ? "Light Fire  — equip the Bow Drill and hold click"
                          : "Light Fire  — needs Flint and Steel (or a Bow Drill)";
-            string cook = state.lit && CarryingCookables ? "  · Cook or boil from Inventory (I)" : "";
+            string cook = state.lit && CarryingCookables
+                ? (state.vessel == TripodRules.PotId ? "  · Cook or boil from Inventory (I)" : "  · Cook from Inventory (I); boiling needs the Pot hung on a tripod")
+                : "";
             string pick = FireManager.SelectedFuel;
             string change = FireManager.CarriedFuelKinds > 1 ? "  · F: change fuel" : "";
             if (fires.CanAddFuel(state))

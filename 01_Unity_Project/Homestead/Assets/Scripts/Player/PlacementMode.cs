@@ -36,6 +36,8 @@ public class PlacementMode : MonoBehaviour
     bool placing;
     int beganFrame = -10, endedFrame = -10;
     bool campfire;
+    bool tripod;                // the Tripod's ghost snaps to the nearest fire (FireManager.SetUpTripod)
+    CampfireState tripodFire;   // the fire the ghost is on right now
     PileKind kind;
     float yaw;
     PlayerController player;
@@ -81,6 +83,8 @@ public class PlacementMode : MonoBehaviour
     public static void Begin(PileKind pileKind) => Ensure().StartPlacing(pileKind, false);
 
     public static void BeginCampfire() => Ensure().StartPlacing(PileKind.Felled, true);
+
+    public static void BeginTripod() => Ensure().StartPlacing(PileKind.Felled, false, true);
     public static void Cancel()
     {
         if (instance != null && instance.placing)
@@ -108,10 +112,10 @@ public class PlacementMode : MonoBehaviour
         }
     }
 
-    string Name => campfire ? "Campfire" : WoodManager.PileName(kind);
+    string Name => tripod ? "Tripod" : campfire ? "Campfire" : WoodManager.PileName(kind);
     bool Rotatable => !campfire && FacingMatters(kind);
 
-    void StartPlacing(PileKind pileKind, bool isCampfire)
+    void StartPlacing(PileKind pileKind, bool isCampfire, bool isTripod = false)
     {
         if (placing)
             End(null);
@@ -120,11 +124,13 @@ public class PlacementMode : MonoBehaviour
             return;
 
         campfire = isCampfire;
+        tripod = isTripod;
+        tripodFire = null;
         kind = pileKind;
         yaw = player.transform.eulerAngles.y;
         if (!isCampfire && pileKind == PileKind.WoodShedSite)
             yaw = WellsAndOuthouses.DownwindYaw(); // the open front starts facing away from the wind; the wheel turns it
-        ghost = campfire ? PlacementGhost.ForCampfire() : PlacementGhost.ForPile(kind);
+        ghost = tripod ? PlacementGhost.ForTripod() : campfire ? PlacementGhost.ForCampfire() : PlacementGhost.ForPile(kind);
         ghost.SetVisible(false);
         placing = true;
         beganFrame = Time.frameCount;
@@ -178,7 +184,8 @@ public class PlacementMode : MonoBehaviour
         }
         ghost.SetVisible(haveSpot);
 
-        string keys = Rotatable ? "Left click: build    Mouse wheel: turn    Esc / Right click: cancel"
+        string keys = tripod ? "Left click: set it up    Esc / Right click: cancel"
+                    : Rotatable ? "Left click: build    Mouse wheel: turn    Esc / Right click: cancel"
                                 : "Left click: build    Esc / Right click: cancel";
         string head = valid ? $"Place {Name} here" + (note != null ? $" — {note}" : "") : reason;
         if (valid && !string.IsNullOrEmpty(previewInfo))
@@ -197,7 +204,7 @@ public class PlacementMode : MonoBehaviour
             return false;
         if (player == null || WoodManager.Instance == null || !WoodManager.Instance.InWorld)
             return false;
-        if (campfire && FireManager.Instance == null)
+        if ((campfire || tripod) && FireManager.Instance == null)
             return false;
         SurvivalManager survival = SurvivalManager.Instance;
         if (survival != null && survival.IsCollapsed)
@@ -216,7 +223,12 @@ public class PlacementMode : MonoBehaviour
 
         string builtMessage;
         bool built;
-        if (campfire)
+        if (tripod)
+        {
+            built = FireManager.Instance.SetUpTripod(tripodFire);
+            builtMessage = "Tripod set up — aim at it and press E to hang the Cooking Pot.";
+        }
+        else if (campfire)
         {
             built = FireManager.Instance.Build(player, spot, yaw);
             builtMessage = "Campfire built — light it with Flint and Steel, or a Bow Drill.";
@@ -267,6 +279,13 @@ public class PlacementMode : MonoBehaviour
                 onTerrain = campfire || ray.collider is TerrainCollider,
                 inWaterSource = ray.collider.GetComponentInParent<WaterSource>() != null,
             };
+        }
+
+        // The Tripod's ghost jumps to the nearest fire within snap range of where the player aims (or stands, with no ground under the aim).
+        if (tripod)
+        {
+            SnapToFire(hit ? aim.point : player.transform.position, out spot, out haveSpot, out valid, out reason);
+            return;
         }
 
         // A Countertop, Shelving, Grill or Slop Sink goes only in a free slot of a finished Covered Outdoor Kitchen.
@@ -321,6 +340,43 @@ public class PlacementMode : MonoBehaviour
     string TooFarText => $"Too far — come within {reach:0} m.";
 
     bool TooFar(Vector3 point) => Vector3.Distance(player.transform.position, point) > reach;
+
+    // The Tripod's ghost sits on the nearest fire within TripodRules.SnapMetres of where the player aims, facing the way the fire does; it is
+    // red for a fire that has a tripod already or for the Grill's fire (the reason says which).
+    void SnapToFire(Vector3 around, out BuildSpot spot, out bool haveSpot, out bool valid, out string reason)
+    {
+        spot = default;
+        haveSpot = false;
+        valid = false;
+        reason = "Aim at a fire within 3 m of you.";
+        tripodFire = null;
+
+        FireManager fires = FireManager.Instance;
+        CampfireState best = null;
+        float bestDistance = TripodRules.SnapMetres;
+        foreach (CampfireState fire in fires.Fires)
+        {
+            float distance = Vector3.Distance(fire.position, around);
+            if (distance <= bestDistance)
+            {
+                best = fire;
+                bestDistance = distance;
+            }
+        }
+        if (best == null)
+            return;
+
+        tripodFire = best;
+        spot = new BuildSpot { point = best.position, normal = Vector3.up, onTerrain = true };
+        haveSpot = true;
+        yaw = best.yaw;
+        if (TooFar(best.position))
+        {
+            reason = TooFarText;
+            return;
+        }
+        valid = fires.CanSetUpTripod(best, out reason);
+    }
 
     // The Rain Barrel (and Rain Barrel Site) ghost jumps to the nearest eave spot along a finished cabin's long walls, preferring one that is allowed.
     bool TrySnapToEave(Vector3 around, out BuildSpot spot, out bool valid, out string reason, out string note)

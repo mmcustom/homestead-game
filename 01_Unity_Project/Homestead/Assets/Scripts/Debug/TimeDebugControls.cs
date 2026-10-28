@@ -17,7 +17,7 @@ using UnityEngine.InputSystem;
 //   F9  refill Hydration, Hunger, Health and Warmth, dry off and cure sickness (SurvivalManager)
 //   F10 drop Hydration, Hunger and Warmth to 20, into the Severe tier, to check the warnings and Health loss
 //   Shift+F10 set Health to 0, to test Player Collapse (SleepManager.CollapseRoutine)
-//   F11 give the starting kit to older saves: Flint and Steel, a Bucket, the Axe, a Cooking Pot, a Sleeping Bag, a Tent,
+//   F11 give the starting kit to older saves: Flint and Steel, a Bucket, the Axe, a Cooking Pot, a Tripod, a Sleeping Bag, a Tent,
 //       a Knife, a Canteen, a Weather Station and 6 Firewood
 //   End    export the ledger to a CSV file, one row per season (Money_System.md Phase D1), under Exports/ in the persistent data path;
 //          the full path is printed in the Console and the file name shows on screen
@@ -197,6 +197,8 @@ public class TimeDebugControls : MonoBehaviour
                 inventory.AddToPlayer(AxeTool.AxeId, 1);
             if (!inventory.Player.Has(Cooking.PotId))
                 inventory.AddToPlayer(Cooking.PotId, 1);
+            if (!inventory.Player.Has(TripodRules.TripodId))
+                inventory.AddToPlayer(TripodRules.TripodId, 1);
             if (!inventory.Player.Has(SleepManager.SleepingBagId))
                 inventory.AddToPlayer(SleepManager.SleepingBagId, 1);
             if (!inventory.Player.Has(WoodManager.TentId))

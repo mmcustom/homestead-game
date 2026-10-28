@@ -60,7 +60,7 @@ public class DifficultyManager : MonoBehaviour, ISaveable
         switch (tier)
         {
             case Difficulty.Homesteader:
-                return "Packed for a week of camping: tent, sleeping bag, tarp, cooking pot, bucket, axe, hammer, pick axe, " +
+                return "Packed for a week of camping: tent, sleeping bag, tarp, cooking pot, tripod, bucket, axe, hammer, pick axe, " +
                        "shovel, canteen, flint and steel, knife, cordage and a rifle with 10 rounds — plus savings of 40% of your land's price (up to $30,000). " +
                        "Hunger, thirst and cold come on slowly; the weather is milder and the game less wary.";
             case Difficulty.Pioneer:
@@ -86,7 +86,7 @@ public class DifficultyManager : MonoBehaviour, ISaveable
 
         var kit = new System.Collections.Generic.List<(string, int)>
         {
-            (WoodManager.TentId, 1), (SleepManager.SleepingBagId, 1), (Cooking.PotId, 1), (WaterSource.BucketItemId, 1),
+            (WoodManager.TentId, 1), (SleepManager.SleepingBagId, 1), (Cooking.PotId, 1), (TripodRules.TripodId, 1), (WaterSource.BucketItemId, 1),
             (AxeTool.AxeId, 1), (AxeTool.PickAxeId, 1), (AxeTool.ShovelId, 1), (WaterQualities.CanteenId, 1),
             (FireManager.IgnitionId, 1), ("cordage", 3), (Knife.Id, 1),
         };

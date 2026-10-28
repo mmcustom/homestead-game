@@ -5,6 +5,8 @@ using UnityEngine;
 // Consumable, safe to eat, more filling and keeping longer — and Boil on collected raw water, which becomes Purified
 // Water. Boiling needs a pot to boil it in: the metal Cooking Pot (Water_System.md's Boiling correction, 2026-09-26 —
 // the wooden Bucket only carries water; it would burn over the fire).
+// The Pot is no longer carried to the fire: it hangs on a Tripod standing over it (TripodRules), and a boil needs the Pot hung at a lit fire in
+// reach. Cooking meat and fish still needs only a lit fire.
 // Each piece takes a few seconds (CampfireCooking runs the queue and calls Cook as each one finishes); it doesn't burn
 // extra fuel.
 public static class Cooking
@@ -52,8 +54,52 @@ public static class Cooking
         return FireManager.Instance.NearestLit(player.transform.position, Range);
     }
 
-    public static bool HasPot =>
-        InventoryManager.Instance != null && InventoryManager.Instance.Player.Count(PotId) > 0;
+    // The vessel a boil of this item hangs in: the Cooking Pot for water and sap; null for anything that is not a boil.
+    public static string BoilVessel(string itemId) => IsBoilable(itemId) || IsSapBoil(itemId) ? TripodRules.PotId : null;
+
+    public static string VesselName(string itemId) => ItemDatabase.Get(itemId)?.DisplayName ?? itemId;
+
+    // The nearest lit fire in reach that has a tripod with this vessel hung on it, or null.
+    public static CampfireState VesselFireInReach(PlayerController player, string vesselId)
+    {
+        FireManager fires = FireManager.Instance;
+        if (player == null || fires == null)
+            return null;
+
+        CampfireState best = null;
+        float bestDistance = Range;
+        foreach (CampfireState fire in fires.Fires)
+        {
+            if (!fire.lit || !fire.tripod || fire.vessel != vesselId)
+                continue;
+            float distance = Vector3.Distance(fire.position, player.transform.position);
+            if (distance <= bestDistance)
+            {
+                best = fire;
+                bestDistance = distance;
+            }
+        }
+        return best;
+    }
+
+    // Whether a boil using this vessel can run here, and if not, why (judged by the nearest lit fire in reach).
+    public static TripodRules.Gate BoilGate(PlayerController player, string vesselId)
+    {
+        if (VesselFireInReach(player, vesselId) != null)
+            return TripodRules.Gate.Ok;
+        CampfireState lit = FireInReach(player);
+        return TripodRules.BoilGate(lit != null, lit != null && lit.tripod, lit != null ? lit.vessel : null, vesselId);
+    }
+
+    // True when the vessel is hung at a lit fire in reach; otherwise flashes why not (doing is "Boiling water" or "Boiling sap") and returns false.
+    public static bool CheckBoilVessel(PlayerController player, string doing)
+    {
+        TripodRules.Gate gate = BoilGate(player, TripodRules.PotId);
+        if (gate == TripodRules.Gate.Ok)
+            return true;
+        ToolStatus.Flash(TripodRules.GateMessage(gate, doing, VesselName(TripodRules.PotId)));
+        return false;
+    }
 
     // Turns up to count of an item into its cooked (or boiled) version straight away. Returns how many were done.
     public static int Cook(ItemDefinition raw, int count, PlayerController player)
@@ -62,18 +108,15 @@ public static class Cooking
         if (inventory == null || raw == null || count <= 0 || FireInReach(player) == null)
             return 0;
         if (IsSapBoil(raw.Id))
-            return BoilSap(count, inventory);
+            return BoilSap(count, inventory, player);
 
         bool boil = IsBoilable(raw.Id);
         string outputId = boil ? PurifiedWaterId : CookedId(raw.Id);
         ItemDefinition output = outputId != null ? ItemDatabase.Get(outputId) : null;
         if (output == null)
             return 0;
-        if (boil && !HasPot)
-        {
-            ToolStatus.Flash("Boiling water needs a Cooking Pot — the wooden Bucket would burn");
+        if (boil && !CheckBoilVessel(player, "Boiling water"))
             return 0;
-        }
 
         // Swapping raw for cooked isn't dropping anything; the cooked item arriving plays the pickup sound.
         if (AudioManager.Instance != null)
@@ -89,13 +132,10 @@ public static class Cooking
     }
 
     // Boils batches of sap into Syrup straight away (the queue calls it once a batch has run its 12 s). Returns the Syrup made.
-    static int BoilSap(int batches, InventoryManager inventory)
+    static int BoilSap(int batches, InventoryManager inventory, PlayerController player)
     {
-        if (!HasPot)
-        {
-            ToolStatus.Flash("Boiling sap needs a Cooking Pot — the wooden Bucket would burn");
+        if (!CheckBoilVessel(player, "Boiling sap"))
             return 0;
-        }
 
         int carried = inventory.Player.Count(MapleRules.SapId);
         if (MapleRules.SyrupFrom(carried) <= 0)
