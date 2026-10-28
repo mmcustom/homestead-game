@@ -426,6 +426,8 @@ public class WellsAndOuthouses : MonoBehaviour
         if (site == PileKind.KitchenSite)
             return "Hearth built - now deliver the roof: " + KitchenRoofText() + ".";
         string name = WoodManager.PileName(FinishedKind(site));
+        if (site == PileKind.LeachHopperSite)
+            return KnowHowRules.HopperBuilt;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 

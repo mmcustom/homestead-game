@@ -170,7 +170,7 @@ public class PotashHopperTests
         Assert.That(PotashRules.RowInfo(TripodRules.Gate.Ok, 9, 1), Is.EqualTo("needs 3 Lye and 2 Firewood (have 9 Lye and 1 Firewood)"));
         Assert.That(PotashRules.RowInfo(TripodRules.Gate.Ok, 3, 2), Is.EqualTo("3 Lye + 2 Firewood -> 1 Potash"));
         Assert.That(PotashRules.RowInfo(TripodRules.Gate.Ok, 12, 8), Is.EqualTo("12 Lye + 8 Firewood -> 4 Potash"));
-        Assert.That(PotashRules.RowInfo(TripodRules.Gate.Ok, 7, 20), Is.EqualTo("6 Lye + 4 Firewood -> 2 Potash, 1 Lye and 16 Firewood left over"));
+        Assert.That(PotashRules.RowInfo(TripodRules.Gate.Ok, 7, 20), Is.EqualTo("6 Lye + 4 Firewood -> 2 Potash (1 Lye, 16 Firewood left)"));
         Assert.That(PotashRules.NeedMessage(-1, -1), Is.EqualTo("needs 3 Lye and 2 Firewood (have 0 Lye and 0 Firewood)"));
         Assert.That(PotashRules.BoiledMessage(2), Is.EqualTo("Boiled 6 Lye and 4 Firewood into 2 Potash"));
     }

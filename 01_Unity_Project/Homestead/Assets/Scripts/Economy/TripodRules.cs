@@ -87,7 +87,7 @@ public static class TripodRules
             case StepKind.Hang: return $"Hang the {nameOf(step.hang)} on the tripod";
             case StepKind.Swap: return $"Swap the {nameOf(step.takeDown)} for the {nameOf(step.hang)}";
             case StepKind.TakeDown: return $"Take the {nameOf(step.takeDown)} down";
-            default: return "Tripod  (empty, carry a Cooking Pot to hang on it)";
+            default: return "Tripod  (empty, carry a Cooking Pot or Potash Kettle to hang on it)";
         }
     }
 

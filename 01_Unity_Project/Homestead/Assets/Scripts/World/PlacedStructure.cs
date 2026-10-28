@@ -668,7 +668,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return $"{Name}  (leaching {pending} Lye, {PotashRules.HoursText(state.leachHours)} to go{(ready > 0 ? $", {ready} ready" : "")})";
         if (ready > 0)
             return $"Collect Lye  ({ready} ready in the {Name})";
-        return $"{Name}  (empty, holds {PotashRules.HopperCapacity} Lye: 1 Ash and 1 L of water each)";
+        return KnowHowRules.HopperEmptyPrompt(Name, WoodManager.HammerEquipped);
     }
 
     string HopperSecondaryPrompt()
@@ -680,7 +680,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         PotashRules.LoadPlan plan = CarriedLoad();
         if (plan.lye > 0)
             return $"Load {plan.ash} Ash and {PotashRules.WaterFor(plan.lye)} L of water  ({plan.lye} Lye in {PotashRules.HoursText(PotashRules.LeachGameHours)})";
-        return "Load Ash and water  (1 Ash and 1 L each; the worst water goes in first. Equip the Hammer to dismantle)";
+        return KnowHowRules.HopperLoadHelp();
     }
 
     // E: the Lye that has finished leaching, as much as the pack can carry.
@@ -702,7 +702,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         int added = Inventory.AddToPlayer(PotashRules.LyeId, fits);
         state.Take(PotashRules.LyeId, added);
         WoodManager.Instance.NotifyChanged(state);
-        ToolStatus.Flash(added < ready ? $"Took {added} Lye  ({ready - added} left in the {Name}, no room)" : $"Took {added} Lye", 3f);
+        ToolStatus.Flash(added < ready ? $"Took {added} Lye  ({ready - added} left in the {Name}, no room). " + KnowHowRules.LyeTaken
+                                       : $"Took {added} Lye. " + KnowHowRules.LyeTaken, 5f);
     }
 
     // R: with the Hammer it dismantles; without, it loads Ash and water (worst water first), unless a batch is still leaching.

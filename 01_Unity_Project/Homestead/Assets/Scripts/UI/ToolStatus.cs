@@ -54,6 +54,9 @@ public static class ToolStatus
         aimFrame = Time.frameCount;
     }
 
+    // True while a flash is on show, so a later message can wait its turn instead of replacing it.
+    public static bool FlashActive => !string.IsNullOrEmpty(flash) && Time.unscaledTime < flashUntil;
+
     public static void Flash(string message, float seconds = 3f)
     {
         flash = message;

@@ -110,13 +110,13 @@ public class InventoryScreen : GameScreen
         Top(equippedLabel.rectTransform, 242f, 34f);
 
         hintLabel = UiKit.Text(right, "Hint", "", 16, UiKit.Muted);
-        Top(hintLabel.rectTransform, 278f, 88f);
+        Top(hintLabel.rectTransform, 278f, 124f);
 
         // Building and crafting live on their own screen now.
         craftButton = UiKit.Button(right, "Craft and Build", "Craft and Build  [B]", 22, OpenCrafting);
-        Top((RectTransform)craftButton.transform, 374f, 52f);
+        Top((RectTransform)craftButton.transform, 408f, 52f);
         noticeLabel = UiKit.Text(right, "Notice", "", 18, UiKit.Muted);
-        Top(noticeLabel.rectTransform, 436f, 56f);
+        Top(noticeLabel.rectTransform, 470f, 56f);
 
         banner.Build(area); // last, so it draws over everything else
     }
@@ -251,7 +251,7 @@ public class InventoryScreen : GameScreen
             AddRow(item, quantity, item == equipped, atFire, player);
 
         hintLabel.text = "Click a tool to equip it, food or water to use one. Set an amount with - / + / Max or type it; Shift-click Drop: the stack. Point at a tool, press 1-9/0: hotkey. " +
-                         (atFire ? "<color=#C7D68C>At the fire: Cook meat and fish, Boil water or 10 L of sap (needs the Pot hung on a tripod), or boil Lye into Potash (needs the Potash Kettle hung on a tripod).</color>"
+                         (atFire ? "<color=#C7D68C>At the fire: Cook; Boil water or sap (Pot) or Lye (Kettle), hung on a tripod.</color>"
                                  : "Cook at a burning campfire; split Logs and Branches with the Axe.");
 
         // Weight against the thresholds.
@@ -477,6 +477,9 @@ public class InventoryScreen : GameScreen
             queue = new QueueRow { item = item, split = false };
         }
 
+        if (idleInfo.Length == 0)
+            idleInfo = KnowHowRules.ItemTip(item.Id); // the next step for an item that leads somewhere (Ash, Lye, the Kettle...)
+
         if (action != null)
         {
             // Cook and Split are queues that run over time: a separate Cancel button stops one, so it never fights the stepper.
@@ -489,12 +492,14 @@ public class InventoryScreen : GameScreen
             actionLabel.text = actionText();
         }
 
+        // Wraps onto the row's second line instead of running under the buttons, with a margin before the first one.
         Text info = UiKit.Text(rt, "Info", idleInfo, 16, UiKit.Muted, TextAnchor.MiddleLeft);
-        info.horizontalOverflow = HorizontalWrapMode.Overflow;
+        info.horizontalOverflow = HorizontalWrapMode.Wrap;
+        info.verticalOverflow = VerticalWrapMode.Truncate;
         info.rectTransform.anchorMin = Vector2.zero;
         info.rectTransform.anchorMax = new Vector2(1f, 0.5f);
         info.rectTransform.offsetMin = new Vector2(250f, 0f);
-        info.rectTransform.offsetMax = new Vector2(action == null ? -130f : queue != null ? -356f : -256f, 0f);
+        info.rectTransform.offsetMax = new Vector2(action == null ? -142f : queue != null ? -368f : -268f, 0f);
 
         if (queue != null)
         {

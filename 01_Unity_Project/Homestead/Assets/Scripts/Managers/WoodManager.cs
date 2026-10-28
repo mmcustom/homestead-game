@@ -1205,6 +1205,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (kind == PileKind.WellSite && WellsAndOuthouses.Instance != null && WellsAndOuthouses.Instance.WellWaterAt(spot.point, out WellWaterResult water) && water.Diggable)
             pile.depthToWater = water.depthToWater;
         piles.Add(pile);
+        if (kind == PileKind.LeachHopperSite && JournalManager.Instance != null)
+            JournalManager.Instance.NoteHappening(KnowHowRules.Happening.HopperSitePlaced);
         // A Wood-Fired Grill comes with its fire: a second furnished campfire in the firebox, unlit and out of fuel like the hearth.
         if (kind == PileKind.Grill && FireManager.Instance != null)
             FireManager.Instance.BuildFurnished(GrillFireSpot(pile), pile.yaw);

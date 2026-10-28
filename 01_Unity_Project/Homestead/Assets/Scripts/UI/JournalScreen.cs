@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -11,7 +12,7 @@ public class JournalScreen : GameScreen
     static readonly JournalSection[] Sections =
     {
         JournalSection.WaterSources, JournalSection.Plants, JournalSection.Wildlife, JournalSection.Fishing,
-        JournalSection.PropertyFeatures, JournalSection.History, JournalSection.Notes,
+        JournalSection.PropertyFeatures, JournalSection.History, JournalSection.Notes, JournalSection.KnowHow,
     };
 
     readonly Button[] sectionTabs = new Button[Sections.Length];
@@ -19,6 +20,7 @@ public class JournalScreen : GameScreen
     RectTransform detail;
     JournalSection section = JournalSection.WaterSources;
     int selectedId = -1;
+    string selectedKnowHow = "";
 
     // The note being edited, if the selected entry is a player note.
     InputField noteTitle, noteBody;
@@ -51,7 +53,10 @@ public class JournalScreen : GameScreen
     {
         JournalManager journal = JournalManager.Instance;
         if (journal != null)
+        {
             journal.EntryAdded += OnEntryAdded;
+            journal.KnowHowChanged += OnKnowHowChanged;
+        }
         Refresh();
     }
 
@@ -59,22 +64,39 @@ public class JournalScreen : GameScreen
     {
         CommitNote();
         if (JournalManager.Instance != null)
+        {
             JournalManager.Instance.EntryAdded -= OnEntryAdded;
+            JournalManager.Instance.KnowHowChanged -= OnKnowHowChanged;
+        }
     }
 
     void OnDestroy()
     {
         if (JournalManager.Instance != null)
+        {
             JournalManager.Instance.EntryAdded -= OnEntryAdded;
+            JournalManager.Instance.KnowHowChanged -= OnKnowHowChanged;
+        }
     }
 
     void OnEntryAdded(JournalEntry entry) => Refresh();
+
+    void OnKnowHowChanged() => Refresh();
 
     void SelectSection(JournalSection newSection)
     {
         CommitNote();
         section = newSection;
         selectedId = -1;
+        selectedKnowHow = "";
+        Refresh();
+    }
+
+    void SelectKnowHow(string id)
+    {
+        selectedKnowHow = id;
+        if (JournalManager.Instance != null)
+            JournalManager.Instance.MarkKnowHowRead(id);
         Refresh();
     }
 
@@ -100,7 +122,12 @@ public class JournalScreen : GameScreen
         for (int i = 0; i < Sections.Length; i++)
         {
             int count = 0, unread = 0;
-            if (journal != null)
+            if (journal != null && Sections[i] == JournalSection.KnowHow)
+            {
+                count = journal.KnowHow.Count;
+                unread = journal.KnowHowUnread;
+            }
+            else if (journal != null)
             {
                 foreach (JournalEntry entry in journal.InSection(Sections[i]))
                 {
@@ -132,6 +159,12 @@ public class JournalScreen : GameScreen
     {
         UiKit.Clear(entryList);
 
+        if (section == JournalSection.KnowHow)
+        {
+            RefreshKnowHowEntries();
+            return;
+        }
+
         if (section == JournalSection.Notes)
             UiKit.Height(UiKit.Button(entryList, "New Note", "+  New Note", 21, NewNote), 48f);
 
@@ -153,6 +186,33 @@ public class JournalScreen : GameScreen
         }
     }
 
+    // The Know-how entries unlocked so far, newest first.
+    void RefreshKnowHowEntries()
+    {
+        JournalManager journal = JournalManager.Instance;
+        var unlocked = new List<KnowHowUnlock>();
+        if (journal != null)
+            unlocked.AddRange(journal.KnowHow);
+        unlocked.Reverse();
+
+        if (unlocked.Count == 0)
+        {
+            UiKit.Height(UiKit.Text(entryList, "Empty", "Nothing here yet. An entry appears the first time you find the item, or build the thing, that it explains.", 20, UiKit.Muted), 100f);
+            return;
+        }
+
+        foreach (KnowHowUnlock unlock in unlocked)
+        {
+            if (!KnowHowRules.TryGet(unlock.id, out KnowHowRules.Entry entry))
+                continue;
+            string id = unlock.id;
+            string unread = unlock.read ? "" : "<color=#C7D68C>●</color> ";
+            string label = $"{unread}{entry.title}\n<size=16><color=#EDE3C799>{FormatDay(unlock.day)}</color></size>";
+            Button row = UiKit.Height(UiKit.Button(entryList, entry.title, label, 20, () => SelectKnowHow(id), TextAnchor.MiddleLeft), 62f);
+            UiKit.SetSelected(row, id == selectedKnowHow);
+        }
+    }
+
     // A forage patch that is out of season stays in the journal, noted with the season it returns.
     static string DormantNote(JournalEntry entry)
     {
@@ -167,6 +227,12 @@ public class JournalScreen : GameScreen
         noteTitle = noteBody = null;
         deleteButton = null;
         confirmingDelete = false;
+
+        if (section == JournalSection.KnowHow)
+        {
+            RefreshKnowHowDetail();
+            return;
+        }
 
         JournalEntry entry = JournalManager.Instance != null ? JournalManager.Instance.Get(selectedId) : null;
         if (entry == null || entry.section != section)
@@ -192,6 +258,30 @@ public class JournalScreen : GameScreen
         ((RectTransform)body.parent).Fill(0f, 0f, 0f, 120f);
         string text = string.IsNullOrEmpty(entry.body) ? "<color=#EDE3C799>No further details.</color>" : entry.body;
         Text bodyText = UiKit.Text(body, "Text", text, 22, UiKit.Cream, TextAnchor.UpperLeft);
+        bodyText.verticalOverflow = VerticalWrapMode.Overflow;
+    }
+
+    // A Know-how entry: read-only, its title and body from KnowHowRules.
+    void RefreshKnowHowDetail()
+    {
+        JournalManager journal = JournalManager.Instance;
+        KnowHowUnlock unlock = journal != null ? journal.KnowHow.FirstOrDefault(k => k.id == selectedKnowHow) : null;
+        if (unlock == null || !KnowHowRules.TryGet(unlock.id, out KnowHowRules.Entry entry))
+        {
+            string prompt = journal != null && journal.KnowHow.Count > 0 ? "Select an entry to read it." : "";
+            UiKit.Text(detail, "Prompt", prompt, 21, UiKit.Muted, TextAnchor.UpperLeft).rectTransform.Fill(8f, 0f, 0f, 8f);
+            return;
+        }
+
+        Text meta = UiKit.Text(detail, "Meta", $"{FormatDay(unlock.day)}  ·  Know-how", 18, UiKit.Muted);
+        Top(meta.rectTransform, 0f, 28f);
+
+        Text title = UiKit.Text(detail, "Title", entry.title, 30, UiKit.Cream, TextAnchor.UpperLeft, FontStyle.Bold);
+        Top(title.rectTransform, 32f, 80f);
+
+        RectTransform body = UiKit.ScrollList(detail, "Body");
+        ((RectTransform)body.parent).Fill(0f, 0f, 0f, 120f);
+        Text bodyText = UiKit.Text(body, "Text", entry.body, 22, UiKit.Cream, TextAnchor.UpperLeft);
         bodyText.verticalOverflow = VerticalWrapMode.Overflow;
     }
 

@@ -78,7 +78,7 @@ public static class PotashRules
         if (batches <= 0)
             return NeedMessage(lye, firewood);
         int lyeLeft = lye - LyeFor(batches), firewoodLeft = firewood - FirewoodFor(batches);
-        string left = lyeLeft > 0 || firewoodLeft > 0 ? $", {lyeLeft} Lye and {firewoodLeft} Firewood left over" : "";
+        string left = lyeLeft > 0 || firewoodLeft > 0 ? $" ({lyeLeft} Lye, {firewoodLeft} Firewood left)" : "";
         return $"{LyeFor(batches)} Lye + {FirewoodFor(batches)} Firewood -> {batches} Potash{left}";
     }
 

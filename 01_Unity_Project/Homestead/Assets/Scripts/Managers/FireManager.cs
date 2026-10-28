@@ -720,7 +720,9 @@ public class FireManager : MonoBehaviour, ISaveable
 
         fire.vessel = step.hang ?? "";
         Changed(fire);
-        return TripodRules.StepDone(step, ItemName);
+        if (step.hang == TripodRules.PotId && JournalManager.Instance != null)
+            JournalManager.Instance.NoteHappening(KnowHowRules.Happening.PotHung);
+        return TripodRules.StepDone(step, ItemName) + (step.hang != null ? KnowHowRules.AfterHang(step.hang) : "");
     }
 
     // R with the Hammer on the tripod, fire out: the tripod comes down and it and its vessel come back whole.
@@ -766,6 +768,8 @@ public class FireManager : MonoBehaviour, ISaveable
             return 0;
         }
 
+        // The first Ash collected says where Ash goes next (the know-how unlock itself waits until this flash is gone).
+        bool firstAsh = JournalManager.Instance != null && !JournalManager.Instance.HasKnowHow(KnowHowRules.Ash);
         int taken = inventory.AddToPlayer(AshRules.ItemId, ready);
         if (taken <= 0)
         {
@@ -775,7 +779,7 @@ public class FireManager : MonoBehaviour, ISaveable
 
         fire.ashMade = AshRules.AfterCollect(fire.ashMade, taken);
         Changed(fire);
-        ToolStatus.Flash(taken < ready ? $"Collected {taken} Ash — no room for the other {ready - taken}" : $"Collected {taken} Ash", 2f);
+        ToolStatus.Flash(KnowHowRules.AshCollected(taken, ready, firstAsh), firstAsh ? 4f : 2f);
         return taken;
     }
 

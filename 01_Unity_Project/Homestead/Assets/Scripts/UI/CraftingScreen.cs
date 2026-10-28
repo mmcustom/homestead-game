@@ -683,7 +683,8 @@ public class CraftingScreen : GameScreen
         {
             // Too heavy for one trip: free to place, then stocked over as many trips as it takes and pounded into shape with the Hammer.
             e.actionLabel = "Place Site";
-            e.info = "Free to place, no Hammer. Then deliver the materials at the site (R), over as many trips as it takes.";
+            e.info = kind == PileKind.LeachHopperSite ? KnowHowRules.SiteBuildInfo
+                   : "Free to place, no Hammer. Then deliver the materials at the site (R), over as many trips as it takes.";
             PileKind finished = WellsAndOuthouses.FinalKind(kind);
             if (kind == PileKind.KitchenSite)
             {

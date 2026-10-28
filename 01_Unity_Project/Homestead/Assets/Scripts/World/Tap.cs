@@ -77,7 +77,11 @@ public class Tap : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (state.sour)
                 return $"Empty the Sap Bucket  ({Status})";
             if (MapleRules.Whole(state.litres) >= 1)
-                return $"Collect sap  ({Status})";
+            {
+                InventoryManager inventory = InventoryManager.Instance;
+                int carried = inventory != null ? inventory.Player.Count(MapleRules.SapId) : 0;
+                return $"Collect sap  ({Status}){KnowHowRules.TapBoilHint(carried)}";
+            }
             return $"Check the tap  ({Status})";
         }
     }
