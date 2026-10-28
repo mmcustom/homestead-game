@@ -127,6 +127,12 @@ MonoBehaviour:
     baseCents: 2500
     kind: 0
     seasonalBuy: 0
+  - itemId: potash_kettle
+    group: 7
+    pool: potash_kettle
+    baseCents: 2500
+    kind: 0
+    seasonalBuy: 0
   - itemId: deer_hide
     group: 3
     pool: deer_hide
@@ -457,6 +463,18 @@ MonoBehaviour:
     baseCents: 1000
     kind: 1
     seasonalBuy: 0
+  - itemId: lye
+    group: 10
+    pool: lye
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+  - itemId: potash
+    group: 10
+    pool: potash
+    baseCents: 1600
+    kind: 1
+    seasonalBuy: 0
   groups:
   - group: 0
     dropBp: 400
@@ -522,6 +540,13 @@ MonoBehaviour:
     fall: 10000
     winter: 10000
   - group: 9
+    dropBp: 500
+    floorBp: 2500
+    spring: 10000
+    summer: 10000
+    fall: 10000
+    winter: 10000
+  - group: 10
     dropBp: 500
     floorBp: 2500
     spring: 10000

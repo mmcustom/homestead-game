@@ -6,8 +6,8 @@ using System.Collections.Generic;
 // default set and the fallback if the asset is missing.
 
 // What an item is grouped as for selling pressure and the seasonal price curve.
-// Ash and Maple were appended after Stocked: the ids are saved in MarketData, so never reorder them.
-public enum MarketGroup { WoodStone, Fish, GameMeat, Hides, Forage, Crafted, Farm, Stocked, Ash, Maple }
+// Ash, Maple and Potash were appended after Stocked: the ids are saved in MarketData, so never reorder them.
+public enum MarketGroup { WoodStone, Fish, GameMeat, Hides, Forage, Crafted, Farm, Stocked, Ash, Maple, Potash }
 
 // Stocked: the store sells it (and buys it back at the sell-back share). Bought: the store only buys it from the player.
 public enum MarketKind { Stocked, Bought }
@@ -92,6 +92,8 @@ public static class MarketCatalog
         Row("lamp_oil", MarketGroup.Stocked, 300, MarketKind.Stocked, seasonalBuy: true),
         Row("lumber", MarketGroup.Stocked, 800, MarketKind.Stocked),
         Row("weather_station", MarketGroup.Stocked, 2500, MarketKind.Stocked),
+        // Early_Income_Design.md section 1: the Potash Kettle, a second vessel for the tripod (TripodRules); sells back at the usual share.
+        Row(TripodRules.KettleId, MarketGroup.Stocked, PotashRules.KettleBaseCents, MarketKind.Stocked),
         Row("deer_hide", MarketGroup.Hides, 800, MarketKind.Bought),
         Row("deer_antlers", MarketGroup.Hides, 600, MarketKind.Bought),
         Row("small_furs", MarketGroup.Hides, 300, MarketKind.Bought),
@@ -149,6 +151,9 @@ public static class MarketCatalog
         Row(AshRules.KindlingItemId, MarketGroup.Crafted, AshRules.KindlingBaseCents, MarketKind.Bought),
         // Early_Income_Design.md section 3: Maple Syrup, boiled from sap (MapleRules). Sap itself is not bought.
         Row(MapleRules.SyrupId, MarketGroup.Maple, MapleRules.SyrupBaseCents, MarketKind.Bought),
+        // Early_Income_Design.md section 1: Lye leached from Ash and Potash boiled from Lye (PotashRules), one group, each its own pool.
+        Row(PotashRules.LyeId, MarketGroup.Potash, PotashRules.LyeBaseCents, MarketKind.Bought),
+        Row(PotashRules.PotashId, MarketGroup.Potash, PotashRules.PotashBaseCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =
@@ -163,6 +168,7 @@ public static class MarketCatalog
         Rule(MarketGroup.Stocked, 800, 2500, 10000, 10000, 10000, 10000),
         Rule(MarketGroup.Ash, AshRules.DropBp, AshRules.FloorBp, 10000, 10000, 10000, 10000),
         Rule(MarketGroup.Maple, MapleRules.DropBp, MapleRules.FloorBp, 10000, 10000, 10000, 10000),
+        Rule(MarketGroup.Potash, PotashRules.DropBp, PotashRules.FloorBp, 10000, 10000, 10000, 10000),
     };
 
     static MarketTable table;

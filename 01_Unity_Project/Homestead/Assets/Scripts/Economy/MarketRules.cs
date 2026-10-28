@@ -125,6 +125,7 @@ public static class MarketRules
             case MarketGroup.Farm: return "Farm produce";
             case MarketGroup.Ash: return "Ash";
             case MarketGroup.Maple: return "Maple syrup";
+            case MarketGroup.Potash: return "Lye and Potash";
             default: return "Stocked goods";
         }
     }

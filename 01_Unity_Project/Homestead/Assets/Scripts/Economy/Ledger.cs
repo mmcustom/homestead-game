@@ -82,6 +82,7 @@ public static class LedgerCategories
             case MarketGroup.Farm: return LedgerCategory.SalesFarm;
             case MarketGroup.Ash: return LedgerCategory.SalesWoodStone; // a by-product of burnt wood; the item CSV tells it apart
             case MarketGroup.Maple: return LedgerCategory.SalesFarm;    // Syrup counts as farm produce
+            case MarketGroup.Potash: return LedgerCategory.SalesWoodStone; // Lye and Potash come from burnt wood; the item CSV tells them apart
             default: return LedgerCategory.SalesStockedBack;
         }
     }
@@ -96,7 +97,7 @@ public static class LedgerCategories
         { "sleeping_bag", LedgerCategory.BuyShelterBedding },
         { "cooking_pot", LedgerCategory.BuyCookingWaterFire }, { "canteen", LedgerCategory.BuyCookingWaterFire },
         { "bucket", LedgerCategory.BuyCookingWaterFire }, { "flint_and_steel", LedgerCategory.BuyCookingWaterFire },
-        { "lamp_oil", LedgerCategory.BuyCookingWaterFire },
+        { "lamp_oil", LedgerCategory.BuyCookingWaterFire }, { TripodRules.KettleId, LedgerCategory.BuyCookingWaterFire },
         { "lumber", LedgerCategory.BuyBuildingMaterials }, { "cordage", LedgerCategory.BuyBuildingMaterials },
         { "weather_station", LedgerCategory.BuyOtherGoods },
     };

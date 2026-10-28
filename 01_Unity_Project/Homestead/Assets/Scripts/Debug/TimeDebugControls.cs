@@ -29,6 +29,7 @@ using UnityEngine.InputSystem;
 //   PageDown teleport to the nearest Sugar Maple, standing about 2 m from the trunk and facing it. Press again for the next nearest, Shift+PageDown
 //          for the one before (the order is fixed by where you stood at the first press); the message gives the distance and the new position
 //   Delete give 20 L of Maple Sap (to try a boil at a fire without tapping a tree; End already exports the ledger, even with Shift held)
+//   Shift+Delete give 12 Lye and 4 Potash (to try the Lye and Potash prices at the Trading Post without leaching or boiling; every Numpad key is already a rain control)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -87,6 +88,15 @@ public class TimeDebugControls : MonoBehaviour
         if (keyboard.pageDownKey.wasPressedThisFrame)
         {
             Show(TeleportToMaple(keyboard.shiftKey.isPressed ? -1 : 1), time);
+            return;
+        }
+
+        if (keyboard.deleteKey.wasPressedThisFrame && InventoryManager.Instance != null &&
+            (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed))
+        {
+            int lye = InventoryManager.Instance.AddToPlayer(PotashRules.LyeId, 12);
+            int potash = InventoryManager.Instance.AddToPlayer(PotashRules.PotashId, 4);
+            Show($"Lye given: {lye} of 12, Potash: {potash} of 4", time);
             return;
         }
 

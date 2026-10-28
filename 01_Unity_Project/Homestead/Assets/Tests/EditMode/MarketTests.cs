@@ -572,8 +572,8 @@ public class MarketTests
     public void TheDefaultCatalogHasNoProblems()
     {
         Assert.That(Table.Problems, Is.Empty);
-        Assert.That(Table.Rows.Count, Is.EqualTo(74), "the 71 of the old tables, plus Ash, the Kindling Bundle and Maple Syrup");
-        Assert.That(Table.Stock.Count, Is.EqualTo(19));
+        Assert.That(Table.Rows.Count, Is.EqualTo(77), "the 71 of the old tables, plus Ash, the Kindling Bundle, Maple Syrup, Lye, Potash and the Potash Kettle");
+        Assert.That(Table.Stock.Count, Is.EqualTo(20));
     }
 
     [Test]
@@ -598,7 +598,7 @@ public class MarketTests
             Assert.That(Table.HasPool(id), Is.False, id);
         }
 
-        Assert.That(Table.Stock.Count(r => Table.SellBaseCents(r.itemId) > 0), Is.EqualTo(16));
+        Assert.That(Table.Stock.Count(r => Table.SellBaseCents(r.itemId) > 0), Is.EqualTo(17), "16 and the Potash Kettle");
     }
 
     [Test]
@@ -642,8 +642,9 @@ public class MarketTests
         Assert.That(counts[MarketGroup.Crafted], Is.EqualTo(13), "12 and the Kindling Bundle");
         Assert.That(counts[MarketGroup.Ash], Is.EqualTo(1));
         Assert.That(counts[MarketGroup.Maple], Is.EqualTo(1));
+        Assert.That(counts[MarketGroup.Potash], Is.EqualTo(2), "Lye and Potash");
         Assert.That(counts[MarketGroup.Farm], Is.EqualTo(4));
-        Assert.That(counts[MarketGroup.Stocked], Is.EqualTo(19));
+        Assert.That(counts[MarketGroup.Stocked], Is.EqualTo(20), "19 and the Potash Kettle");
 
         MarketGroup GroupOf(string id) { Table.TryGetRow(id, out MarketRow r); return r.group; }
         Assert.That(GroupOf("chicken_eggs"), Is.EqualTo(MarketGroup.Farm));
@@ -660,11 +661,13 @@ public class MarketTests
     public void BasePricesMatchTheFingerprintOfTheOldTradingPostTables()
     {
         // 19 stocked items totalling $255.00 and 52 bought items totalling $110.00, taken from the b03ebc3 TradingPost.cs; Ash ($2.00), the
-        // Kindling Bundle ($1.00) and Maple Syrup ($10.00) came later, so the bought items are now 55 totalling $123.00.
-        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(25500L));
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup").Count(), Is.EqualTo(52));
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup").Sum(r => r.baseCents), Is.EqualTo(11000L));
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought).Sum(r => r.baseCents), Is.EqualTo(12300L));
+        // Kindling Bundle ($1.00), Maple Syrup ($10.00), Lye ($3.00) and Potash ($16.00) came later, so the bought items are now 57 totalling
+        // $142.00. The Potash Kettle ($25.00) is stocked, so the 20 stocked items total $280.00.
+        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(28000L));
+        Assert.That(Table.Stock.Where(r => r.itemId != "potash_kettle").Sum(r => r.baseCents), Is.EqualTo(25500L), "the original 19");
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup" && r.itemId != "lye" && r.itemId != "potash").Count(), Is.EqualTo(52));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup" && r.itemId != "lye" && r.itemId != "potash").Sum(r => r.baseCents), Is.EqualTo(11000L));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought).Sum(r => r.baseCents), Is.EqualTo(14200L));
         Assert.That(Table.BuyBaseCents("tent"), Is.EqualTo(2500L));
         Assert.That(Table.BuyBaseCents("bolt_action_rifle"), Is.EqualTo(6000L));
         Assert.That(Table.SellBaseCents("deer_hide"), Is.EqualTo(800L));
