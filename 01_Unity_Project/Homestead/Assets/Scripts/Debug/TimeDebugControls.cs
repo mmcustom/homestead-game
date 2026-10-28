@@ -29,6 +29,8 @@ using UnityEngine.InputSystem;
 //   PageDown teleport to the nearest Sugar Maple, standing about 2 m from the trunk and facing it. Press again for the next nearest, Shift+PageDown
 //          for the one before (the order is fixed by where you stood at the first press); the message gives the distance and the new position
 //   Delete give 20 L of Maple Sap (to try a boil at a fire without tapping a tree; End already exports the ledger, even with Shift held)
+//   Ctrl+Delete finish every running Leach Hopper batch now (the Ash in it becomes Lye); Ctrl+Insert stand a finished Leach Hopper about 3 m ahead and give
+//          12 Ash and 12 L of water (6 Unsafe, 6 Good) to load it with (Insert alone still loses the game)
 //   Shift+Delete give 12 Lye and 4 Potash (to try the Lye and Potash prices at the Trading Post without leaching or boiling; every Numpad key is already a rain control)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
@@ -88,6 +90,29 @@ public class TimeDebugControls : MonoBehaviour
         if (keyboard.pageDownKey.wasPressedThisFrame)
         {
             Show(TeleportToMaple(keyboard.shiftKey.isPressed ? -1 : 1), time);
+            return;
+        }
+
+        bool ctrl = keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed;
+        if (ctrl && keyboard.deleteKey.wasPressedThisFrame && WellsAndOuthouses.Instance != null)
+        {
+            int done = WellsAndOuthouses.Instance.DebugFinishLeaches();
+            Show(done > 0 ? $"Leach finished in {done} hopper(s): the Ash is Lye" : "No Leach Hopper is leaching", time);
+            return;
+        }
+
+        if (ctrl && keyboard.insertKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
+        {
+            Transform body = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 flat = Vector3.ProjectOnPlane(body.forward, Vector3.up).normalized;
+            Vector3 at = body.position + flat * 3f;
+            Terrain terrain = Terrain.activeTerrain;
+            if (terrain != null)
+                at.y = terrain.SampleHeight(at) + terrain.transform.position.y;
+            WoodManager.Instance.DebugPlace(PileKind.LeachHopper, at, body.eulerAngles.y);
+            int ash = InventoryManager.Instance.AddToPlayer(AshRules.ItemId, 12);
+            int bad = InventoryManager.Instance.AddToPlayer("water_unsafe", 6), good = InventoryManager.Instance.AddToPlayer("water_good", 6);
+            Show($"Leach Hopper placed ahead. Given {ash} Ash and {bad + good} L of water", time);
             return;
         }
 

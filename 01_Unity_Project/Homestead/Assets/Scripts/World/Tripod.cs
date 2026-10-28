@@ -125,8 +125,8 @@ public class Tripod : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (!CanInteract(null))
                 return "";
             string line = TripodRules.StepPrompt(NextStep(), NameOf);
-            bool boiling = state.vessel == TripodRules.PotId && CampfireCooking.Instance != null && CampfireCooking.Instance.IsBusy;
-            return boiling ? line + "  · a boil is queued" : line;
+            string job = CampfireCooking.Instance != null ? CampfireCooking.Instance.JobTextFor(state.vessel) : null;
+            return job != null ? line + "\n" + NameOf(state.vessel) + " hung: " + job : line;
         }
     }
 

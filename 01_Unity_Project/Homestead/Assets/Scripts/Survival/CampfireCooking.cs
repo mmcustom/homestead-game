@@ -55,6 +55,7 @@ public class CampfireCooking : MonoBehaviour
     {
         if (item == null) return 1f;
         if (Cooking.IsSapBoil(item.Id)) return MapleRules.SecondsPerSyrup; // a whole 10 L batch
+        if (Cooking.IsLyeBoil(item.Id)) return PotashRules.BoilSeconds;    // a whole batch of 3 Lye
         if (Cooking.IsBoilable(item.Id)) return boilSeconds;
         switch (item.Id)
         {
@@ -71,8 +72,18 @@ public class CampfireCooking : MonoBehaviour
     // batches of 10 L (one Syrup each), not litres.
     public bool Enqueue(ItemDefinition item, int count)
     {
-        if (item == null || count <= 0 || !(Cooking.IsCookable(item.Id) || Cooking.IsBoilable(item.Id) || Cooking.IsSapBoil(item.Id)))
+        if (item == null || count <= 0 || !(Cooking.IsCookable(item.Id) || Cooking.IsBoilable(item.Id) || Cooking.IsSapBoil(item.Id) || Cooking.IsLyeBoil(item.Id)))
             return false;
+        if (Cooking.IsLyeBoil(item.Id))
+        {
+            if (!Cooking.CheckBoilVessel(player, "Boiling lye", TripodRules.KettleId))
+                return false;
+            if (PotashRules.PotashBatches(Carried(item), CarriedFirewood) <= 0)
+            {
+                ToolStatus.Flash("Boiling lye " + PotashRules.NeedMessage(Carried(item), CarriedFirewood));
+                return false;
+            }
+        }
         if (Cooking.IsSapBoil(item.Id))
         {
             if (!Cooking.CheckBoilVessel(player, "Boiling sap"))
@@ -119,6 +130,8 @@ public class CampfireCooking : MonoBehaviour
         Job job = Find(item);
         if (job == null)
             return 0;
+        if (Cooking.IsLyeBoil(item.Id))
+            return Mathf.Min(job.remaining, PotashRules.PotashBatches(Carried(item), CarriedFirewood)); // batches of 3 Lye and 2 Firewood
         return Mathf.Min(job.remaining, Cooking.IsSapBoil(item.Id) ? MapleRules.SyrupFrom(Carried(item)) : Carried(item));
     }
 
@@ -132,6 +145,21 @@ public class CampfireCooking : MonoBehaviour
 
     static int Carried(ItemDefinition item) =>
         InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(item.Id) : 0;
+
+    static int CarriedFirewood => InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(AshRules.FirewoodId) : 0;
+
+    // What the queued boil at this vessel is doing now, for the tripod's prompt: "boiling Lye, 2 Potash to go" (null when nothing is queued for it).
+    public string JobTextFor(string vesselId)
+    {
+        if (queue.Count == 0 || vesselId == null || Cooking.BoilVessel(queue[0].item.Id) != vesselId)
+            return null;
+        ItemDefinition item = queue[0].item;
+        int left = RemainingOf(item);
+        if (left <= 0)
+            return null;
+        string unit = Cooking.IsLyeBoil(item.Id) ? "Potash" : Cooking.IsSapBoil(item.Id) ? "Syrup" : "L";
+        return $"boiling {item.DisplayName}, {left} {unit} to go";
+    }
 
     void Update()
     {
@@ -160,7 +188,8 @@ public class CampfireCooking : MonoBehaviour
 
         Job current = queue[0];
         bool sap = Cooking.IsSapBoil(current.item.Id);
-        bool boiling = Cooking.IsBoilable(current.item.Id) || sap;
+        bool lye = Cooking.IsLyeBoil(current.item.Id); // like sap, queued by batches, not litres
+        bool boiling = Cooking.IsBoilable(current.item.Id) || sap || lye;
         string verb = boiling ? "Boiling" : "Cooking";
         int left = RemainingOf(current.item);
 
@@ -185,11 +214,11 @@ public class CampfireCooking : MonoBehaviour
         sizzleAt = fire.position;
 
         // Pour the next potful in before boiling it (sap: the pot is poured as each 10 L batch starts, and topped up as it boils down).
-        if (boiling && progress <= 0f && (sap || litresInPot <= 0))
+        if (boiling && progress <= 0f && (sap || lye || litresInPot <= 0))
         {
-            if (!sap)
+            if (!sap && !lye)
                 litresInPot = Mathf.Min(potLitres, left);
-            if (AudioManager.Instance != null)
+            if (!lye && AudioManager.Instance != null)
                 AudioManager.Instance.Play(SoundCue.Pour);
         }
 
@@ -199,6 +228,7 @@ public class CampfireCooking : MonoBehaviour
         if (state == GameState.Playing)
         {
             string what = sap ? $"{current.item.DisplayName}, {left} Syrup to go"
+                        : lye ? $"{current.item.DisplayName}, {left} Potash to go"
                         : boiling ? $"{current.item.DisplayName}, {left} L to go" : $"{current.item.DisplayName}, {left} to go";
             ToolStatus.Report($"{verb} {what}", Mathf.Clamp01(progress / seconds), false);
         }
@@ -212,12 +242,12 @@ public class CampfireCooking : MonoBehaviour
         {
             if (current.remaining != int.MaxValue)
                 current.remaining--;
-            if (boiling && !sap)
+            if (boiling && !sap && !lye)
                 litresInPot--;
         }
-        else if (sap)
+        else if (sap || lye)
         {
-            queue.Remove(current); // no Pot or no room: stop rather than try again every 12 s (the sap is untouched)
+            queue.Remove(current); // no vessel or no room: stop rather than try again every batch (the sap, or the Lye and Firewood, are untouched)
         }
         return playing;
     }

@@ -183,6 +183,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite:
             case PileKind.FoodCacheSite:
             case PileKind.WoodShedSite:
+            case PileKind.LeachHopperSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -201,6 +202,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite: return PileKind.RainBarrel;
             case PileKind.FoodCacheSite: return PileKind.FoodCache;
             case PileKind.WoodShedSite: return PileKind.WoodShed;
+            case PileKind.LeachHopperSite: return PileKind.LeachHopper;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -227,6 +229,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite: return Stored(PileKind.RainBarrel, (WoodManager.LogsId, 3), (WoodManager.BranchesId, 2));
             case PileKind.FoodCacheSite: return Stored(PileKind.FoodCache, (WoodManager.LogsId, 2), (WoodManager.BranchesId, 4));
             case PileKind.WoodShedSite: return WoodShedCost();
+            case PileKind.LeachHopperSite: return LeachHopperCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -262,6 +265,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.ClayId } }; // the Stone first, then the Clay
         if (site == PileKind.KitchenRoofSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
+        if (site == PileKind.LeachHopperSite)
+            return new[] { new[] { WoodManager.LogsId, WoodManager.TallGrassId } };
         if (site == PileKind.RainBarrelSite || site == PileKind.FoodCacheSite || site == PileKind.WoodShedSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId } };
         return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.LogsId, WoodManager.BranchesId } };
@@ -393,6 +398,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RainBarrelSite: return rainBarrelBuildBlows;
             case PileKind.FoodCacheSite: return foodCacheBuildBlows;
             case PileKind.WoodShedSite: return woodShedBuildBlows;
+            case PileKind.LeachHopperSite: return PotashRules.HopperBuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -489,6 +495,13 @@ public class WellsAndOuthouses : MonoBehaviour
             new WoodStack { itemId = WoodManager.BranchesId, count = w != null ? w.woodShedBranches : 8 },
         };
     }
+
+    // A Leach Hopper (Potash B): 3 Logs and 4 Tall Grass, 24.4 kg, so a staged site. The numbers are PotashRules's.
+    public static WoodStack[] LeachHopperCost() => new[]
+    {
+        new WoodStack { itemId = WoodManager.LogsId, count = PotashRules.HopperLogs },
+        new WoodStack { itemId = WoodManager.TallGrassId, count = PotashRules.HopperTallGrass },
+    };
 
     public static WoodStack[] CountertopCost()
     {
@@ -769,6 +782,13 @@ public class WellsAndOuthouses : MonoBehaviour
             return false;
         }
 
+        // A Leach Hopper stands on any dry ground (the floodplain test above is its only rule).
+        if (kind == PileKind.LeachHopperSite || kind == PileKind.LeachHopper)
+        {
+            reason = "";
+            return true;
+        }
+
         // A Wood Shed only needs dry ground clear of the cabin (the floodplain test above is its other rule).
         if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed)
             return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
@@ -930,6 +950,35 @@ public class WellsAndOuthouses : MonoBehaviour
         return weather != null && weather.IsDrought ? numbers.droughtRecoveryLitresPerHour : numbers.recoveryLitresPerHour;
     }
 
+    // The batch has leached: the Ash in the hopper is Lye now (one for one).
+    public static void TurnAshIntoLye(WoodPileState hopper)
+    {
+        int ash = hopper.Count(AshRules.ItemId);
+        if (ash <= 0)
+            return;
+        hopper.Take(AshRules.ItemId, ash);
+        hopper.Add(PotashRules.LyeId, ash);
+    }
+
+    // Testing only (TimeDebugControls): every running batch is done now. Returns how many hoppers finished.
+    public int DebugFinishLeaches()
+    {
+        WoodManager wood = WoodManager.Instance;
+        int done = 0;
+        if (wood == null)
+            return 0;
+        foreach (WoodPileState hopper in wood.Piles)
+        {
+            if (hopper.kind != PileKind.LeachHopper || hopper.leachHours <= 0f)
+                continue;
+            hopper.leachHours = 0f;
+            TurnAshIntoLye(hopper);
+            wood.NotifyChanged(hopper);
+            done++;
+        }
+        return done;
+    }
+
     // One game hour (sleep and day skips cross hours one at a time): wells refill, flood water clears, and a flash flood fouls any
     // well within reach of the channel.
     void OnHour(int hour)
@@ -937,6 +986,18 @@ public class WellsAndOuthouses : MonoBehaviour
         WoodManager wood = WoodManager.Instance;
         if (wood == null)
             return;
+
+        // A Leach Hopper's batch drips through one game hour at a time, so sleep and day skips (which cross every hour) finish it too.
+        foreach (WoodPileState hopper in wood.Piles)
+        {
+            if (hopper.kind != PileKind.LeachHopper || hopper.leachHours <= 0f)
+                continue;
+            float before = hopper.leachHours;
+            hopper.leachHours = PotashRules.LeachAfterHour(before);
+            if (PotashRules.FinishedThisHour(before, hopper.leachHours))
+                TurnAshIntoLye(hopper);
+            wood.NotifyChanged(hopper);
+        }
 
         bool flood = StreamManager.State == StreamState.FlashFlood;
         foreach (WoodPileState pile in wood.Piles)

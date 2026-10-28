@@ -264,6 +264,8 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
                 return false;
             if (inventory.Player.Count(MapleRules.SapId) >= MapleRules.SapPerSyrup)
                 return true; // enough sap for a Syrup
+            if (PotashRules.PotashBatches(inventory.Player.Count(PotashRules.LyeId), inventory.Player.Count(AshRules.FirewoodId)) > 0)
+                return true; // enough Lye and Firewood for a Potash
             foreach (ItemStack stack in inventory.Player.Stacks)
                 if (Cooking.IsCookable(stack.itemId) || Cooking.IsBoilable(stack.itemId))
                     return true;

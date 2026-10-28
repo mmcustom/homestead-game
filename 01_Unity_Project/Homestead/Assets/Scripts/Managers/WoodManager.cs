@@ -39,7 +39,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper }
 
 [Serializable]
 public class WoodPileState
@@ -60,6 +60,9 @@ public class WoodPileState
     // Well Water Table B3 (appended, so older saves load 0): metres to the water where a Well Site was placed (WellWater). It sets the well's dig,
     // Stone, buffer and recovery for good. 0 is a well from before depth existed: it keeps today's numbers (WellWater's Legacy result).
     public float depthToWater;
+    // Potash B (appended, so older saves load 0): a Leach Hopper's game hours still to leach (PotashRules.LeachGameHours when a batch is loaded, 0 when none
+    // is running). The Ash waiting and the Lye ready are in contents.
+    public float leachHours;
 
     public int Count(string itemId)
     {
@@ -188,7 +191,7 @@ public class WoodPileState
     public bool IsOpenWoodPile => IsWoodPile;
     public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
-    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsKitchen => kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen;
     // A Countertop, Shelving, Grill or Slop Sink: stands in one of a finished Kitchen's four fixed slots (Setbacks.KitchenLayout).
     public bool IsKitchenAddon => WoodManager.IsKitchenAddon(kind);
@@ -222,10 +225,12 @@ public class WoodPileState
             case PileKind.FoodCacheSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
+            case PileKind.LeachHopperSite:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
             case PileKind.Countertop:
             case PileKind.Grill:
             case PileKind.SlopSink:
+            case PileKind.LeachHopper:
             case PileKind.Kitchen:
             case PileKind.Well:
             case PileKind.Outhouse:
@@ -827,7 +832,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -871,6 +876,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.Shelving: return AddonName(KitchenAddonPrefix, "Shelves");
             case PileKind.Grill: return AddonName(KitchenAddonPrefix, "Grill");
             case PileKind.SlopSink: return AddonName(KitchenAddonPrefix, "Sink");
+            case PileKind.LeachHopperSite: return "Leach Hopper Site";
+            case PileKind.LeachHopper: return "Leach Hopper";
             default: return "Wood Pile";
         }
     }
@@ -908,6 +915,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.Outhouse: return WellsAndOuthouses.OuthouseCost();
             // A Wood Shed Site is free to mark out the same way; PileKind.WoodShed holds its total and what Dismantle halves.
             case PileKind.WoodShed: return WellsAndOuthouses.WoodShedCost();
+            // A Leach Hopper Site is free to mark out the same way; PileKind.LeachHopper holds its total and what Dismantle halves.
+            case PileKind.LeachHopper: return WellsAndOuthouses.LeachHopperCost();
             // A Kitchen Site is free to mark out too; PileKind.Kitchen holds both stages' materials in total, what Dismantle halves line by line.
             case PileKind.Kitchen: return WellsAndOuthouses.KitchenCost();
             // The Kitchen add-ons are single-step builds (each under the 15 kg staged line); WellsAndOuthouses holds the numbers.
@@ -1085,7 +1094,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         // hollows (WellsAndOuthouses.CanPlace); the refusal names what it is too close to.
         // A Wood Shed Site keeps off floodplain and 3 m from the cabin (the same call).
 
-        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite) && WellsAndOuthouses.Instance != null &&
+        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite || kind == PileKind.LeachHopperSite) && WellsAndOuthouses.Instance != null &&
             !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         foreach (WoodPileState other in piles)
@@ -1153,6 +1162,16 @@ public class WoodManager : MonoBehaviour, ISaveable
         PileChanged?.Invoke(pile);
     }
 
+    // Testing only (TimeDebugControls): stands a finished pile of this kind at a spot, free of cost and of the placement rules.
+    public WoodPileState DebugPlace(PileKind kind, Vector3 point, float yaw)
+    {
+        var pile = new WoodPileState { id = nextPileId++, kind = kind, position = point, yaw = yaw, builtDay = 0 };
+        piles.Add(pile);
+        SpawnPile(pile);
+        PileChanged?.Invoke(pile);
+        return pile;
+    }
+
     // Builds it in front of the player (the fixed probe), facing the way the player does.
     public bool BuildPile(PileKind kind, PlayerController player)
     {
@@ -1165,7 +1184,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     public bool BuildPile(PileKind kind, PlayerController player, BuildSpot spot, float yaw)
     {
         if (kind == PileKind.Felled || kind == PileKind.Cabin || kind == PileKind.Well || kind == PileKind.Outhouse ||
-            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || kind == PileKind.WoodShed || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
+            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || kind == PileKind.WoodShed || kind == PileKind.LeachHopper || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
             return false;
 
         foreach (WoodStack c in CostOf(kind))

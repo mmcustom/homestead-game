@@ -46,6 +46,9 @@ public static class Cooking
     // Maple Sap boils down to Maple Syrup in the Cooking Pot (Maple C): a batch of 10 L at a time, not litre by litre.
     public static bool IsSapBoil(string itemId) => itemId == MapleRules.SapId;
 
+    // Lye boils down to Potash in the Potash Kettle (Potash B): 3 Lye and 2 Firewood a batch, so it is queued by batches like sap.
+    public static bool IsLyeBoil(string itemId) => itemId == PotashRules.LyeId;
+
     // The lit campfire the player can cook at, or null.
     public static CampfireState FireInReach(PlayerController player)
     {
@@ -54,8 +57,9 @@ public static class Cooking
         return FireManager.Instance.NearestLit(player.transform.position, Range);
     }
 
-    // The vessel a boil of this item hangs in: the Cooking Pot for water and sap; null for anything that is not a boil.
-    public static string BoilVessel(string itemId) => IsBoilable(itemId) || IsSapBoil(itemId) ? TripodRules.PotId : null;
+    // The vessel a boil of this item hangs in: the Cooking Pot for water and sap, the Potash Kettle for Lye; null for anything that is not a boil.
+    public static string BoilVessel(string itemId) =>
+        IsBoilable(itemId) || IsSapBoil(itemId) ? TripodRules.PotId : IsLyeBoil(itemId) ? TripodRules.KettleId : null;
 
     public static string VesselName(string itemId) => ItemDatabase.Get(itemId)?.DisplayName ?? itemId;
 
@@ -92,12 +96,12 @@ public static class Cooking
     }
 
     // True when the vessel is hung at a lit fire in reach; otherwise flashes why not (doing is "Boiling water" or "Boiling sap") and returns false.
-    public static bool CheckBoilVessel(PlayerController player, string doing)
+    public static bool CheckBoilVessel(PlayerController player, string doing, string vesselId = TripodRules.PotId)
     {
-        TripodRules.Gate gate = BoilGate(player, TripodRules.PotId);
+        TripodRules.Gate gate = BoilGate(player, vesselId);
         if (gate == TripodRules.Gate.Ok)
             return true;
-        ToolStatus.Flash(TripodRules.GateMessage(gate, doing, VesselName(TripodRules.PotId)));
+        ToolStatus.Flash(TripodRules.GateMessage(gate, doing, VesselName(vesselId)));
         return false;
     }
 
@@ -109,6 +113,8 @@ public static class Cooking
             return 0;
         if (IsSapBoil(raw.Id))
             return BoilSap(count, inventory, player);
+        if (IsLyeBoil(raw.Id))
+            return BoilLye(count, inventory, player);
 
         bool boil = IsBoilable(raw.Id);
         string outputId = boil ? PurifiedWaterId : CookedId(raw.Id);
@@ -155,6 +161,62 @@ public static class Cooking
 
         ToolStatus.Flash(MapleRules.BoiledMessage(made, made * MapleRules.SapPerSyrup));
         return made;
+    }
+
+    // Boils batches of Lye into Potash straight away (the queue calls it once a batch has run its 18 s). Returns the Potash made.
+    static int BoilLye(int batches, InventoryManager inventory, PlayerController player)
+    {
+        if (!CheckBoilVessel(player, "Boiling lye", TripodRules.KettleId))
+            return 0;
+
+        int lye = inventory.Player.Count(PotashRules.LyeId), firewood = inventory.Player.Count(AshRules.FirewoodId);
+        if (PotashRules.PotashBatches(lye, firewood) <= 0)
+        {
+            ToolStatus.Flash("Boiling lye " + PotashRules.NeedMessage(lye, firewood));
+            return 0;
+        }
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        int made = BoilLyeInto(inventory.Player, batches, TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0);
+        if (made <= 0)
+        {
+            ToolStatus.Flash("No room to carry the Potash — the Lye and Firewood are kept");
+            return 0;
+        }
+
+        ToolStatus.Flash(PotashRules.BoiledMessage(made));
+        return made;
+    }
+
+    // The swap itself: the Lye and Firewood come out (the Firewood is an ingredient, burned away in the boil, so it leaves no Ash) and the Potash
+    // goes in. If the Potash cannot all be added, everything is put back exactly, the Firewood with the day it had (nothing is ever lost).
+    // Returns the Potash made, 0 if nothing changed.
+    public static int BoilLyeInto(InventoryContainer pack, int batches, int day)
+    {
+        ItemDefinition lye = ItemDatabase.Get(PotashRules.LyeId), firewood = ItemDatabase.Get(AshRules.FirewoodId), potash = ItemDatabase.Get(PotashRules.PotashId);
+        if (pack == null || lye == null || firewood == null || potash == null || batches <= 0)
+            return 0;
+
+        int make = System.Math.Min(batches, PotashRules.PotashBatches(pack.Count(PotashRules.LyeId), pack.Count(AshRules.FirewoodId)));
+        if (make <= 0)
+            return 0;
+
+        int lyeTaken = pack.Remove(PotashRules.LyeId, PotashRules.LyeFor(make));
+        var days = new System.Collections.Generic.List<(int day, int count)>();
+        int firewoodTaken = pack.RemoveBatches(AshRules.FirewoodId, PotashRules.FirewoodFor(make), (d, n) => days.Add((d, n)));
+        bool took = lyeTaken == PotashRules.LyeFor(make) && firewoodTaken == PotashRules.FirewoodFor(make);
+        int made = took ? pack.Add(potash, make, day) : 0;
+        if (made == make)
+            return made;
+
+        if (made > 0)
+            pack.Remove(PotashRules.PotashId, made);
+        if (lyeTaken > 0)
+            pack.Add(lye, lyeTaken, 0);
+        foreach ((int d, int n) in days)
+            pack.Add(firewood, n, d);
+        return 0;
     }
 
     // The swap itself: the sap comes out and the Syrup goes in, and if the Syrup cannot all be added the sap is put back exactly (nothing is

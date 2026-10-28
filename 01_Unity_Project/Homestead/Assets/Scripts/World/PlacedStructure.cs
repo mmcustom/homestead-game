@@ -22,6 +22,8 @@ public static class StructureVisuals
             case PileKind.RainBarrelSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.5f, out boxCenter, out boxSize); return;
             case PileKind.FoodCacheSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.55f, out boxCenter, out boxSize); return;
             case PileKind.WoodShedSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.9f, out boxCenter, out boxSize); return;
+            case PileKind.LeachHopperSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.7f, out boxCenter, out boxSize); return;
+            case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.Kitchen: BuildKitchen(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -88,6 +90,37 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.4f, 0f);
         boxSize = new Vector3(1.6f, 0.9f, 1.6f);
+    }
+
+    static readonly Color AshColor = new Color(0.55f, 0.55f, 0.52f);
+    static readonly Color LyeColor = new Color(0.62f, 0.5f, 0.28f);
+
+    // The Leach Hopper (Potash B): four legs, a wooden trough of Ash with water dripping through it into a clay pot beneath. The fill rises with what it
+    // holds and is grey while the Ash is leaching, brown once it is Lye.
+    static void BuildLeachHopper(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        foreach (Vector2 corner in new[] { new Vector2(-0.42f, -0.42f), new Vector2(0.42f, -0.42f), new Vector2(-0.42f, 0.42f), new Vector2(0.42f, 0.42f) })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, 0.45f, corner.y), Vector3.zero, new Vector3(0.1f, 0.45f, 0.1f), bark);
+        Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.92f, 0f), Vector3.zero, new Vector3(1.05f, 0.1f, 1.05f), bark);
+        foreach (Vector2 side in new[] { new Vector2(0f, -0.5f), new Vector2(0f, 0.5f) })
+            Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side.x, 1.15f, side.y), Vector3.zero, new Vector3(1.05f, 0.4f, 0.08f), bark);
+        foreach (Vector2 side in new[] { new Vector2(-0.5f, 0f), new Vector2(0.5f, 0f) })
+            Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side.x, 1.15f, side.y), Vector3.zero, new Vector3(0.08f, 0.4f, 1.05f), bark);
+
+        int held = state.Total;
+        if (held > 0)
+        {
+            float level = 0.04f + 0.3f * Mathf.Clamp01(held / (float)PotashRules.HopperCapacity);
+            Color fill = state.Count(PotashRules.LyeId) > 0 && state.leachHours <= 0f ? LyeColor : AshColor;
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.97f + level / 2f, 0f), Vector3.zero, new Vector3(0.95f, level, 0.95f), null), fill);
+        }
+
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.2f, 0f), Vector3.zero, new Vector3(0.5f, 0.2f, 0.5f), null), ClayColor);
+        if (state.leachHours > 0f)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0f, 0.55f, 0f), Vector3.zero, new Vector3(0.06f, 0.3f, 0.06f), null), new Color(0.2f, 0.28f, 0.34f));
+
+        boxCenter = new Vector3(0f, 0.7f, 0f);
+        boxSize = new Vector3(1.2f, 1.4f, 1.2f);
     }
 
     static readonly Color ClayColor = new Color(0.52f, 0.34f, 0.22f);
@@ -417,6 +450,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Countertop: return Name + "\nA work surface under the kitchen roof - nothing to do at it yet";
                 case PileKind.Grill: return GrillPrompt();
                 case PileKind.SlopSink: return SinkPrompt();
+                case PileKind.LeachHopper: return HopperPrompt();
                 default: return OuthousePrompt();
             }
         }
@@ -612,6 +646,109 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         Dismantle();
     }
 
+    // --- The Leach Hopper (Potash B): R loads Ash and water, E collects the Lye, R with the Hammer dismantles ---
+
+    bool Leaching => state.leachHours > 0f;
+
+    int[] CarriedWater()
+    {
+        var litres = new int[PotashRules.WaterWorstFirst.Length];
+        for (int i = 0; i < litres.Length; i++)
+            litres[i] = Inventory.Player.Count(PotashRules.WaterWorstFirst[i]);
+        return litres;
+    }
+
+    PotashRules.LoadPlan CarriedLoad() =>
+        PotashRules.PlanLoad(Inventory.Player.Count(AshRules.ItemId), CarriedWater(), PotashRules.Room(state.Total));
+
+    string HopperPrompt()
+    {
+        int ready = state.Count(PotashRules.LyeId), pending = state.Count(AshRules.ItemId);
+        if (Leaching)
+            return $"{Name}  (leaching {pending} Lye, {PotashRules.HoursText(state.leachHours)} to go{(ready > 0 ? $", {ready} ready" : "")})";
+        if (ready > 0)
+            return $"Collect Lye  ({ready} ready in the {Name})";
+        return $"{Name}  (empty, holds {PotashRules.HopperCapacity} Lye: 1 Ash and 1 L of water each)";
+    }
+
+    string HopperSecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return $"Dismantle the {Name}  (half the Logs and Tall Grass back, rounded down; the Ash and Lye in it come back, the water is lost)";
+        if (Leaching)
+            return $"Still leaching - {PotashRules.HoursText(state.leachHours)} to go  (loading waits; equip the Hammer to dismantle)";
+        PotashRules.LoadPlan plan = CarriedLoad();
+        if (plan.lye > 0)
+            return $"Load {plan.ash} Ash and {PotashRules.WaterFor(plan.lye)} L of water  ({plan.lye} Lye in {PotashRules.HoursText(PotashRules.LeachGameHours)})";
+        return "Load Ash and water  (1 Ash and 1 L each; the worst water goes in first. Equip the Hammer to dismantle)";
+    }
+
+    // E: the Lye that has finished leaching, as much as the pack can carry.
+    void CollectLye()
+    {
+        int ready = state.Count(PotashRules.LyeId);
+        if (ready <= 0)
+        {
+            ToolStatus.Flash(Leaching ? $"Still leaching - {PotashRules.HoursText(state.leachHours)} to go." : $"The {Name} is empty. Load Ash and water with R.", 3f);
+            return;
+        }
+        ItemDefinition lye = ItemDatabase.Get(PotashRules.LyeId);
+        int fits = lye != null ? Mathf.Min(ready, Inventory.Player.SpaceFor(lye)) : 0;
+        if (fits <= 0)
+        {
+            ToolStatus.Flash("Too heavy - no room to carry any of it", 3f);
+            return;
+        }
+        int added = Inventory.AddToPlayer(PotashRules.LyeId, fits);
+        state.Take(PotashRules.LyeId, added);
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(added < ready ? $"Took {added} Lye  ({ready - added} left in the {Name}, no room)" : $"Took {added} Lye", 3f);
+    }
+
+    // R: with the Hammer it dismantles; without, it loads Ash and water (worst water first), unless a batch is still leaching.
+    void HopperSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        if (Leaching)
+        {
+            ToolStatus.Flash(PotashRules.LoadRefusedWhileLeaching(state.leachHours), 3.5f);
+            return;
+        }
+
+        PotashRules.LoadPlan plan = CarriedLoad();
+        if (plan.lye <= 0)
+        {
+            int ash = Inventory.Player.Count(AshRules.ItemId), water = 0;
+            foreach (int litres in CarriedWater())
+                water += litres;
+            ToolStatus.Flash(PotashRules.Room(state.Total) <= 0 ? $"The {Name} is full - collect the Lye (E)."
+                           : ash <= 0 ? "You need Ash to load it (1 Ash and 1 L of water per Lye)."
+                           : water <= 0 ? "You need water to load it (1 L per Lye; raw or boiled)." : "Nothing to load.", 3.5f);
+            return;
+        }
+
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        Inventory.RemoveFromPlayer(AshRules.ItemId, plan.ash);
+        int litresUsed = 0;
+        for (int i = 0; i < plan.water.Length; i++)
+        {
+            if (plan.water[i] <= 0)
+                continue;
+            litresUsed += Inventory.RemoveFromPlayer(PotashRules.WaterWorstFirst[i], plan.water[i]);
+        }
+        state.Add(AshRules.ItemId, plan.ash);
+        state.leachHours = PotashRules.LeachGameHours;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.Pour);
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(PotashRules.LoadedMessage(plan.lye, plan.ash, litresUsed), 4f);
+    }
+
     string WellPrompt()
     {
         WellsAndOuthouses w = Rules;
@@ -651,6 +788,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             }
             if (state.kind == PileKind.SlopSink)
                 return SinkSecondaryPrompt();
+            if (state.kind == PileKind.LeachHopper)
+                return HopperSecondaryPrompt();
             if (state.kind == PileKind.Grill)
             {
                 CampfireState fire = WoodManager.Instance.GrillFireOf(state);
@@ -690,6 +829,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Countertop: ToolStatus.Flash($"{Name}: a work surface under the roof. Nothing to do at it yet.", 3f); break;
             case PileKind.Grill: ToolStatus.Flash($"{Name}: {GrillFire()}. Light it, feed it and cook at the fire on top.", 3.5f); break;
             case PileKind.SlopSink: DrawFromSink(); break;
+            case PileKind.LeachHopper: CollectLye(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -850,6 +990,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             SinkSecondary();
         }
+        else if (state.kind == PileKind.LeachHopper)
+        {
+            HopperSecondary();
+        }
         else
         {
             Dismantle();
@@ -939,6 +1083,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
         string name = Name;
+        // A Leach Hopper gives back the Ash still leaching and the Lye waiting in it, whole; the water is lost.
+        if (state.kind == PileKind.LeachHopper)
+        {
+            refund.Return(AshRules.ItemId, state.Count(AshRules.ItemId));
+            refund.Return(PotashRules.LyeId, state.Count(PotashRules.LyeId));
+        }
         WoodManager.Instance.RemovePile(state);
         ToolStatus.Flash(refund.Describe(name), 5f);
     }

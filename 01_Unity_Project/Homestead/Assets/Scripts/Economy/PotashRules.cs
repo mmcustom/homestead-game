@@ -60,6 +60,87 @@ public static class PotashRules
 
     public static float SecondsFor(int batches) => batches > 0 ? batches * BoilSeconds : 0f;
 
+    // --- The Kettle's Lye row in the Inventory, and the words ---
+
+    // Boiling waits on the same gate the Pot's boils use (TripodRules.Gate), but the Kettle is the vessel. lye and firewood are what is carried; a
+    // batch takes LyePerPotash and FirewoodPerPotash.
+    public static string RowInfo(TripodRules.Gate gate, int lye, int firewood)
+    {
+        switch (gate)
+        {
+            case TripodRules.Gate.NoFire: return "needs a burning campfire";
+            case TripodRules.Gate.NoTripod:
+            case TripodRules.Gate.NoVessel: return "needs the Potash Kettle hung on a tripod";
+            case TripodRules.Gate.WrongVessel: return "hang the Potash Kettle (another vessel is on the tripod)";
+        }
+
+        int batches = PotashBatches(lye, firewood);
+        if (batches <= 0)
+            return NeedMessage(lye, firewood);
+        int lyeLeft = lye - LyeFor(batches), firewoodLeft = firewood - FirewoodFor(batches);
+        string left = lyeLeft > 0 || firewoodLeft > 0 ? $", {lyeLeft} Lye and {firewoodLeft} Firewood left over" : "";
+        return $"{LyeFor(batches)} Lye + {FirewoodFor(batches)} Firewood -> {batches} Potash{left}";
+    }
+
+    public static string NeedMessage(int lye, int firewood) =>
+        $"needs {LyePerPotash} Lye and {FirewoodPerPotash} Firewood (have {Math.Max(0, lye)} Lye and {Math.Max(0, firewood)} Firewood)";
+
+    public static string BoiledMessage(int potash) =>
+        $"Boiled {LyeFor(potash)} Lye and {FirewoodFor(potash)} Firewood into {potash} Potash";
+
+    // --- The leach hopper: what a load takes ---
+
+    // The Hopper site: 3 Logs and 4 Tall Grass (24.4 kg, so a staged site), finished with the Hammer.
+    public const int HopperLogs = 3;
+    public const int HopperTallGrass = 4;
+    public const int HopperBuildBlows = 20;
+
+    // The raw and boiled water a load can take, worst first: the poorest water goes into the hopper and the best is kept to drink.
+    public static readonly string[] WaterWorstFirst = { "water_unsafe", "water_questionable", "water_good", "water_excellent", "water" };
+
+    public struct LoadPlan
+    {
+        public int lye;      // Lye the load will make
+        public int ash;      // Ash it takes
+        public int[] water;  // litres taken from each of WaterWorstFirst, in that order
+    }
+
+    // What one R press loads: up to the room in the hopper, limited by the Ash and the litres carried. waterCarried lines up with WaterWorstFirst.
+    public static LoadPlan PlanLoad(int ash, int[] waterCarried, int room)
+    {
+        int total = 0;
+        if (waterCarried != null)
+            foreach (int litres in waterCarried)
+                total += Math.Max(0, litres);
+
+        var plan = new LoadPlan { lye = LyeBatch(ash, total, room), water = new int[WaterWorstFirst.Length] };
+        plan.ash = AshFor(plan.lye);
+        int still = WaterFor(plan.lye);
+        for (int i = 0; i < plan.water.Length && still > 0 && waterCarried != null && i < waterCarried.Length; i++)
+        {
+            plan.water[i] = Math.Min(Math.Max(0, waterCarried[i]), still);
+            still -= plan.water[i];
+        }
+        return plan;
+    }
+
+    // Room left in a hopper holding this many pieces (the Ash waiting to leach and the Lye waiting to be collected).
+    public static int Room(int held) => Math.Max(0, HopperCapacity - Math.Max(0, held));
+
+    // One game hour of leaching. hoursLeft is 0 when no batch is running.
+    public static float LeachAfterHour(float hoursLeft) => hoursLeft > 0f ? Math.Max(0f, hoursLeft - 1f) : 0f;
+
+    // True on the hour a running batch finishes (it was running and now is not).
+    public static bool FinishedThisHour(float before, float after) => before > 0f && after <= 0f;
+
+    public static string HoursText(float hoursLeft) => $"{Math.Max(0, (int)Math.Ceiling(hoursLeft - 0.0001f))} h";
+
+    public static string LoadedMessage(int lye, int ash, int litres) =>
+        $"Loaded {ash} Ash and {litres} L of water - {lye} Lye in {HoursText(LeachGameHours)}";
+
+    public static string LoadRefusedWhileLeaching(float hoursLeft) =>
+        $"The hopper is still leaching - {HoursText(hoursLeft)} to go. Collect the Lye when it is done.";
+
     // --- The market ---
 
     // Lye and Potash are one group, Potash, each item its own pool: 5% off per unit, floor 0.25 of normal, the same price all year. Recovery
