@@ -134,3 +134,24 @@ Nothing else sold: no logs, firewood or stone, no fish, forage or meat (the cate
 
 
 **Update 2026-10-26 (Mike): the 6 snares went down on game day 4.** That leaves about 24.75 active days of 27.75. The 48 small furs are then about 1.94 a day, or about 0.32 per snare per day, against the model's 0.39 successful catches per snare per day for a daily check: the model overpredicted by roughly 15 to 20%, close enough to use. Fur income per ACTIVE day is about $4.49 ($111.20 over 24.75 days), not the $4.01 spread over the whole season. Snare changes (2-catch snare, 5% odds, spacing, bait, fur quality) can be sized with the model as it stands, trimmed by about 15%. Still open: Ash volume by fuel type; what the real-minutes counter includes.
+
+
+## Winter Pioneer run, Spring Y1 statement (2026-10-28, Mike's screenshots; item CSV not yet exported)
+
+Build b552bef (Maple, Tripod, Potash, teaching pass in). New Pioneer game, 5 acres, 27.75 game days, 252.9 real minutes (about 9.1 real minutes per game day, so time keys were used; per-real-hour figure is not comparable with the first run).
+
+| Line | Winter-run Spring Y1 | First Pioneer run, Spring Y1 |
+|---|---|---|
+| Income | $227.09 | $177.16 |
+| Income per game day | $8.18 | $6.38 |
+| Coverage of the $20.48 payment | about 40% | about 31% |
+| Expenses | $152.00 | not recorded here |
+| Net / cash at end | $75.09 | not recorded here |
+| Hides and furs | $120.03 | $111.20 |
+| Firewood, logs and stone (Ash, and Lye or Potash if sold) | $76.70 | $50.13 (Ash) |
+| Crafted goods (Kindling Bundles) | $20.36 | $14.83 |
+| Farm produce | $10.00 (looks like one Maple Syrup at $10; to confirm) | none |
+
+Expenses: hunting and fishing $92.00, shelter and bedding $15.00, cooking, water, fire $45.00 (fits Cooking Pot $12 + Potash Kettle $25 + Flint and Steel $8; to confirm). Per game day: income $8.18, expenses $5.48, net $2.71. Income per real hour $53.87 (not comparable, see above).
+
+Reading: income is up about 28% on the first Pioneer run ($49.93 more in the same 27.75 days), mostly Ash side ($26.57 more in the Firewood, logs and stone line), Kindling Bundles and a little more fur. The gap to the payment is now about $12.30 a game day (was $14.10). Rough projection only: if Summer and Fall hold about $8 a game day and Winter adds about $9 a day of Maple over 28 days, cash at day 112 is roughly $950 to $1,000 against the $573.39 first payment, so a cushion of roughly $350 to $400 after payment 1; payment 2 (day 140) is probably covered; payment 3 (day 168) is where it runs short unless income keeps growing. To refine with the Summer, Fall and Winter statements and the item CSV (End key) which splits Ash, Lye, Potash and Syrup.
