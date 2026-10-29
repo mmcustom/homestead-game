@@ -33,11 +33,8 @@ public class CraftingScreen : GameScreen
     static readonly Color Good = new Color(0.56f, 0.82f, 0.42f);
     static readonly Color Bad = new Color(0.9f, 0.45f, 0.3f);
 
-    struct Req
-    {
-        public string label;
-        public int have, need;
-    }
+    // A staged site counts as "placed nearby" for the have / need lines when it is this close to the player (metres). Display only.
+    const float NearbySiteMetres = 30f;
 
     // One row of either tab, rebuilt from the game state on every refresh.
     class Entry
@@ -45,7 +42,10 @@ public class CraftingScreen : GameScreen
         public string key, name, category, help, info, cost, actionLabel, failHeading;
         public bool can, multi;
         public string reason;                              // why not, for Build (Craft's is its have / need lines)
-        public List<List<Req>> sets = new List<List<Req>>(); // alternatives; one set for most
+        public string marker = "";                         // HAVE / SHORT / NEED beside the row's name (MaterialCheckRules.RowMarker)
+        public List<List<MaterialLine>> sets = new List<List<MaterialLine>>(); // alternatives; one set for most
+        // A build in stages (the Covered Kitchen): the same materials as one set, shown stage by stage.
+        public List<(string title, List<MaterialLine> lines)> stages;
         public List<(string text, int state)> notes = new List<(string, int)>(); // state: 0 plain, 1 ok, 2 short
         public Crafting.Recipe recipe;
         public int maxCrafts;
@@ -140,7 +140,11 @@ public class CraftingScreen : GameScreen
         Top(reqHeading.rectTransform, 172f, 32f);
         reqLabel = UiKit.Text(right, "Needs", "", 23, UiKit.Cream, TextAnchor.UpperLeft);
         reqLabel.lineSpacing = 1.1f;
-        Top(reqLabel.rectTransform, 208f, 300f);
+        // Down to just above the reason line, so a long list (the Covered Kitchen's two stages) has room without a smaller font.
+        reqLabel.rectTransform.anchorMin = Vector2.zero;
+        reqLabel.rectTransform.anchorMax = Vector2.one;
+        reqLabel.rectTransform.offsetMin = new Vector2(0f, 176f);
+        reqLabel.rectTransform.offsetMax = new Vector2(0f, -208f);
 
         // Reason or notice, the quantity row and the action button, from the bottom.
         reasonLabel = UiKit.Text(right, "Reason", "", 19, UiKit.Muted, TextAnchor.LowerLeft);
@@ -300,7 +304,7 @@ public class CraftingScreen : GameScreen
         if (!shown.Exists(e => e.key == selectedKey[m]))
             selectedKey[m] = shown.Count > 0 ? shown[0].key : null;
 
-        string signature = string.Join("|", shown.ConvertAll(e => e.key + (e.can ? "+" : "-") + e.name + e.cost)) + "#" + m + categoryIndex[m];
+        string signature = string.Join("|", shown.ConvertAll(e => e.key + (e.can ? "+" : "-") + e.name + e.marker + e.cost)) + "#" + m + categoryIndex[m];
         if (signature != lastSignature)
         {
             lastSignature = signature;
@@ -328,7 +332,7 @@ public class CraftingScreen : GameScreen
             UiKit.Height(row, RowHeight);
             Destroy(row.GetComponentInChildren<Text>().gameObject);
             var rt = (RectTransform)row.transform;
-            Text nameText = UiKit.Text(rt, "Name", entry.name, 22, UiKit.Cream, TextAnchor.MiddleLeft);
+            Text nameText = UiKit.Text(rt, "Name", entry.name + MarkerText(entry.marker), 22, UiKit.Cream, TextAnchor.MiddleLeft);
             nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
             nameText.rectTransform.anchorMin = Vector2.zero;
             nameText.rectTransform.anchorMax = new Vector2(0.52f, 1f);
@@ -414,7 +418,7 @@ public class CraftingScreen : GameScreen
         nameLabel.text = none ? "" : e.name;
         helpLabel.text = none ? "" : e.help;
         infoLabel.text = none ? "" : e.info;
-        reqHeading.text = none ? "" : (e.sets.Count > 0 || e.notes.Count > 0 ? (mode == Mode.Craft ? "Needs  (have / need)" : "Needs") : "");
+        reqHeading.text = none ? "" : RequirementsHeading(e);
         reqLabel.text = none ? "" : Requirements(e);
 
         string message = Notice;
@@ -458,15 +462,70 @@ public class CraftingScreen : GameScreen
         UpdateDetail();
     }
 
+    // The sets in the form MaterialCheckRules takes.
+    static IList<IList<MaterialLine>> AsSets(Entry e)
+    {
+        var sets = new List<IList<MaterialLine>>();
+        foreach (List<MaterialLine> set in e.sets)
+            sets.Add(set);
+        return sets;
+    }
+
+    // " HAVE" / " SHORT" / " NEED" after a row's name, coloured as the lines are (the word carries the meaning; colour is a bonus).
+    static string MarkerText(string marker)
+    {
+        if (string.IsNullOrEmpty(marker))
+            return "";
+        string color = marker == "HAVE" ? "#8FD16A" : marker == "SHORT" ? "#E8B84A" : "#E67350";
+        return $"  <color={color}><b>{marker}</b></color>";
+    }
+
+    static string StatusColor(MaterialStatus status) => status == MaterialStatus.Have ? "#8FD16A" : status == MaterialStatus.Short ? "#E8B84A" : "#E67350";
+
+    // "Missing: 2 of 5 materials" for the closest way to make it (or the whole list for a build in stages); "Needs" when there are only notes.
+    static string RequirementsHeading(Entry e)
+    {
+        if (e.sets.Count == 0)
+            return e.notes.Count > 0 ? "Needs" : "";
+        IList<IList<MaterialLine>> sets = AsSets(e);
+        int closest = MaterialCheckRules.Closest(sets);
+        string heading = MaterialCheckRules.Heading(e.sets[closest]);
+        if (e.sets.Count == 1)
+            return heading;
+        return MaterialCheckRules.Covered(e.sets[closest]) ? MaterialCheckRules.CanMakeWithThisSet : heading + "  (closest set)";
+    }
+
+    static string LineText(MaterialLine line) =>
+        $"<color={StatusColor(line.Status)}><b>{MaterialCheckRules.StatusWord(line)}</b>  {MaterialCheckRules.Counts(line)}</color>\n";
+
     static string Requirements(Entry e)
     {
         var text = new System.Text.StringBuilder();
-        for (int s = 0; s < e.sets.Count; s++)
+        if (e.stages != null)
         {
-            if (e.sets.Count > 1)
-                text.Append(s == 0 ? "<color=#EDE3C799>Either</color>\n" : "<color=#EDE3C799>or</color>\n");
-            foreach (Req r in e.sets[s])
-                text.Append($"<color={(r.have >= r.need ? "#8FD16A" : "#E67350")}>{r.label}   {r.have} / {r.need}</color>\n");
+            // Stage by stage, the lines still missing first within each.
+            foreach ((string title, List<MaterialLine> lines) in e.stages)
+            {
+                text.Append($"<color=#EDE3C7CC>{title}</color>\n");
+                foreach (MaterialLine l in MaterialCheckRules.MissingFirst(lines))
+                    text.Append(LineText(l));
+            }
+        }
+        else
+        {
+            int closest = MaterialCheckRules.Closest(AsSets(e));
+            for (int s = 0; s < e.sets.Count; s++)
+            {
+                if (e.sets.Count > 1)
+                {
+                    string tag = "";
+                    if (s == closest)
+                        tag = MaterialCheckRules.Covered(e.sets[s]) ? "  -  " + MaterialCheckRules.CanMakeWithThisSet : "  -  closest set";
+                    text.Append($"<color={(s == closest && tag.Length > 0 && MaterialCheckRules.Covered(e.sets[s]) ? "#8FD16A" : "#EDE3C7CC")}>{(s == 0 ? "Either" : "or")}{tag}</color>\n");
+                }
+                foreach (MaterialLine l in MaterialCheckRules.MissingFirst(e.sets[s]))
+                    text.Append(LineText(l));
+            }
         }
         foreach ((string note, int state) in e.notes)
         {
@@ -523,6 +582,41 @@ public class CraftingScreen : GameScreen
         return $"{rules.shallow.liningStone}, {rules.medium.liningStone} or {rules.deep.liningStone}";
     }
 
+    // The shallowest lining a Well takes (WellWaterRules), the figure its Stone is judged against before a spot is chosen.
+    static int WellStoneMin()
+    {
+        WellWaterRules rules = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.WellRules() : WellWaterRules.Defaults;
+        return rules.shallow.liningStone;
+    }
+
+    static int Pack(InventoryManager inventory, string itemId) => inventory != null ? inventory.Player.Count(itemId) : 0;
+
+    // The nearest placed site of this kind within NearbySiteMetres of the player, or null.
+    WoodPileState NearestSite(WoodManager wood, PileKind kind)
+    {
+        if (wood == null || player == null)
+            return null;
+        WoodPileState nearest = null;
+        float best = NearbySiteMetres;
+        foreach (WoodPileState p in wood.Piles)
+        {
+            if (p.kind != kind)
+                continue;
+            float d = Vector3.Distance(p.position, player.transform.position);
+            if (d <= best)
+            {
+                nearest = p;
+                best = d;
+            }
+        }
+        return nearest;
+    }
+
+    // One material of a staged build: counted against what is at the nearby site when there is one, otherwise against the pack alone.
+    static MaterialLine SiteLine(InventoryManager inventory, WoodPileState site, string itemId, int need) =>
+        site != null ? new MaterialLine(ItemName(itemId), Pack(inventory, itemId), site.Count(itemId), need)
+                     : new MaterialLine(ItemName(itemId), Pack(inventory, itemId), need);
+
     List<Entry> CraftEntries()
     {
         var entries = new List<Entry>();
@@ -548,11 +642,12 @@ public class CraftingScreen : GameScreen
             e.maxCrafts = CraftRules.StepperMax(Crafting.MaxCrafts(r), Crafting.MaxCraftsFitting(r));
             foreach (Crafting.Ingredient[] set in Crafting.IngredientSets(r))
             {
-                var reqs = new List<Req>();
+                var reqs = new List<MaterialLine>();
                 foreach (Crafting.Ingredient i in set)
-                    reqs.Add(new Req { label = ItemName(i.itemId), have = inventory != null ? inventory.Player.Count(i.itemId) : 0, need = i.quantity });
+                    reqs.Add(new MaterialLine(ItemName(i.itemId), inventory != null ? inventory.Player.Count(i.itemId) : 0, i.quantity));
                 e.sets.Add(reqs);
             }
+            e.marker = MaterialCheckRules.RowMarker(AsSets(e));
             e.act = () => DoCraft(e);
             entries.Add(e);
         }
@@ -627,8 +722,9 @@ public class CraftingScreen : GameScreen
                 failHeading = "Can't build a Campfire",
             };
             e.can = fires.CanStartBuild(player, out e.reason);
-            e.sets.Add(new List<Req> { new Req { label = ItemName(FireManager.FirewoodId), have = inventory != null ? inventory.Player.Count(FireManager.FirewoodId) : 0, need = fires.FirewoodToBuild } });
-            e.sets.Add(new List<Req> { new Req { label = ItemName(WoodManager.SticksId), have = inventory != null ? inventory.Player.Count(WoodManager.SticksId) : 0, need = fires.CampfireSticksCost } });
+            e.sets.Add(new List<MaterialLine> { new MaterialLine(ItemName(FireManager.FirewoodId), Pack(inventory, FireManager.FirewoodId), fires.FirewoodToBuild) });
+            e.sets.Add(new List<MaterialLine> { new MaterialLine(ItemName(WoodManager.SticksId), Pack(inventory, WoodManager.SticksId), fires.CampfireSticksCost) });
+            e.marker = MaterialCheckRules.RowMarker(AsSets(e));
             e.act = () => DoBuildCampfire(fires);
             entries.Add(e);
 
@@ -645,7 +741,8 @@ public class CraftingScreen : GameScreen
                 failHeading = "Can't set up the Tripod",
             };
             tripod.can = fires.CanStartTripod(player, out tripod.reason);
-            tripod.sets.Add(new List<Req> { new Req { label = ItemName(TripodRules.TripodId), have = inventory != null ? inventory.Player.Count(TripodRules.TripodId) : 0, need = 1 } });
+            tripod.sets.Add(new List<MaterialLine> { new MaterialLine(ItemName(TripodRules.TripodId), Pack(inventory, TripodRules.TripodId), 1) });
+            tripod.marker = MaterialCheckRules.RowMarker(AsSets(tripod));
             tripod.act = () => DoBuildTripod(fires);
             entries.Add(tripod);
         }
@@ -671,13 +768,13 @@ public class CraftingScreen : GameScreen
         {
             e.actionLabel = "Place Site";
             e.info = "Free to place. Then deposit the materials at the site (R).";
-            var required = new List<Req>();
+            // What the finished cabin takes in total, against the pack and, when a site is placed nearby, what is already at it. Nothing is
+            // spent now: placing the site is free.
+            WoodPileState site = NearestSite(wood, PileKind.CabinSite);
+            var required = new List<MaterialLine>();
             foreach (string itemId in WoodManager.CabinMaterialIds)
-                required.Add(new Req { label = ItemName(itemId), have = 0, need = wood.CabinRequired(itemId) });
-            // Shown as a plain list of what the finished cabin takes, not as a have / need check: nothing is spent now.
-            foreach (Req r in required)
-                e.notes.Add(($"{r.label}   {r.need}", 0));
-            e.notes.Insert(0, ("The cabin needs, in total:", 0));
+                required.Add(SiteLine(inventory, site, itemId, wood.CabinRequired(itemId)));
+            e.sets.Add(required);
         }
         else if (WellsAndOuthouses.IsStagedSite(kind))
         {
@@ -688,33 +785,56 @@ public class CraftingScreen : GameScreen
             PileKind finished = WellsAndOuthouses.FinalKind(kind);
             if (kind == PileKind.KitchenSite)
             {
-                // Two stages, each delivered and then pounded in turn: the hearth, then the roof.
-                e.notes.Add(("Stage 1, the hearth (Stone first, then Clay):", 0));
+                // Two stages, each delivered and then pounded in turn: the hearth, then the roof. One set for the row's marker and heading.
+                var all = new List<MaterialLine>();
+                e.stages = new List<(string, List<MaterialLine>)>();
+                WoodPileState hearthSite = NearestSite(wood, PileKind.KitchenSite);
+                WoodPileState roofSite = NearestSite(wood, PileKind.KitchenRoofSite);
+                var hearth = new List<MaterialLine>();
                 foreach (WoodStack c in WellsAndOuthouses.KitchenHearthCost())
-                    e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
-                e.notes.Add(("Stage 2, the roof (after the hearth is built):", 0));
+                    hearth.Add(SiteLine(inventory, hearthSite, c.itemId, c.count));
+                var roof = new List<MaterialLine>();
                 foreach (WoodStack c in WellsAndOuthouses.KitchenRoofCost())
-                    e.notes.Add(($"{ItemName(c.itemId)}   {c.count}", 0));
+                    roof.Add(SiteLine(inventory, roofSite, c.itemId, c.count));
+                e.stages.Add(("Stage 1, the hearth (Stone first, then Clay):", hearth));
+                e.stages.Add(("Stage 2, the roof (after the hearth is built):", roof));
+                all.AddRange(hearth);
+                all.AddRange(roof);
+                e.sets.Add(all);
                 e.notes.Add(("Pound each stage with the Hammer (hold click) to build it.", 0));
             }
             else
             {
-                e.notes.Add(($"The {WoodManager.PileName(finished)} needs, in total:", 0));
-                foreach (WoodStack c in WellsAndOuthouses.FinishedCost(kind))
-                    e.notes.Add(($"{ItemName(c.itemId)}   {(kind == PileKind.WellSite && c.itemId == WoodManager.StoneId ? WellStoneRange() : c.count.ToString())}", 0));
+                WoodPileState site = NearestSite(wood, kind);
+                var materials = new List<MaterialLine>();
+                foreach (WoodStack c in site != null ? WellsAndOuthouses.FinishedCostFor(site) : WellsAndOuthouses.FinishedCost(kind))
+                {
+                    MaterialLine line = SiteLine(inventory, site, c.itemId, c.count);
+                    if (kind == PileKind.WellSite && c.itemId == WoodManager.StoneId && site == null)
+                    {
+                        // No spot chosen yet, so the lining depends on how deep the water is: judged against the shallowest, worded with all three.
+                        line.need = WellStoneMin();
+                        line.needText = WellStoneRange() + " by depth";
+                    }
+                    materials.Add(line);
+                }
+                e.sets.Add(materials);
                 if (kind == PileKind.WellSite)
                     e.notes.Add(("The Stone, the digging and the water supply depend on how deep the water is where you place it; the ghost shows them.", 0));
                 e.notes.Add(("Then " + (WellsAndOuthouses.RequiresDig(kind) ? "dig the shaft (Shovel) and " : "") + $"pound it with the Hammer (hold click) to build the {WoodManager.PileName(finished)}.", 0));
+                if (kind == PileKind.LeachHopperSite)
+                    e.notes.Add(("Once built, loading it takes 1 Ash and 1 L of water each; the worst water goes in first.", 0));
             }
         }
         else
         {
-            var reqs = new List<Req>();
+            var reqs = new List<MaterialLine>();
             foreach (WoodStack c in wood.CostOf(kind))
-                reqs.Add(new Req { label = ItemName(c.itemId), have = inventory != null ? inventory.Player.Count(c.itemId) : 0, need = c.count });
+                reqs.Add(new MaterialLine(ItemName(c.itemId), Pack(inventory, c.itemId), c.count));
             if (reqs.Count > 0)
                 e.sets.Add(reqs);
         }
+        e.marker = MaterialCheckRules.RowMarker(AsSets(e));
         if (WoodManager.NeedsHammerToBuild(kind))
         {
             // The ghost shows either way; without the Hammer it stays red and the click builds nothing.

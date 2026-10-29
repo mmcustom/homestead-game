@@ -471,9 +471,13 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     }
 
     // What the site needs next.
-    string StageNeeds()
+    // compact: one line for a flash (items joined with "; "), otherwise one line per material for the look prompt.
+    string StageNeeds(bool compact = false)
     {
         WellsAndOuthouses w = Rules;
+        string sep = compact ? "; " : "\n";
+        int PackCount(string id) => Inventory != null ? Inventory.Player.Count(id) : 0;
+        string Line(string id, int need) => MaterialCheckRules.SiteProgress(ItemDatabase.Get(id)?.DisplayName ?? id, state.Count(id), need, PackCount(id));
         if (WellsAndOuthouses.SiteNeeds(state) == null)
         {
             // Fully stocked: the Hammer finishes it (hold click). Once it has begun the materials are built in.
@@ -488,15 +492,16 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             int lining = WellsAndOuthouses.NeedOf(state, WoodManager.StoneId); // this well's own: its depth to water sets it
             if (state.Count(WoodManager.StoneId) < lining)
-                return $"Line it with Stone: {state.Count(WoodManager.StoneId)} of {lining} (R stores Stone you carry)";
-            return $"Cap and windlass: {state.Count(WoodManager.LogsId)} of {w.wellCapLogs} Logs, {state.Count(WoodManager.BranchesId)} of {w.wellCapBranches} Branches (R stores them)";
+                return "Line it with Stone (R stores Stone you carry)" + (compact ? " - " : sep) + Line(WoodManager.StoneId, lining);
+            return "Cap and windlass (R stores them)" + (compact ? " - " : sep)
+                   + string.Join(sep, Line(WoodManager.LogsId, w.wellCapLogs), Line(WoodManager.BranchesId, w.wellCapBranches));
         }
-        // Any other staged site: what it holds against what it needs, material by material.
+        // Any other staged site: what it holds against what it needs, material by material, with what the pack could add.
         var parts = new List<string>();
         foreach (WoodStack c in WellsAndOuthouses.FinishedCostFor(state))
-            parts.Add($"{state.Count(c.itemId)} of {c.count} {ItemDatabase.Get(c.itemId)?.DisplayName ?? c.itemId}");
-        string stageName = state.kind == PileKind.KitchenSite ? "Hearth stage: " : state.kind == PileKind.KitchenRoofSite ? "Hearth built. Roof stage: " : "";
-        return stageName + "Needs " + string.Join(", ", parts) + " (R stores what you carry)";
+            parts.Add(Line(c.itemId, c.count));
+        string stageName = state.kind == PileKind.KitchenSite ? "Hearth stage" : state.kind == PileKind.KitchenRoofSite ? "Hearth built. Roof stage" : "Needs";
+        return stageName + " (R stores what you carry)" + (compact ? " - " : sep) + string.Join(sep, parts);
     }
 
     string Describe()
@@ -1047,7 +1052,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
 
         if (stored <= 0)
         {
-            ToolStatus.Flash($"Nothing you carry fits yet - {StageNeeds()}", 4f);
+            ToolStatus.Flash($"Nothing you carry fits yet - {StageNeeds(true)}", 4f);
             return;
         }
 
@@ -1057,7 +1062,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (!wasStocked && WellsAndOuthouses.SiteNeeds(state) == null)
             ToolStatus.Banner($"{Name} fully stocked - equip the Hammer and hold click on it to build it", 10f);
         else
-            ToolStatus.Flash($"Stored - {StageNeeds()}", 4f);
+            ToolStatus.Flash($"Stored - {StageNeeds(true)}", 4f);
     }
 
     // Hammer Dismantle for the Well and the Outhouse: half of each cost line back, rounded down (so a single item refunds nothing).

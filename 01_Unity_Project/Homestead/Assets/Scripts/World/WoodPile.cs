@@ -75,12 +75,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         WoodManager wood = WoodManager.Instance;
         if (!IsCabinSite || wood == null)
             return prompt;
-        string needs = wood.SiteNeeds(state);
+        string needs = wood.SiteNeedsDetail(state);
         // Fully stocked: the Hammer finishes it (hold click, AxeTool.UpdateHammering); once begun the materials are built in.
         string percent = $"{state.buildProgress * 100f:0}%";
         string done = (WoodManager.HammerEquipped ? $"Hold click with the Hammer to build ({percent})" : $"Fully stocked - equip the Hammer to build ({percent})") +
                       (WellsAndOuthouses.MaterialsLocked(state) ? "\nThe materials are built in - E no longer takes them back" : "");
-        return prompt + "\n" + (needs != null ? $"Still needs: {needs}" : done);
+        return prompt + "\n" + (needs != null ? $"Still needs:\n{needs}" : done);
     }
 
     // Always true so the contents show when looked at.
@@ -379,11 +379,11 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         {
             // Nothing carried is still wanted: say how far along the site is, so the cap is not a silent refusal.
             if (IsCabinSite && WoodManager.Instance != null)
-                ToolStatus.Flash($"Nothing more to add — {WoodManager.Instance.SiteProgress(state)}", 4f);
+                ToolStatus.Flash($"Nothing more to add — {WoodManager.Instance.SiteNeedsDetail(state, "; ") ?? WoodManager.Instance.SiteProgress(state)}", 4f);
             return;
         }
         ToolStatus.Flash(IsBarrel ? $"Poured in {stored} L — the barrel holds {state.Total} L"
-                         : IsCabinSite && WoodManager.Instance != null ? $"Stored — {WoodManager.Instance.SiteProgress(state)}"
+                         : IsCabinSite && WoodManager.Instance != null ? $"Stored — {WoodManager.Instance.SiteNeedsDetail(state, "; ") ?? WoodManager.Instance.SiteProgress(state)}"
                          : $"Stored — it now holds {Describe(state)}");
         if (WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(state);

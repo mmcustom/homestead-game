@@ -1401,6 +1401,22 @@ public class WoodManager : MonoBehaviour, ISaveable
         return parts.Count == 0 ? null : string.Join(", ", parts);
     }
 
+    // What a Small Cabin site still lacks, one line per short material with the pack beside it: "Logs: 2 of 20 delivered, 1 in your pack".
+    // Null when every material is at its requirement. Display only; sep joins the lines (a newline for the look prompt).
+    public string SiteNeedsDetail(WoodPileState site, string sep = "\n")
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        var lines = new List<string>();
+        foreach (string itemId in CabinMaterialIds)
+        {
+            int need = CabinRequired(itemId);
+            int have = site.Count(itemId);
+            if (have < need)
+                lines.Add(MaterialCheckRules.SiteProgress(ItemDatabase.Get(itemId)?.DisplayName ?? itemId, have, need, inventory != null ? inventory.Player.Count(itemId) : 0));
+        }
+        return lines.Count == 0 ? null : string.Join(sep, lines);
+    }
+
     // Have / need for every material: "Logs 3 / 20, Branches 0 / 10, ...".
     public string SiteProgress(WoodPileState site)
     {
