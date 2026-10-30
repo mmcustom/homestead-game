@@ -155,3 +155,115 @@ Build b552bef (Maple, Tripod, Potash, teaching pass in). New Pioneer game, 5 acr
 Expenses: hunting and fishing $92.00, shelter and bedding $15.00, cooking, water, fire $45.00 (fits Cooking Pot $12 + Potash Kettle $25 + Flint and Steel $8; to confirm). Per game day: income $8.18, expenses $5.48, net $2.71. Income per real hour $53.87 (not comparable, see above).
 
 Reading: income is up about 28% on the first Pioneer run ($49.93 more in the same 27.75 days), mostly Ash side ($26.57 more in the Firewood, logs and stone line), Kindling Bundles and a little more fur. The gap to the payment is now about $12.30 a game day (was $14.10). Rough projection only: if Summer and Fall hold about $8 a game day and Winter adds about $9 a day of Maple over 28 days, cash at day 112 is roughly $950 to $1,000 against the $573.39 first payment, so a cushion of roughly $350 to $400 after payment 1; payment 2 (day 140) is probably covered; payment 3 (day 168) is where it runs short unless income keeps growing. To refine with the Summer, Fall and Winter statements and the item CSV (End key) which splits Ash, Lye, Potash and Syrup.
+
+
+## Winter Pioneer run, Summer Y1 statement (build b552bef income rules; display build a3f5f07)
+
+Source: Mike's two screenshots of the Account Statement, Summer Year 1, 28.00 game days, 65.4 real minutes played.
+
+| Line | Summer Y1 | Spring Y1 (for comparison) |
+|---|---|---|
+| Firewood, logs and stone (Ash, Lye, Potash included) | $17.96 | $76.70 |
+| Hides and furs | $111.74 | $120.03 |
+| Crafted goods | $1.00 | $20.36 |
+| Farm produce (Maple Syrup) | $0.00 | $10.00 |
+| Total income | $130.70 | $227.09 |
+| Expenses | $0.00 | $152.00 |
+| Net | $130.70 | $75.09 |
+| Cash at end | $205.79 | $75.09 |
+| Loan at end | $60,000.00 | $60,000.00 |
+| Income per game day | $4.67 | $8.18 |
+| Net per game day | $4.67 | $2.71 |
+| Coverage of $20.48 per game day (Pioneer payment) | 22.8% | 40% |
+
+Game's own comparison: income per game day -$3.51 (-42.9%) against Spring; expenses +$5.48 per day better (nothing bought); net +$1.96 per day (+72.3%) better. Year 1 so far: income $357.79, expenses $152.00, cash $205.79.
+
+Reading: Hides and furs are about 85% of Summer income. Maple is Winter and Spring only, so Summer has no Maple line, and Ash, Lye and Potash money fell from $76.70 to $17.96. Crafted goods almost vanished ($1.00).
+
+Projection to the day 112 payment ($573.39): cash at day 56 is $205.79, so Fall and Winter together must net $367.60, about $6.56 per game day. If Fall repeats Summer ($4.67 per day, about $131), Winter must bring about $237, or $8.45 per day. Without Maple or growth (Fall and Winter both $4.67 per day) cash at day 112 would be about $467, short by about $106. If Winter reaches about $17 per day (Spring rate plus Maple), cash would be about $810 and payment 1 is covered. Later payments (day 140 on) need the full $20.48 per game day on average, which Summer is nowhere near.
+
+Open question for Mike: how time passed in Summer (65.4 real minutes for 28 game days means a speed key or day skips). Per game day is only fair if the days were played, not skipped.
+
+
+## Winter Pioneer run, Fall Y1 statement
+
+Source: Mike's two screenshots of the Account Statement, Fall Year 1, 28 game days, played at 10x speed all season (Mike's note). Real-minute figures ignored (counter unreliable).
+
+| Line | Fall Y1 | Summer Y1 | Spring Y1 |
+|---|---|---|---|
+| Firewood, logs and stone | $95.06 | $17.96 | $76.70 |
+| Hides and furs | $92.44 | $111.74 | $120.03 |
+| Crafted goods | $14.42 | $1.00 | $20.36 |
+| Farm produce | $0.00 | $0.00 | $10.00 |
+| Total income | $201.92 | $130.70 | $227.09 |
+| Expenses (Fall: Bought: tools) | $20.00 | $0.00 | $152.00 |
+| Net | $181.92 | $130.70 | $75.09 |
+| Cash at end | $387.71 | $205.79 | $75.09 |
+| Income per game day | $7.21 | $4.67 | $8.18 |
+| Net per game day | $6.50 | $4.67 | $2.71 |
+| Coverage of $20.48 per game day | 35.2% | 22.8% | 40% |
+
+Game's own comparison: income +$2.54 per day (+54.3%) over Summer; net +$1.83 per day (+39.1%). Year 1 so far (84 days): income $559.71 ($6.66 per game day, 32.5% of $20.48), expenses $172.00, cash $387.71.
+
+Reading: Firewood, logs and stone jumped back to $95.06 (Ash chain, firewood or logs sold); Hides and furs eased to $92.44. Crafted goods $14.42.
+
+Projection to the day 112 payment ($573.39): cash at day 84 is $387.71, so Winter must net $185.68, about $6.63 per game day. Fall netted $6.50 per day, so if Winter merely repeats Fall (net $181.92) cash at day 112 would be about $569.63, short by about $3.76. Winter Maple on top should cover it with a thin cushion. Payment 2 (day 140) needs another $573.39 from 28 days, about $20.48 per day, against roughly $7 per day earned: this is the real gap.
+
+
+## Winter Pioneer run, Winter Y1 statement (RUN RESULT: first payment NOT covered)
+
+Source: Mike's two screenshots of the Account Statement, Winter Year 1, 28 game days. Mike's note: 60x speed all season. The game is now in Spring Year 2 (so far $0). The day 111 End export was NOT taken (the season rolled past it at 60x).
+
+| Line | Winter Y1 | Fall Y1 | Summer Y1 | Spring Y1 |
+|---|---|---|---|---|
+| Firewood, logs and stone | $5.67 | $95.06 | $17.96 | $76.70 |
+| Hides and furs | $51.80 | $92.44 | $111.74 | $120.03 |
+| Crafted goods | $6.52 | $14.42 | $1.00 | $20.36 |
+| Farm produce (Maple Syrup) | $0.00 | $0.00 | $0.00 | $10.00 |
+| Total income | $63.99 | $201.92 | $130.70 | $227.09 |
+| Expenses | $0.00 | $20.00 | $0.00 | $152.00 |
+| Net | $63.99 | $181.92 | $130.70 | $75.09 |
+| Cash at end | $451.70 | $387.71 | $205.79 | $75.09 |
+| Income per game day | $2.29 | $7.21 | $4.67 | $8.18 |
+| Coverage of $20.48 per game day | 11.2% | 35.2% | 22.8% | 40% |
+| Time keys | 60x all season | 10x all season | 10x from day 11 | time keys, not noted |
+
+Winter statement shows "Owed at end -$573.39" against cash $451.70 and Loan balance still $60,000.00: the day 112 payment was due and cash was short by $121.69. The game is in Spring Y2 with that payment owed.
+
+Year 1 totals (112 days): income $623.70 ($5.57 per game day, 27.2% of $20.48), expenses $172.00, net and cash $451.70.
+
+Result: a Pioneer on these rules, played this way, did NOT cover the first payment ($573.39): short $121.69. If Winter had merely matched Fall's income ($201.92), cash would have been about $589.63 (covered by about $16). Spring's rate ($8.18 per day, $229) would have given about $617.
+
+Validity warning: Winter is not a clean measurement. There was no Maple Syrup income at all in Winter (the season Maple was meant to add about $9 per day), hides fell 44%, firewood/logs/stone fell 94%, and 60x speed may have cut what Mike could do per game day. Treat Winter as unreliable for rates; the Fall figure ($7.21) is the best recent steady rate. Year-round mean excluding Winter: (227.09 + 130.70 + 201.92) / 84 = $6.66 per game day.
+
+Open: what happened with Maple and chores in Winter; End export to be taken now (ledger CSVs can still be exported after the fact).
+
+
+## Winter Pioneer run, ledger export (taken after the payment day, not day 111)
+
+Files copied to this folder: pioneer_5acres_winter_ledger.csv and pioneer_5acres_winter_ledger_items.csv (from Exports\ledger_20261029_225756.csv and ledger_items_20261029_225756.csv). The export came after day 112, so the last row is Spring Year 2 (so far, 0.39 days).
+
+What the day 112 payment did: the game took ALL of Mike's cash ($451.70) as a short payment: interest $400.00, principal $51.70. Loan balance now $59,948.30, cash $0.00, Owed at end $121.69 (the rest of the $573.39). Late fees so far $0.00.
+
+Year 1 income by line (112 days, 111.75 game days played): Hides and furs $376.01 (60.3%), Firewood, logs and stone $195.39 (31.3%), Crafted goods $42.30 (6.8%), Farm produce $10.00 (1.6%). Total $623.70 = $5.58 per game day, 27.3% of $20.48. Fish, Game meat, Forage and Stocked goods lines were $0 all year.
+
+Items sold (units, dollars, average price):
+
+| Item | Spring | Summer | Fall | Winter | Year 1 |
+|---|---|---|---|---|---|
+| Small furs | 56, $120.03 ($2.14) | 53, $111.74 ($2.11) | 40, $90.49 ($2.26) | 17, $51.80 ($3.05) | 166, $374.06 |
+| Ash | 18, $29.99 | 10, $17.96 | 16, $25.35 | 3, $5.67 | 47, $78.97 |
+| Kindling bundles | 34, $15.36 | 1, $1.00 | 36, $10.42 | 10, $6.52 | 81, $33.30 |
+| Potash | 3, $46.71 ($15.57) | 0 | 3, $45.64 ($15.21) | 0 | 6, $92.35 |
+| Lye | 0 | 0 | 10, $24.07 ($2.41) | 0 | 10, $24.07 |
+| Maple Syrup | 1, $10.00 | 0 | 0 | 0 | 1, $10.00 |
+| Other (tools, sinew, bow drill) | $5.00 | 0 | $5.95 | 0 | $10.95 |
+
+Reading:
+- Small furs are the Pioneer's engine: 166 furs, about $374 of $624. Winter had only 17 furs (against 40 to 56), and the average price rose to $3.05 because fewer were sold. That is the main reason Winter collapsed, together with no Maple.
+- Maple Syrup earned $10.00 in the whole year (one Syrup). Mike's Winter run did not use Maple, so Maple's Winter value (estimated about $9 per game day) is NOT measured by this run.
+- Potash: 6 sold for $92.35 over the year, Lye 10 for $24.07. Ash and kindling together about $112. This Ash chain line is small but steady: about $1.00 per game day.
+- The $45 "Bought: cooking, water, fire" in Spring is a purchase; the items file lists sales only, so it still cannot be broken down.
+- Real minutes column: Spring 252.9, Summer 65.4, Fall 52.7, Winter 21.2 (not reliable, ignore).
+
+Design implication to discuss: even at the best season (Spring $8.18 per day) the Pioneer reaches 40% of the payment; with Fall's $7.21 the year-1 income of about $5.58 per game day is 27%. Furs carry 60% of income; the Ash chain adds about 5%; Maple was not tested in Winter.
