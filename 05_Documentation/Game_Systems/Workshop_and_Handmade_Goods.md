@@ -260,3 +260,170 @@ Add to the six decisions above: **7. Log chain:** keep selling logs at the Tradi
 - Wikipedia, Saw pit (two-man whipsaw, about 12 boards a day, water-powered up to 200): https://en.wikipedia.org/wiki/Saw_pit
 - LeRoy Historical Society, sawn lumber (pioneer pit saw, early mills, boards at $7.50 per thousand, paying with logs): https://leroyhistoricalsociety.org/Articles/2011/110611%20-%20Sawn%20Lumber.pdf
 - Mother Earth News, portable sawmill business (cutting about 16 cents a board foot, value added by drying): https://www.motherearthnews.com/homesteading-and-livestock/portable-sawmill-business-zmaz02djzgoe
+
+
+
+---
+
+# Addendum 2026-10-30 (Mike): furniture, a pottery wheel, and why the workshop matters now
+
+Status: Design Draft (PROPOSED). Nothing here is built or decided except the four answers below. Every number is a first pass for Mike to cut down.
+
+## What Mike asked for
+
+"I think we need to move forward with the wood workshop to start making furniture like stools, tables, chairs, beds, end tables and other wood products and maybe a pottery wheel to utilize more clay products. We also need to start thinking about a UTV for getting around faster and carrying more resources." The UTV and hand cart are in their own draft: Vehicles_and_Hauling.md.
+
+## Answered by Mike (2026-10-30)
+
+1. **What furniture does:** cabin use and sale. You place it in your cabin for comfort and function, and you can sell spares.
+2. **What the first furniture is made from:** logs and branches first (with Cordage and Tall Grass where needed), boards later once the Lumber Mill chain exists.
+3. **Vehicles:** hand cart first, UTV later (see Vehicles_and_Hauling.md).
+4. **Build order:** not decided yet. All three designs are written first, then the order is chosen.
+
+## Why now (what the measuring runs said)
+
+- The Pioneer runs earned about $8 a game day at best (Spring $8.18, Fall $7.21, Winter with Maple $8.11 underlying) against the $20.48 a game day the 5-acre payment needs. Furs were 60% of income. Maple added only about $3.28 a game day because food and water chores ate Mike's time.
+- **A workshop job runs while the player walks off.** That is the one income source in the whole design that does not cost the player's own hands while it works. Furniture is the first product where one hour of hands-on work (felling and carrying logs, loading the bench) turns into many game hours of job time. That is why the workshop is the right answer to "not enough time in the day".
+- **Furniture roughly triples the value of a log.** A log sells for $3. A Rough Stool uses 2 Logs ($6 at store value) and sells for about $14. A Table uses 3 Logs and sells for about $28 (about $9 a log). A Rope Bed uses 4 Logs and sells for about $40 (about $10 a log).
+- **But logs are heavy and trees are finite.** A Log is 8 kg, the Encumbered line is 30 kg and the hard cap is 45 kg (55 with the Pouch), so one pack-load is 3 logs without being slowed. There are 8,852 trees with no regrowth. So the workshop pushes the player to haul a lot of wood, which is exactly what the hand cart and later the UTV are for.
+
+## What exists in the game today that furniture can hook into (so no new stat is needed)
+
+- **Sleep (built 2026-09-26):** Sleeping Bag, Tent and Lean-To change overnight Warmth loss and Health recovery while asleep (Tent: 60% less Warmth loss and double recovery; Lean-To: 50% and double; bag alone: 25% and 1.5 times). Nothing in the code is a Comfort stat; "Comfort" ratings in Building_Housing_System.md are labels only.
+- **Sheltered meal (Covered Outdoor Kitchen):** eating a Hunger-restoring item under the roof gives 25% faster Health recovery for 4 game hours (no Comfort or Morale stat exists).
+- **Storage:** Storage Bin and Food Cache already hold items (a placed pile with a weight cap).
+- **Placement:** the Build tab with its placement ghost handles placed objects, staged sites (deliver materials with R, then Hammer blows) and queued jobs (cooking, boiling and wood splitting use a queue with progress and Cancel).
+- **Unknown today (Claude Code must read the code before any build):** whether the Small Cabin has an interior that the placement ghost can place objects inside, whether the player can sit, and what the Cabin's sleep bonus is today.
+
+## Furniture: first set (logs and branches)
+
+All made at the **Woodworking bench** in the Workshop shed (W1), tools Knife and Axe. Prices are proposed base prices in game dollars, "inputs at store value" uses a log at $3, a Branch and Tall Grass free, Cordage free. Weights are first-pass guesses.
+
+| Item | Inputs | Job time | Weight | Base price | What it does in the cabin |
+|---|---|---|---|---|---|
+| Rough Stool | 2 Logs, 2 Branches | 3 h | about 10 kg | $14 | A seat. Sit and rest (needs a Sit action, see decisions). |
+| Bench | 3 Logs, 3 Branches | 4 h | about 20 kg | $20 | A seat for two, fits a table. |
+| Chair | 2 Logs, 4 Branches, 1 Cordage | 4 h | about 12 kg | $18 | A seat with a back. |
+| Table | 3 Logs, 4 Branches, 2 Cordage | 5 h | about 24 kg | $28 | With a seat within 2 m under a roof, a meal counts as a "sit-down meal" (a better sheltered meal). |
+| End Table | 1 Log, 3 Branches | 2 h | about 8 kg | $12 | Small storage (about 10 kg) beside the bed. |
+| Rope Bed (frame) | 4 Logs, 6 Branches, 4 Cordage | 8 h | about 32 kg | $40 | Sleep on it with a Sleeping Mat (12 Tall Grass + 2 Cordage, already on the Fiber bench list at $8) for a better night than a Tent. |
+| Storage Chest | 3 Logs, 4 Branches, 2 Cordage | 5 h | about 22 kg | $26 | Storage (about 60 kg, the Storage Bin pattern). |
+| Shelf | 2 Logs, 3 Branches | 3 h | about 14 kg | $18 | Wall storage (about 30 kg). |
+
+Board versions (planed table, framed chair, paneled chest) come when the Lumber Mill or the lumberyard sawing service exists, as a second row of the same items at a higher price. Furniture made from boards inherits the wood's quality multiplier from the lumber chain.
+
+## What furniture does mechanically (proposal, no new Comfort stat)
+
+First pass, sizes are Claude Code's call after reading the sleep and meal code:
+
+- **Bed:** sleeping on a Rope Bed with a Mat inside a roofed cabin adds a bit on top of the shelter's own effect, for example a few percent more insulation and recovery 2.8 times instead of 2.5 times. The code says the Cabin already gives 2.5 times Health recovery and the best insulation (0.75), so the Rope Bed is an upgrade to a Cabin, not a way to beat a Tent. It must not make a night heal more than the 100 Health cap.
+- **Sit-down meal:** a Table with a Bench, Chair or Stool within 2 m, under a roof, upgrades the sheltered meal from 25% faster Health recovery for 4 game hours to about 35% for 6 game hours.
+- **Seats alone:** a Sit action (E on a seat) that makes Stamina recover faster than standing (for example double the rate), and lets the player pass 15 minutes of game time sitting. This is optional and needs a controller check (see decisions).
+- **Storage pieces:** the Chest, Shelf and End Table are the Storage Bin pattern with a different weight cap, so they cost almost no new code.
+- **Selling:** every piece can be sold in the Trading Post window (T) from the pack. The Trading Post has no physical location in the game, so selling costs no walking and no game time. A piece is heavy (24 kg Table, 32 kg Bed) but it only has to be carried from the bench to wherever the player stands to sell.
+
+## How the workshop would deliver the materials (important because the pieces are heavy)
+
+A Bed needs 4 Logs (32 kg) plus Branches and Cordage, over the 30 kg Encumbered line in one carry. Two options:
+
+- **A. Bench stock (recommended):** the Woodworking bench takes materials by delivery like the Leach Hopper and the Cabin site (R stores what you carry, in several trips), then starts the job when everything is there. Same pattern as already-built staged sites.
+- **B. Carry it all:** ingredients come out of the pack when the job starts. Simple, but the Bed and Table are awkward to start without a cart.
+
+## How much money could furniture add
+
+The market formula from the first draft still applies (25% daily recovery, 10% drop per unit, floor 0.1 in the crafted group): about 0.77 times base price for 1 sold a day and about 1.2 for 2. Examples at the first-pass prices:
+
+| Player | What they sell each game day | Added income per game day |
+|---|---|---|
+| Light | 1 Stool and 1 Chair (base $14 and $18) | about $25 |
+| Casual | 1 Table, 1 Bed, 1 Chair (base $28, $40, $18) | about $66 before limits |
+| Heavy | all 8 kinds, 1 of each (average base $22) | about $135, not realistic |
+
+Real limits: one bench job at a time, job time (a Bed is 8 hours), wood supply (a Casual day uses about 9 logs, 72 kg), and hauling. Realistic uplift for a Pioneer is probably $10 to $25 a game day, similar to the first draft, but it costs far less player time because the bench works while the player does other things. It would still not close the whole gap to $20.48 on its own, so it is one leg of several (furs, Maple, Ash chain, furniture, pottery).
+
+Risks: furniture from free branches and cordage may turn into the lantern loop again; per-item pools, the floor, job time, a one-job-at-a-time bench and the finite trees are the controls. Measure with the same Pioneer runs before tuning.
+
+## Pottery wheel (the clay chain upgraded)
+
+The first draft's clay chain was a Clay table and a Clamp kiln with hand-built ware (pinch and coil pots). A **kick wheel** is the upgrade: a foot-driven wheel with a heavy flywheel that spins the clay while the potter shapes it. Real throwing steps (Sheffield Pottery's beginner guide): wedge the clay (remove air bubbles) in 1 to 2 lb portions, center it on the wheel, open it with a base about 3/8 inch thick, pull the walls up, and trim at the leather-hard stage. Drying and firing times were not on that page (the first draft's drying and firing rules stand: weeks of drying in real life compressed to game days, fire in a kiln around 1,100 degrees F, rushed or underdried loads crack).
+
+**Chain, game version:** Clay table (wedge, add Temper) then **Kick Wheel** (throw) then Drying rack (2 to 5 game days) then Kiln (fire with Firewood, 10 per load of about 12 pieces) then collect. Hand-built ware from the first draft stays as the cheap early path.
+
+**Kick Wheel (build, staged site like the Hopper):** first pass 3 Logs, 4 Branches, 2 Stone (the flywheel), 2 Cordage, about 40 kg in total over several trips, 20 Hammer blows. Placed under a roof (the Workshop shed or a lean-to) because wet clay and a wooden frame do not mix.
+
+**Why the wheel is worth building over hand-built ware (proposal):**
+
+- Wheel-thrown ware sells for about 60% to 80% more than hand-built, because walls are thin and even.
+- A throw takes 20 to 40 game minutes instead of 1 to 2 game hours.
+- The failure chance is lower, about 5% to 10% instead of 10% to 20%.
+- It makes shapes hand-building can't: Plate, Pitcher, Storage Jar with Lid.
+
+| Item | Inputs | Throw time | Base price (wheel) | Hand-built price (first draft) | Use |
+|---|---|---|---|---|---|
+| Clay Cup | 1 Clay, 1 Temper | 20 min | $7 | $4 | Sells |
+| Clay Plate | 1 Clay, 1 Temper | 20 min | $9 | none | Sells |
+| Clay Bowl | 2 Clay, 1 Temper | 25 min | $10 | $6 | Sells |
+| Flower Pot | 2 Clay, 1 Temper | 25 min | $8 | none | Sells; later holds seedlings |
+| Pitcher | 3 Clay, 1 Temper | 30 min | $15 | none | Sells; holds a few litres of water |
+| Storage Jar with Lid | 4 Clay, 1 Temper | 35 min | $18 | none | Sells; later food storage |
+| Water Crock | 5 Clay, 1 Temper | 40 min | $22 | $12 | Sells; stores 20 L of water in the cabin |
+| Clay Cooking Pot | 3 Clay, 1 Temper | 30 min | $14 | $10 | Works as a Cooking Pot on the Tripod (see decisions) |
+| Brick batch (20) | 10 Clay, 1 Temper | mould, no wheel | $6 | $6 | Hearths, chimneys and the kiln itself |
+
+Clay is 3.5 kg a lump (a Water Crock is 17.5 kg of clay before shrinkage), so pottery is also a hauling job.
+
+**Links to systems already built:** kiln firings burn Firewood and could drop Ash like any fire (about 3 Ash for a 10 Firewood load, if Ash comes from kilns too, a Claude Code check), feeding the Lye and Potash chain. A Clay Cooking Pot could be a free alternative to the $12 bought Pot, which would take the Pioneer's early purchase list down (the Spring run bought "cooking, water, fire" gear for $45).
+
+## Build order inside the workshop (replaces the first draft's W1 to W3 order)
+
+- **W1 Workshop shed with the Woodworking bench:** furniture, shakes, fence rails, bowls. First because logs, branches and cordage are already on the land, and the bench is the base of everything else.
+- **W2 Tanning frame:** hides to leather.
+- **W3a Clay table, Drying rack and Clamp kiln:** hand-built ware, bricks, Clay Cooking Pot.
+- **W3b Kick Wheel:** the upgrade to wheel-thrown ware.
+- **Fiber bench** can come with W1 (Sleeping Mat is needed for the Bed).
+
+Any step can be stopped after, and each is staged so Mike can see it work.
+
+## Decisions for Mike (new, numbered after the first draft's 1 to 10)
+
+11. **Furniture list:** the 8 pieces above are the proposed first set. Cut, add or rename any. Recommended: start with Stool, Table, Chair, Rope Bed, Storage Chest, then add the rest.
+12. **Materials delivery:** bench stock by delivery (A) or carry everything (B)? Recommended: A.
+13. **Sit action:** add a Sit on stools, chairs and benches (faster Stamina recovery, pass 15 minutes), or keep seats as sale and sit-down-meal pieces only? Recommended: a small Sit action, if the controller allows it easily (Claude Code check).
+14. **Indoor placement:** can the Small Cabin hold placed furniture (floor, collision, ghost snapping)? Claude Code reads the code first. If not, the first build also has to add it, which could make W1 bigger.
+15. **Cabin effects:** accept the bed and sit-down meal bonuses as first-pass sizes and tune by feel in Play Mode? Recommended: yes.
+16. **Clay Cooking Pot counts as a Cooking Pot for the Tripod:** recommended yes. It gives the Pioneer a free route to a pot. Check how it interacts with the Maple and boiling rules (a clay pot is still a "vessel, no litre capacity").
+17. **Wheel before or after the kiln chain:** recommended hand-built first (W3a), the Kick Wheel as W3b.
+18. **Handmade wares group (first draft decision 4):** now more important, because furniture and pottery both go there. Keep the crafted group (10% drop, floor 0.1) at first and loosen only if measuring says income is too thin, or start with a milder group (6% drop, floor 0.25)? Recommended: start harsh, loosen after measuring.
+19. **Wood from the land:** with 8,852 trees and no regrowth, should furniture need a "wood quality" system now or wait for the Lumber Mill chain? Recommended: wait, quality arrives with boards.
+
+## Read-only checks for Claude Code before any workshop plan
+
+1. Can the Small Cabin interior hold placed pieces? Floor, collision, ghost snapping.
+2. What is the Cabin's sleep effect today, and how would a bed layer on it?
+3. Does the controller have any seated or crouch-at-seat state? How hard would a Sit be?
+4. How do the existing queued jobs (cooking, boiling, splitting) store progress, so the workshop reuses them?
+5. How big is the staged-site code for a station like the Hopper, as a template for the Workshop shed and the Kick Wheel?
+6. What would be the kiln's Ash behavior, and how much Firewood is realistic?
+
+
+
+## What the code says (Claude Code read-only report, 2026-10-30)
+
+This answers the six read-only checks above. No code was changed. Sizes are Claude Code's estimates.
+
+1. **Furniture inside the Small Cabin:** the shell is solid and the player already stands and sleeps inside (interior about 4 m wide and 5 m deep, walls 2.2 m, a floor collider with its top 0.3 m up, a door 1.1 m by 2.0 m, the hearth slab on one side leaving about 1.7 m of open floor). But placement refuses the whole interior: `CanBuildPileAt` rejects any spot within 3.2 m of a cabin's centre ("Too close to another pile or building"), and the interior is only 2 m by 2.5 m each way of centre. **Nothing can be placed inside the Cabin today.** The Kitchen add-ons already snap to fixed slots (`PlacementMode.SnapToSlot`, `WoodManager.AddonSlots`), which is the template. Positions and yaw already save, so furniture needs no new save shape. A rule is needed for dismantling a cabin that holds furniture. **Size: about 250 to 450 lines in 1 to 2 phases** (cabin-local bounds exempt from the 3.2 m rule, floor-hit accepted, optional slots, dismantle rule).
+2. **Cabin sleep today:** the Cabin is already the best tier: insulation 0.75, full rain and wind block, and **Health recovery 2.5 times** (not the 2 times the first draft assumed). A carried Sleeping Bag adds to it, and the Cabin hearth is a real campfire that warms a sleeper. A bed is one more term in the same block, like `SleepRecoveryBonus`. **Size: about 40 to 80 lines plus tests**, once a bed can exist inside the Cabin.
+3. **Sit:** there is no seated state (`MovementState` is Idle, Walking, Sprinting, Crouching, Jumping). Locked-input precedents exist (knocked down, creek crossing, placement mode, sleeping). A seat could be an interactable that snaps the player, lowers eye height, locks movement and applies a stamina recovery multiplier, and "pass 15 minutes" could copy the sleep fade. **Size: about 120 to 200 lines, 1 phase.**
+4. **Queued jobs:** cooking, boiling and wood splitting keep progress in memory only, are not saved, and pause when the player walks away. So the workshop must NOT reuse them. The **Leach Hopper pattern** is the right one: progress saves as `leachHours` on the placed object and ticks each game hour (`OnHour`), so it runs while the player is away and through sleep. A bench would add additive fields (job id, job hours) and a static rules class like `PotashRules`. **Size: about 150 to 250 lines plus tests**, bench-specific, not a generic queue.
+5. **Staged-site template:** a station is a row in each of four data methods (`FinishedKind`, `FinishedCost`, `DeliveryOrder`, `RequiresDig`) plus a `PileKind` (saved as an integer, so new kinds are appended after the Leach Hopper) and a Hammer-blow row. Delivery and blows are shared code in `PlacedStructure`. **Size: about 150 to 250 lines each for the Workshop shed and the Kick Wheel** before any job logic, and the two share nearly everything.
+6. **Bench takes materials by R, then runs a job:** copy the Hopper load flow: store carried items up to a cap over several trips, start the job when the stock covers a recipe, E collects. Choosing a recipe needs a small screen (`StorageTransferScreen` or `CraftingScreen` are the templates), otherwise the bench runs "the one recipe the stock matches". **Size: about 250 to 400 lines for the bench logic and about 200 for a recipe screen.**
+7. **Kiln and Ash:** no kiln exists, and the word does not appear in the code. Ash today comes only from campfires and hearths (1 per 3 Firewood). A kiln firing could call the same Ash rules when it burns fuel (10 Firewood is about 3.3 Ash). **Size: about 40 to 80 lines on top of the kiln station.**
+
+**Total picture for W1 (shed, bench, furniture recipes):** interior placement 250 to 450, shed site 150 to 250, bench job and delivery 400 to 650, recipe screen about 200, bed 40 to 80, Sit 120 to 200 (optional). That is about 1,000 to 1,800 lines in several phases, the size of the Tripod plus Potash work together.
+
+## What this changes in the plan
+
+- **The Trading Post is a menu, not a place.** There is no physical Trading Post (TradingPost.cs, Difficulty_System.md). Selling needs no walking. A cart or UTV helps with hauling materials to the bench, not with selling.
+- **Furniture in the Cabin needs a prerequisite:** interior placement. It is a separate, smaller first phase that also helps other things (shelves, a bed, a table in the Kitchen add-on idea). Furniture can still be made and SOLD before it can be placed, which keeps the income value independent of the interior work.
+- **A bed layered on the Cabin is a small step up** (2.5 times to about 2.8 times recovery), so the Rope Bed's main job is to be a good product to sell, with a modest cabin effect.
+- **Phases for W1 (proposal):** (a) Workshop shed site and a Woodworking bench with delivery and a job that runs while away, making 3 to 4 sellable pieces; (b) the full furniture list and the recipe screen; (c) interior placement for the Cabin and the bed, sit-down meal and Sit effects. Mike can stop after (a) and still have an income source.
