@@ -267,3 +267,45 @@ Reading:
 - Real minutes column: Spring 252.9, Summer 65.4, Fall 52.7, Winter 21.2 (not reliable, ignore).
 
 Design implication to discuss: even at the best season (Spring $8.18 per day) the Pioneer reaches 40% of the payment; with Fall's $7.21 the year-1 income of about $5.58 per game day is 27%. Furs carry 60% of income; the Ash chain adds about 5%; Maple was not tested in Winter.
+
+
+## Winter Maple run (new Pioneer game, F11 kit, F8 to Winter, 10x at most, build a3f5f07)
+
+Source: Mike's three Account Statement screenshots (Winter so far at 6.35 days, Winter so far at about day 21, final Winter Year 1 at 28.00 days) and three ledger exports taken on 2026-10-30. Mike's six run steps all passed (new game, F11 and F8, only allowed keys, Spiles, Buckets, Tripod and Pot used, End pressed). Mike says he pressed End at days 7, 14, 21 and 28; three export sets exist, taken at Winter days 6.31, 20.99 and 26.81 (no export file for day 14 or day 28; the day 28 totals come from his final statement screenshot).
+
+Files in this folder: maple_winter_ledger_day07.csv, maple_winter_ledger_items_day07.csv, maple_winter_ledger_day21.csv, maple_winter_ledger_items_day21.csv, maple_winter_ledger_day27.csv, maple_winter_ledger_items_day27.csv.
+
+Winter Year 1, 28.00 game days (final statement):
+
+| Line | Maple run | Pioneer run's Winter (60x, no Maple) |
+|---|---|---|
+| Firewood, logs and stone | $38.88 | $5.67 |
+| Hides and furs | $88.47 | $51.80 |
+| Crafted goods | $7.99 | $6.52 |
+| Farm produce (Maple Syrup) | $91.85 | $0.00 |
+| Stocked goods sold back | $24.00 | $0.00 |
+| Total income | $251.19 | $63.99 |
+| Expenses | $92.00 (hunting and fishing $82.00, extra payment to principal $10.00) | $0.00 |
+| Net and cash | $159.19 | $63.99 |
+| Income per game day | $8.97 | $2.29 |
+| Income per game day without the sell-back | $8.11 (39.6% of $20.48) | $2.29 |
+| Maple Syrup per game day | $3.28 | $0.00 |
+
+The $24.00 "Stocked goods sold back" is the F11 starting kit being sold back (canteen $2.00, recurve bow $12.00, weather station $10.00, all sold in the first week): a one-time effect of the test setup, not repeatable income. Underlying Winter income is $227.19 = $8.11 per game day.
+
+Maple Syrup, by checkpoint (cumulative units sold, dollars, average price):
+
+| Checkpoint | Syrup sold | Dollars | Average |
+|---|---|---|---|
+| Day 6.31 | 8 | $72.02 | $9.00 |
+| Day 20.99 | 8 | $72.02 | $9.00 |
+| Day 26.81 | 9 | $82.01 | $9.11 |
+| Day 28.00 (from final statement, $91.85) | about 10 | $91.85 | about $9.19 |
+
+Reading:
+- Maple gave $91.85 in the season: about $3.28 per game day, not the roughly $9 per game day estimated before. Without Maple the Winter would be $135.34 underlying, $4.83 per game day.
+- 8 of the 10 Syrup were sold in the first 6 days (about $11 per game day for that week). From day 6 to day 21 no more Syrup was sold, and only about 2 more in the last 7 days. That is a pattern to explain: sap runs on freeze-thaw hours, buckets sour after 48 hours, and 12 taps fill at most 96 L (9 to 10 Syrup) per full round, so one round collected early would give exactly this. Mike's checkpoint notes (taps up, Syrup made) would settle whether it is weather, souring, or time spent elsewhere.
+- Hides and furs $88.47: about 19 small furs and 2 deer hides at $10.37. Ash sold 21 for $35.71, kindling 10 for $7.99.
+- Compared with other seasons (income per game day): Spring $8.18 (Maple $10), Fall $7.21, Summer $4.67, this Winter $8.11 underlying. Maple lifts Winter to about the Spring level, still about 40% of the $20.48 per game day the Pioneer payment needs.
+- Expenses: the $82 for hunting and fishing is bought gear (the earlier Spring run spent $92 there). The $10 extra payment to principal appears to be a deliberate test by Mike.
+- Cash at the end of the run $159.19 with $573.39 owed for day 112 (the run ended before the payment).
