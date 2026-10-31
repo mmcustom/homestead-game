@@ -751,6 +751,10 @@ public class WellsAndOuthouses : MonoBehaviour
 
     // Ground the creek would reach: near the channel and no higher than its surface (plus a rise). The surface is read off the
     // Water layer at the channel's centre nearest the point; if that can't be found the ground there stands in for it.
+    // Whether a spot is in the flood band (the test a Well, an Outhouse, a Hopper and a Hand Cart Site are refused by). The Hand Cart's pusher
+    // uses it to warn once as the cart goes in (CartHandler); nothing is done to the cart.
+    public bool InFloodBand(Vector3 point) => Floods(point);
+
     bool Floods(Vector3 point)
     {
         int segment = CreekFlow.NearestSegment(new Vector2(point.x, point.z), out float distance);

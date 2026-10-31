@@ -333,7 +333,7 @@ public class CartTests
         object item = Find("ItemDatabase").GetMethod("Get").Invoke(null, new object[] { "wooden_wheel" });
         Assert.That(item, Is.Not.Null, "Resources/Items/Materials/wooden_wheel.asset");
         Type def = item.GetType();
-        Assert.That((string)def.GetProperty("DisplayName").GetValue(item), Is.EqualTo("Wooden Wheel"));
+        Assert.That((string)def.GetProperty("DisplayName").GetValue(item), Is.EqualTo("Wooden Wheels"));
         Assert.That((float)def.GetProperty("WeightKg").GetValue(item), Is.EqualTo(CartRules.WheelWeightKg));
         Assert.That(def.GetProperty("Category").GetValue(item).ToString(), Is.EqualTo("Material"));
         Assert.That((bool)def.GetProperty("IsPerishable").GetValue(item), Is.False);
@@ -393,5 +393,272 @@ public class CartTests
         };
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
         Assert.That(fields, Is.EquivalentTo(expected), "Phase 1 saves a cart with the fields every pile already has");
+    }
+
+    // =================================================================================================================================
+    // Phase 2 (2026-10-31): grabbing and pushing the cart. The pure rules are CartRules'; the follower, the sweeps and the controller hooks are scene
+    // behaviour (CartHandler) and are covered by the playtest, not here.
+    // =================================================================================================================================
+
+    // --- Speed: exact values, because "a full cart is about 1.875 m/s" was once mis-stated for 96 kg ---
+
+    [Test]
+    public void ThePushSpeedFactorRunsInAStraightLineFromOneEmptyToThreeQuartersFull()
+    {
+        Assert.That(CartRules.PushSpeedFactor(0f), Is.EqualTo(1f).Within(1e-5f), "empty");
+        Assert.That(CartRules.PushSpeedFactor(0.5f), Is.EqualTo(0.875f).Within(1e-5f), "half");
+        Assert.That(CartRules.PushSpeedFactor(0.96f), Is.EqualTo(0.76f).Within(1e-5f), "96 kg");
+        Assert.That(CartRules.PushSpeedFactor(1f), Is.EqualTo(0.75f).Within(1e-5f), "full");
+        Assert.That(CartRules.PushSpeedFactor(-2f), Is.EqualTo(1f), "clamped");
+        Assert.That(CartRules.PushSpeedFactor(3f), Is.EqualTo(0.75f), "clamped");
+    }
+
+    [Test]
+    public void WalkingPaceOfTwoAndAHalfMetresASecondBecomesTheseExactPushSpeeds()
+    {
+        const float walk = 2.5f;
+        Assert.That(CartRules.PushSpeed(walk, CartRules.LoadFraction(0f)), Is.EqualTo(2.5f).Within(1e-4f), "empty cart: full walking pace");
+        Assert.That(CartRules.PushSpeed(walk, CartRules.LoadFraction(50f)), Is.EqualTo(2.1875f).Within(1e-4f), "50 kg");
+        Assert.That(CartRules.PushSpeed(walk, CartRules.LoadFraction(96f)), Is.EqualTo(1.9f).Within(1e-4f), "96 kg, 12 Logs: 1.90, not 1.81");
+        Assert.That(CartRules.PushSpeed(walk, CartRules.LoadFraction(100f)), Is.EqualTo(1.875f).Within(1e-4f), "100 kg: three quarters");
+    }
+
+    [Test]
+    public void ALighterLoadIsNeverSlowerThanAHeavierOne()
+    {
+        float previous = float.MaxValue;
+        for (int kg = 0; kg <= 100; kg += 4)
+        {
+            float speed = CartRules.PushSpeed(2.5f, CartRules.LoadFraction(kg));
+            Assert.That(speed, Is.LessThanOrEqualTo(previous), kg + " kg");
+            previous = speed;
+        }
+    }
+
+    [Test]
+    public void ThePackSlowingStacksOnTopOfTheCartLoad()
+    {
+        float packSlowed = 2.5f * 0.8f; // a pack part of the way to encumbered
+        Assert.That(CartRules.PushSpeed(packSlowed, 1f), Is.EqualTo(1.5f).Within(1e-4f), "2.0 x 0.75");
+    }
+
+    // --- The swing: the cart trails the player's heading at a limited rate ---
+
+    [Test]
+    public void TheShortestTurnIsSignedAndStaysInsideHalfACircle()
+    {
+        Assert.That(CartRules.DeltaAngle(10f, 350f), Is.EqualTo(-20f).Within(1e-4f));
+        Assert.That(CartRules.DeltaAngle(350f, 10f), Is.EqualTo(20f).Within(1e-4f));
+        Assert.That(CartRules.DeltaAngle(90f, 90f), Is.EqualTo(0f));
+        Assert.That(CartRules.DeltaAngle(0f, 270f), Is.EqualTo(-90f).Within(1e-4f));
+        Assert.That(CartRules.DeltaAngle(0f, 540f), Is.EqualTo(180f).Within(1e-4f));
+    }
+
+    [Test]
+    public void TheCartTurnsNoFasterThanNinetyDegreesASecondTheShortWayRound()
+    {
+        Assert.That(CartRules.TurnDegreesPerSecond, Is.EqualTo(90f));
+        Assert.That(CartRules.NextYaw(0f, 90f, 0.5f), Is.EqualTo(45f).Within(1e-4f));
+        Assert.That(CartRules.NextYaw(0f, 90f, 1f), Is.EqualTo(90f).Within(1e-4f));
+        Assert.That(CartRules.NextYaw(0f, 90f, 5f), Is.EqualTo(90f).Within(1e-4f), "never overshoots");
+        Assert.That(CartRules.NextYaw(350f, 10f, 0.1f), Is.EqualTo(359f).Within(1e-3f), "across north, the short way");
+        Assert.That(CartRules.NextYaw(5f, 350f, 0.2f), Is.EqualTo(350f).Within(1e-3f), "turning left through zero wraps to 350");
+        Assert.That(CartRules.NextYaw(40f, 200f, 0f), Is.EqualTo(40f), "no time, no turn");
+        Assert.That(CartRules.NextYaw(40f, 200f, -1f), Is.EqualTo(40f), "negative time counts as none");
+    }
+
+    [Test]
+    public void TheCartYawStaysBetweenZeroAndThreeSixty()
+    {
+        for (float from = 0f; from < 360f; from += 37f)
+        for (float to = 0f; to < 360f; to += 53f)
+        {
+            float next = CartRules.NextYaw(from, to, 0.3f);
+            Assert.That(next, Is.GreaterThanOrEqualTo(0f).And.LessThan(360f), $"{from} toward {to}");
+        }
+    }
+
+    [Test]
+    public void TheCartCentreIsOnePointSevenMetresAheadOfThePlayerAlongItsFacing()
+    {
+        Assert.That(CartRules.FollowMetres, Is.EqualTo(1.7f));
+        CartRules.CartCentreAhead(10f, 20f, 0f, out float x, out float z);
+        Assert.That(x, Is.EqualTo(10f).Within(1e-4f));
+        Assert.That(z, Is.EqualTo(21.7f).Within(1e-4f));
+        CartRules.CartCentreAhead(10f, 20f, 90f, out x, out z);
+        Assert.That(x, Is.EqualTo(11.7f).Within(1e-4f));
+        Assert.That(z, Is.EqualTo(20f).Within(1e-4f));
+        CartRules.CartCentreAhead(10f, 20f, 180f, out x, out z);
+        Assert.That(z, Is.EqualTo(18.3f).Within(1e-4f));
+        CartRules.CartCentreAhead(0f, 0f, 0f, out x, out z, 1.3f);
+        Assert.That(z, Is.EqualTo(1.3f).Within(1e-4f), "the distance is a parameter");
+    }
+
+    [Test]
+    public void TheFootprintHasFifteenDistinctPointsThatTurnWithTheCart()
+    {
+        var xs = new float[CartRules.SampleCount];
+        var zs = new float[CartRules.SampleCount];
+        Assert.That(CartRules.SampleCount, Is.EqualTo(15));
+
+        Assert.That(CartRules.FootprintSamples(0f, 0f, 0f, xs, zs), Is.EqualTo(15));
+        Assert.That(xs.Min(), Is.EqualTo(-0.6f).Within(1e-4f));
+        Assert.That(xs.Max(), Is.EqualTo(0.6f).Within(1e-4f));
+        Assert.That(zs.Min(), Is.EqualTo(-1.1f).Within(1e-4f), "the handles' end, behind the centre");
+        Assert.That(zs.Max(), Is.EqualTo(0.85f).Within(1e-4f), "the front board");
+        Assert.That(Enumerable.Range(0, 15).Select(i => (xs[i], zs[i])).Distinct().Count(), Is.EqualTo(15));
+
+        Assert.That(CartRules.FootprintSamples(5f, -3f, 90f, xs, zs), Is.EqualTo(15));
+        Assert.That(xs.Max(), Is.EqualTo(5f + 0.85f).Within(1e-4f), "facing +X, the front is at +X");
+        Assert.That(xs.Min(), Is.EqualTo(5f - 1.1f).Within(1e-4f), "and the handles trail toward -X");
+        Assert.That(zs.Min(), Is.EqualTo(-3f - 0.6f).Within(1e-4f));
+        Assert.That(zs.Max(), Is.EqualTo(-3f + 0.6f).Within(1e-4f));
+    }
+
+    [Test]
+    public void TheGrabReachIsTwoPointTwoMetres()
+    {
+        Assert.That(CartRules.CanReach(0f), Is.True);
+        Assert.That(CartRules.CanReach(2.2f), Is.True);
+        Assert.That(CartRules.CanReach(2.3f), Is.False);
+        Assert.That(CartRules.CanReach(-1f), Is.False);
+    }
+
+    // --- Slope: only uphill, and a load lowers the limit ---
+
+    [Test]
+    public void TheSlopeLimitIsTwentyFiveDegreesEmptyAndEighteenFull()
+    {
+        Assert.That(CartRules.MaxPushSlopeDegrees(0f), Is.EqualTo(25f).Within(1e-4f));
+        Assert.That(CartRules.MaxPushSlopeDegrees(1f), Is.EqualTo(18f).Within(1e-4f));
+        Assert.That(CartRules.MaxPushSlopeDegrees(0.5f), Is.EqualTo(21.5f).Within(1e-4f));
+        Assert.That(CartRules.MaxPushSlopeDegrees(9f), Is.EqualTo(18f), "clamped");
+    }
+
+    [Test]
+    public void ALoadedCartStopsOnAThirtyPercentGradeThatAnEmptyOneCanStillClimb()
+    {
+        // 0.6 m up over 1.8 m is 18.4 degrees; 0.8 m up over 1.8 m is 24.0 degrees; 1.0 m up over 1.8 m is 29.1 degrees.
+        Assert.That(CartRules.SlopeBlocksPush(0.6f, 1.8f, 1f), Is.True, "loaded, 18.4 degrees");
+        Assert.That(CartRules.SlopeBlocksPush(0.6f, 1.8f, 0f), Is.False, "empty, 18.4 degrees");
+        Assert.That(CartRules.SlopeBlocksPush(0.8f, 1.8f, 0f), Is.False, "empty, 24.0 degrees");
+        Assert.That(CartRules.SlopeBlocksPush(1.0f, 1.8f, 0f), Is.True, "empty, 29.1 degrees");
+        Assert.That(CartRules.SlopeBlocksPush(0.4f, 1.8f, 1f), Is.False, "loaded, 12.5 degrees");
+    }
+
+    [Test]
+    public void DownhillLevelAndNoRunNeverBlock()
+    {
+        Assert.That(CartRules.SlopeBlocksPush(-5f, 1.8f, 1f), Is.False, "any downhill, so a cart can always be backed down");
+        Assert.That(CartRules.SlopeBlocksPush(0f, 1.8f, 1f), Is.False);
+        Assert.That(CartRules.SlopeBlocksPush(2f, 0f, 1f), Is.False, "no run is no direction");
+    }
+
+    // --- Water ---
+
+    [Test]
+    public void WaterDeeperThanAnAnkleStopsTheCart()
+    {
+        Assert.That(CartRules.WaterLimitMetres, Is.EqualTo(0.25f));
+        Assert.That(CartRules.WaterBlocksPush(0f), Is.False);
+        Assert.That(CartRules.WaterBlocksPush(0.25f), Is.False, "exactly the limit is allowed");
+        Assert.That(CartRules.WaterBlocksPush(0.26f), Is.True);
+    }
+
+    [Test]
+    public void ACartAlreadyAtTheWatersEdgeCanAlwaysBeBackedOut()
+    {
+        Assert.That(CartRules.WaterStepBlocked(0.1f, 0.4f), Is.True, "a step into deeper water");
+        Assert.That(CartRules.WaterStepBlocked(0.1f, 0.2f), Is.False, "still shallow");
+        Assert.That(CartRules.WaterStepBlocked(0.4f, 0.4f), Is.False, "no deeper than now: not refused");
+        Assert.That(CartRules.WaterStepBlocked(0.4f, 0.1f), Is.False, "backing out");
+        Assert.That(CartRules.WaterStepBlocked(0.4f, 0.5f), Is.True, "deeper still, in too deep already");
+    }
+
+    // --- The stuck message waits six tenths of a second and only counts a player who is trying to move ---
+
+    [Test]
+    public void TheStuckMessageNeedsSixTenthsOfASecondOfTryingToMove()
+    {
+        Assert.That(CartRules.StuckMessageSeconds, Is.EqualTo(0.6f));
+        float t = 0f;
+        t = CartRules.StuckTime(t, true, false, 0.3f);
+        Assert.That(CartRules.ShowStuckMessage(t), Is.False, "0.3 s");
+        t = CartRules.StuckTime(t, true, false, 0.29f);
+        Assert.That(CartRules.ShowStuckMessage(t), Is.False, "0.59 s");
+        t = CartRules.StuckTime(t, true, false, 0.02f);
+        Assert.That(CartRules.ShowStuckMessage(t), Is.True, "0.61 s");
+    }
+
+    [Test]
+    public void MovingOrNotTryingToMoveResetsTheStuckTimer()
+    {
+        Assert.That(CartRules.StuckTime(0.5f, true, true, 0.1f), Is.EqualTo(0f), "free to move");
+        Assert.That(CartRules.StuckTime(0.5f, false, false, 0.1f), Is.EqualTo(0f), "standing still on purpose");
+        Assert.That(CartRules.StuckTime(0.5f, true, false, -1f), Is.EqualTo(0.5f), "negative time adds nothing");
+        Assert.That(CartRules.ShowStuckMessage(-2f), Is.False, "the cool-down after a message");
+    }
+
+    // --- The words ---
+
+    [Test]
+    public void ThePromptsReadExactlyAsAgreedAndNeverCarryAKeyInBrackets()
+    {
+        Assert.That(CartRules.GrabPrompt(62f), Is.EqualTo("Push Hand Cart  (62 / 100 kg)"));
+        Assert.That(CartRules.PushingLine(62f), Is.EqualTo("Pushing the Hand Cart  (62 / 100 kg)  -  E to park"));
+        Assert.That(CartRules.GrabPrompt(0f), Is.EqualTo("Push Hand Cart  (0 / 100 kg)"));
+        foreach (string text in new[]
+        {
+            CartRules.GrabPrompt(10f), CartRules.PushingLine(10f), CartRules.ParkedText, CartRules.LetGoText, CartRules.NoRoomToGrabText,
+            CartRules.StandUpText, CartRules.StuckText, CartRules.TooSteepText, CartRules.TooDeepText, CartRules.FloodText,
+        })
+        {
+            Assert.That(text, Does.Not.Contain("[").And.Not.Contain("]"), "the prompt HUD adds the key itself: " + text);
+        }
+    }
+
+    [Test]
+    public void TheFloodWarningNamesTheFloodAndSaysWhatToDo() =>
+        Assert.That(CartRules.FloodText, Does.Contain("flood zone").And.Contain("Park it higher up"));
+
+    // --- Nothing about holding the cart is saved, and no number that is saved has moved ---
+
+    [Test]
+    public void WhetherTheCartIsHeldIsNotSavedAnywhere()
+    {
+        Type saveable = Find("ISaveable");
+        Assert.That(saveable.IsAssignableFrom(Find("CartHandler")), Is.False, "CartHandler is not a saved system");
+        Assert.That(saveable.IsAssignableFrom(Find("CartHandle")), Is.False);
+        Assert.That(Find("CartHandler").GetCustomAttributes(typeof(SerializableAttribute), false), Is.Empty, "and not a serialized class");
+
+        string[] world = Find("WoodSaveData").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
+        Assert.That(world, Is.EquivalentTo(new[] { "felled", "piles", "nextPileId", "snowLoadHours", "stormAfterglow" }),
+                    "the world file's wood section has no grab flag");
+    }
+
+    [Test]
+    public void NoHandlerMeansNothingIsHeld()
+    {
+        Type handler = Find("CartHandler");
+        Assert.That((bool)handler.GetProperty("Pushing").GetValue(null), Is.False);
+        Assert.That((float)handler.GetProperty("LoadFraction").GetValue(null), Is.EqualTo(0f));
+    }
+
+    [Test]
+    public void LedgerCategoriesAndTheLedgerVersionAreUntouched()
+    {
+        Assert.That(LedgerCategories.Count, Is.EqualTo(19));
+        Assert.That(LedgerCategories.LastIncomeId, Is.EqualTo(7));
+        Assert.That((int)LedgerCategory.BuyOtherGoods, Is.EqualTo(18));
+        Assert.That(Find("LedgerSaveData").GetField("CurrentVersion").GetRawConstantValue(), Is.EqualTo(1));
+    }
+
+    [Test]
+    public void PileKindNumbersAreUntouchedByPhaseTwo()
+    {
+        Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
+        Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
+        Assert.That((int)Kind("HandCart"), Is.EqualTo(32));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(33), "no kind was added for the cart handle or the held cart");
     }
 }

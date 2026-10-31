@@ -915,8 +915,39 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         for (int i = 0; i < grass; i++)
             Tinted(Piece(PrimitiveType.Cylinder, new Vector3(-0.3f + (i % 3) * 0.3f, bedY + 0.2f + (i / 3) * 0.05f, 0.75f - (i % 2) * 0.1f), new Vector3(80f, (i * 25f) % 60f - 30f, 0f), new Vector3(0.05f, 0.4f, 0.05f), null), new Color(0.55f, 0.55f, 0.28f));
 
-        box.center = new Vector3(0f, 0.5f, -0.25f);
-        box.size = new Vector3(1.4f, 1.0f, 2.4f);
+        // The root box is the bed and wheels only; the handles have their own collider behind it (CartHandle), so looking at the bed opens the load
+        // and looking at the handles grabs the cart, and neither ray is swallowed by a box that covers both.
+        box.center = new Vector3(0f, 0.5f, 0.1f);
+        box.size = new Vector3(1.4f, 1.0f, 1.6f);
+        AddCartHandle();
+        ApplyColliders();
+    }
+
+    // The Hand Cart's handles (Phase 2): a collider of their own, a little behind the bed, that grabs the cart instead of opening its load.
+    void AddCartHandle()
+    {
+        var go = new GameObject("Cart Handle");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = new Vector3(0f, 0.62f, -1.0f);
+        go.AddComponent<BoxCollider>().size = new Vector3(0.9f, 0.4f, 0.6f);
+        go.AddComponent<CartHandle>().Bind(this);
+        pieces.Add(go);
+    }
+
+    // While the cart is pushed (CartHandler) every collider on it is off: the player's CharacterController would otherwise collide with the cart it
+    // is pushing, and nothing else (a look ray, a tool, an animal) should find it moving. A rebuild keeps the switch where it was.
+    bool collidersOff;
+
+    public void SetCollidersOn(bool on)
+    {
+        collidersOff = !on;
+        ApplyColliders();
+    }
+
+    void ApplyColliders()
+    {
+        foreach (Collider c in GetComponentsInChildren<Collider>(true))
+            c.enabled = !collidersOff;
     }
 
     // A heap of grey stones: a ring of base stones always, more piled on as Stone is stored.

@@ -33,7 +33,8 @@ using UnityEngine.InputSystem;
 //          12 Ash and 12 L of water (6 Unsafe, 6 Good) to load it with (Insert alone still loses the game)
 //   Shift+Delete give 12 Lye and 4 Potash (to try the Lye and Potash prices at the Trading Post without leaching or boiling; every Numpad key is already a rain control)
 //   [  give the Hand Cart kit: 2 Wooden Wheels, 3 Logs, 6 Branches, 3 Cordage and a Hammer (the F11 kit has no Hammer);  ]  stand a finished Hand Cart about 3 m ahead
-//      holding 4 Logs, 6 Stone and 10 Firewood (77 kg) to try the transfer screen and the 100 kg cap
+//      holding 4 Logs, 6 Stone and 10 Firewood (77 kg) to try the transfer screen and the 100 kg cap;  Shift+]  stand a Wood Pile with 12 Logs (96 kg) 3 m ahead,
+//      the logs "at the stand" for timing a haul by hand against the cart
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -113,6 +114,17 @@ public class TimeDebugControls : MonoBehaviour
             Terrain terrain = Terrain.activeTerrain;
             if (terrain != null)
                 at.y = terrain.SampleHeight(at) + terrain.transform.position.y;
+
+            // Shift+]: the logs at "the stand" for the cart's before-and-after timing: a Wood Pile with 12 Logs (96 kg), taken from with E like any pile.
+            if (keyboard.shiftKey.isPressed)
+            {
+                WoodPileState logs = WoodManager.Instance.DebugPlace(PileKind.WoodStorage, at, body.eulerAngles.y);
+                logs.Add(WoodManager.LogsId, 12);
+                WoodManager.Instance.NotifyChanged(logs);
+                Show("Wood Pile with 12 Logs (96 kg) placed ahead", time);
+                return;
+            }
+
             WoodPileState cart = WoodManager.Instance.DebugPlace(PileKind.HandCart, at, body.eulerAngles.y);
             cart.Add(WoodManager.LogsId, 4);
             cart.Add(WoodManager.StoneId, 6);

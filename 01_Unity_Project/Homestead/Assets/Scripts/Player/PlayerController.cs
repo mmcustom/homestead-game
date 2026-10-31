@@ -127,7 +127,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     // Scales mouse and stick look — lowered while a scope is zoomed in, so aiming stays steady.
     public float LookScale { get; set; } = 1f;
     // Equipped tools (rod, bow, rifle, traps) only work during gameplay, not in menus or while paused.
-    public bool CanUseTools => CanAct && !PlacementMode.Active && !CreekCrossing.InputLocked;
+    public bool CanUseTools => CanAct && !PlacementMode.Active && !CreekCrossing.InputLocked && !CartHandler.Pushing; // no tools with both hands on a cart
 
     public float SprintStaminaPerSecond => sprintStaminaPerSecond;
 
@@ -183,6 +183,8 @@ public class PlayerController : MonoBehaviour, ISaveable
     {
         controller = GetComponent<CharacterController>();
         stamina = maxStamina;
+        if (GetComponent<CartHandler>() == null)
+            gameObject.AddComponent<CartHandler>(); // the Hand Cart (Phase 2); no prefab change
 
         // Water surfaces carry a collider only so they can be looked at (WaterSource's Drink); the player wades through.
         int waterLayer = LayerMask.NameToLayer("Water");
@@ -259,7 +261,7 @@ public class PlayerController : MonoBehaviour, ISaveable
 
         // Knocked down by a flash flood (CreekCrossing): no crouching or interacting until the player can move again.
         bool knockedDown = CreekCrossing.InputLocked;
-        if (crouchAction.WasPressedThisFrame() && !knockedDown)
+        if (crouchAction.WasPressedThisFrame() && !knockedDown && !CartHandler.Pushing)
             SetCrouched(!crouched);
 
         Move(dt);
@@ -267,7 +269,10 @@ public class PlayerController : MonoBehaviour, ISaveable
         UpdateFocus();
 
         // While choosing where to build (PlacementMode) nothing is interacted with, so a click or key can't do two things.
-        bool placing = PlacementMode.Active || knockedDown;
+        bool pushing = CartHandler.Pushing; // the Hand Cart: no prompts, no R; E parks it
+        bool placing = PlacementMode.Active || knockedDown || pushing;
+        if (pushing && !knockedDown && interactAction.WasPressedThisFrame())
+            CartHandler.Instance.Park();
         if (!placing && focus is Campfire fire && Keyboard.current != null)
         {
             if (Keyboard.current.fKey.wasPressedThisFrame)
@@ -304,6 +309,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     // The same, looking up or down by newPitch degrees (the Maple debug teleport faces the trunk).
     public void Teleport(Vector3 position, float newYaw, float newPitch)
     {
+        CartHandler.LetGo(); // a held Hand Cart is left where it stands (a load, a collapse's move and the debug teleport all come through here)
         controller.enabled = false;
         transform.position = position;
         controller.enabled = true;
@@ -348,12 +354,12 @@ public class PlayerController : MonoBehaviour, ISaveable
         if (grounded || (!jumping && verticalVelocity <= 0f && GroundJustBelow()))
             lastGroundedTime = Time.time;
 
-        bool wantsSprint = sprintAction.IsPressed() && moving && input.y > 0.1f && !crouched && encumbrance < 1f;
+        bool wantsSprint = sprintAction.IsPressed() && moving && input.y > 0.1f && !crouched && encumbrance < 1f && !CartHandler.Pushing;
         bool sprinting = !jumping && wantsSprint && stamina > 0f &&
                          (State == MovementState.Sprinting || stamina >= minStaminaToSprint);
 
         UpdateStamina(sprinting, dt);
-        if (!creek.locked)
+        if (!creek.locked && !CartHandler.Pushing)
             TryJump(encumbrance);
 
         State = jumping ? MovementState.Jumping
@@ -364,6 +370,8 @@ public class PlayerController : MonoBehaviour, ISaveable
 
         float speed = crouched ? crouchSpeed : sprinting ? sprintSpeed : walkSpeed;
         speed *= Mathf.Lerp(1f, fullyEncumberedSpeedMultiplier, encumbrance);
+        if (CartHandler.Pushing)
+            speed *= CartRules.PushSpeedFactor(CartHandler.LoadFraction); // 1 empty, 0.75 full, on top of the pack's own slowing
         if (SurvivalManager.Instance != null)
             speed *= SurvivalManager.Instance.MovementMultiplier; // severe cold (Warmth)
         speed *= creek.speedFactor;
@@ -379,7 +387,17 @@ public class PlayerController : MonoBehaviour, ISaveable
         verticalVelocity -= gravity * dt;
 
         // The creek's push goes through the controller like any move, so terrain and colliders stop it.
-        controller.Move((horizontalVelocity + creek.push + Vector3.up * verticalVelocity) * dt);
+        Vector3 step = (horizontalVelocity + creek.push + Vector3.up * verticalVelocity) * dt;
+        if (CartHandler.Pushing)
+        {
+            // The Hand Cart (Phase 2): only the part of the step that would push the cart into something is taken out, so backing up and turning
+            // always work. Velocity follows what was allowed, so the player does not keep pressing into the obstacle.
+            Vector3 allowed = CartHandler.Instance.Constrain(step, dt);
+            if (allowed.x != step.x || allowed.z != step.z)
+                horizontalVelocity = new Vector3(allowed.x, 0f, allowed.z) / Mathf.Max(dt, 0.0001f);
+            step = allowed;
+        }
+        controller.Move(step);
     }
 
     bool GroundJustBelow()
@@ -473,6 +491,17 @@ public class PlayerController : MonoBehaviour, ISaveable
 
     void UpdateFocus()
     {
+        // Both hands on the Hand Cart: nothing is looked at or interacted with until it is parked (E).
+        if (CartHandler.Pushing)
+        {
+            if (focus != null)
+            {
+                focus = null;
+                FocusChanged?.Invoke(null);
+            }
+            return;
+        }
+
         IInteractable found = null;
         if (cameraTransform != null)
         {
