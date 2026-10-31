@@ -30,7 +30,7 @@ public class PotashWorldTests
         Assert.That((int)Kind("SlopSink"), Is.EqualTo(28), "the last kind before them is untouched");
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
         Assert.That((int)Kind("WoodShed"), Is.EqualTo(21), "saved piles keep their kinds");
-        Assert.That(Enum.GetValues(kinds).Length, Is.EqualTo(31));
+        Assert.That(Enum.GetValues(kinds).Length, Is.GreaterThanOrEqualTo(31), "later kinds (the Hand Cart is 31 and 32) are only ever appended after these");
     }
 
     [Test]

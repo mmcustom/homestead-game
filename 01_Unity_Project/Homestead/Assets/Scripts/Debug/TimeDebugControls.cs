@@ -32,6 +32,8 @@ using UnityEngine.InputSystem;
 //   Ctrl+Delete finish every running Leach Hopper batch now (the Ash in it becomes Lye); Ctrl+Insert stand a finished Leach Hopper about 3 m ahead and give
 //          12 Ash and 12 L of water (6 Unsafe, 6 Good) to load it with (Insert alone still loses the game)
 //   Shift+Delete give 12 Lye and 4 Potash (to try the Lye and Potash prices at the Trading Post without leaching or boiling; every Numpad key is already a rain control)
+//   [  give the Hand Cart kit: 2 Wooden Wheels, 3 Logs, 6 Branches, 3 Cordage and a Hammer (the F11 kit has no Hammer);  ]  stand a finished Hand Cart about 3 m ahead
+//      holding 4 Logs, 6 Stone and 10 Firewood (77 kg) to try the transfer screen and the 100 kg cap
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -85,6 +87,39 @@ public class TimeDebugControls : MonoBehaviour
                 TapManager.DebugForceFlow = !TapManager.DebugForceFlow;
                 Show(TapManager.DebugForceFlow ? "Sap always runs: ON" : "Sap always runs: OFF", time);
             }
+        }
+
+        // Hand Cart (Vehicles_and_Hauling.md, Phase 1). [ gives the cart's materials; ] stands a finished cart with a load about 3 m ahead.
+        if (keyboard.leftBracketKey.wasPressedThisFrame && InventoryManager.Instance != null)
+        {
+            InventoryManager inventory = InventoryManager.Instance;
+            (string id, int count)[] kit =
+            {
+                (CartRules.WheelId, CartRules.CartWheels), (WoodManager.LogsId, CartRules.CartLogs),
+                (WoodManager.BranchesId, CartRules.CartBranches), (CartRules.CordageId, CartRules.CartCordage), ("hammer", 1),
+            };
+            int missed = 0;
+            foreach ((string id, int count) in kit)
+                missed += count - inventory.AddToPlayer(id, count);
+            Show(missed == 0 ? "Hand Cart kit given: 2 Wooden Wheels, 3 Logs, 6 Branches, 3 Cordage and a Hammer" : $"Hand Cart kit given ({missed} items didn't fit)", time);
+            return;
+        }
+
+        if (keyboard.rightBracketKey.wasPressedThisFrame && WoodManager.Instance != null)
+        {
+            Transform body = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 flat = Vector3.ProjectOnPlane(body.forward, Vector3.up).normalized;
+            Vector3 at = body.position + flat * 3f;
+            Terrain terrain = Terrain.activeTerrain;
+            if (terrain != null)
+                at.y = terrain.SampleHeight(at) + terrain.transform.position.y;
+            WoodPileState cart = WoodManager.Instance.DebugPlace(PileKind.HandCart, at, body.eulerAngles.y);
+            cart.Add(WoodManager.LogsId, 4);
+            cart.Add(WoodManager.StoneId, 6);
+            cart.Add(FireManager.FirewoodId, 10);
+            WoodManager.Instance.NotifyChanged(cart);
+            Show($"Hand Cart placed ahead with 4 Logs, 6 Stone and 10 Firewood ({WoodPile.CartLoadKg(cart):0.#} kg)", time);
+            return;
         }
 
         if (keyboard.pageDownKey.wasPressedThisFrame)

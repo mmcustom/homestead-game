@@ -39,7 +39,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart }
 
 [Serializable]
 public class WoodPileState
@@ -227,6 +227,10 @@ public class WoodPileState
             case PileKind.KitchenRoofSite:
             case PileKind.LeachHopperSite:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
+            // The Hand Cart (Vehicles_and_Hauling.md, Phase 1): bulk building goods only, and held to CartRules.CapacityKg by weight in WoodPile
+            // (this answers "is it the kind of thing the cart takes"; whether it still fits is the weight check).
+            case PileKind.HandCart: return CartRules.Carries(itemId);
+            case PileKind.HandCartSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
             case PileKind.Countertop:
             case PileKind.Grill:
             case PileKind.SlopSink:
@@ -832,7 +836,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -878,6 +882,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.SlopSink: return AddonName(KitchenAddonPrefix, "Sink");
             case PileKind.LeachHopperSite: return "Leach Hopper Site";
             case PileKind.LeachHopper: return "Leach Hopper";
+            case PileKind.HandCartSite: return "Hand Cart Site";
+            case PileKind.HandCart: return "Hand Cart";
             default: return "Wood Pile";
         }
     }
@@ -917,6 +923,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WoodShed: return WellsAndOuthouses.WoodShedCost();
             // A Leach Hopper Site is free to mark out the same way; PileKind.LeachHopper holds its total and what Dismantle halves.
             case PileKind.LeachHopper: return WellsAndOuthouses.LeachHopperCost();
+            // A Hand Cart Site is free to mark out the same way; PileKind.HandCart holds its total and what Dismantle halves.
+            case PileKind.HandCart: return WellsAndOuthouses.HandCartCost();
             // A Kitchen Site is free to mark out too; PileKind.Kitchen holds both stages' materials in total, what Dismantle halves line by line.
             case PileKind.Kitchen: return WellsAndOuthouses.KitchenCost();
             // The Kitchen add-ons are single-step builds (each under the 15 kg staged line); WellsAndOuthouses holds the numbers.
@@ -1094,7 +1102,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         // hollows (WellsAndOuthouses.CanPlace); the refusal names what it is too close to.
         // A Wood Shed Site keeps off floodplain and 3 m from the cabin (the same call).
 
-        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite || kind == PileKind.LeachHopperSite) && WellsAndOuthouses.Instance != null &&
+        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite || kind == PileKind.LeachHopperSite || kind == PileKind.HandCartSite) && WellsAndOuthouses.Instance != null &&
             !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         foreach (WoodPileState other in piles)
@@ -1104,7 +1112,11 @@ public class WoodManager : MonoBehaviour, ISaveable
             bool otherIsCabin = other.kind == PileKind.Cabin || other.kind == PileKind.CabinSite;
             float clearance = rainBarrel && IsRainBarrel(other.kind)
                 ? rainBarrelSpacing
-                : Mathf.Max(spacing, otherIsCabin ? cabinFootprint : minSpacing);
+                : IsHandCart(kind) || IsHandCart(other.kind)
+                    // A parked cart is exempt from the 2 m spacing so it can stand beside a site it feeds (Mike, 2026-10-30): only enough
+                    // room that two things do not overlap, and still the full cabin clearance next to a cabin or a cabin site.
+                    ? (cabin || otherIsCabin ? cabinFootprint : CartRules.SpacingMetres)
+                    : Mathf.Max(spacing, otherIsCabin ? cabinFootprint : minSpacing);
             if (Vector3.Distance(other.position, spot.point) < clearance)
             {
                 reason = cabin ? "Too close to another pile or building." : "Too close to another pile.";
@@ -1149,6 +1161,9 @@ public class WoodManager : MonoBehaviour, ISaveable
         }
     }
 
+    // A Hand Cart or its staged site (CartRules.SpacingMetres instead of the 2 m building spacing).
+    public static bool IsHandCart(PileKind kind) => kind == PileKind.HandCart || kind == PileKind.HandCartSite;
+
     // A Rain Barrel or its staged site: both stand at an eave and keep the barrel spacing from each other.
     public static bool IsRainBarrel(PileKind kind) => kind == PileKind.RainBarrel || kind == PileKind.RainBarrelSite;
 
@@ -1184,7 +1199,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     public bool BuildPile(PileKind kind, PlayerController player, BuildSpot spot, float yaw)
     {
         if (kind == PileKind.Felled || kind == PileKind.Cabin || kind == PileKind.Well || kind == PileKind.Outhouse ||
-            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || kind == PileKind.WoodShed || kind == PileKind.LeachHopper || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
+            kind == PileKind.WaterBarrel || kind == PileKind.RainBarrel || kind == PileKind.FoodCache || kind == PileKind.WoodShed || kind == PileKind.LeachHopper || kind == PileKind.HandCart || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen || !CanBuildPileAt(kind, player, spot, yaw, true, out _))
             return false;
 
         foreach (WoodStack c in CostOf(kind))

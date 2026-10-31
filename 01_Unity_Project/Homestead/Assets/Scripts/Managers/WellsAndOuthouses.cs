@@ -184,6 +184,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.FoodCacheSite:
             case PileKind.WoodShedSite:
             case PileKind.LeachHopperSite:
+            case PileKind.HandCartSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -203,6 +204,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.FoodCacheSite: return PileKind.FoodCache;
             case PileKind.WoodShedSite: return PileKind.WoodShed;
             case PileKind.LeachHopperSite: return PileKind.LeachHopper;
+            case PileKind.HandCartSite: return PileKind.HandCart;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -230,6 +232,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.FoodCacheSite: return Stored(PileKind.FoodCache, (WoodManager.LogsId, 2), (WoodManager.BranchesId, 4));
             case PileKind.WoodShedSite: return WoodShedCost();
             case PileKind.LeachHopperSite: return LeachHopperCost();
+            case PileKind.HandCartSite: return HandCartCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -267,6 +270,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
         if (site == PileKind.LeachHopperSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.TallGrassId } };
+        if (site == PileKind.HandCartSite)
+            return new[] { new[] { CartRules.WheelId, WoodManager.LogsId, WoodManager.BranchesId, "cordage" } };
         if (site == PileKind.RainBarrelSite || site == PileKind.FoodCacheSite || site == PileKind.WoodShedSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId } };
         return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.LogsId, WoodManager.BranchesId } };
@@ -399,6 +404,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.FoodCacheSite: return foodCacheBuildBlows;
             case PileKind.WoodShedSite: return woodShedBuildBlows;
             case PileKind.LeachHopperSite: return PotashRules.HopperBuildBlows;
+            case PileKind.HandCartSite: return CartRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -428,6 +434,8 @@ public class WellsAndOuthouses : MonoBehaviour
         string name = WoodManager.PileName(FinishedKind(site));
         if (site == PileKind.LeachHopperSite)
             return KnowHowRules.HopperBuilt;
+        if (site == PileKind.HandCartSite)
+            return "Hand Cart built. Load it with R or E - it holds up to 100 kg of Logs, Branches, Firewood, Stone, Clay and Tall Grass.";
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -503,6 +511,15 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         new WoodStack { itemId = WoodManager.LogsId, count = PotashRules.HopperLogs },
         new WoodStack { itemId = WoodManager.TallGrassId, count = PotashRules.HopperTallGrass },
+    };
+
+    // A Hand Cart (Vehicles_and_Hauling.md, Step 1): 2 Wooden Wheels, 3 Logs, 6 Branches and 3 Cordage (about 37 kg), so a staged site. CartRules has the numbers.
+    public static WoodStack[] HandCartCost() => new[]
+    {
+        new WoodStack { itemId = CartRules.WheelId, count = CartRules.CartWheels },
+        new WoodStack { itemId = WoodManager.LogsId, count = CartRules.CartLogs },
+        new WoodStack { itemId = WoodManager.BranchesId, count = CartRules.CartBranches },
+        new WoodStack { itemId = CartRules.CordageId, count = CartRules.CartCordage },
     };
 
     public static WoodStack[] CountertopCost()
@@ -785,7 +802,8 @@ public class WellsAndOuthouses : MonoBehaviour
         }
 
         // A Leach Hopper stands on any dry ground (the floodplain test above is its only rule).
-        if (kind == PileKind.LeachHopperSite || kind == PileKind.LeachHopper)
+        // A Hand Cart stands on any dry ground too, the same single rule.
+        if (kind == PileKind.LeachHopperSite || kind == PileKind.LeachHopper || kind == PileKind.HandCartSite || kind == PileKind.HandCart)
         {
             reason = "";
             return true;

@@ -106,7 +106,9 @@ public class StorageTransferScreen : GameScreen
     {
         ApplyLayout();
         statusLabel.text = takeOnly ? "Click takes the amount shown; Shift-click takes the whole stack. A choice that won't fit takes nothing."
-                                    : "Click moves the amount shown; Shift-click moves the whole stack.";
+                                    : target != null && target.State != null && target.State.kind == PileKind.HandCart
+                                        ? "Click moves the amount shown; Shift-click the whole stack. " + CartRules.HoldsShort
+                                        : "Click moves the amount shown; Shift-click moves the whole stack.";
         storeAmounts.Clear();
         takeAmounts.Clear();
         Refresh();
@@ -145,7 +147,7 @@ public class StorageTransferScreen : GameScreen
         // Taking a stray structure down is only offered once it's empty — nothing disappears with it.
         removeButton.gameObject.SetActive(true);
         removeButton.interactable = target.CanRemove(out string removeReason);
-        removeButton.GetComponentInChildren<Text>().text = removeButton.interactable ? "Take Down Structure" : $"Take Down — {removeReason}";
+        removeButton.GetComponentInChildren<Text>().text = removeButton.interactable ? (target.State.kind == PileKind.HandCart ? "Take Down Cart (load comes back)" : "Take Down Structure") : $"Take Down — {removeReason}";
 
         WoodPileState state = target.State;
         bool barrel = state.IsWaterBarrel;
@@ -225,7 +227,9 @@ public class StorageTransferScreen : GameScreen
     void RefreshStructure(WoodPileState state, bool barrel)
     {
         int litres = WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(state.kind) : 0;
-        structureWeight.text = barrel ? $"{state.Total} / {litres} L" : state.IsEmpty ? "Empty" : $"{state.Total} stored   ·   no limit";
+        structureWeight.text = barrel ? $"{state.Total} / {litres} L"
+                             : state.kind == PileKind.HandCart ? CartRules.KgText(WoodPile.CartLoadKg(state)) + (state.IsEmpty ? "   ·   empty" : "")
+                             : state.IsEmpty ? "Empty" : $"{state.Total} stored   ·   no limit";
 
         takeAllButton.interactable = !state.IsEmpty;
         if (state.IsEmpty)
@@ -292,6 +296,7 @@ public class StorageTransferScreen : GameScreen
             case PileKind.StorageBin: return "A Storage Bin holds Cordage, hides, furs, arrows and the like — not Tools, wood, stone, food or water.";
             case PileKind.ToolRack: return "A Tool Rack only holds Tools.";
             case PileKind.WoodShed: return "A Wood Shed only holds wood.";
+            case PileKind.HandCart: return CartRules.HoldsText;
             default: return "A Wood Pile only holds wood.";
         }
     }
@@ -383,7 +388,9 @@ public class StorageTransferScreen : GameScreen
         {
             confirmingRemove = true;
             removeButton.GetComponentInChildren<Text>().text = "Click again to take it down";
-            statusLabel.text = "Needs the Hammer equipped and the structure empty. Gives back half its materials.";
+            statusLabel.text = target.State.kind == PileKind.HandCart
+                ? "Needs the Hammer equipped. Gives back half its materials and the load (what the pack cannot carry is left on the ground)."
+                : "Needs the Hammer equipped and the structure empty. Gives back half its materials.";
             return;
         }
 

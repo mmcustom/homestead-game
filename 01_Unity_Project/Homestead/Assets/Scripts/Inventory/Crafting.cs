@@ -53,6 +53,8 @@ public static class Crafting
         // Early_Income_Design.md section 3, Maple B: the tap kit (MapleRules has the numbers).
         Make(MapleRules.SpileId, ("sticks", MapleRules.SpileSticks)),
         Make(MapleRules.SapBucketId, ("logs", MapleRules.BucketLogs), ("branches", MapleRules.BucketBranches), ("cordage", MapleRules.BucketCordage)),
+        // Vehicles_and_Hauling.md, the Hand Cart (Mike, 2026-10-30): a wheel cut from a Log and lashed with Cordage; no tool, instant. Two go into the cart.
+        Make(CartRules.WheelId, (CartRules.LogsId, CartRules.WheelLogs), (CartRules.CordageId, CartRules.WheelCordage)),
         // The Cooking Pot redesign: a tripod stands over a fire and the Pot hangs from it (TripodRules). Placed, not used up.
         Make(TripodRules.TripodId, ("branches", TripodRules.Branches), ("cordage", TripodRules.Cordage)),
         Either("cordage", new[] { ("tall_grass", 3) }, new[] { ("cattail", 2) }, new[] { ("sinew", 1) }),

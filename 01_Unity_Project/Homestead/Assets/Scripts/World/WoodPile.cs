@@ -41,7 +41,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
                                 state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack ||
-                                state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving;
+                                state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart;
 
     // A felled tree's pile (and anything dropped as one) opens the take-only screen on E: the player picks what to take and the rest stays
     // (Mike, 2026-10-24). A Small Cabin's CabinSite keeps its instant E.
@@ -56,7 +56,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (state == null)
                 return "";
             if (UsesTransferScreen)
-                return $"Open {Name}  ({Describe(state)})";
+                return IsCart ? $"Open {Name}  ({Describe(state)}; {CartRules.KgText(CartLoadKg(state))})" : $"Open {Name}  ({Describe(state)})";
             if (state.IsEmpty)
                 return IsCabinSite ? WithSiteNeeds($"Remove {Name}  (empty — {(WoodManager.HammerEquipped ? "nothing to take back" : "equip the Hammer to take it down")})")
                                    : $"{Name}  (empty)";
@@ -445,7 +445,9 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             reason = "equip the Hammer";
             return false;
         }
-        if (!state.IsEmpty)
+        // Every other storage pile must be empty first so nothing silently disappears with it. A Hand Cart is the exception (Mike, 2026-10-30): its
+        // load comes back to the pack, and what the pack cannot carry is left on the ground as pickup piles (StructureRefund), never lost.
+        if (!state.IsEmpty && !IsCart)
         {
             reason = "empty it first";
             return false;
@@ -490,6 +492,31 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // Litres the barrel can still take; unlimited for anything else.
     int StorageRoom => IsBarrel && WoodManager.Instance != null ? Mathf.Max(0, WoodManager.Instance.CapacityOf(state.kind) - state.Total) : int.MaxValue;
 
+    // A Hand Cart (Vehicles_and_Hauling.md, Phase 1) is held to CartRules.CapacityKg by weight, so what fits depends on the item:
+    // the whole units of it that still fit under the 100 kg (12 Logs, 20 Stone, 28 Clay, 66 Firewood in an empty cart). Anything else: StorageRoom.
+    bool IsCart => state != null && state.kind == PileKind.HandCart;
+
+    int RoomFor(string itemId)
+    {
+        if (!IsCart)
+            return StorageRoom;
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        return CartRules.UnitsThatFit(CartLoadKg(state), item != null ? item.WeightKg : 0f);
+    }
+
+    // The weight of everything stored, from the item assets (ItemDefinition.WeightKg); an unknown item weighs nothing.
+    public static float CartLoadKg(WoodPileState pile)
+    {
+        float kg = 0f;
+        foreach (WoodStack stack in pile.contents)
+        {
+            ItemDefinition item = ItemDatabase.Get(stack.itemId);
+            if (item != null)
+                kg += item.WeightKg * stack.count;
+        }
+        return kg;
+    }
+
     // Whether StoreOne(itemId, ...) could store anything right now, and why not if not.
     public bool CanStoreOne(string itemId, out string reason)
     {
@@ -498,7 +525,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             return false;
         if (!state.Accepts(itemId))
         {
-            reason = $"the {Name} doesn't hold that";
+            reason = IsCart ? CartRules.DoesntHold(ItemDatabase.Get(itemId)?.DisplayName ?? itemId) : $"the {Name} doesn't hold that";
             return false;
         }
         if (Inventory.EquippedTool != null && Inventory.EquippedTool.Id == itemId)
@@ -511,9 +538,9 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             reason = "none carried";
             return false;
         }
-        if (StorageRoom <= 0)
+        if (RoomFor(itemId) <= 0)
         {
-            reason = "the barrel is full";
+            reason = IsCart ? CartRules.NoRoomReason(CartLoadKg(state)) : "the barrel is full";
             return false;
         }
         return true;
@@ -529,7 +556,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     {
         if (count <= 0 || !CanStoreOne(itemId, out _))
             return 0;
-        int want = Mathf.Min(Mathf.Min(count, Inventory.Player.Count(itemId)), StorageRoom);
+        int want = Mathf.Min(Mathf.Min(count, Inventory.Player.Count(itemId)), RoomFor(itemId));
         int stored = StoreInto(itemId, want, IsBarrel);
         if (stored > 0 && WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(state);
@@ -541,7 +568,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     {
         if (!CanStoreOne(itemId, out _))
             return 0;
-        return Mathf.Max(0, Mathf.Min(Inventory.Player.Count(itemId), StorageRoom));
+        return Mathf.Max(0, Mathf.Min(Inventory.Player.Count(itemId), RoomFor(itemId)));
     }
 
     // Whether Store All Eligible would move anything.
@@ -561,7 +588,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (stored > 0 && WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(state);
         if (stored <= 0)
-            return IsBarrel && StorageRoom <= 0 ? "The barrel is full." : "Nothing you're carrying fits in here.";
+            return IsBarrel && StorageRoom <= 0 ? "The barrel is full." : IsCart && CarriedStorable(out _) > 0 ? "No room: " + CartRules.NoRoomReason(CartLoadKg(state)) + "." : "Nothing you're carrying fits in here.";
         return IsBarrel ? $"Poured in {stored} L — the barrel holds {state.Total} L." : $"Stored {stored}.";
     }
 
@@ -590,6 +617,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             int cap = isCabinSite && WoodManager.Instance != null
                 ? Mathf.Max(0, WoodManager.Instance.CabinRequired(itemId) - state.Count(itemId))
                 : room;
+            if (IsCart)
+                cap = Mathf.Min(cap, RoomFor(itemId)); // by weight, item by item: each store changes the room the next one has
             if (cap <= 0)
                 continue;
 
@@ -739,6 +768,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.CabinSite: BuildCabinSite(random); return;
             case PileKind.WoodShed: BuildShed(random); return;
             case PileKind.Shelving: BuildShelving(); return;
+            case PileKind.HandCart: BuildCart(random); return;
         }
 
         int logs = Mathf.Min(state.Count(WoodManager.LogsId), 6);
@@ -844,6 +874,49 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         box.center = new Vector3(0f, height / 2f, centerZ);
         box.size = new Vector3(width, height, depth);
+    }
+
+    // A Hand Cart (Vehicles_and_Hauling.md, Phase 1): a plank bed on one axle between two wooden wheels, with two handles at the back (local -Z, where the
+    // player will stand to push in Phase 2) and the front at +Z. What it carries shows on the bed: Logs across it, Branches along it, Firewood, Stone, Clay
+    // and Tall Grass heaped at the front. Its interaction box takes in the wheels and handles. Primitives only, like the other piles.
+    void BuildCart(System.Random random)
+    {
+        var plank = new Color(0.36f, 0.27f, 0.18f);
+        var wheelColor = new Color(0.3f, 0.22f, 0.15f);
+        const float bedY = 0.42f;
+
+        Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, bedY, 0.05f), Vector3.zero, new Vector3(0.9f, 0.06f, 1.5f), bark), plank);        // bed
+        foreach (float x in new[] { -0.45f, 0.45f })
+            Tinted(Piece(PrimitiveType.Cube, new Vector3(x, bedY + 0.16f, 0.05f), Vector3.zero, new Vector3(0.04f, 0.3f, 1.5f), bark), plank); // sides
+        Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, bedY + 0.16f, 0.8f), Vector3.zero, new Vector3(0.9f, 0.3f, 0.04f), bark), plank);     // front board
+        Piece(PrimitiveType.Cylinder, new Vector3(0f, 0.3f, 0.05f), new Vector3(0f, 0f, 90f), new Vector3(0.06f, 0.55f, 0.06f), bark);          // axle
+        foreach (float x in new[] { -0.55f, 0.55f })
+            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(x, 0.3f, 0.05f), new Vector3(0f, 0f, 90f), new Vector3(0.6f, 0.05f, 0.6f), bark), wheelColor);
+        foreach (float x in new[] { -0.32f, 0.32f })
+            Piece(PrimitiveType.Cylinder, new Vector3(x, bedY + 0.1f, -0.95f), new Vector3(90f, 0f, 0f), new Vector3(0.05f, 0.65f, 0.05f), bark); // handles
+        Piece(PrimitiveType.Cylinder, new Vector3(0f, 0.2f, -0.8f), Vector3.zero, new Vector3(0.05f, 0.2f, 0.05f), bark);                       // rest leg
+
+        int logs = Mathf.Min(state.Count(WoodManager.LogsId), 6);
+        for (int i = 0; i < logs; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(0f, bedY + 0.18f + (i / 3) * 0.28f, -0.4f + (i % 3) * 0.38f), new Vector3(0f, 0f, 90f), new Vector3(0.3f, 0.4f, 0.3f), bark);
+        int branches = Mathf.Min(state.Count(WoodManager.BranchesId), 8);
+        for (int i = 0; i < branches; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(-0.3f + (i % 4) * 0.2f, bedY + 0.05f + (i / 4) * 0.08f, 0.1f), new Vector3(90f, 0f, 0f), new Vector3(0.07f, 0.65f, 0.07f), bark);
+        int firewood = Mathf.Min(state.Count(FireManager.FirewoodId), 8);
+        for (int i = 0; i < firewood; i++)
+            Piece(PrimitiveType.Cylinder, new Vector3(-0.3f + (i % 4) * 0.2f, bedY + 0.12f + (i / 4) * 0.17f, 0.62f), new Vector3(0f, 0f, 90f), new Vector3(0.16f, 0.2f, 0.16f), bark);
+        int stones = Mathf.Min(state.Count(WoodManager.StoneId), 8);
+        for (int i = 0; i < stones; i++)
+            Stone(new Vector3(-0.28f + (i % 3) * 0.28f, bedY + 0.1f + (i / 6) * 0.14f, 0.2f + ((i / 3) % 2) * 0.28f), 0.2f, random);
+        int clay = Mathf.Min(state.Count(WoodManager.ClayId), 4);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(PrimitiveType.Sphere, new Vector3(-0.25f + (i % 2) * 0.5f, bedY + 0.12f, -0.55f + (i / 2) * 0.3f), Vector3.zero, new Vector3(0.24f, 0.18f, 0.22f), null), new Color(0.5f, 0.32f, 0.22f));
+        int grass = Mathf.Min(state.Count(WoodManager.TallGrassId), 6);
+        for (int i = 0; i < grass; i++)
+            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(-0.3f + (i % 3) * 0.3f, bedY + 0.2f + (i / 3) * 0.05f, 0.75f - (i % 2) * 0.1f), new Vector3(80f, (i * 25f) % 60f - 30f, 0f), new Vector3(0.05f, 0.4f, 0.05f), null), new Color(0.55f, 0.55f, 0.28f));
+
+        box.center = new Vector3(0f, 0.5f, -0.25f);
+        box.size = new Vector3(1.4f, 1.0f, 2.4f);
     }
 
     // A heap of grey stones: a ring of base stones always, more piled on as Stone is stored.

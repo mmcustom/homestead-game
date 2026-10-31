@@ -23,6 +23,7 @@ public static class StructureVisuals
             case PileKind.FoodCacheSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.55f, out boxCenter, out boxSize); return;
             case PileKind.WoodShedSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.9f, out boxCenter, out boxSize); return;
             case PileKind.LeachHopperSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.7f, out boxCenter, out boxSize); return;
+            case PileKind.HandCartSite: BuildHandCartSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -90,6 +91,16 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.4f, 0f);
         boxSize = new Vector3(1.6f, 0.9f, 1.6f);
+    }
+
+    // The Hand Cart's marked-out plot: the usual stakes and soil with the delivered Logs and Branches, plus the Wooden Wheels leaning upright beside them
+    // (a delivered wheel is otherwise invisible). Cordage is too small to draw.
+    static void BuildHandCartSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 0.7f, out boxCenter, out boxSize);
+        int wheels = Mathf.Min(state.Count(CartRules.WheelId), CartRules.CartWheels);
+        for (int i = 0; i < wheels; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(1.3f, 0.3f, 0.5f - i * 0.15f), new Vector3(0f, 0f, 90f), new Vector3(0.6f, 0.05f, 0.6f), bark), new Color(0.3f, 0.22f, 0.15f));
     }
 
     static readonly Color AshColor = new Color(0.55f, 0.55f, 0.52f);
