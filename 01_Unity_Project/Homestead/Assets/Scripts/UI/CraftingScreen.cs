@@ -968,7 +968,7 @@ public class CraftingScreen : GameScreen
             case "knife": return "carried, it lets you field dress kills and take game from traps.";
             case "pouch": return "carried, it lets you carry 10 kg more.";
             case "cordage": return "twisted from whichever fibre you have.";
-            case "wooden_wheel": return "a wheel cut from a Log and lashed with Cordage. Two go into a Hand Cart (Build tab); no tool needed.";
+            case "wooden_wheel": return "one Log is cut into two wheels. Two wheels go into a Hand Cart (Build tab); no tool needed.";
             case "hammer": return "equip it to build a Small Cabin, or to dismantle a finished structure for half its materials.";
             case "tripod": return "stands over a fire and carries a Cooking Pot for boiling water and sap. Set it up from the Build tab on a fire within 3 m; it is placed, not used up, and comes back whole when dismantled.";
             case "torch": return "equip it and click to light it (needs Flint and Steel, or stand by a burning Campfire). Burns about 3 hours, then it's gone.";

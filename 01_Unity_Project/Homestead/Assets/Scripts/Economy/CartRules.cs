@@ -7,7 +7,7 @@ using System;
 // Every number is a named constant. Nothing here touches the pack, a pile, a fire or the clock: weights and counts come in as plain numbers.
 public static class CartRules
 {
-    // --- The Wooden Wheel (Craft tab): 1 Log and 1 Cordage, instant, no tool. The item asset holds its 3 kg; WheelWeightKg is the figure it must match. ---
+    // --- The Wooden Wheel (Craft tab): 1 Log makes 2 wheels (no Cordage), instant, no tool. The item asset holds its 3 kg; WheelWeightKg is the figure it must match. ---
 
     public const string WheelId = "wooden_wheel";
     public const string LogsId = "logs";
@@ -19,7 +19,7 @@ public static class CartRules
     public const string TallGrassId = "tall_grass";
 
     public const int WheelLogs = 1;
-    public const int WheelCordage = 1;
+    public const int WheelsPerCraft = 2;
     public const float WheelWeightKg = 3f;
 
     // --- The Hand Cart (Build tab, staged site): what the finished cart takes in total, delivered over trips, and the blows that finish it ---

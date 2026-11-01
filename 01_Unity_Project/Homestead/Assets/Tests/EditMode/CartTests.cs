@@ -147,11 +147,12 @@ public class CartTests
     // --- The numbers (pure) ---
 
     [Test]
-    public void TheWheelIsOneLogAndOneCordageAndThreeKilograms()
+    public void TheWheelIsOneLogAndThreeKilograms()
     {
         Assert.That(CartRules.WheelId, Is.EqualTo("wooden_wheel"));
         Assert.That(CartRules.WheelLogs, Is.EqualTo(1));
-        Assert.That(CartRules.WheelCordage, Is.EqualTo(1));
+        Assert.That(CartRules.WheelsPerCraft, Is.EqualTo(2));
+        Assert.That(CartRules.WheelsPerCraft, Is.EqualTo(CartRules.CartWheels), "one craft is exactly one cart's wheels");
         Assert.That(CartRules.WheelWeightKg, Is.EqualTo(3f));
     }
 
@@ -314,16 +315,16 @@ public class CartTests
     // --- The recipe and the item ---
 
     [Test]
-    public void TheWoodenWheelIsAnInstantCraftOfOneLogAndOneCordage()
+    public void TheWoodenWheelIsAnInstantCraftOfOneLogMakingTwoWheels()
     {
         Array recipes = (Array)Find("Crafting").GetField("Recipes").GetValue(null);
         Type recipe = Find("Crafting").GetNestedType("Recipe");
         object wheel = recipes.Cast<object>().Single(r => (string)recipe.GetField("outputId").GetValue(r) == "wooden_wheel");
-        Assert.That((int)recipe.GetField("outputCount").GetValue(wheel), Is.EqualTo(1));
+        Assert.That((int)recipe.GetField("outputCount").GetValue(wheel), Is.EqualTo(2), "one Log makes two wheels");
         Type ingredient = Find("Crafting").GetNestedType("Ingredient");
         string[] have = ((Array)recipe.GetField("ingredients").GetValue(wheel)).Cast<object>()
                            .Select(i => (string)ingredient.GetField("itemId").GetValue(i) + ":" + (int)ingredient.GetField("quantity").GetValue(i)).ToArray();
-        Assert.That(have, Is.EquivalentTo(new[] { "logs:1", "cordage:1" }), "no tool, no other ingredient");
+        Assert.That(have, Is.EquivalentTo(new[] { "logs:1" }), "one Log, no Cordage, no tool");
         Assert.That(recipe.GetField("alternatives").GetValue(wheel), Is.Null, "one way to make it");
     }
 
