@@ -37,7 +37,7 @@ using UnityEngine.InputSystem;
 //      holding 4 Logs, 6 Stone and 10 Firewood (77 kg) to try the transfer screen and the 100 kg cap;  Shift+]  stand a Wood Pile with 12 Logs (96 kg) 3 m ahead,
 //      the logs "at the stand" for timing a haul by hand against the cart
 //   \  give the Workshop site's materials (a Hammer, an Axe, 10 Branches, 10 Tall Grass, 3 Cordage) and stand a Wood Pile with its 5 Logs 3 m ahead;  Shift+\  stand a finished Workshop 4 m
-//      ahead with the bench stocked for two Rough Stools (4 Logs, 4 Branches);  Ctrl+\  finish every running Workshop job now
+//      ahead with the bench stocked for a Table and a Chair (5 Logs, 8 Branches, 3 Cordage);  Ctrl+\  finish every running Workshop job now
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -167,7 +167,7 @@ public class TimeDebugControls : MonoBehaviour
         }
 
         // Workshop W1(a1). \ gives what the Workshop site needs apart from its Logs (a Hammer, an Axe, 10 Branches, 10 Tall Grass, 3 Cordage) and stands a Wood Pile with its 5 Logs 3 m
-        // ahead (52 kg would not fit the pack); Shift+\ stands a finished Workshop 4 m ahead with the bench stocked for two Rough Stools; Ctrl+\ finishes every running job now.
+        // ahead (52 kg would not fit the pack); Shift+\ stands a finished Workshop 4 m ahead with the bench stocked for a Table and a Chair; Ctrl+\ finishes every running job now.
         if (keyboard.backslashKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
         {
             if (ctrl)
@@ -191,10 +191,11 @@ public class TimeDebugControls : MonoBehaviour
             if (keyboard.shiftKey.isPressed)
             {
                 WoodPileState bench = WoodManager.Instance.DebugPlace(PileKind.Workshop, Ahead(4f), body.eulerAngles.y + 180f);
-                bench.Add(WorkshopRules.LogsId, 4);
-                bench.Add(WorkshopRules.BranchesId, 4);
+                bench.Add(WorkshopRules.LogsId, 5);
+                bench.Add(WorkshopRules.BranchesId, 8);
+                bench.Add(WorkshopRules.CordageId, 3);
                 WoodManager.Instance.NotifyChanged(bench);
-                Show("Workshop placed ahead, its bench stocked for two Rough Stools (4 Logs, 4 Branches)", time);
+                Show("Workshop placed ahead, its bench stocked for a Table and a Chair (5 Logs, 8 Branches, 3 Cordage)", time);
                 return;
             }
 

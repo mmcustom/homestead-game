@@ -5,10 +5,14 @@ using System;
 // time like the Leach Hopper's, so it keeps running while the player is away and through sleep. Pure and engine-free so edit-mode tests cover it: what is in the bench, what is
 // carried and how many game hours have passed come in as plain numbers, and the texts come out.
 //
-// The first piece is the Rough Stool; the End Table, Chair and Table come in a2. Every number is a named constant.
+// Phase a2-1 (Mike, 2026-11-01) adds the End Table, Chair and Table and a Workshop screen (WorkshopScreen) to choose between the four: E opens it, and the rules below also
+// build the words the screen shows. Every number is a named constant.
 public static class WorkshopRules
 {
     public const string StoolId = "rough_stool";
+    public const string EndTableId = "end_table";
+    public const string ChairId = "chair";
+    public const string TableId = "table";
     public const string LogsId = "logs";
     public const string BranchesId = "branches";
     public const string CordageId = "cordage";
@@ -50,10 +54,13 @@ public static class WorkshopRules
         public float weightKg;
     }
 
-    // Mike's first set (a1 has only the first). Prices run through the crafted market group: 10% off per unit sold, floor 0.1, 25% daily recovery.
+    // Mike's first set, in the order the Workshop screen lists it. Prices run through the crafted market group: 10% off per unit sold, floor 0.1, 25% daily recovery.
     public static readonly Recipe[] Recipes =
     {
         new Recipe { itemId = StoolId, name = "Rough Stool", logs = 2, branches = 2, cordage = 0, hours = 3, baseCents = 1400, weightKg = 10f },
+        new Recipe { itemId = EndTableId, name = "End Table", logs = 1, branches = 3, cordage = 0, hours = 2, baseCents = 1200, weightKg = 8f },
+        new Recipe { itemId = ChairId, name = "Chair", logs = 2, branches = 4, cordage = 1, hours = 4, baseCents = 1800, weightKg = 12f },
+        new Recipe { itemId = TableId, name = "Table", logs = 3, branches = 4, cordage = 2, hours = 5, baseCents = 2800, weightKg = 24f },
     };
 
     public static bool TryFind(string itemId, out Recipe recipe)
@@ -150,15 +157,8 @@ public static class WorkshopRules
         $"{SiteLogs} Logs, {SiteBranches} Branches, {SiteTallGrass} Tall Grass and {SiteCordage} Cordage";
 
     // The prompts (no key names: the HUD adds them).
-    public static string StartPrompt(Recipe recipe) => $"Start {recipe.name}  ({NeedsText(recipe)}, {recipe.hours} h)";
-
-    public static string EmptyPrompt(Recipe recipe) => $"Workshop  (empty: deliver {NeedsText(recipe)} for a {recipe.name})";
-
-    public static string ShortPrompt(Recipe recipe, int logs, int branches, int cordage) =>
-        $"Workshop  (a {recipe.name} needs {NeedsText(recipe)}; still short {ShortText(recipe, logs, branches, cordage)})";
-
-    public static string NoToolPrompt(Recipe recipe) =>
-        $"Workshop  (stocked for a {recipe.name}; carry an Axe, Primitive Axe or Wood Saw to start)";
+    // E at an idle bench (or one at work) opens the Workshop screen.
+    public const string OpenPrompt = "Choose what to make at the Workshop";
 
     public static string WorkingPrompt(Recipe recipe, float hoursLeft) => $"Workshop  (making a {recipe.name}, {HoursText(hoursLeft)} to go)";
 
@@ -188,5 +188,68 @@ public static class WorkshopRules
     public static string StartedMessage(Recipe recipe) => $"Started a {recipe.name}. It will be ready in {HoursText(recipe.hours)}, even while you sleep or are away.";
 
     public static string BuiltMessage =>
-        $"Workshop built. Deliver Logs, Branches and Cordage to the bench (it holds {CapsText}), carry an Axe, and start a Rough Stool.";
+        $"Workshop built. Deliver Logs, Branches and Cordage to the bench (it holds {CapsText}), carry an Axe, and choose what to make at the bench.";
+
+    // --- The Workshop screen's words ---
+
+    // One line of a piece's needs: the material, what the piece needs, what the bench holds and whether that is enough.
+    public struct NeedRow
+    {
+        public string label;
+        public int need, have;
+        public bool enough;
+        public int Short => Math.Max(0, need - have);
+        public string Text => $"{label} - need {need} - bench has {have} - " + (enough ? "enough" : $"short by {Short}");
+    }
+
+    // The rows for a piece: Logs, Branches, and Cordage only when the piece uses it.
+    public static NeedRow[] NeedRows(Recipe recipe, int logs, int branches, int cordage)
+    {
+        NeedRow Row(string label, int need, int have) => new NeedRow { label = label, need = need, have = have, enough = have >= need };
+        return recipe.cordage > 0
+            ? new[] { Row("Logs", recipe.logs, logs), Row("Branches", recipe.branches, branches), Row("Cordage", recipe.cordage, cordage) }
+            : new[] { Row("Logs", recipe.logs, logs), Row("Branches", recipe.branches, branches) };
+    }
+
+    // The screen's status line: a finished piece, the running job, or the idle bench and what it holds.
+    public static string BenchLine(bool working, Recipe made, float hoursLeft, bool waiting, Recipe waitingPiece, int logs, int branches, int cordage)
+    {
+        if (waiting)
+            return $"A {waitingPiece.name} is ready - collect it";
+        if (working)
+            return $"Making a {made.name}, {HoursText(hoursLeft)} to go";
+        return $"Bench is idle - it holds {Count(logs, "Log", "Logs")}, {Count(branches, "Branch", "Branches")}, {cordage} Cordage";
+    }
+
+    // A list row: the name, then the hours and what the Trading Post pays now (cents; 0 shows the base price).
+    public static string ListLabel(Recipe recipe, long sellCents) => $"{recipe.name}\n{recipe.hours} h  -  {Money.Format(sellCents > 0 ? sellCents : recipe.baseCents)}";
+
+    // The detail line under the name: hours, weight and the base price.
+    public static string DetailLine(Recipe recipe) => $"{recipe.hours} h  -  {recipe.weightKg:0.#} kg  -  base price {Money.Format(recipe.baseCents)}";
+
+    // The Start button: "START CHAIR" when it can start, otherwise why not in a few words.
+    public static string StartButtonText(Gate gate, Recipe recipe)
+    {
+        switch (gate)
+        {
+            case Gate.Ok: return $"START {recipe.name.ToUpperInvariant()}";
+            case Gate.Busy: return "BENCH IS BUSY";
+            case Gate.ProductWaiting: return "COLLECT THE PIECE FIRST";
+            case Gate.NoTool: return "NEED A TOOL";
+            default: return "SHORT OF MATERIALS";
+        }
+    }
+
+    // The reason line under the Start button (empty when it can start). Busy names the piece being made, not the one chosen.
+    public static string ReasonText(Gate gate, Recipe chosen, Recipe made, int logs, int branches, int cordage, float hoursLeft)
+    {
+        switch (gate)
+        {
+            case Gate.Busy: return $"A {made.name} is {HoursText(hoursLeft)} from done.";
+            case Gate.ProductWaiting: return "A finished piece is waiting: collect it first.";
+            case Gate.NoTool: return "Carry an Axe, Primitive Axe or Wood Saw to work the bench.";
+            case Gate.ShortOfStock: return $"Still short {ShortText(chosen, logs, branches, cordage)}. Deliver more.";
+            default: return "";
+        }
+    }
 }

@@ -1008,7 +1008,8 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         if (bench == null || string.IsNullOrEmpty(bench.jobItem))
             return;
-        bench.Add(bench.jobItem, 1);
+        if (WorkshopRules.IsProduct(bench.jobItem))
+            bench.Add(bench.jobItem, 1); // a piece this build does not know is dropped rather than left in the bench where nothing could collect it
         bench.jobItem = "";
         bench.jobHours = 0f;
     }

@@ -146,16 +146,15 @@ public static class StructureVisuals
         WorkTable(parent, pieces, bark, bench, 2.0f, 0.6f, 0.85f, false);
 
         bool working = !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
-        bool waiting = false;
-        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
-            waiting |= state.Count(recipe.itemId) > 0;
         if (working)
             Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-0.4f, 1.02f, bench.z), new Vector3(0f, 0f, 90f), new Vector3(0.26f, 0.45f, 0.26f), bark);
-        if (waiting)
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
         {
-            Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0.4f, 1.02f, bench.z), Vector3.zero, new Vector3(0.34f, 0.025f, 0.34f), bark), BenchWoodColor);
-            foreach (Vector2 leg in new[] { new Vector2(-0.1f, -0.1f), new Vector2(0.1f, -0.1f), new Vector2(0f, 0.12f) })
-                Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0.4f + leg.x, 0.93f, bench.z + leg.y), Vector3.zero, new Vector3(0.05f, 0.08f, 0.05f), bark);
+            if (state.Count(recipe.itemId) > 0)
+            {
+                FinishedPiece(parent, pieces, bark, recipe.itemId, new Vector3(0.4f, 0.85f, bench.z));
+                break;
+            }
         }
 
         int logs = Mathf.Min(state.Count(WorkshopRules.LogsId), 4);
@@ -168,6 +167,40 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.55f, bench.z);
         boxSize = new Vector3(2.0f, 1.1f, 0.7f);
+    }
+
+    // A finished Workshop piece standing on the bench (a2-1), a small plain shape for each: the stool's round seat on three legs, the End Table's square top on four legs,
+    // the Chair's seat with a back, the Table's long top on four legs. `at` is the bench top where it stands.
+    static void FinishedPiece(Transform parent, List<GameObject> pieces, Material bark, string itemId, Vector3 at)
+    {
+        void Plank(Vector3 offset, Vector3 size) => Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + offset, Vector3.zero, size, bark), BenchWoodColor);
+        void Leg(float x, float z, float height) => Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(x, height / 2f, z), Vector3.zero, new Vector3(0.05f, height / 2f, 0.05f), bark);
+
+        switch (itemId)
+        {
+            case WorkshopRules.EndTableId:
+                Plank(new Vector3(0f, 0.34f, 0f), new Vector3(0.42f, 0.04f, 0.42f));
+                foreach (Vector2 leg in new[] { new Vector2(-0.17f, -0.17f), new Vector2(0.17f, -0.17f), new Vector2(-0.17f, 0.17f), new Vector2(0.17f, 0.17f) })
+                    Leg(leg.x, leg.y, 0.32f);
+                Plank(new Vector3(0f, 0.14f, 0f), new Vector3(0.34f, 0.03f, 0.34f)); // the low shelf
+                break;
+            case WorkshopRules.ChairId:
+                Plank(new Vector3(0f, 0.24f, 0f), new Vector3(0.38f, 0.04f, 0.38f));
+                foreach (Vector2 leg in new[] { new Vector2(-0.15f, -0.15f), new Vector2(0.15f, -0.15f), new Vector2(-0.15f, 0.15f), new Vector2(0.15f, 0.15f) })
+                    Leg(leg.x, leg.y, 0.22f);
+                Plank(new Vector3(0f, 0.5f, -0.17f), new Vector3(0.38f, 0.48f, 0.04f)); // the back
+                break;
+            case WorkshopRules.TableId:
+                Plank(new Vector3(0.05f, 0.4f, 0f), new Vector3(0.9f, 0.05f, 0.5f));
+                foreach (Vector2 leg in new[] { new Vector2(-0.35f, -0.2f), new Vector2(0.45f, -0.2f), new Vector2(-0.35f, 0.2f), new Vector2(0.45f, 0.2f) })
+                    Leg(leg.x, leg.y, 0.38f);
+                break;
+            default: // the Rough Stool
+                Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(0f, 0.17f, 0f), Vector3.zero, new Vector3(0.34f, 0.025f, 0.34f), bark), BenchWoodColor);
+                foreach (Vector2 leg in new[] { new Vector2(-0.1f, -0.1f), new Vector2(0.1f, -0.1f), new Vector2(0f, 0.12f) })
+                    Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(leg.x, 0.08f, leg.y), Vector3.zero, new Vector3(0.05f, 0.08f, 0.05f), bark);
+                break;
+        }
     }
 
     static readonly Color AshColor = new Color(0.55f, 0.55f, 0.52f);
@@ -839,13 +872,17 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
 
     bool WorkshopWorking => !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
 
-    // The piece being made, or the first recipe when the bench is idle.
-    WorkshopRules.Recipe WorkshopRecipe()
+    // The piece being made. False when the bench is idle, or when the job names a piece this build does not know.
+    bool WorkshopMade(out WorkshopRules.Recipe made)
     {
-        if (WorkshopWorking && WorkshopRules.TryFind(state.jobItem, out WorkshopRules.Recipe made))
-            return made;
-        return WorkshopRules.Recipes[0];
+        made = default;
+        return WorkshopWorking && WorkshopRules.TryFind(state.jobItem, out made);
     }
+
+    // The Workshop screen (WorkshopScreen) reads the bench through these: the running piece, a waiting piece, and why a piece can or cannot start now.
+    public bool WorkshopRunning(out WorkshopRules.Recipe made) => WorkshopMade(out made);
+    public bool WorkshopWaiting(out WorkshopRules.Recipe piece) => WorkshopProduct(out piece, out _);
+    public WorkshopRules.Gate WorkshopGateFor(WorkshopRules.Recipe recipe) => WorkshopGate(recipe);
 
     // A finished piece waiting to be collected.
     bool WorkshopProduct(out WorkshopRules.Recipe piece, out int count)
@@ -878,16 +915,9 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     {
         if (WorkshopProduct(out WorkshopRules.Recipe piece, out _))
             return WorkshopRules.DonePrompt(piece);
-        WorkshopRules.Recipe recipe = WorkshopRecipe();
-        if (WorkshopWorking)
-            return WorkshopRules.WorkingPrompt(recipe, state.jobHours);
-        int logs = state.Count(WorkshopRules.LogsId), branches = state.Count(WorkshopRules.BranchesId), cordage = state.Count(WorkshopRules.CordageId);
-        switch (WorkshopGate(recipe))
-        {
-            case WorkshopRules.Gate.Ok: return WorkshopRules.StartPrompt(recipe);
-            case WorkshopRules.Gate.NoTool: return WorkshopRules.NoToolPrompt(recipe);
-            default: return logs + branches + cordage == 0 ? WorkshopRules.EmptyPrompt(recipe) : WorkshopRules.ShortPrompt(recipe, logs, branches, cordage);
-        }
+        if (WorkshopMade(out WorkshopRules.Recipe made))
+            return WorkshopRules.WorkingPrompt(made, state.jobHours);
+        return WorkshopRules.OpenPrompt;
     }
 
     // The stock materials the pack carries that the bench still has room for.
@@ -917,7 +947,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return WorkshopCarried(out string what) > 0 ? WorkshopRules.StorePrompt(what) : WorkshopRules.DeliverHelp;
     }
 
-    // E: collect a finished piece, or start the next one.
+    // E: collect a finished piece, or else open the Workshop screen (a job starts there, through TryStartJob).
     void WorkshopInteract()
     {
         if (WorkshopProduct(out WorkshopRules.Recipe piece, out int waiting))
@@ -936,13 +966,23 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return;
         }
 
-        WorkshopRules.Recipe recipe = WorkshopRecipe();
+        WorkshopScreen.Open(this);
+    }
+
+    // The one way a job starts (the Workshop screen's Start button calls it): the gate is worked out again on the bench as it is now, so a stale click does nothing. On
+    // success it takes the stock, sets the job and returns true with the "Started" message; otherwise false with the reason.
+    public bool TryStartJob(WorkshopRules.Recipe recipe, out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.Workshop || Inventory == null || WoodManager.Instance == null)
+            return false;
         int logs = state.Count(WorkshopRules.LogsId), branches = state.Count(WorkshopRules.BranchesId), cordage = state.Count(WorkshopRules.CordageId);
         WorkshopRules.Gate gate = WorkshopGate(recipe);
         if (gate != WorkshopRules.Gate.Ok)
         {
-            ToolStatus.Flash(WorkshopRules.GateMessage(gate, recipe, logs, branches, cordage, state.jobHours), 4f);
-            return;
+            WorkshopMade(out WorkshopRules.Recipe made);
+            message = WorkshopRules.ReasonText(gate, recipe, made, logs, branches, cordage, state.jobHours);
+            return false;
         }
 
         state.Take(WorkshopRules.LogsId, recipe.logs);
@@ -952,7 +992,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         state.jobItem = recipe.itemId;
         state.jobHours = recipe.hours;
         WoodManager.Instance.NotifyChanged(state);
-        ToolStatus.Flash(WorkshopRules.StartedMessage(recipe), 5f);
+        message = WorkshopRules.StartedMessage(recipe);
+        return true;
     }
 
     // R: with the Hammer it dismantles; without, it stocks the bench with what is carried, up to the caps (wood keeps its wet or dry day).

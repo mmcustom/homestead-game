@@ -487,6 +487,24 @@ MonoBehaviour:
     baseCents: 1400
     kind: 1
     seasonalBuy: 0
+  - itemId: end_table
+    group: 5
+    pool: end_table
+    baseCents: 1200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: chair
+    group: 5
+    pool: chair
+    baseCents: 1800
+    kind: 1
+    seasonalBuy: 0
+  - itemId: table
+    group: 5
+    pool: table
+    baseCents: 2800
+    kind: 1
+    seasonalBuy: 0
   groups:
   - group: 0
     dropBp: 400

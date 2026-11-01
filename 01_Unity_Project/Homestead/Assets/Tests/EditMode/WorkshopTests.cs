@@ -233,10 +233,7 @@ public class WorkshopTests
     [Test]
     public void ThePromptsReadAsPlannedAndCarryNoKeyNames()
     {
-        Assert.That(WorkshopRules.StartPrompt(Stool), Is.EqualTo("Start Rough Stool  (2 Logs, 2 Branches, 3 h)"));
-        Assert.That(WorkshopRules.EmptyPrompt(Stool), Is.EqualTo("Workshop  (empty: deliver 2 Logs, 2 Branches for a Rough Stool)"));
-        Assert.That(WorkshopRules.ShortPrompt(Stool, 1, 0, 0), Is.EqualTo("Workshop  (a Rough Stool needs 2 Logs, 2 Branches; still short 1 Log, 2 Branches)"));
-        Assert.That(WorkshopRules.NoToolPrompt(Stool), Is.EqualTo("Workshop  (stocked for a Rough Stool; carry an Axe, Primitive Axe or Wood Saw to start)"));
+        Assert.That(WorkshopRules.OpenPrompt, Is.EqualTo("Choose what to make at the Workshop"));
         Assert.That(WorkshopRules.WorkingPrompt(Stool, 2f), Is.EqualTo("Workshop  (making a Rough Stool, 2 h to go)"));
         Assert.That(WorkshopRules.DonePrompt(Stool), Is.EqualTo("Collect Rough Stool  (ready in the Workshop)"));
         Assert.That(WorkshopRules.StorePrompt("Logs, Branches"), Is.EqualTo("Store Logs, Branches"));
@@ -244,12 +241,16 @@ public class WorkshopTests
         Assert.That(WorkshopRules.DismantlePrompt(true, 2f), Does.StartWith("Can't dismantle the Workshop while a piece is being made"));
         Assert.That(WorkshopRules.DismantlePrompt(false, 0f), Does.StartWith("Dismantle the Workshop  (half the materials back"));
 
-        string[] prompts =
+        var prompts = new System.Collections.Generic.List<string>
         {
-            WorkshopRules.StartPrompt(Stool), WorkshopRules.EmptyPrompt(Stool), WorkshopRules.ShortPrompt(Stool, 1, 0, 0), WorkshopRules.NoToolPrompt(Stool),
-            WorkshopRules.WorkingPrompt(Stool, 2f), WorkshopRules.DonePrompt(Stool), WorkshopRules.StorePrompt("Logs"), WorkshopRules.DeliverHelp,
+            WorkshopRules.OpenPrompt, WorkshopRules.StorePrompt("Logs"), WorkshopRules.DeliverHelp, WorkshopRules.BuiltMessage,
             WorkshopRules.DismantlePrompt(true, 2f), WorkshopRules.DismantlePrompt(false, 0f),
         };
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+        {
+            prompts.Add(WorkshopRules.WorkingPrompt(recipe, 2f));
+            prompts.Add(WorkshopRules.DonePrompt(recipe));
+        }
         foreach (string prompt in prompts)
         {
             Assert.That(prompt, Does.Not.Contain("["), prompt);
@@ -276,6 +277,7 @@ public class WorkshopTests
         Assert.That(WorkshopRules.GateMessage(WorkshopRules.Gate.Ok, Stool, 2, 2, 0, 0f), Is.EqualTo(""));
         Assert.That(WorkshopRules.StartedMessage(Stool), Does.Contain("3 h"));
         Assert.That(WorkshopRules.BuiltMessage, Does.Contain("Workshop built"));
+        Assert.That(WorkshopRules.BuiltMessage, Does.Not.Contain("Rough Stool"));
     }
 
     // --- The Rough Stool in the market ---
@@ -521,5 +523,281 @@ public class WorkshopTests
         Assert.That(wells.GetMethod("DebugFinishJobs")?.ReturnType, Is.EqualTo(typeof(int)));
         Assert.That(wells.GetMethod("FinishJob", BindingFlags.Public | BindingFlags.Static), Is.Not.Null);
         Assert.That(wells.GetMethod("WorkshopCost", BindingFlags.Public | BindingFlags.Static), Is.Not.Null);
+    }
+
+    // --- Phase a2-1: the End Table, Chair and Table, and the Workshop screen's words ---
+
+    static WorkshopRules.Recipe ByName(string name) => WorkshopRules.Recipes.First(r => r.name == name);
+
+    [TestCase("Rough Stool", "rough_stool", 2, 2, 0, 3, 1400L, 10f)]
+    [TestCase("End Table", "end_table", 1, 3, 0, 2, 1200L, 8f)]
+    [TestCase("Chair", "chair", 2, 4, 1, 4, 1800L, 12f)]
+    [TestCase("Table", "table", 3, 4, 2, 5, 2800L, 24f)]
+    public void EachPieceHasItsPlannedNumbers(string name, string id, int logs, int branches, int cordage, int hours, long cents, float kg)
+    {
+        WorkshopRules.Recipe recipe = ByName(name);
+        Assert.That(recipe.itemId, Is.EqualTo(id));
+        Assert.That((recipe.logs, recipe.branches, recipe.cordage), Is.EqualTo((logs, branches, cordage)));
+        Assert.That(recipe.hours, Is.EqualTo(hours));
+        Assert.That(recipe.baseCents, Is.EqualTo(cents));
+        Assert.That(recipe.weightKg, Is.EqualTo(kg));
+    }
+
+    [Test]
+    public void TheListIsTheFourPiecesInTheAgreedOrder()
+    {
+        Assert.That(WorkshopRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Rough Stool", "End Table", "Chair", "Table" }));
+        Assert.That(WorkshopRules.IsProduct("table"), Is.True);
+        Assert.That(WorkshopRules.IsProduct("chair"), Is.True);
+        Assert.That(WorkshopRules.IsProduct("end_table"), Is.True);
+        Assert.That(WorkshopRules.IsProduct("logs"), Is.False);
+    }
+
+    [Test]
+    public void TheCapsStillHoldATableAndAChairTogetherAndTwoTables()
+    {
+        WorkshopRules.Recipe table = ByName("Table"), chair = ByName("Chair");
+        Assert.That(table.logs + chair.logs, Is.LessThanOrEqualTo(WorkshopRules.LogsCap));
+        Assert.That(table.branches + chair.branches, Is.LessThanOrEqualTo(WorkshopRules.BranchesCap));
+        Assert.That(table.cordage + chair.cordage, Is.LessThanOrEqualTo(WorkshopRules.CordageCap));
+        Assert.That(table.cordage * 2, Is.LessThanOrEqualTo(WorkshopRules.CordageCap));
+    }
+
+    [TestCase("Rough Stool")]
+    [TestCase("End Table")]
+    [TestCase("Chair")]
+    [TestCase("Table")]
+    public void EachPieceStartsOnExactlyItsStockAndNotOneShort(string name)
+    {
+        WorkshopRules.Recipe r = ByName(name);
+        Assert.That(WorkshopRules.CanStart(r, true, false, false, r.logs, r.branches, r.cordage), Is.EqualTo(WorkshopRules.Gate.Ok));
+        Assert.That(WorkshopRules.CanStart(r, true, false, false, r.logs - 1, r.branches, r.cordage), Is.EqualTo(WorkshopRules.Gate.ShortOfStock));
+        Assert.That(WorkshopRules.CanStart(r, true, false, false, r.logs, r.branches - 1, r.cordage), Is.EqualTo(WorkshopRules.Gate.ShortOfStock));
+        if (r.cordage > 0)
+            Assert.That(WorkshopRules.CanStart(r, true, false, false, r.logs, r.branches, r.cordage - 1), Is.EqualTo(WorkshopRules.Gate.ShortOfStock));
+    }
+
+    [Test]
+    public void TheNeedRowsReadInPlainWords()
+    {
+        WorkshopRules.NeedRow[] rows = WorkshopRules.NeedRows(ByName("Chair"), 4, 3, 0);
+        Assert.That(rows.Select(r => r.Text), Is.EqualTo(new[]
+        {
+            "Logs - need 2 - bench has 4 - enough",
+            "Branches - need 4 - bench has 3 - short by 1",
+            "Cordage - need 1 - bench has 0 - short by 1",
+        }));
+        Assert.That(rows.Select(r => r.enough), Is.EqualTo(new[] { true, false, false }));
+        Assert.That(WorkshopRules.NeedRows(ByName("Rough Stool"), 2, 2, 5), Has.Length.EqualTo(2), "no Cordage row for a piece that uses none");
+        Assert.That(WorkshopRules.NeedRows(ByName("Table"), 3, 4, 2).All(r => r.enough), Is.True);
+        Assert.That(WorkshopRules.NeedRows(ByName("Table"), 0, 0, 0)[0].Text, Is.EqualTo("Logs - need 3 - bench has 0 - short by 3"));
+    }
+
+    [Test]
+    public void TheBenchLineSaysIdleWorkingAndReady()
+    {
+        WorkshopRules.Recipe chair = ByName("Chair"), table = ByName("Table"), none = default;
+        Assert.That(WorkshopRules.BenchLine(false, none, 0f, false, none, 4, 5, 1), Is.EqualTo("Bench is idle - it holds 4 Logs, 5 Branches, 1 Cordage"));
+        Assert.That(WorkshopRules.BenchLine(false, none, 0f, false, none, 1, 1, 0), Is.EqualTo("Bench is idle - it holds 1 Log, 1 Branch, 0 Cordage"));
+        Assert.That(WorkshopRules.BenchLine(true, chair, 2f, false, none, 0, 0, 0), Is.EqualTo("Making a Chair, 2 h to go"));
+        Assert.That(WorkshopRules.BenchLine(true, chair, 1.5f, false, none, 0, 0, 0), Is.EqualTo("Making a Chair, 2 h to go"), "part hours round up");
+        Assert.That(WorkshopRules.BenchLine(false, none, 0f, true, table, 0, 0, 0), Is.EqualTo("A Table is ready - collect it"));
+    }
+
+    [Test]
+    public void TheListRowsShowTheCurrentPriceOrTheBaseWhenThereIsNone()
+    {
+        Assert.That(WorkshopRules.ListLabel(ByName("Rough Stool"), 1077), Is.EqualTo("Rough Stool\n3 h  -  $10.77"));
+        Assert.That(WorkshopRules.ListLabel(ByName("Table"), 0), Is.EqualTo("Table\n5 h  -  $28.00"));
+        Assert.That(WorkshopRules.DetailLine(ByName("Table")), Is.EqualTo("5 h  -  24 kg  -  base price $28.00"));
+        Assert.That(WorkshopRules.DetailLine(ByName("Rough Stool")), Is.EqualTo("3 h  -  10 kg  -  base price $14.00"));
+    }
+
+    [Test]
+    public void TheStartButtonAndTheReasonLineFollowTheGate()
+    {
+        WorkshopRules.Recipe chair = ByName("Chair"), table = ByName("Table");
+        Assert.That(WorkshopRules.StartButtonText(WorkshopRules.Gate.Ok, chair), Is.EqualTo("START CHAIR"));
+        Assert.That(WorkshopRules.StartButtonText(WorkshopRules.Gate.Busy, chair), Is.EqualTo("BENCH IS BUSY"));
+        Assert.That(WorkshopRules.StartButtonText(WorkshopRules.Gate.NoTool, chair), Is.EqualTo("NEED A TOOL"));
+        Assert.That(WorkshopRules.StartButtonText(WorkshopRules.Gate.ShortOfStock, chair), Is.EqualTo("SHORT OF MATERIALS"));
+        Assert.That(WorkshopRules.StartButtonText(WorkshopRules.Gate.ProductWaiting, chair), Is.EqualTo("COLLECT THE PIECE FIRST"));
+
+        Assert.That(WorkshopRules.ReasonText(WorkshopRules.Gate.Ok, chair, default, 9, 9, 9, 0f), Is.EqualTo(""));
+        Assert.That(WorkshopRules.ReasonText(WorkshopRules.Gate.Busy, chair, table, 0, 0, 0, 3f), Is.EqualTo("A Table is 3 h from done."), "busy names the piece being made, not the one chosen");
+        Assert.That(WorkshopRules.ReasonText(WorkshopRules.Gate.NoTool, chair, default, 9, 9, 9, 0f), Is.EqualTo("Carry an Axe, Primitive Axe or Wood Saw to work the bench."));
+        Assert.That(WorkshopRules.ReasonText(WorkshopRules.Gate.ShortOfStock, table, default, 1, 4, 0, 0f), Is.EqualTo("Still short 2 Logs, 2 Cordage. Deliver more."));
+        Assert.That(WorkshopRules.ReasonText(WorkshopRules.Gate.ProductWaiting, chair, default, 9, 9, 9, 0f), Does.Contain("collect it first"));
+    }
+
+    [Test]
+    public void TheScreenWordsCarryNoKeyNames()
+    {
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+        {
+            var words = new System.Collections.Generic.List<string> { WorkshopRules.DetailLine(recipe), WorkshopRules.ListLabel(recipe, 0), WorkshopRules.StartedMessage(recipe) };
+            foreach (WorkshopRules.Gate gate in Enum.GetValues(typeof(WorkshopRules.Gate)))
+            {
+                words.Add(WorkshopRules.StartButtonText(gate, recipe));
+                words.Add(WorkshopRules.ReasonText(gate, recipe, recipe, 0, 0, 0, 2f));
+            }
+            foreach (WorkshopRules.NeedRow row in WorkshopRules.NeedRows(recipe, 0, 0, 0))
+                words.Add(row.Text);
+            foreach (string text in words)
+                Assert.That(Regex.IsMatch(text, @"\b[ER]\b") || text.Contains("["), Is.False, text);
+        }
+    }
+
+    [TestCase("end_table", 1200L, 9.23)]
+    [TestCase("chair", 1800L, 13.85)]
+    [TestCase("table", 2800L, 21.55)]
+    public void ANewPieceIsABoughtCraftedItemThatSettlesAtTheDocumentedDailyTake(string id, long cents, double perDay)
+    {
+        Assert.That(Table.TryGetRow(id, out MarketRow row), Is.True);
+        Assert.That(row.group, Is.EqualTo(MarketGroup.Crafted));
+        Assert.That(row.kind, Is.EqualTo(MarketKind.Bought));
+        Assert.That(row.pool, Is.EqualTo(id));
+        Assert.That(row.baseCents, Is.EqualTo(cents));
+        Assert.That(Table.BuyBaseCents(id), Is.EqualTo(0L), "the store does not sell it");
+
+        MarketGroupRule rule = Table.RuleOf(id);
+        int m = MarketRules.One;
+        long total = 0;
+        int days = 0;
+        for (int day = 0; day < 240; day++)
+        {
+            SaleResult sale = MarketRules.SellStack(cents, m, 1, rule.dropBp, rule.floorBp);
+            m = MarketRules.Recover(sale.newMultiplierBp, MarketRules.One, 25, rule.floorBp);
+            if (day >= 120)
+            {
+                total += sale.totalCents;
+                days++;
+            }
+        }
+        Assert.That(total / (double)days / 100.0, Is.EqualTo(perDay).Within(0.06), "a game day at steady state, one a day");
+    }
+
+    [Test]
+    public void EveryPieceHasAnItemAndAMarketRowAndALedgerBucket()
+    {
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+        {
+            object item = Find("ItemDatabase").GetMethod("Get").Invoke(null, new object[] { recipe.itemId });
+            Assert.That(item, Is.Not.Null, recipe.name + " needs Resources/Items/Materials/" + recipe.itemId + ".asset");
+            Type def = item.GetType();
+            Assert.That((string)def.GetProperty("DisplayName").GetValue(item), Is.EqualTo(recipe.name));
+            Assert.That(def.GetProperty("Category").GetValue(item).ToString(), Is.EqualTo("Material"));
+            Assert.That((float)def.GetProperty("WeightKg").GetValue(item), Is.EqualTo(recipe.weightKg));
+            Assert.That((bool)def.GetProperty("IsPerishable").GetValue(item), Is.False);
+            Assert.That(Table.TryGetRow(recipe.itemId, out MarketRow row), Is.True, recipe.name);
+            Assert.That(row.baseCents, Is.EqualTo(recipe.baseCents), recipe.name);
+            Assert.That(LedgerCategories.ForSale(row.group), Is.EqualTo(LedgerCategory.SalesCrafted), recipe.name);
+        }
+    }
+
+    [Test]
+    public void EveryFinishedPieceAppearsInTheBenchWhenItsJobEnds()
+    {
+        Type pile = Find("WoodPileState");
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+        {
+            object bench = NewPile("Workshop");
+            pile.GetField("jobItem").SetValue(bench, recipe.itemId);
+            pile.GetField("jobHours").SetValue(bench, 0f);
+            Find("WellsAndOuthouses").GetMethod("FinishJob", BindingFlags.Public | BindingFlags.Static).Invoke(null, new[] { bench });
+            Assert.That(Count(bench, recipe.itemId), Is.EqualTo(1), recipe.name);
+            Assert.That(string.IsNullOrEmpty((string)pile.GetField("jobItem").GetValue(bench)), Is.True, recipe.name);
+        }
+    }
+
+    [Test]
+    public void AJobWithAnUnknownPieceFinishesSafelyAndLeavesNothingStuckInTheBench()
+    {
+        Type pile = Find("WoodPileState");
+        object bench = NewPile("Workshop");
+        pile.GetField("jobItem").SetValue(bench, "mystery_chest");
+        pile.GetField("jobHours").SetValue(bench, 0f);
+        Add(bench, "logs", 2);
+        Assert.DoesNotThrow(() => Find("WellsAndOuthouses").GetMethod("FinishJob", BindingFlags.Public | BindingFlags.Static).Invoke(null, new[] { bench }));
+        Assert.That(string.IsNullOrEmpty((string)pile.GetField("jobItem").GetValue(bench)), Is.True, "the bench is free again");
+        Assert.That((float)pile.GetField("jobHours").GetValue(bench), Is.EqualTo(0f));
+        Assert.That(Count(bench, "mystery_chest"), Is.EqualTo(0), "nothing that could never be collected");
+        Assert.That(Count(bench, "logs"), Is.EqualTo(2), "the stock is untouched");
+    }
+
+    [Test]
+    public void ThePlacedStructureStartsJobsThroughOneMethodTheScreenCalls()
+    {
+        MethodInfo start = Find("PlacedStructure").GetMethod("TryStartJob", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(start, Is.Not.Null);
+        Assert.That(start.ReturnType, Is.EqualTo(typeof(bool)));
+        Assert.That(start.GetParameters().Select(p => p.ParameterType.Name), Is.EqualTo(new[] { "Recipe", "String&" }));
+    }
+
+    [Test]
+    public void TheSavedPileStateGainedNoFieldAndNoVersionMoved()
+    {
+        string[] names = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
+        Assert.That(names, Does.Contain("jobItem"));
+        Assert.That(names, Does.Contain("jobHours"));
+        Assert.That(names.Length, Is.EqualTo(14), "a2-1 added no saved field");
+        Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(35), "no pile kind was added");
+    }
+
+    // --- The Workshop screen's text ---
+
+    [Test]
+    public void TheScreenBuildsWithNothingUnderTwentySixAndTheAgreedSizes()
+    {
+        Type screen = Find("WorkshopScreen");
+        Type text = Type.GetType("UnityEngine.UI.Text, UnityEngine.UI");
+        Assert.That(text, Is.Not.Null);
+        var go = new GameObject("Workshop Screen Test");
+        try
+        {
+            Component instance = go.AddComponent(screen);
+            screen.GetMethod("Build", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(instance, null);
+            PropertyInfo size = text.GetProperty("fontSize"), style = text.GetProperty("fontStyle");
+            Component[] labels = go.GetComponentsInChildren(text, true);
+            Assert.That(labels.Length, Is.GreaterThan(15));
+            foreach (Component label in labels)
+                Assert.That((int)size.GetValue(label), Is.GreaterThanOrEqualTo(26), label.name);
+
+            int SizeOf(string name) => (int)size.GetValue(labels.First(l => l.name == name));
+            Assert.That(SizeOf("Title"), Is.EqualTo(36));
+            Assert.That(SizeOf("Status"), Is.EqualTo(28));
+            Assert.That(SizeOf("Piece"), Is.EqualTo(40));
+            Assert.That(SizeOf("Piece Line"), Is.EqualTo(28));
+            Assert.That(SizeOf("Needs Heading"), Is.EqualTo(28));
+            Assert.That(SizeOf("Need 0"), Is.EqualTo(28));
+            Assert.That(SizeOf("Reason"), Is.EqualTo(28));
+            Assert.That(SizeOf("Hint"), Is.EqualTo(26));
+            Assert.That(labels.Where(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")).Select(l => (int)size.GetValue(l)), Is.All.EqualTo(32), "the list names");
+            Assert.That(labels.Where(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")).All(l => (int)style.GetValue(l) == (int)FontStyle.Bold), Is.True);
+            Assert.That(labels.Where(l => l.name == "Detail").Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28), "the hours and price");
+            Component[] starts = labels.Where(l => l.transform.parent != null && l.transform.parent.name == "Start").ToArray();
+            Assert.That(starts.Length, Is.EqualTo(1));
+            Assert.That((int)size.GetValue(starts[0]), Is.EqualTo(36), "the Start button");
+            Assert.That((int)style.GetValue(starts[0]), Is.EqualTo((int)FontStyle.Bold));
+            Component[] closes = labels.Where(l => l.transform.parent != null && l.transform.parent.name == "Close").ToArray();
+            Assert.That(closes.Length, Is.EqualTo(1));
+            Assert.That((int)size.GetValue(closes[0]), Is.EqualTo(28), "the Close button");
+            Assert.That(ScreenConstant("MinimumSize"), Is.EqualTo(26f));
+            Assert.That(ScreenConstant("RowHeight"), Is.GreaterThanOrEqualTo(96f));
+            Assert.That(ScreenConstant("RowGap"), Is.GreaterThanOrEqualTo(12f));
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+    }
+
+    static float ScreenConstant(string constant) => Convert.ToSingle(Find("WorkshopScreen").GetField(constant, BindingFlags.Public | BindingFlags.Static).GetValue(null));
+
+    [Test]
+    public void TheScreenIsClosedUntilOpened()
+    {
+        Assert.That((bool)Find("WorkshopScreen").GetProperty("IsOpen", BindingFlags.Public | BindingFlags.Static).GetValue(null), Is.False);
     }
 }
