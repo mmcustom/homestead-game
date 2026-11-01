@@ -456,3 +456,27 @@ Built to the plan. A placed Workshop (a roofed thatch shed about 3 m by 2.4 m, o
 Placement: dry ground (flood band refused), 3 m from a Cabin (Wood Shed rule, CanPlaceShed), a tree trunk within 2 m of the centre refused, 3 m from another pile, 2.6 m from a parked Hand Cart both ways (the cart's own spacing exemption no longer lets the two overlap); stumps are not checked by the Workshop (the Cabin rule still does). Tree regrowth keeps sprouts out of a 2.9 m radius (RegrowRules.WorkshopMetres), and the Kitchen's fire-safety gap sees the Workshop (1.9 m). Dev keys: backslash (the site kit and a Wood Pile with 5 Logs), Shift+backslash (a finished Workshop with stock for two stools), Ctrl+backslash (finish every job now). Tests 1234 (51 new in WorkshopTests); three enum-count assertions went from 33 to 35 and the pinned pile field list gained jobItem and jobHours.
 
 Not recorded in the playtest: job hours, stool prices, whether a stump pokes through the shed (item 19), the sprout check at 2 m (item 20). Next: re-measure with a Pioneer run (stools made and sold a day, Logs and Branches used, income against $20.48), then a2 (End Table, Chair, Table, the Workshop tab on the Craft and Build screen with "in bench" wording, and a price re-check before the Table), then a3 (the cart feeding the bench).
+
+
+## BUILT: Workshop a2-1 (2026-11-01, playtest 1 to 25 passed, committed deb8658)
+
+Mike asked for a way to choose what the Workshop makes, and chose its own separate screen (not a tab of Craft and Build), all four pieces, and the doc prices with a measurement afterwards. Built as a2-1; the pack line, stock button and keyboard keys are a2-2.
+
+What changed. E at the bench opens the Workshop screen (WorkshopScreen: own canvas, 1920 by 1080 scaler, sort order 150, static Open(bench), Close and IsOpen, like the Finances screen); a finished piece still collects with E. While a job runs, E opens the same screen read-only ("Making a Chair, 2 h to go"). One start path, PlacedStructure.TryStartJob(Recipe, out string message), works the gate out again on the live bench at the click, then takes the stock and sets jobItem and jobHours; the old E-start code and its prompts are gone. Esc and the Close button close the screen, GameScreens.Update does not leak hotkeys while it is open, it closes on any state change away from Menu (load, main menu), and the last piece chosen is remembered for the session only (not saved).
+
+The four pieces (all Material items sold in the Crafted group under "Crafted goods"; market rows 79 to 82, Crafted group 14 to 17):
+
+| Piece | Logs | Branches | Cordage | Hours | Weight | Base price |
+|---|---|---|---|---|---|---|
+| Rough Stool | 2 | 2 | 0 | 3 | 10 kg | $14 |
+| End Table | 1 | 3 | 0 | 2 | 8 kg | $12 |
+| Chair | 2 | 4 | 1 | 4 | 12 kg | $18 |
+| Table | 3 | 4 | 2 | 5 | 24 kg | $28 |
+
+The screen. Left, four rows (name, then hours and the current Trading Post price from MarketManager.SellPrice; a piece the bench cannot cover yet is dimmed but can be chosen). Right, the chosen piece: name, hours and weight and base price, then each need against what the bench holds ("Logs - need 2 - bench has 4 - enough" or "short by 3", short rows orange), a reason line and the Start button (START CHAIR, SHORT OF MATERIALS, NEED A TOOL, BENCH IS BUSY naming the piece being made, COLLECT THE PIECE FIRST). A status line across the top says whether the bench is idle, working or has a piece ready. Text sizes at the 1920 by 1080 reference (a test enforces nothing below 26): title 36, status, list hours and price, detail line, needs, reason and Close 28, list names 32 bold, detail name 40 bold, Start 36 bold, Esc hint 26; rows 104 px high with 12 px gaps, panel 1500 by 880. The bench draws each finished piece: the stool's round seat, the End Table's square top with a low shelf, the Chair's seat with a back, the Table's long top on four legs.
+
+Other changes. FinishJob drops a job item this build does not know, so it cannot sit in a bench with nothing to collect it. Save format unchanged (PileKind 35 entries, WoodPileState 14 fields, LedgerSaveData.CurrentVersion 1, SaveVersion 1). The Craft and Build help text lists the four pieces. Dev keys: Shift+backslash now stocks a finished Workshop with 5 Logs, 8 Branches and 3 Cordage (one Table plus one Chair); backslash and Ctrl+backslash as before. Tests 1259 (25 new).
+
+Not recorded in the playtest: the prices shown in the list, the sale prices, the clock hours across sleep. Not yet measured: income with a Pioneer run. A single Table a day ($21.55 steady state) already matches the $20.48 payment, so the Table price is the one to watch.
+
+Next: a2-2 (a pack line on the screen, a "Put my materials in the bench" button sharing the R stocking code, keyboard 1 to 4, Up, Down, Enter; no Collect button), then a Pioneer re-measure with all four pieces and a price re-check, then a3 (the cart feeds the bench from about 4 m).
