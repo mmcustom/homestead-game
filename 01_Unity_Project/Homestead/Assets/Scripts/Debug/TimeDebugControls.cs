@@ -11,6 +11,7 @@ using UnityEngine.InputSystem;
 //       season: set the season to Summer first for the real temperatures, or the wave is added to Winter's cold
 //   F2  jump a Heat Wave to its natural end now (not the F4 end): the forced Thunderstorm (70%) or Cold Front (30%) follows
 //   F5  skip 1 day (Shift+F5: skip 10 days; each midnight crossed fires DayChanged, so land payments fall due and go late on the way)
+//   Ctrl+F5 regrow every felled tree that can grow back to full size now, with no days passing (Tree Regrowth; a stump dug out with the Shovel stays cleared)
 //   F6  skip to the start of the next season
 //   F7  cycle fast-forward: x1, x10, x60 (a day in 30s), x360 (a day in 5s) — calendar only, not movement
 //   F8  skip to the start of Winter
@@ -228,6 +229,13 @@ public class TimeDebugControls : MonoBehaviour
         {
             bool ended = WeatherManager.Instance.DebugExpireHeatWave();
             Show(ended ? $"Heat Wave ran its course: {WeatherManager.Instance.Current}" : "No Heat Wave to end", time);
+        }
+        else if (keyboard.f5Key.wasPressedThisFrame && ctrl)
+        {
+            // Ctrl+F5: every felled tree that can grow back is a full year old now (dug-out stumps stay cleared); no days pass
+            WoodManager wood = WoodManager.Instance;
+            int spots = wood != null ? wood.DebugRegrowAll() : 0;
+            Show(spots > 0 ? $"Regrew {spots} felled spot(s) to full size" : "No felled tree to regrow", time);
         }
         else if (keyboard.f5Key.wasPressedThisFrame)
         {

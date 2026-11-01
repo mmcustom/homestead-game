@@ -45,6 +45,7 @@ public class MapleMarkerHud : MonoBehaviour
     readonly Vector3[] tapTops = new Vector3[MapleRules.MaxTaps];                // where their pails float
     int tapCount;
     int builtForTreeCount = -1;
+    int builtForRevision = -1; // WoodManager.TreeRevision: a Maple's size moves as it regrows, so the list is built again when the standing trees change
     int lastTapCount = -1;
     bool untappedWasOn;
     float nextRefresh;
@@ -117,7 +118,7 @@ public class MapleMarkerHud : MonoBehaviour
         EnsureBuilt();
         canvasRoot.SetActive(true);
 
-        if (untappedOn && wood.TreeCount != builtForTreeCount)
+        if (untappedOn && (wood.TreeCount != builtForTreeCount || wood.TreeRevision != builtForRevision))
             BuildMapleList(wood);
 
         Vector3 at = player.transform.position;
@@ -158,8 +159,8 @@ public class MapleMarkerHud : MonoBehaviour
         lastTapCount = -1;
     }
 
-    // Every Maple on the map, standing or not: whether a tree is a Maple never changes (it is the index, the prototype and the size), so this is
-    // built once per world. Felled and tapped trees are skipped when the nearest set is chosen.
+    // Every full-grown Maple on the map, standing or not (a Maple is the index, the prototype and the size, so a regrowing one is not one until it is full
+    // height). Built again when the standing trees change (TreeRevision). Felled and tapped trees are skipped when the nearest set is chosen.
     void BuildMapleList(WoodManager wood)
     {
         positions.Clear();
@@ -173,6 +174,7 @@ public class MapleMarkerHud : MonoBehaviour
             trees.Add(i);
         }
         builtForTreeCount = wood.TreeCount;
+        builtForRevision = wood.TreeRevision;
     }
 
     void ChooseUntapped(WoodManager wood, TapManager taps, Vector3 at, bool on)

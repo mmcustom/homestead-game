@@ -18,6 +18,9 @@ public class FelledTree
 {
     public int index;         // the tree's place in the terrain's original tree list
     public bool stump;        // hardwoods leave a stump; a cut shrub leaves nothing
+    // Tree Regrowth (appended, so older saves load 0): the in-game day it was felled plus one. 0 is "not stamped yet": a save from before regrowth, whose
+    // spots take the first day they are seen (RegrowRules.StampFor). The entry is dropped once the tree has grown back (a year later).
+    public int fellStamp;
 }
 
 // Felled: what a felled tree left, gone once emptied. The rest are player-built storage that stay put, empty or not:
@@ -300,7 +303,12 @@ public struct WoodSaveData
 //
 // Yields scale with the tree's size and are Claude Code's first proposal, pending Mike's playtest:
 //   broad hardwood (6.5 m) — about 2 Logs, 4 Branches, 5 Sticks; tall hardwood (9.5 m) — about 3 Logs, 3 Branches,
-//   4 Sticks; understory shrub — 1 Branch, about 3 Sticks. Trees don't grow back yet.
+//   4 Sticks; understory shrub — 1 Branch, about 3 Sticks.
+//
+// Tree Regrowth (Mike, 2026-10-31; RegrowRules, Tree_Regrowth.md): a felled spot grows a tree back in one game year. It sprouts at day 14 and grows in 7-day
+// steps, as a scaled copy of its original instance (originalTrees is never changed), so a half-grown tree takes half the blows and gives half the Logs.
+// A stump left standing regrows; one dug out with the Shovel clears the spot for good. Everything is worked out from each spot's saved stamp and today's
+// date (a daily tick that sets a flag, then one rebuild in the next Update), so skipping days or sleeping lands every spot where it belongs.
 public class WoodManager : MonoBehaviour, ISaveable
 {
     public const string LogsId = "logs";
@@ -395,7 +403,15 @@ public class WoodManager : MonoBehaviour, ISaveable
     [SerializeField, Min(1f)] float cabinCompleteReach = 6f;
 
     readonly List<FelledTree> felled = new List<FelledTree>();
+    // Spots with no tree standing: cut ones waiting to sprout, and dug-out ones (cleared). A sprouting tree is NOT in here: it stands, scaled by `growth`.
     readonly HashSet<int> felledSet = new HashSet<int>();
+    // Tree index -> growth (0.08 to 0.934) of each regrowing tree. Not saved: worked out again from the stamps (RegrowTick).
+    readonly Dictionary<int, float> growth = new Dictionary<int, float>();
+    // Ground kept clear of regrowth (cleared fields, later farming): id -> (centre, radius). Not saved; whoever registers a zone owns it and registers it again.
+    readonly Dictionary<int, (Vector3 centre, float radius)> clearedGround = new Dictionary<int, (Vector3 centre, float radius)>();
+    int nextClearedGroundId = 1;
+    bool regrowDirty;
+    bool timeSubscribed;
     readonly List<WoodPileState> piles = new List<WoodPileState>();
     readonly Dictionary<int, GameObject> pileViews = new Dictionary<int, GameObject>();
     readonly List<GameObject> stumps = new List<GameObject>();
@@ -459,7 +475,19 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (Instance == this && SaveManager.Instance != null)
             SaveManager.Instance.Register(this);
         SubscribeToRain();
+        SubscribeToDays();
     }
+
+    // Regrowth is checked once per game day (TimeManager.DayChanged fires for every midnight crossed, so sleep and day skips count).
+    void SubscribeToDays()
+    {
+        if (timeSubscribed || Instance != this || TimeManager.Instance == null)
+            return;
+        TimeManager.Instance.DayChanged += OnDayChanged;
+        timeSubscribed = true;
+    }
+
+    void OnDayChanged() => regrowDirty = true;
 
     // Rain Barrels fill once per game hour, from the weather's own HourEnded (so sleep, collapse and day skips count too).
     void SubscribeToRain()
@@ -480,6 +508,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             WeatherManager.Instance.HourEnded -= CollectRain;
         if (rainSubscribed && WeatherManager.Instance != null)
             WeatherManager.Instance.HourEnded -= RainOnOpenPiles;
+        if (timeSubscribed && TimeManager.Instance != null)
+            TimeManager.Instance.DayChanged -= OnDayChanged;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         if (SaveManager.Instance != null)
             SaveManager.Instance.Unregister(this);
@@ -489,12 +519,14 @@ public class WoodManager : MonoBehaviour, ISaveable
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         SubscribeToRain(); // in case the weather didn't exist yet at Start
+        SubscribeToDays();
         if (scene.name != GameManager.WorldScene)
             return;
 
         terrain = Terrain.activeTerrain;
         data = null;
         originalTrees = null;
+        growth.Clear(); // a fresh copy of the terrain has every tree full; the first tick grows the sprouts again
         if (terrain != null && terrain.terrainData != null)
         {
             data = RuntimeTerrain.Data(terrain); // a fresh copy each time World loads, with every tree standing
@@ -525,24 +557,40 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (!WorldLoaded)
             return;
 
-        RebuildTrees();
+        RebuildTrees(felled.Count);
         foreach (FelledTree tree in felled)
             if (tree.stump)
                 SpawnStump(tree.index);
         foreach (WoodPileState pile in piles)
             SpawnPile(pile);
+        regrowDirty = true; // the first Update after a load works out what has sprouted by today's date
     }
 
-    // The terrain's trees minus the felled ones, and the grid used to find the tree being looked at.
-    void RebuildTrees()
+    // Bumps each time the standing trees change (felled, sprouted, grown a step, dug out): lists built from them, like the Maple markers', rebuild when it moves.
+    public int TreeRevision { get; private set; }
+
+    // The terrain's trees minus the felled ones (a regrowing one scaled by its growth), and the grid used to find the tree being looked at.
+    // spotsChanged is only for the dev timing line.
+    void RebuildTrees(int spotsChanged = 1)
     {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+#endif
+        TreeRevision++;
         var live = new List<TreeInstance>(originalTrees.Length);
         grid.Clear();
         for (int i = 0; i < originalTrees.Length; i++)
         {
             if (felledSet.Contains(i))
                 continue;
-            live.Add(originalTrees[i]);
+            TreeInstance instance = originalTrees[i];
+            if (growth.TryGetValue(i, out float g))
+            {
+                float scale = RegrowRules.ScaleOf(g);
+                instance.heightScale *= scale;
+                instance.widthScale *= scale;
+            }
+            live.Add(instance);
             Vector3 world = WorldPosition(i);
             var cell = new Vector2Int(Mathf.FloorToInt(world.x / CellSize), Mathf.FloorToInt(world.z / CellSize));
             if (!grid.TryGetValue(cell, out List<int> list))
@@ -558,6 +606,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             terrainCollider.enabled = true;
         }
         OverheadCover.Refresh();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        Debug.Log($"[Trees] rebuild took {stopwatch.Elapsed.TotalMilliseconds:0.0} ms: {spotsChanged} spot(s) changed, {live.Count} trees standing, {growth.Count} regrowing");
+#endif
     }
 
     public Vector3 WorldPosition(int index)
@@ -569,8 +620,12 @@ public class WoodManager : MonoBehaviour, ISaveable
     }
 
     public int Prototype(int index) => originalTrees[index].prototypeIndex;
-    public float HeightScale(int index) => originalTrees[index].heightScale;
-    public float WidthScale(int index) => originalTrees[index].widthScale;
+    // A tree's scales as it stands now: the original's, times the growth scale while it regrows (so blows, Logs, trunk, height and whether it is a Maple all
+    // follow how grown it is). Full-grown trees and every tree of an old save are exactly the original's.
+    public float HeightScale(int index) => originalTrees[index].heightScale * GrowthScale(index);
+    public float WidthScale(int index) => originalTrees[index].widthScale * GrowthScale(index);
+
+    float GrowthScale(int index) => growth.TryGetValue(index, out float g) ? RegrowRules.ScaleOf(g) : 1f;
 
     // How tall a tree stands above its base, in metres: its prototype's own height (measured once from the prefab's meshes) times the tree's height
     // scale. 0 if the prefab has no mesh to measure; the Maple markers then use their fallback height and say so in the Console.
@@ -665,12 +720,12 @@ public class WoodManager : MonoBehaviour, ISaveable
         switch (Prototype(index))
         {
             case BroadHardwood:
-                yield.Add(new WoodStack { itemId = LogsId, count = Mathf.Max(1, Mathf.RoundToInt(2f * size)) });
+                AddLogs(yield, 2f, size);
                 yield.Add(new WoodStack { itemId = BranchesId, count = Mathf.Max(1, Mathf.RoundToInt(4f * size)) });
                 yield.Add(new WoodStack { itemId = SticksId, count = Mathf.Max(1, Mathf.RoundToInt(5f * size)) });
                 break;
             case TallHardwood:
-                yield.Add(new WoodStack { itemId = LogsId, count = Mathf.Max(1, Mathf.RoundToInt(3f * size)) });
+                AddLogs(yield, 3f, size);
                 yield.Add(new WoodStack { itemId = BranchesId, count = Mathf.Max(1, Mathf.RoundToInt(3f * size)) });
                 yield.Add(new WoodStack { itemId = SticksId, count = Mathf.Max(1, Mathf.RoundToInt(4f * size)) });
                 break;
@@ -680,6 +735,14 @@ public class WoodManager : MonoBehaviour, ISaveable
                 break;
         }
         return yield;
+    }
+
+    // Logs in proportion to size, none for a seedling (Branches and Sticks keep their minimum of 1). Full-grown trees are never that small, so they give what they did.
+    static void AddLogs(List<WoodStack> yield, float logsAtSize1, float size)
+    {
+        int logs = RegrowRules.LogsFor(logsAtSize1, size);
+        if (logs > 0)
+            yield.Add(new WoodStack { itemId = LogsId, count = logs });
     }
 
     // Stamps every batch of a list of wood with today as the day it was last wet, so it starts wet and seasons from there.
@@ -706,16 +769,33 @@ public class WoodManager : MonoBehaviour, ISaveable
             away = Vector3.forward;
         away.Normalize();
 
+        // Everything about the tree as it stands (a sapling is felled at its own size) is read before the spot is marked cut.
         TreeInstance instance = originalTrees[index];
+        float scale = GrowthScale(index);
+        instance.heightScale *= scale;
+        instance.widthScale *= scale;
         GameObject prefab = prototype < data.treePrototypes.Length ? data.treePrototypes[prototype].prefab : null;
+        float trunk = TrunkRadius(index);
+        List<WoodStack> yield = YieldOf(index);
 
-        felled.Add(new FelledTree { index = index, stump = prototype != Shrub });
+        // A sapling already has an entry (and maybe its stump): felling it starts the year again.
+        int stamp = (TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0) + 1;
+        FelledTree entry = felled.Find(t => t.index == index);
+        if (entry == null)
+            felled.Add(new FelledTree { index = index, stump = prototype != Shrub, fellStamp = stamp });
+        else
+        {
+            entry.stump = prototype != Shrub;
+            entry.fellStamp = stamp;
+        }
         felledSet.Add(index);
         if (TapManager.Instance != null)
             TapManager.Instance.OnTreeFelled(index); // a tapped maple gives its Spile and Sap Bucket back (the Axe and a storm both come here)
-        RebuildTrees();
+        DestroyStumpObjects(index);
         if (prototype != Shrub)
-            SpawnStump(index);
+            SpawnStump(index, trunk);
+        growth.Remove(index);
+        RebuildTrees();
         if (prefab != null)
             FallingTree.Spawn(prefab, basePosition, instance, away, prototype == Shrub ? 0.6f : fallSeconds,
                               prototype == Shrub ? 0.5f : lieSeconds, crash: prototype != Shrub);
@@ -723,17 +803,142 @@ public class WoodManager : MonoBehaviour, ISaveable
         // The pile lands just beside the trunk on the side it fell toward.
         Vector3 side = Vector3.Cross(Vector3.up, away);
         // Far enough along that its heap doesn't cover the stump.
-        Vector3 pilePosition = basePosition + away * (TrunkRadius(index) + 1.8f) + side * 0.5f;
+        Vector3 pilePosition = basePosition + away * (trunk + 1.8f) + side * 0.5f;
         pilePosition.y = terrain.SampleHeight(pilePosition) + terrain.transform.position.y;
         var pile = new WoodPileState
         {
             id = nextPileId++,
             position = pilePosition,
             yaw = Quaternion.LookRotation(away).eulerAngles.y,
-            contents = WetStamped(YieldOf(index)), // freshly felled wood is wet (WoodMoisture)
+            contents = WetStamped(yield), // freshly felled wood is wet (WoodMoisture)
         };
         piles.Add(pile);
         SpawnPile(pile);
+    }
+
+    // --- Regrowth ---
+
+    // Where every felled spot stands today (RegrowRules): sprouts a tree where one is due and clear, grows the sprouts a step, swallows stumps, and drops the
+    // spots whose tree is fully back. Stateless from each entry's stamp, so any number of days skipped lands right; the terrain is rebuilt once at the end.
+    void RegrowTick(int today)
+    {
+        regrowDirty = false;
+        int changed = 0;
+        PlayerController player = null;
+        bool playerLooked = false;
+
+        for (int i = felled.Count - 1; i >= 0; i--)
+        {
+            FelledTree entry = felled[i];
+            int index = entry.index;
+            if (index < 0 || index >= originalTrees.Length || !RegrowRules.CanRegrow(Prototype(index), entry.stump))
+                continue; // a dug-out hardwood: cleared for good
+
+            entry.fellStamp = RegrowRules.StampFor(entry.fellStamp, today);
+            int stage = RegrowRules.Stage(RegrowRules.DaysSince(entry.fellStamp, today));
+            if (stage == 0)
+                continue;
+
+            bool growing = growth.TryGetValue(index, out float was);
+            if (stage >= RegrowRules.FullStage)
+            {
+                felled.RemoveAt(i);
+                felledSet.Remove(index);
+                growth.Remove(index);
+                DestroyStumpObjects(index);
+                changed++;
+                continue;
+            }
+
+            if (!growing)
+            {
+                if (!playerLooked)
+                {
+                    player = FindAnyObjectByType<PlayerController>();
+                    playerLooked = true;
+                }
+                if (SproutBlocked(index, player))
+                {
+                    entry.fellStamp = RegrowRules.HeldStamp(today); // its year waits until the spot is clear
+                    continue;
+                }
+            }
+
+            float g = RegrowRules.GrowthFraction(stage);
+            if (growing && Mathf.Approximately(was, g))
+                continue;
+            growth[index] = g;
+            felledSet.Remove(index);
+            if (entry.stump && RegrowRules.StumpGone(g))
+                DestroyStumpObjects(index);
+            changed++;
+        }
+
+        if (changed > 0)
+            RebuildTrees(changed);
+    }
+
+    // Whether something stands where a sprout would come up: a built structure, a Cabin or Kitchen with its clearance, a fire, the player, water or registered cleared ground.
+    bool SproutBlocked(int index, PlayerController player)
+    {
+        Vector3 at = WorldPosition(index);
+        WellsAndOuthouses wells = WellsAndOuthouses.Instance;
+        float kitchen = wells != null ? wells.kitchenRoofRadiusMetres + wells.setbackKitchenFromTreeMetres : 5.3f;
+
+        foreach (WoodPileState pile in piles)
+        {
+            if (!pile.IsBuilt)
+                continue; // a felled tree's own heap lies clear of the trunk
+            RegrowRules.Blocker kind = pile.kind == PileKind.Cabin || pile.kind == PileKind.CabinSite ? RegrowRules.Blocker.Cabin
+                                     : pile.IsKitchen ? RegrowRules.Blocker.Kitchen : RegrowRules.Blocker.Structure;
+            if (RegrowRules.Blocks(kind, FlatDistance(pile.position, at), cabinFootprint, kitchen))
+                return true;
+        }
+        if (FireManager.Instance != null)
+        {
+            foreach (CampfireState fire in FireManager.Instance.Fires)
+                if (RegrowRules.Blocks(RegrowRules.Blocker.Fire, FlatDistance(fire.position, at), cabinFootprint, kitchen))
+                    return true;
+        }
+        if (player != null && RegrowRules.Blocks(RegrowRules.Blocker.Player, FlatDistance(player.transform.position, at), cabinFootprint, kitchen))
+            return true;
+        foreach ((Vector3 centre, float radius) zone in clearedGround.Values)
+            if (RegrowRules.Blocks(RegrowRules.Blocker.ClearedGround, FlatDistance(zone.centre, at), cabinFootprint, kitchen, zone.radius))
+                return true;
+        return Animal.IsOverWater(at, out _);
+    }
+
+    static float FlatDistance(Vector3 a, Vector3 b) => new Vector2(a.x - b.x, a.z - b.z).magnitude;
+
+    // Ground kept clear of regrowth (a cleared field, later farming): no sprout comes up within the radius. The caller owns the zone and registers it again after a
+    // load, since this is not saved; farming rules are not here.
+    public int AddClearedGround(Vector3 centre, float radius)
+    {
+        int id = nextClearedGroundId++;
+        clearedGround[id] = (centre, Mathf.Max(0f, radius));
+        return id;
+    }
+
+    public void RemoveClearedGround(int id) => clearedGround.Remove(id);
+
+    public int RegrowingCount => growth.Count;
+
+    // Testing only (TimeDebugControls, Ctrl+F5): ages every spot that can grow back to a full year and works it out now. Returns how many spots that was.
+    public int DebugRegrowAll()
+    {
+        if (!WorldLoaded || TimeManager.Instance == null)
+            return 0;
+        int today = TimeManager.Instance.TotalDays;
+        int spots = 0;
+        foreach (FelledTree entry in felled)
+        {
+            if (entry.index < 0 || entry.index >= originalTrees.Length || !RegrowRules.CanRegrow(Prototype(entry.index), entry.stump))
+                continue;
+            entry.fellStamp = RegrowRules.FullStamp(today);
+            spots++;
+        }
+        RegrowTick(today);
+        return spots;
     }
 
     // --- Windthrow ---
@@ -742,6 +947,8 @@ public class WoodManager : MonoBehaviour, ISaveable
     {
         TimeManager time = TimeManager.Instance;
         bool playing = GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
+        if (regrowDirty && time != null && WorldLoaded)
+            RegrowTick(time.TotalDays);
         if (time == null || !time.IsRunning || !playing || !WorldLoaded)
             return;
         if (Time.unscaledTime >= nextHearthCheck)
@@ -790,6 +997,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             int index = UnityEngine.Random.Range(0, originalTrees.Length);
             if (!IsStanding(index) || Prototype(index) == Shrub)
                 continue;
+            if (growth.TryGetValue(index, out float grown) && !RegrowRules.WindthrowEligible(grown))
+                continue; // a young tree is not blown down
             Vector3 position = WorldPosition(index);
             if (player != null && Vector3.Distance(player.transform.position, position) < windthrowClearance)
                 continue;
@@ -1943,14 +2152,12 @@ public class WoodManager : MonoBehaviour, ISaveable
         FelledTree tree = felled.Find(t => t.index == index);
         if (tree == null || !tree.stump)
             return;
-        tree.stump = false;
-        for (int i = stumps.Count - 1; i >= 0; i--)
+        tree.stump = false; // a dug-out hardwood never regrows (RegrowRules.CanRegrow)
+        DestroyStumpObjects(index);
+        if (growth.Remove(index)) // the sprout comes out with its stump, and the spot stays clear
         {
-            if (stumps[i] != null && stumps[i].TryGetComponent(out Stump marker) && marker.TreeIndex == index)
-            {
-                Destroy(stumps[i]);
-                stumps.RemoveAt(i);
-            }
+            felledSet.Add(index);
+            RebuildTrees();
         }
 
         InventoryManager inventory = InventoryManager.Instance;
@@ -1967,9 +2174,26 @@ public class WoodManager : MonoBehaviour, ISaveable
         SpawnPile(pile);
     }
 
-    void SpawnStump(int index)
+    // Takes away the stump object(s) standing at a spot (swallowed by the growing tree, dug out, or replaced by a new stump).
+    void DestroyStumpObjects(int index)
     {
-        float radius = TrunkRadius(index);
+        for (int i = stumps.Count - 1; i >= 0; i--)
+        {
+            if (stumps[i] == null)
+                stumps.RemoveAt(i);
+            else if (stumps[i].TryGetComponent(out Stump marker) && marker.TreeIndex == index)
+            {
+                Destroy(stumps[i]);
+                stumps.RemoveAt(i);
+            }
+        }
+    }
+
+    // radius: the trunk it was cut at (a sapling leaves a small stump); omitted, the tree's full trunk.
+    void SpawnStump(int index, float radius = -1f)
+    {
+        if (radius < 0f)
+            radius = TrunkRadius(index);
         var stump = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         stump.name = "Stump";
         stump.AddComponent<Stump>().TreeIndex = index;
@@ -2007,6 +2231,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     {
         felled.Clear();
         felledSet.Clear();
+        growth.Clear();
         piles.Clear();
         hearthSettled.Clear();
         nextPileId = 1;
@@ -2030,6 +2255,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     {
         felled.Clear();
         felledSet.Clear();
+        growth.Clear(); // worked out again from the stamps by the first tick (older saves have none: stamp 0)
         if (saved.felled != null)
         {
             foreach (FelledTree tree in saved.felled)
