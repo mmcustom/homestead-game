@@ -89,7 +89,7 @@ public static class LedgerCategories
 
     static readonly Dictionary<string, LedgerCategory> Purchases = new Dictionary<string, LedgerCategory>
     {
-        { "axe", LedgerCategory.BuyTools }, { "hammer", LedgerCategory.BuyTools }, { "knife", LedgerCategory.BuyTools },
+        { "axe", LedgerCategory.BuyTools }, { "hammer", LedgerCategory.BuyTools }, { "knife", LedgerCategory.BuyTools }, { AxeRules.SawId, LedgerCategory.BuyTools },
         { "fishing_rod", LedgerCategory.BuyHuntingFishing }, { "recurve_bow", LedgerCategory.BuyHuntingFishing },
         { "bolt_action_rifle", LedgerCategory.BuyHuntingFishing }, { "arrows", LedgerCategory.BuyHuntingFishing },
         { "rifle_rounds", LedgerCategory.BuyHuntingFishing },

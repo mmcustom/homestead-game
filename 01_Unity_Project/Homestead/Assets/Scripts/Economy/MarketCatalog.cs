@@ -94,6 +94,8 @@ public static class MarketCatalog
         Row("weather_station", MarketGroup.Stocked, 2500, MarketKind.Stocked),
         // Early_Income_Design.md section 1: the Potash Kettle, a second vessel for the tripod (TripodRules); sells back at the usual share.
         Row(TripodRules.KettleId, MarketGroup.Stocked, PotashRules.KettleBaseCents, MarketKind.Stocked),
+        // Wood Saw (Mike, 2026-10-31): a bought time-saver, 1.5x the Axe; AxeRules has the felling numbers.
+        Row(AxeRules.SawId, MarketGroup.Stocked, AxeRules.SawBaseCents, MarketKind.Stocked),
         Row("deer_hide", MarketGroup.Hides, 800, MarketKind.Bought),
         Row("deer_antlers", MarketGroup.Hides, 600, MarketKind.Bought),
         Row("small_furs", MarketGroup.Hides, 300, MarketKind.Bought),

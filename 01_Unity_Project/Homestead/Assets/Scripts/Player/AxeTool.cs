@@ -21,6 +21,10 @@ using UnityEngine.InputSystem;
 // does, taking half as many blows again (a broad hardwood about 15 instead of 10) and splitting carried wood half as
 // slowly again. Either one carried lets the Inventory split wood; the metal Axe is used when both are.
 //
+// The Wood Saw (Mike, 2026-10-31) is bought at the Trading Post, a step above the Axe: the same swing, 0.65 times the blows (a broad
+// hardwood about 7 instead of 11) and 0.65 times the splitting time. Equipped it fells and splits at a pile; carried, the fastest of
+// the Saw, Axe and Primitive Axe sets the Inventory's splitting speed (AxeRules). Later it is also the tool boards will need.
+//
 // Clay (Building_Housing_System.md's Small Cabin, 2026-09-26): the Shovel also digs Clay straight out of a creek or
 // pond bank — dry ground close enough to the water's edge (Animal.IsOverWater checked in a ring around the aim point,
 // so it needs no placed deposit object) but not the water itself. Banks run the whole length of the property's water,
@@ -28,8 +32,9 @@ using UnityEngine.InputSystem;
 [DefaultExecutionOrder(90)]
 public class AxeTool : MonoBehaviour
 {
-    public const string AxeId = "axe";
-    public const string PrimitiveAxeId = "primitive_axe";
+    public const string AxeId = AxeRules.AxeId;
+    public const string PrimitiveAxeId = AxeRules.PrimitiveAxeId;
+    public const string SawId = AxeRules.SawId;
     public const string PickAxeId = "stone_pick_axe";
     public const string ShovelId = "shovel";
 
@@ -46,7 +51,10 @@ public class AxeTool : MonoBehaviour
     [SerializeField, Min(1f)] float shrubBlows = 3f;
 
     [Tooltip("How many times the blows (and splitting time) the Primitive Axe needs, compared with the Axe.")]
-    [SerializeField, Min(1f)] float primitiveAxeFactor = 1.5f;
+    [SerializeField, Min(1f)] float primitiveAxeFactor = AxeRules.DefaultPrimitiveFactor;
+
+    [Tooltip("How many times the blows (and splitting time) the Wood Saw needs, compared with the Axe: under 1, so it is faster.")]
+    [SerializeField, Range(0.1f, 1f)] float sawFactor = AxeRules.DefaultSawFactor;
 
     [Header("Pick Axe and Shovel")]
     [SerializeField, Min(1)] int blowsPerStone = 4;
@@ -109,14 +117,24 @@ public class AxeTool : MonoBehaviour
         }
     }
 
+    // Any of the three felling tools in the pack lets the Inventory split wood.
     public static bool AxeCarried => InventoryManager.Instance != null &&
-                                     (InventoryManager.Instance.Player.Has(AxeId) || InventoryManager.Instance.Player.Has(PrimitiveAxeId));
+                                     (InventoryManager.Instance.Player.Has(AxeId) || InventoryManager.Instance.Player.Has(PrimitiveAxeId) ||
+                                      InventoryManager.Instance.Player.Has(SawId));
 
-    // Only the Primitive Axe to split with: slower.
-    bool OnlyPrimitiveCarried => InventoryManager.Instance != null && !InventoryManager.Instance.Player.Has(AxeId);
+    // The fastest felling tool in the pack sets the Inventory's splitting speed: 0 when none is carried.
+    float CarriedFactor
+    {
+        get
+        {
+            InventoryManager inventory = InventoryManager.Instance;
+            return inventory == null ? 0f : AxeRules.FastestCarried(inventory.Player.Has(AxeId), inventory.Player.Has(PrimitiveAxeId),
+                                                                    inventory.Player.Has(SawId), primitiveAxeFactor, sawFactor);
+        }
+    }
 
-    // The equipped axe's blows multiplier: 1 for the Axe, more for the Primitive Axe.
-    float AxeFactor => Equipped == PrimitiveAxeId ? primitiveAxeFactor : 1f;
+    // The equipped tool's blows multiplier: 1 for the Axe, more for the Primitive Axe, less for the Wood Saw.
+    float AxeFactor => AxeRules.FactorFor(Equipped, primitiveAxeFactor, sawFactor);
 
     void Update()
     {
@@ -134,7 +152,7 @@ public class AxeTool : MonoBehaviour
             UpdateHammering();
             return;
         }
-        if (equipped != AxeId && equipped != PrimitiveAxeId)
+        if (!AxeRules.IsFellingTool(equipped))
             return;
 
         // What the axe would hit: a wood pile, or the trunk of a standing tree.
@@ -443,10 +461,10 @@ public class AxeTool : MonoBehaviour
     float BlowsToFell(WoodManager wood, int tree)
     {
         int prototype = wood.Prototype(tree);
-        float size = wood.HeightScale(tree) * Mathf.Sqrt(wood.WidthScale(tree));
+        float size = AxeRules.TreeSize(wood.HeightScale(tree), wood.WidthScale(tree));
         float blowsAtSize1 = prototype == WoodManager.Shrub ? shrubBlows
                            : prototype == WoodManager.TallHardwood ? tallHardwoodBlows : broadHardwoodBlows;
-        return Mathf.Max(1f, Mathf.Round(blowsAtSize1 * size * AxeFactor));
+        return AxeRules.FellBlows(blowsAtSize1, size, AxeFactor);
     }
 
     void WorkTree(WoodManager wood, int tree, Vector3 point)
@@ -479,7 +497,7 @@ public class AxeTool : MonoBehaviour
             return;
         }
 
-        int needed = Mathf.RoundToInt((logs ? blowsPerLog : blowsPerBranches) * AxeFactor);
+        int needed = AxeRules.SplitBlows(logs ? blowsPerLog : blowsPerBranches, AxeFactor);
         string what = logs ? "a Log" : $"{branchesPerFirewood} Branches";
         ToolStatus.Report(blows > 0f ? $"Splitting {what} into Firewood" : $"Wood pile — hold click to split {what} into Firewood",
                           blows > 0f ? blows / needed : -1f);
@@ -610,7 +628,7 @@ public class AxeTool : MonoBehaviour
     }
 
     float SplitSeconds(ItemDefinition item) =>
-        (item.Id == WoodManager.LogsId ? splitLogSeconds : splitBranchesSeconds) * (OnlyPrimitiveCarried ? primitiveAxeFactor : 1f);
+        AxeRules.SplitSeconds(item.Id == WoodManager.LogsId ? splitLogSeconds : splitBranchesSeconds, CarriedFactor > 0f ? CarriedFactor : 1f);
 
     static int Carried(ItemDefinition item) =>
         InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(item.Id) : 0;

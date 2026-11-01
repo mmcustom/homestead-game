@@ -133,6 +133,12 @@ MonoBehaviour:
     baseCents: 2500
     kind: 0
     seasonalBuy: 0
+  - itemId: wood_saw
+    group: 7
+    pool: wood_saw
+    baseCents: 3000
+    kind: 0
+    seasonalBuy: 0
   - itemId: deer_hide
     group: 3
     pool: deer_hide
