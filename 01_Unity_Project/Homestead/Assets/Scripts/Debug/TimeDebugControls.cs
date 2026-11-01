@@ -36,6 +36,8 @@ using UnityEngine.InputSystem;
 //   [  give the Hand Cart kit: 2 Wooden Wheels, 3 Logs, 6 Branches, 3 Cordage and a Hammer (the F11 kit has no Hammer);  ]  stand a finished Hand Cart about 3 m ahead
 //      holding 4 Logs, 6 Stone and 10 Firewood (77 kg) to try the transfer screen and the 100 kg cap;  Shift+]  stand a Wood Pile with 12 Logs (96 kg) 3 m ahead,
 //      the logs "at the stand" for timing a haul by hand against the cart
+//   \  give the Workshop site's materials (a Hammer, an Axe, 10 Branches, 10 Tall Grass, 3 Cordage) and stand a Wood Pile with its 5 Logs 3 m ahead;  Shift+\  stand a finished Workshop 4 m
+//      ahead with the bench stocked for two Rough Stools (4 Logs, 4 Branches);  Ctrl+\  finish every running Workshop job now
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -161,6 +163,51 @@ public class TimeDebugControls : MonoBehaviour
             int ash = InventoryManager.Instance.AddToPlayer(AshRules.ItemId, 12);
             int bad = InventoryManager.Instance.AddToPlayer("water_unsafe", 6), good = InventoryManager.Instance.AddToPlayer("water_good", 6);
             Show($"Leach Hopper placed ahead. Given {ash} Ash and {bad + good} L of water", time);
+            return;
+        }
+
+        // Workshop W1(a1). \ gives what the Workshop site needs apart from its Logs (a Hammer, an Axe, 10 Branches, 10 Tall Grass, 3 Cordage) and stands a Wood Pile with its 5 Logs 3 m
+        // ahead (52 kg would not fit the pack); Shift+\ stands a finished Workshop 4 m ahead with the bench stocked for two Rough Stools; Ctrl+\ finishes every running job now.
+        if (keyboard.backslashKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
+        {
+            if (ctrl)
+            {
+                int done = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishJobs() : 0;
+                Show(done > 0 ? $"Workshop job finished in {done} bench(es): the piece is ready" : "No Workshop job is running", time);
+                return;
+            }
+
+            Transform body = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 flat = Vector3.ProjectOnPlane(body.forward, Vector3.up).normalized;
+            Terrain terrain = Terrain.activeTerrain;
+            Vector3 Ahead(float metres)
+            {
+                Vector3 at = body.position + flat * metres;
+                if (terrain != null)
+                    at.y = terrain.SampleHeight(at) + terrain.transform.position.y;
+                return at;
+            }
+
+            if (keyboard.shiftKey.isPressed)
+            {
+                WoodPileState bench = WoodManager.Instance.DebugPlace(PileKind.Workshop, Ahead(4f), body.eulerAngles.y + 180f);
+                bench.Add(WorkshopRules.LogsId, 4);
+                bench.Add(WorkshopRules.BranchesId, 4);
+                WoodManager.Instance.NotifyChanged(bench);
+                Show("Workshop placed ahead, its bench stocked for two Rough Stools (4 Logs, 4 Branches)", time);
+                return;
+            }
+
+            InventoryManager inventory = InventoryManager.Instance;
+            int missed = 0;
+            foreach ((string id, int count) in new (string, int)[] { ("hammer", 1), (AxeRules.AxeId, 1), (WoodManager.BranchesId, WorkshopRules.SiteBranches),
+                                                                      (WoodManager.TallGrassId, WorkshopRules.SiteTallGrass), (WorkshopRules.CordageId, WorkshopRules.SiteCordage) })
+                missed += count - inventory.AddToPlayer(id, count);
+            WoodPileState logs = WoodManager.Instance.DebugPlace(PileKind.WoodStorage, Ahead(3f), body.eulerAngles.y);
+            logs.Add(WoodManager.LogsId, WorkshopRules.SiteLogs);
+            WoodManager.Instance.NotifyChanged(logs);
+            Show(missed == 0 ? $"Workshop kit given: a Hammer, an Axe, {WorkshopRules.SiteBranches} Branches, {WorkshopRules.SiteTallGrass} Tall Grass, {WorkshopRules.SiteCordage} Cordage; a Wood Pile with {WorkshopRules.SiteLogs} Logs is ahead"
+                                : $"Workshop kit given ({missed} items didn't fit); a Wood Pile with {WorkshopRules.SiteLogs} Logs is ahead", time);
             return;
         }
 

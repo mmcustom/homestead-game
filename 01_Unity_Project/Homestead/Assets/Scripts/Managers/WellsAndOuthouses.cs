@@ -185,6 +185,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WoodShedSite:
             case PileKind.LeachHopperSite:
             case PileKind.HandCartSite:
+            case PileKind.WorkshopSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -205,6 +206,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WoodShedSite: return PileKind.WoodShed;
             case PileKind.LeachHopperSite: return PileKind.LeachHopper;
             case PileKind.HandCartSite: return PileKind.HandCart;
+            case PileKind.WorkshopSite: return PileKind.Workshop;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -233,6 +235,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WoodShedSite: return WoodShedCost();
             case PileKind.LeachHopperSite: return LeachHopperCost();
             case PileKind.HandCartSite: return HandCartCost();
+            case PileKind.WorkshopSite: return WorkshopCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -272,6 +275,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.LogsId, WoodManager.TallGrassId } };
         if (site == PileKind.HandCartSite)
             return new[] { new[] { CartRules.WheelId, WoodManager.LogsId, WoodManager.BranchesId, "cordage" } };
+        if (site == PileKind.WorkshopSite)
+            return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId, WorkshopRules.CordageId } };
         if (site == PileKind.RainBarrelSite || site == PileKind.FoodCacheSite || site == PileKind.WoodShedSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId } };
         return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.LogsId, WoodManager.BranchesId } };
@@ -405,6 +410,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WoodShedSite: return woodShedBuildBlows;
             case PileKind.LeachHopperSite: return PotashRules.HopperBuildBlows;
             case PileKind.HandCartSite: return CartRules.BuildBlows;
+            case PileKind.WorkshopSite: return WorkshopRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -436,6 +442,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return KnowHowRules.HopperBuilt;
         if (site == PileKind.HandCartSite)
             return "Hand Cart built. Load it with R or E - it holds up to 100 kg of Logs, Branches, Firewood, Stone, Clay and Tall Grass.";
+        if (site == PileKind.WorkshopSite)
+            return WorkshopRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -520,6 +528,15 @@ public class WellsAndOuthouses : MonoBehaviour
         new WoodStack { itemId = WoodManager.LogsId, count = CartRules.CartLogs },
         new WoodStack { itemId = WoodManager.BranchesId, count = CartRules.CartBranches },
         new WoodStack { itemId = CartRules.CordageId, count = CartRules.CartCordage },
+    };
+
+    // A Workshop (Workshop W1(a1)): 5 Logs, 10 Branches, 10 Tall Grass (the thatch roof) and 3 Cordage, about 52 kg, so a staged site. WorkshopRules has the numbers.
+    public static WoodStack[] WorkshopCost() => new[]
+    {
+        new WoodStack { itemId = WoodManager.LogsId, count = WorkshopRules.SiteLogs },
+        new WoodStack { itemId = WoodManager.BranchesId, count = WorkshopRules.SiteBranches },
+        new WoodStack { itemId = WoodManager.TallGrassId, count = WorkshopRules.SiteTallGrass },
+        new WoodStack { itemId = WorkshopRules.CordageId, count = WorkshopRules.SiteCordage },
     };
 
     public static WoodStack[] CountertopCost()
@@ -715,6 +732,8 @@ public class WellsAndOuthouses : MonoBehaviour
                 case PileKind.Kitchen:
                 case PileKind.KitchenSite:
                 case PileKind.KitchenRoofSite: radius = kitchenRoofRadiusMetres; break;
+                case PileKind.Workshop:
+                case PileKind.WorkshopSite: radius = 1.9f; break;   // the shed's half-diagonal (3 m by 2.4 m)
                 case PileKind.WoodShed:
                 case PileKind.WoodShedSite:
                 case PileKind.Tent:
@@ -813,8 +832,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return true;
         }
 
-        // A Wood Shed only needs dry ground clear of the cabin (the floodplain test above is its other rule).
-        if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed)
+        // A Wood Shed only needs dry ground clear of the cabin (the floodplain test above is its other rule); the Workshop is a roofed shed too.
+        if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed || kind == PileKind.WorkshopSite || kind == PileKind.Workshop)
             return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
 
         // A Covered Kitchen keeps its roof edge clear of every other structure and every tree (a fire under a roof).
@@ -984,6 +1003,34 @@ public class WellsAndOuthouses : MonoBehaviour
         hopper.Add(PotashRules.LyeId, ash);
     }
 
+    // A bench's job has run its hours: the piece is in the bench, waiting to be collected, and the bench is free for the next once it is taken.
+    public static void FinishJob(WoodPileState bench)
+    {
+        if (bench == null || string.IsNullOrEmpty(bench.jobItem))
+            return;
+        bench.Add(bench.jobItem, 1);
+        bench.jobItem = "";
+        bench.jobHours = 0f;
+    }
+
+    // Testing only (TimeDebugControls, Ctrl+backslash): every running job is done now. Returns how many benches finished a piece.
+    public int DebugFinishJobs()
+    {
+        WoodManager wood = WoodManager.Instance;
+        int done = 0;
+        if (wood == null)
+            return 0;
+        foreach (WoodPileState bench in wood.Piles)
+        {
+            if (bench.kind != PileKind.Workshop || string.IsNullOrEmpty(bench.jobItem))
+                continue;
+            FinishJob(bench);
+            wood.NotifyChanged(bench);
+            done++;
+        }
+        return done;
+    }
+
     // Testing only (TimeDebugControls): every running batch is done now. Returns how many hoppers finished.
     public int DebugFinishLeaches()
     {
@@ -1021,6 +1068,17 @@ public class WellsAndOuthouses : MonoBehaviour
             if (PotashRules.FinishedThisHour(before, hopper.leachHours))
                 TurnAshIntoLye(hopper);
             wood.NotifyChanged(hopper);
+        }
+
+        // A Workshop bench's job runs one game hour at a time too (Workshop W1(a1)), so the player being away, sleeping or skipping days all count.
+        foreach (WoodPileState bench in wood.Piles)
+        {
+            if (bench.kind != PileKind.Workshop || string.IsNullOrEmpty(bench.jobItem))
+                continue;
+            bench.jobHours = WorkshopRules.AfterHour(bench.jobHours);
+            if (WorkshopRules.IsDone(bench.jobHours))
+                FinishJob(bench);
+            wood.NotifyChanged(bench);
         }
 
         bool flood = StreamManager.State == StreamState.FlashFlood;

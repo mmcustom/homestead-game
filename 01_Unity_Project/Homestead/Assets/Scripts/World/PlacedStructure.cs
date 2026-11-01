@@ -24,6 +24,8 @@ public static class StructureVisuals
             case PileKind.WoodShedSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.9f, out boxCenter, out boxSize); return;
             case PileKind.LeachHopperSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.7f, out boxCenter, out boxSize); return;
             case PileKind.HandCartSite: BuildHandCartSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.WorkshopSite: BuildWorkshopSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Workshop: BuildWorkshop(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -101,6 +103,71 @@ public static class StructureVisuals
         int wheels = Mathf.Min(state.Count(CartRules.WheelId), CartRules.CartWheels);
         for (int i = 0; i < wheels; i++)
             Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(1.3f, 0.3f, 0.5f - i * 0.15f), new Vector3(0f, 0f, 90f), new Vector3(0.6f, 0.05f, 0.6f), bark), new Color(0.3f, 0.22f, 0.15f));
+    }
+
+    // The Workshop's marked-out plot (3 m by 2.4 m: half = 1.2 is the usual plot's side, enlarged to the roof's footprint): the stakes, bare earth and the delivered
+    // Logs, Branches and Tall Grass lying beside it, with a wider interaction box than the small plots.
+    static void BuildWorkshopSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 1.2f, out boxCenter, out boxSize);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(2.8f, 0.9f, 2.4f);
+    }
+
+    static readonly Color ThatchColor = new Color(0.52f, 0.46f, 0.24f);
+    static readonly Color BenchWoodColor = new Color(0.33f, 0.25f, 0.17f);
+
+    // The finished Workshop (Workshop W1(a1)): a roofed shed about 3 m wide and 2.4 m deep, open at the front (+Z), with a Woodworking bench against the back wall.
+    // Posts, back wall and roof are Solid, so the roof shelters like the Tent's and the posts are walked round; the bench is what is aimed at (the interaction box).
+    // The stock lies beside the shed (Logs on the left, Branches on the right); the bench shows a Log while a piece is being made and the finished stool when it waits.
+    static void BuildWorkshop(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float halfW = 1.5f, halfD = 1.2f, top = 2.2f, postX = halfW - 0.12f, postZ = halfD - 0.12f;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f, 0f), Vector3.zero, new Vector3(postX * 2f, 0.01f, postZ * 2f), null), SoilColor);
+
+        foreach (Vector2 corner in new[] { new Vector2(-postX, -postZ), new Vector2(postX, -postZ), new Vector2(-postX, postZ), new Vector2(postX, postZ) })
+            Solid(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, top / 2f, corner.y), Vector3.zero, new Vector3(0.18f, top / 2f, 0.18f), bark));
+        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 1.1f, -postZ), Vector3.zero, new Vector3(postX * 2f, 2.1f, 0.08f), bark), BenchWoodColor));
+
+        // Thatch roof: overlapping bundles laid front to back on a gentle slope (higher at the open front so rain runs off the back).
+        const int bundles = 7;
+        float span = halfD * 2f + 0.4f;
+        for (int i = 0; i < bundles; i++)
+        {
+            float t = i / (float)(bundles - 1);
+            float tone = 0.85f + (float)random.NextDouble() * 0.3f;
+            Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, top + 0.1f + Mathf.Lerp(-0.1f, 0.1f, t), Mathf.Lerp(-span / 2f, span / 2f, t)),
+                               new Vector3(-3f, 0f, 0f), new Vector3(halfW * 2f + 0.5f, 0.09f, span / bundles + 0.16f), null),
+                         new Color(ThatchColor.r * tone, ThatchColor.g * tone, ThatchColor.b * tone)));
+        }
+
+        // The bench: a plank top on four legs against the back wall.
+        Vector3 bench = new Vector3(0f, 0f, -postZ + 0.4f);
+        WorkTable(parent, pieces, bark, bench, 2.0f, 0.6f, 0.85f, false);
+
+        bool working = !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
+        bool waiting = false;
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+            waiting |= state.Count(recipe.itemId) > 0;
+        if (working)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-0.4f, 1.02f, bench.z), new Vector3(0f, 0f, 90f), new Vector3(0.26f, 0.45f, 0.26f), bark);
+        if (waiting)
+        {
+            Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0.4f, 1.02f, bench.z), Vector3.zero, new Vector3(0.34f, 0.025f, 0.34f), bark), BenchWoodColor);
+            foreach (Vector2 leg in new[] { new Vector2(-0.1f, -0.1f), new Vector2(0.1f, -0.1f), new Vector2(0f, 0.12f) })
+                Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0.4f + leg.x, 0.93f, bench.z + leg.y), Vector3.zero, new Vector3(0.05f, 0.08f, 0.05f), bark);
+        }
+
+        int logs = Mathf.Min(state.Count(WorkshopRules.LogsId), 4);
+        for (int i = 0; i < logs; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-halfW - 0.45f, 0.17f + i * 0.3f, -0.3f + (i % 2) * 0.2f), new Vector3(90f, 0f, 0f), new Vector3(0.32f, 0.85f, 0.32f), bark);
+        int branches = Mathf.Min(state.Count(WorkshopRules.BranchesId), 8);
+        for (int i = 0; i < branches; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(halfW + 0.35f + (float)random.NextDouble() * 0.2f, 0.05f + i * 0.035f, -0.2f + (float)random.NextDouble() * 0.3f),
+                  new Vector3(90f, (float)random.NextDouble() * 40f - 20f, 0f), new Vector3(0.09f, 0.75f, 0.09f), bark);
+
+        boxCenter = new Vector3(0f, 0.55f, bench.z);
+        boxSize = new Vector3(2.0f, 1.1f, 0.7f);
     }
 
     static readonly Color AshColor = new Color(0.55f, 0.55f, 0.52f);
@@ -427,7 +494,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         // so OverheadCover finds the roof and the prompt shows when any of them is aimed at.
         bool kitchen = state.kind == PileKind.Kitchen;
         box.enabled = !kitchen;
-        if (!kitchen)
+        // The Workshop keeps its interaction box (the bench) and also has solid posts, back wall and roof.
+        if (!kitchen && state.kind != PileKind.Workshop)
             return;
         foreach (GameObject piece in pieces)
         {
@@ -462,6 +530,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Grill: return GrillPrompt();
                 case PileKind.SlopSink: return SinkPrompt();
                 case PileKind.LeachHopper: return HopperPrompt();
+                case PileKind.Workshop: return WorkshopPrompt();
                 default: return OuthousePrompt();
             }
         }
@@ -766,6 +835,166 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         ToolStatus.Flash(PotashRules.LoadedMessage(plan.lye, plan.ash, litresUsed), 4f);
     }
 
+    // --- The Workshop (Workshop W1(a1)): R stocks the bench, E starts a piece or collects the finished one, R with the Hammer dismantles ---
+
+    bool WorkshopWorking => !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
+
+    // The piece being made, or the first recipe when the bench is idle.
+    WorkshopRules.Recipe WorkshopRecipe()
+    {
+        if (WorkshopWorking && WorkshopRules.TryFind(state.jobItem, out WorkshopRules.Recipe made))
+            return made;
+        return WorkshopRules.Recipes[0];
+    }
+
+    // A finished piece waiting to be collected.
+    bool WorkshopProduct(out WorkshopRules.Recipe piece, out int count)
+    {
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+        {
+            int n = state.Count(recipe.itemId);
+            if (n > 0)
+            {
+                piece = recipe;
+                count = n;
+                return true;
+            }
+        }
+        piece = default;
+        count = 0;
+        return false;
+    }
+
+    // Any felling tool in the pack opens the bench (checked when a job starts, never while it runs).
+    static bool CarriesFellingTool() =>
+        Inventory != null && AxeRules.FastestCarried(Inventory.Player.Has(AxeRules.AxeId), Inventory.Player.Has(AxeRules.PrimitiveAxeId), Inventory.Player.Has(AxeRules.SawId),
+                                                       AxeRules.DefaultPrimitiveFactor, AxeRules.DefaultSawFactor) > 0f;
+
+    WorkshopRules.Gate WorkshopGate(WorkshopRules.Recipe recipe) =>
+        WorkshopRules.CanStart(recipe, CarriesFellingTool(), WorkshopWorking, WorkshopProduct(out _, out _),
+                               state.Count(WorkshopRules.LogsId), state.Count(WorkshopRules.BranchesId), state.Count(WorkshopRules.CordageId));
+
+    string WorkshopPrompt()
+    {
+        if (WorkshopProduct(out WorkshopRules.Recipe piece, out _))
+            return WorkshopRules.DonePrompt(piece);
+        WorkshopRules.Recipe recipe = WorkshopRecipe();
+        if (WorkshopWorking)
+            return WorkshopRules.WorkingPrompt(recipe, state.jobHours);
+        int logs = state.Count(WorkshopRules.LogsId), branches = state.Count(WorkshopRules.BranchesId), cordage = state.Count(WorkshopRules.CordageId);
+        switch (WorkshopGate(recipe))
+        {
+            case WorkshopRules.Gate.Ok: return WorkshopRules.StartPrompt(recipe);
+            case WorkshopRules.Gate.NoTool: return WorkshopRules.NoToolPrompt(recipe);
+            default: return logs + branches + cordage == 0 ? WorkshopRules.EmptyPrompt(recipe) : WorkshopRules.ShortPrompt(recipe, logs, branches, cordage);
+        }
+    }
+
+    // The stock materials the pack carries that the bench still has room for.
+    int WorkshopCarried(out string what)
+    {
+        what = "";
+        int total = 0;
+        var names = new List<string>();
+        foreach (string id in WorkshopRules.StockIds)
+        {
+            if (!state.Accepts(id))
+                continue;
+            int n = Inventory.Player.Count(id);
+            if (n <= 0)
+                continue;
+            total += n;
+            names.Add(ItemDatabase.Get(id)?.DisplayName ?? id);
+        }
+        what = string.Join(", ", names);
+        return total;
+    }
+
+    string WorkshopSecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return WorkshopRules.DismantlePrompt(WorkshopWorking, state.jobHours);
+        return WorkshopCarried(out string what) > 0 ? WorkshopRules.StorePrompt(what) : WorkshopRules.DeliverHelp;
+    }
+
+    // E: collect a finished piece, or start the next one.
+    void WorkshopInteract()
+    {
+        if (WorkshopProduct(out WorkshopRules.Recipe piece, out int waiting))
+        {
+            ItemDefinition item = ItemDatabase.Get(piece.itemId);
+            int fits = item != null ? Mathf.Min(waiting, Inventory.Player.SpaceFor(item)) : 0;
+            if (fits <= 0)
+            {
+                ToolStatus.Flash("Too heavy - no room to carry it", 3f);
+                return;
+            }
+            int added = Inventory.AddToPlayer(piece.itemId, fits);
+            state.Take(piece.itemId, added);
+            WoodManager.Instance.NotifyChanged(state);
+            ToolStatus.Flash(added < waiting ? $"Took {added} {piece.name} ({waiting - added} left in the Workshop, no room)." : $"Took the {piece.name}. Sell it at the Trading Post, or keep it.", 4f);
+            return;
+        }
+
+        WorkshopRules.Recipe recipe = WorkshopRecipe();
+        int logs = state.Count(WorkshopRules.LogsId), branches = state.Count(WorkshopRules.BranchesId), cordage = state.Count(WorkshopRules.CordageId);
+        WorkshopRules.Gate gate = WorkshopGate(recipe);
+        if (gate != WorkshopRules.Gate.Ok)
+        {
+            ToolStatus.Flash(WorkshopRules.GateMessage(gate, recipe, logs, branches, cordage, state.jobHours), 4f);
+            return;
+        }
+
+        state.Take(WorkshopRules.LogsId, recipe.logs);
+        state.Take(WorkshopRules.BranchesId, recipe.branches);
+        if (recipe.cordage > 0)
+            state.Take(WorkshopRules.CordageId, recipe.cordage);
+        state.jobItem = recipe.itemId;
+        state.jobHours = recipe.hours;
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(WorkshopRules.StartedMessage(recipe), 5f);
+    }
+
+    // R: with the Hammer it dismantles; without, it stocks the bench with what is carried, up to the caps (wood keeps its wet or dry day).
+    void WorkshopSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+
+        int stored = 0;
+        var names = new List<string>();
+        foreach (string id in WorkshopRules.StockIds)
+        {
+            if (!state.Accepts(id))
+                continue;
+            int n = Mathf.Min(WorkshopRules.CapOf(id) - state.Count(id), Inventory.Player.Count(id));
+            if (n <= 0)
+                continue;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.SilenceNextRemoval();
+            var days = new List<(int day, int count)>();
+            int removed = Inventory.Player.RemoveBatches(id, n, (day, count) => days.Add((day, count)));
+            foreach ((int day, int count) in days)
+                state.Add(id, count, WoodManager.IsWood(id) ? day : 0);
+            if (removed > 0)
+            {
+                stored += removed;
+                names.Add($"{removed} {ItemDatabase.Get(id)?.DisplayName ?? id}");
+            }
+        }
+
+        if (stored <= 0)
+        {
+            ToolStatus.Flash("Nothing you carry fits. " + WorkshopRules.DeliverHelp, 4f);
+            return;
+        }
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash($"Stored {string.Join(", ", names)}  (the bench holds {state.Count(WorkshopRules.LogsId)} Logs, {state.Count(WorkshopRules.BranchesId)} Branches, {state.Count(WorkshopRules.CordageId)} Cordage)", 4f);
+    }
+
     string WellPrompt()
     {
         WellsAndOuthouses w = Rules;
@@ -807,6 +1036,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return SinkSecondaryPrompt();
             if (state.kind == PileKind.LeachHopper)
                 return HopperSecondaryPrompt();
+            if (state.kind == PileKind.Workshop)
+                return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
             {
                 CampfireState fire = WoodManager.Instance.GrillFireOf(state);
@@ -847,6 +1078,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Grill: ToolStatus.Flash($"{Name}: {GrillFire()}. Light it, feed it and cook at the fire on top.", 3.5f); break;
             case PileKind.SlopSink: DrawFromSink(); break;
             case PileKind.LeachHopper: CollectLye(); break;
+            case PileKind.Workshop: WorkshopInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -1011,6 +1243,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             HopperSecondary();
         }
+        else if (state.kind == PileKind.Workshop)
+        {
+            WorkshopSecondary();
+        }
         else
         {
             Dismantle();
@@ -1096,6 +1332,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash($"Can't take the {Name} down - equip the Hammer.", 3f);
             return;
         }
+        // A Workshop is not taken down while its bench is making a piece (the materials are already in the work).
+        if (state.kind == PileKind.Workshop && WorkshopWorking)
+        {
+            ToolStatus.Flash(WorkshopRules.DismantlePrompt(true, state.jobHours), 4f);
+            return;
+        }
         var refund = new StructureRefund(state.position, transform);
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
@@ -1105,6 +1347,14 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             refund.Return(AshRules.ItemId, state.Count(AshRules.ItemId));
             refund.Return(PotashRules.LyeId, state.Count(PotashRules.LyeId));
+        }
+        // A Workshop gives back the stock in its bench and any finished piece whole, on top of half the materials.
+        if (state.kind == PileKind.Workshop)
+        {
+            foreach (string stockId in WorkshopRules.StockIds)
+                refund.Return(stockId, state.Count(stockId));
+            foreach (WorkshopRules.Recipe piece in WorkshopRules.Recipes)
+                refund.Return(piece.itemId, state.Count(piece.itemId));
         }
         WoodManager.Instance.RemovePile(state);
         ToolStatus.Flash(refund.Describe(name), 5f);

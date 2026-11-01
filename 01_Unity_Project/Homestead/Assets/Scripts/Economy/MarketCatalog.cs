@@ -156,6 +156,8 @@ public static class MarketCatalog
         // Early_Income_Design.md section 1: Lye leached from Ash and Potash boiled from Lye (PotashRules), one group, each its own pool.
         Row(PotashRules.LyeId, MarketGroup.Potash, PotashRules.LyeBaseCents, MarketKind.Bought),
         Row(PotashRules.PotashId, MarketGroup.Potash, PotashRules.PotashBaseCents, MarketKind.Bought),
+        // Workshop W1(a1): the Rough Stool made at the Workshop's bench, in the Crafted group (10% off per unit, floor 0.1; WorkshopRules has the price).
+        Row(WorkshopRules.StoolId, MarketGroup.Crafted, WorkshopRules.Recipes[0].baseCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

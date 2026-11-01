@@ -481,6 +481,12 @@ MonoBehaviour:
     baseCents: 1600
     kind: 1
     seasonalBuy: 0
+  - itemId: rough_stool
+    group: 5
+    pool: rough_stool
+    baseCents: 1400
+    kind: 1
+    seasonalBuy: 0
   groups:
   - group: 0
     dropBp: 400
