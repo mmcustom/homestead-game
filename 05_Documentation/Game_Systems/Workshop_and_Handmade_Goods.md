@@ -480,3 +480,20 @@ Other changes. FinishJob drops a job item this build does not know, so it cannot
 Not recorded in the playtest: the prices shown in the list, the sale prices, the clock hours across sleep. Not yet measured: income with a Pioneer run. A single Table a day ($21.55 steady state) already matches the $20.48 payment, so the Table price is the one to watch.
 
 Next: a2-2 (a pack line on the screen, a "Put my materials in the bench" button sharing the R stocking code, keyboard 1 to 4, Up, Down, Enter; no Collect button), then a Pioneer re-measure with all four pieces and a price re-check, then a3 (the cart feeds the bench from about 4 m).
+
+
+## BUILT: Workshop a2-2 (2026-11-02, playtest 1 to 22 passed, committed 6871540)
+
+The Workshop screen now saves Mike the walk out to the world's R key, and answers the keyboard. Four existing files changed (WorkshopScreen.cs, WorkshopRules.cs, PlacedStructure.cs, WorkshopTests.cs); no new files, no save, recipe, price or market change (PileKind, WoodPileState, LedgerSaveData.CurrentVersion and SaveVersion all unchanged).
+
+Pack line. Under the status line the screen shows what the pack carries of the three stock materials, only the kinds carried ("You carry: 4 Logs, 6 Branches, 1 Cordage", or "You carry: nothing the bench uses"). It counts by kind whatever the wood's wet or dry day, the same count the R key uses (Inventory.Player.Count), and it refreshes whenever the screen does (open, Start, Stock, choosing a piece).
+
+Stock button. "PUT MY MATERIALS IN THE BENCH" calls PlacedStructure.StockFromPack, the one method the R key at the bench now calls too (R's old code was moved into it, not copied). It stocks up to the bench caps (6 Logs, 8 Branches, 4 Cordage), keeps the wood's wet or dry day, and works while a job is running. When there is nothing to do it is greyed with a reason from a pure rule (WorkshopRules.StockState): "Your pack has none of these materials." or "The bench is already full of what you carry." After a click the line above the button shows the same message R flashes, in green. The screen never dismantles; Hammer plus R at the bench in the world still does.
+
+Keyboard. 1 to 4 choose the Rough Stool, End Table, Chair and Table; Up and Down move the choice and wrap at the ends; Enter starts the chosen piece through TryStartJob (when it cannot start, the reason shows in the reason line with no sound); R stocks the bench; Esc closes. WorkshopRules.Resolve(key, selected, pieces) is the pure key-to-action mapping. Keys are read from the new Input System (Keyboard.current wasPressedThisFrame in the screen's Update), so one press is one action and holding a key does nothing more. The Menu state stops the player and tools, so the digits cannot change the equipped tool, Enter's Attack binding reaches nothing, and R is not the world's second interaction while the screen is open. The screen clears the event system's selected button every frame so Enter after a mouse click cannot press that button twice.
+
+Layout and text. Panel 1500 by 920 (was 880), left column 700 wide (was 560), list moved down to make room for the pack line, rows still 104 high with 12 gaps. New text: pack line 28, stock button 32 bold (88 px high), stock reason 28, key hint line 28 in full cream colour (it replaced the 26 "Esc to close" hint; the smallest text on the screen is now 28, and a test requires at least 26 everywhere). Tests 1269 (10 new). Dev keys unchanged.
+
+Not recorded in the playtest: the stock messages, pack counts before and after, readability notes.
+
+Next: a Pioneer run with all four pieces to measure income against the $20.48 payment and re-check the Table price (a single Table a day at steady state is $21.55); then a3 (the cart feeds the bench from about 4 m); pottery (kiln chain, Kick Wheel); UTV last.
