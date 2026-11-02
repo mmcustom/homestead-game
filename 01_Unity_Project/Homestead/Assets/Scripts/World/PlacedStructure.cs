@@ -996,7 +996,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
-    // R: with the Hammer it dismantles; without, it stocks the bench with what is carried, up to the caps (wood keeps its wet or dry day).
+    // R: with the Hammer it dismantles; without, it stocks the bench from the pack (StockFromPack, which the Workshop screen's button and R key share).
     void WorkshopSecondary()
     {
         if (WoodManager.HammerEquipped)
@@ -1004,6 +1004,24 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             Dismantle();
             return;
         }
+
+        StockFromPack(out string message);
+        ToolStatus.Flash(message, 4f);
+    }
+
+    // What the pack could put in the bench now (the pure rule decides: nothing carried, the bench full of what is carried, or something to move).
+    public WorkshopRules.StockGate StockGateNow() =>
+        state == null || Inventory == null ? WorkshopRules.StockGate.NothingCarried
+            : WorkshopRules.StockState(Inventory.Player.Count(WorkshopRules.LogsId), Inventory.Player.Count(WorkshopRules.BranchesId), Inventory.Player.Count(WorkshopRules.CordageId),
+                                       state.Count(WorkshopRules.LogsId), state.Count(WorkshopRules.BranchesId), state.Count(WorkshopRules.CordageId));
+
+    // Puts what the pack carries of Logs, Branches and Cordage into the bench, up to the caps (wood keeps its wet or dry day). Works while a job runs. Returns whether anything
+    // moved, with the message R flashes. Never dismantles: that is the Hammer's R in the world.
+    public bool StockFromPack(out string message)
+    {
+        message = "Nothing you carry fits. " + WorkshopRules.DeliverHelp;
+        if (state == null || state.kind != PileKind.Workshop || Inventory == null || WoodManager.Instance == null)
+            return false;
 
         int stored = 0;
         var names = new List<string>();
@@ -1028,12 +1046,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         }
 
         if (stored <= 0)
-        {
-            ToolStatus.Flash("Nothing you carry fits. " + WorkshopRules.DeliverHelp, 4f);
-            return;
-        }
+            return false;
         WoodManager.Instance.NotifyChanged(state);
-        ToolStatus.Flash($"Stored {string.Join(", ", names)}  (the bench holds {state.Count(WorkshopRules.LogsId)} Logs, {state.Count(WorkshopRules.BranchesId)} Branches, {state.Count(WorkshopRules.CordageId)} Cordage)", 4f);
+        message = $"Stored {string.Join(", ", names)}  (the bench holds {state.Count(WorkshopRules.LogsId)} Logs, {state.Count(WorkshopRules.BranchesId)} Branches, {state.Count(WorkshopRules.CordageId)} Cordage)";
+        return true;
     }
 
     string WellPrompt()

@@ -252,4 +252,75 @@ public static class WorkshopRules
             default: return "";
         }
     }
+
+    // --- Phase a2-2: the pack line, the stock button and the keys ---
+
+    // What the pack carries of the three stock materials, the kinds it has only: "You carry: 4 Logs, 6 Branches, 1 Cordage". Wood is counted whatever its wet or dry day.
+    public static string PackLine(int logs, int branches, int cordage)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        if (logs > 0)
+            parts.Add(Count(logs, "Log", "Logs"));
+        if (branches > 0)
+            parts.Add(Count(branches, "Branch", "Branches"));
+        if (cordage > 0)
+            parts.Add($"{cordage} Cordage");
+        return "You carry: " + (parts.Count > 0 ? string.Join(", ", parts) : "nothing the bench uses");
+    }
+
+    public enum StockGate { Can, NothingCarried, BenchFull }
+
+    // Whether the pack can put anything in the bench: the pack holds some of the three materials and the bench is below its cap on at least one of those.
+    public static StockGate StockState(int carriedLogs, int carriedBranches, int carriedCordage, int benchLogs, int benchBranches, int benchCordage)
+    {
+        if (carriedLogs <= 0 && carriedBranches <= 0 && carriedCordage <= 0)
+            return StockGate.NothingCarried;
+        bool room = (carriedLogs > 0 && benchLogs < LogsCap) || (carriedBranches > 0 && benchBranches < BranchesCap) || (carriedCordage > 0 && benchCordage < CordageCap);
+        return room ? StockGate.Can : StockGate.BenchFull;
+    }
+
+    public const string StockButtonText = "PUT MY MATERIALS IN THE BENCH";
+
+    // The line under the stock button when it is greyed (empty when it can stock).
+    public static string StockReason(StockGate gate)
+    {
+        switch (gate)
+        {
+            case StockGate.NothingCarried: return "Your pack has none of these materials.";
+            case StockGate.BenchFull: return "The bench is already full of what you carry.";
+            default: return "";
+        }
+    }
+
+    // The keys the Workshop screen answers, as plain names (the screen turns the keyboard's own keys into these) and what each does.
+    public enum Key { None, One, Two, Three, Four, Up, Down, Enter, Stock }
+    public enum ActionKind { None, Choose, Start, Stock }
+
+    public struct KeyAction
+    {
+        public ActionKind kind;
+        public int choice; // the list index to choose (Choose only)
+    }
+
+    // The digits choose that piece (ignored past the end of the list), Up and Down move the choice and wrap round, Enter starts it, R stocks; anything else does nothing.
+    public static KeyAction Resolve(Key key, int selected, int pieces)
+    {
+        if (pieces <= 0)
+            return default;
+        switch (key)
+        {
+            case Key.One: return new KeyAction { kind = ActionKind.Choose, choice = 0 };
+            case Key.Two: return pieces > 1 ? new KeyAction { kind = ActionKind.Choose, choice = 1 } : default;
+            case Key.Three: return pieces > 2 ? new KeyAction { kind = ActionKind.Choose, choice = 2 } : default;
+            case Key.Four: return pieces > 3 ? new KeyAction { kind = ActionKind.Choose, choice = 3 } : default;
+            case Key.Up: return new KeyAction { kind = ActionKind.Choose, choice = (selected - 1 + pieces) % pieces };
+            case Key.Down: return new KeyAction { kind = ActionKind.Choose, choice = (selected + 1) % pieces };
+            case Key.Enter: return new KeyAction { kind = ActionKind.Start };
+            case Key.Stock: return new KeyAction { kind = ActionKind.Stock };
+            default: return default;
+        }
+    }
+
+    // The one-line key hint along the bottom of the screen.
+    public const string KeyHint = "1-4 choose    Up/Down move    Enter start    R stock    Esc close";
 }

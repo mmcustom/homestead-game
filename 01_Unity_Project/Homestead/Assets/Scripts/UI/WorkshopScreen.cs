@@ -1,24 +1,30 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// The Workshop screen (Workshop phase a2-1, Mike 2026-11-01): E at the bench opens it to choose what to make. Its own window like the Finances screen (own canvas, 1920x1080
-// scaler, sort order 150), not a tab of the shared game window. The four pieces are listed on the left (name, hours, what the Trading Post pays now); the chosen piece's details
-// are on the right (hours, weight, base price, what it needs against what the bench holds in plain words, and why it cannot start when it cannot) with a Start button below.
-// The bench's status (idle, a piece being made, a piece ready) sits across the top. While a piece is being made the list can still be browsed but Start is off.
-// Mouse only for now (a2-2 adds keys); Esc and Close shut it, and so does any change out of the Menu state (a load, the main menu). The screen holds the bench it was opened for
-// and starts a job through PlacedStructure.TryStartJob, which works the gate out again on the bench as it is at the click. The Menu state stops the clock and the player, so
-// the bench can only change by this screen's own button. Text is large because Mike cannot read small text: nothing under 26.
+// The Workshop screen (Workshop phases a2-1 and a2-2, Mike 2026-11-01): E at the bench opens it to choose what to make. Its own window like the Finances screen (own canvas,
+// 1920x1080 scaler, sort order 150), not a tab of the shared game window. The four pieces are listed on the left (name, hours, what the Trading Post pays now) and, under them,
+// the stock button; the chosen piece's details are on the right (hours, weight, base price, what it needs against what the bench holds in plain words, and why it cannot start
+// when it cannot) with a Start button below. Across the top: the bench's status (idle, a piece being made, a piece ready) and what the pack carries of the three materials.
+// While a piece is being made the list can still be browsed and the bench stocked, but Start is off.
+// Mouse and keyboard (a2-2): 1-4 choose, Up and Down move the choice, Enter starts, R stocks the bench, Esc closes (the pause key, as for the other screens). The keys are read
+// from the new Input System's keyboard, one action per fresh press, and WorkshopRules.Resolve turns each into its action. Esc and the Close button shut it, and so does any change
+// out of the Menu state (a load, the main menu). The screen holds the bench it was opened for and starts a job through PlacedStructure.TryStartJob and stocks it through
+// PlacedStructure.StockFromPack (the same method as the R key in the world), which work the gate out again on the bench as it is at the click. The Menu state stops the clock
+// and the player, so the bench can only change by this screen's own buttons. It never dismantles. Text is large because Mike cannot read small text: nothing under 26.
 public class WorkshopScreen : MonoBehaviour
 {
     // The text sizes in use (UI pixels at the 1920x1080 reference). A test builds the screen and checks every label against MinimumSize.
     public const int MinimumSize = 26;
-    public const int TitleSize = 36, StatusSize = 28, ListNameSize = 32, ListDetailSize = 28, DetailNameSize = 40, BodySize = 28, StartSize = 36, CloseSize = 28, HintSize = 26;
-    // Row heights and the gap between rows (UI pixels).
-    public const float RowHeight = 104f, RowGap = 12f;
+    public const int TitleSize = 36, StatusSize = 28, PackSize = 28, ListNameSize = 32, ListDetailSize = 28, DetailNameSize = 40, BodySize = 28, StartSize = 36,
+                     StockSize = 32, CloseSize = 28, HintSize = 28;
+    // Row heights and the gap between rows (UI pixels), and the stock button's height.
+    public const float RowHeight = 104f, RowGap = 12f, StockButtonHeight = 88f;
 
-    const float PanelWidth = 1500f, PanelHeight = 880f;
-    const float ListX = 32f, ListY = 168f, ListWidth = 560f;
-    const float DetailX = 636f, DetailWidth = 832f;
+    const float PanelWidth = 1500f, PanelHeight = 920f;
+    const float ListX = 32f, ListY = 204f, ListWidth = 700f;
+    const float DetailX = 772f, DetailWidth = 696f;
 
     static WorkshopScreen instance;
     static int lastChoice;
@@ -49,15 +55,15 @@ public class WorkshopScreen : MonoBehaviour
     bool open, subscribed;
     PlacedStructure bench;
     int selected;
-    string notice;
-    bool noticeGood;
+    string notice, stockNotice;
+    bool noticeGood, stockNoticeGood;
     GameObject root;
-    Text statusLabel, detailName, detailLine, needsHeading, reasonLabel;
+    Text statusLabel, packLabel, detailName, detailLine, needsHeading, reasonLabel, stockReasonLabel;
     readonly Text[] needLabels = new Text[3];
     readonly Button[] rows = new Button[WorkshopRules.Recipes.Length];
     readonly Text[] rowNames = new Text[WorkshopRules.Recipes.Length];
     readonly Text[] rowDetails = new Text[WorkshopRules.Recipes.Length];
-    Button startButton;
+    Button startButton, stockButton;
     Text startLabel;
 
     // --- Layout ---
@@ -97,8 +103,11 @@ public class WorkshopScreen : MonoBehaviour
         Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
         Place(rule.rectTransform, 24f, 84f, PanelWidth - 48f, 2f);
 
+        // Across the top: the bench's status, then what the pack carries.
         statusLabel = UiKit.Text(panel, "Status", "", StatusSize, UiKit.Cream, TextAnchor.MiddleLeft);
-        Place(statusLabel.rectTransform, 32f, 96f, PanelWidth - 64f, 56f);
+        Place(statusLabel.rectTransform, 32f, 94f, PanelWidth - 64f, 48f);
+        packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        Place(packLabel.rectTransform, 32f, 142f, PanelWidth - 64f, 48f);
 
         // The list: four rows, each a button holding the name and, under it, the hours and the price.
         for (int i = 0; i < rows.Length; i++)
@@ -115,6 +124,14 @@ public class WorkshopScreen : MonoBehaviour
             rows[i] = row;
         }
 
+        // Under the list: why the stock button is off (or what it just did), then the button.
+        float listEnd = ListY + rows.Length * RowHeight + (rows.Length - 1) * RowGap;
+        stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
+        Place(stockReasonLabel.rectTransform, ListX, listEnd + 12f, ListWidth, 72f);
+        stockButton = UiKit.Button(panel, "Stock", WorkshopRules.StockButtonText, StockSize, StockClicked);
+        Place((RectTransform)stockButton.transform, ListX, listEnd + 12f + 72f + 8f, ListWidth, StockButtonHeight);
+        stockButton.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
+
         // The chosen piece.
         detailName = UiKit.Text(panel, "Piece", "", DetailNameSize, UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
         Place(detailName.rectTransform, DetailX, ListY, DetailWidth, 60f);
@@ -130,15 +147,17 @@ public class WorkshopScreen : MonoBehaviour
         }
 
         reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
-        Place(reasonLabel.rectTransform, DetailX, ListY + 330f, DetailWidth, 120f);
+        Place(reasonLabel.rectTransform, DetailX, ListY + 330f, DetailWidth, 72f);
 
         startButton = UiKit.Button(panel, "Start", "", StartSize, StartClicked);
-        Place((RectTransform)startButton.transform, DetailX, ListY + 470f, DetailWidth, 104f);
+        Place((RectTransform)startButton.transform, DetailX, ListY + 414f, DetailWidth, 104f);
         startLabel = startButton.GetComponentInChildren<Text>();
         startLabel.fontStyle = FontStyle.Bold;
 
-        Text hint = UiKit.Text(panel, "Hint", "Esc to close", HintSize, UiKit.Muted, TextAnchor.MiddleRight);
-        Place(hint.rectTransform, PanelWidth - 32f - 400f, PanelHeight - 56f, 400f, 40f);
+        // One line of keys along the bottom.
+        Text hint = UiKit.Text(panel, "Hint", WorkshopRules.KeyHint, HintSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        hint.horizontalOverflow = HorizontalWrapMode.Overflow;
+        Place(hint.rectTransform, 32f, PanelHeight - 60f, PanelWidth - 64f, 44f);
 
         root.SetActive(false);
     }
@@ -161,7 +180,7 @@ public class WorkshopScreen : MonoBehaviour
         open = true;
         bench = target;
         selected = Mathf.Clamp(lastChoice, 0, WorkshopRules.Recipes.Length - 1);
-        notice = null;
+        notice = stockNotice = null;
         root.SetActive(true);
         Subscribe();
         Refresh();
@@ -227,13 +246,57 @@ public class WorkshopScreen : MonoBehaviour
         return false;
     }
 
+    // --- Keys ---
+
+    // Enter and the digits are also other things elsewhere (Enter is the Attack binding with the left mouse button, the digits pick the tool hotkeys, R is the world's second
+    // interaction), but none of that runs in the Menu state: the player, the tools and the hotkeys are all gated on Playing. A button the mouse clicked stays selected in the
+    // event system and would answer Enter as a click too, so the selection is cleared every frame: one press, one action.
+    void Update()
+    {
+        if (!open)
+            return;
+        if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject != null)
+            EventSystem.current.SetSelectedGameObject(null);
+
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+            return;
+        WorkshopRules.KeyAction action = WorkshopRules.Resolve(PressedKey(keyboard), selected, WorkshopRules.Recipes.Length);
+        switch (action.kind)
+        {
+            case WorkshopRules.ActionKind.Choose:
+                Choose(action.choice);
+                break;
+            case WorkshopRules.ActionKind.Start:
+                StartClicked();
+                break;
+            case WorkshopRules.ActionKind.Stock:
+                StockClicked();
+                break;
+        }
+    }
+
+    // The key pressed this frame (a fresh press only, so holding a key does nothing more), as the rules' own names.
+    static WorkshopRules.Key PressedKey(Keyboard keyboard)
+    {
+        if (keyboard.digit1Key.wasPressedThisFrame) return WorkshopRules.Key.One;
+        if (keyboard.digit2Key.wasPressedThisFrame) return WorkshopRules.Key.Two;
+        if (keyboard.digit3Key.wasPressedThisFrame) return WorkshopRules.Key.Three;
+        if (keyboard.digit4Key.wasPressedThisFrame) return WorkshopRules.Key.Four;
+        if (keyboard.upArrowKey.wasPressedThisFrame) return WorkshopRules.Key.Up;
+        if (keyboard.downArrowKey.wasPressedThisFrame) return WorkshopRules.Key.Down;
+        if (keyboard.enterKey.wasPressedThisFrame) return WorkshopRules.Key.Enter;
+        if (keyboard.rKey.wasPressedThisFrame) return WorkshopRules.Key.Stock;
+        return WorkshopRules.Key.None;
+    }
+
     // --- Content ---
 
     void Choose(int index)
     {
         selected = index;
         lastChoice = index;
-        notice = null;
+        notice = stockNotice = null;
         Refresh();
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
@@ -246,10 +309,36 @@ public class WorkshopScreen : MonoBehaviour
             Hide(true);
             return;
         }
+        stockNotice = null;
         noticeGood = bench.TryStartJob(WorkshopRules.Recipes[selected], out string message);
-        notice = message; // "Started a Chair..." or the reason it could not (the bench may have changed since the screen was drawn)
+        notice = message; // "Started a Chair..." or the reason it could not (a key press can ask when the button is off, or the bench may have changed)
         if (noticeGood && AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
+        Refresh();
+    }
+
+    // The button and the R key: put what the pack carries into the bench, the one method the R key in the world uses too. When there is nothing to move it says why instead.
+    void StockClicked()
+    {
+        if (!BenchAlive())
+        {
+            Hide(true);
+            return;
+        }
+        notice = null;
+        WorkshopRules.StockGate gate = bench.StockGateNow();
+        if (gate != WorkshopRules.StockGate.Can)
+        {
+            stockNoticeGood = false;
+            stockNotice = WorkshopRules.StockReason(gate);
+        }
+        else
+        {
+            stockNoticeGood = bench.StockFromPack(out string message);
+            stockNotice = message;
+            if (stockNoticeGood && AudioManager.Instance != null)
+                AudioManager.Instance.Play(SoundCue.UiClick);
+        }
         Refresh();
     }
 
@@ -269,6 +358,13 @@ public class WorkshopScreen : MonoBehaviour
         bool waiting = bench.WorkshopWaiting(out WorkshopRules.Recipe waitingPiece);
         statusLabel.text = WorkshopRules.BenchLine(working, made, state.jobHours, waiting, waitingPiece, logs, branches, cordage);
         statusLabel.color = working || waiting ? UiKit.Accent : UiKit.Cream;
+
+        // What the pack carries, all of a kind together whatever its wet or dry day.
+        InventoryManager inventory = InventoryManager.Instance;
+        int packLogs = inventory != null ? inventory.Player.Count(WorkshopRules.LogsId) : 0;
+        int packBranches = inventory != null ? inventory.Player.Count(WorkshopRules.BranchesId) : 0;
+        int packCordage = inventory != null ? inventory.Player.Count(WorkshopRules.CordageId) : 0;
+        packLabel.text = WorkshopRules.PackLine(packLogs, packBranches, packCordage);
 
         for (int i = 0; i < rows.Length; i++)
         {
@@ -303,5 +399,11 @@ public class WorkshopScreen : MonoBehaviour
         string reason = WorkshopRules.ReasonText(gate, chosen, made, logs, branches, cordage, state.jobHours);
         reasonLabel.text = !string.IsNullOrEmpty(notice) ? notice : reason;
         reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.Accent : gate == WorkshopRules.Gate.Ok ? UiKit.Cream : UiKit.Warning;
+
+        // The stock button: on when the pack has something the bench has room for; otherwise greyed with the reason. A message from the last click shows until something else is done.
+        WorkshopRules.StockGate stock = bench.StockGateNow();
+        stockButton.interactable = stock == WorkshopRules.StockGate.Can;
+        stockReasonLabel.text = !string.IsNullOrEmpty(stockNotice) ? stockNotice : WorkshopRules.StockReason(stock);
+        stockReasonLabel.color = !string.IsNullOrEmpty(stockNotice) && stockNoticeGood ? UiKit.Accent : UiKit.Warning;
     }
 }

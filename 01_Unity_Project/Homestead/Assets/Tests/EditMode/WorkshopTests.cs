@@ -772,7 +772,14 @@ public class WorkshopTests
             Assert.That(SizeOf("Needs Heading"), Is.EqualTo(28));
             Assert.That(SizeOf("Need 0"), Is.EqualTo(28));
             Assert.That(SizeOf("Reason"), Is.EqualTo(28));
-            Assert.That(SizeOf("Hint"), Is.EqualTo(26));
+            Assert.That(SizeOf("Hint"), Is.EqualTo(28), "the key line, one line along the bottom");
+            Assert.That(SizeOf("Pack"), Is.EqualTo(28), "what the pack carries");
+            Assert.That(SizeOf("Stock Reason"), Is.EqualTo(28));
+            Component[] stocks = labels.Where(l => l.transform.parent != null && l.transform.parent.name == "Stock").ToArray();
+            Assert.That(stocks.Length, Is.EqualTo(1));
+            Assert.That((int)size.GetValue(stocks[0]), Is.EqualTo(32), "the stock button");
+            Assert.That((int)style.GetValue(stocks[0]), Is.EqualTo((int)FontStyle.Bold));
+            Assert.That(ScreenConstant("StockButtonHeight"), Is.GreaterThanOrEqualTo(80f));
             Assert.That(labels.Where(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")).Select(l => (int)size.GetValue(l)), Is.All.EqualTo(32), "the list names");
             Assert.That(labels.Where(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")).All(l => (int)style.GetValue(l) == (int)FontStyle.Bold), Is.True);
             Assert.That(labels.Where(l => l.name == "Detail").Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28), "the hours and price");
@@ -799,5 +806,160 @@ public class WorkshopTests
     public void TheScreenIsClosedUntilOpened()
     {
         Assert.That((bool)Find("WorkshopScreen").GetProperty("IsOpen", BindingFlags.Public | BindingFlags.Static).GetValue(null), Is.False);
+    }
+
+    // --- Phase a2-2: the pack line, the stock button and the keys ---
+
+    [Test]
+    public void ThePackLineNamesWhatTheBenchUsesAndNothingElse()
+    {
+        Assert.That(WorkshopRules.PackLine(4, 6, 1), Is.EqualTo("You carry: 4 Logs, 6 Branches, 1 Cordage"));
+        Assert.That(WorkshopRules.PackLine(1, 1, 1), Is.EqualTo("You carry: 1 Log, 1 Branch, 1 Cordage"));
+        Assert.That(WorkshopRules.PackLine(0, 0, 3), Is.EqualTo("You carry: 3 Cordage"));
+        Assert.That(WorkshopRules.PackLine(2, 0, 0), Is.EqualTo("You carry: 2 Logs"));
+        Assert.That(WorkshopRules.PackLine(0, 5, 2), Is.EqualTo("You carry: 5 Branches, 2 Cordage"));
+        Assert.That(WorkshopRules.PackLine(0, 0, 0), Is.EqualTo("You carry: nothing the bench uses"));
+    }
+
+    [Test]
+    public void TheStockButtonIsOnOnlyWhenThePackHasSomethingTheBenchHasRoomFor()
+    {
+        // (carried logs, branches, cordage; bench logs, branches, cordage)
+        Assert.That(WorkshopRules.StockState(0, 0, 0, 0, 0, 0), Is.EqualTo(WorkshopRules.StockGate.NothingCarried));
+        Assert.That(WorkshopRules.StockState(0, 0, 0, 6, 8, 4), Is.EqualTo(WorkshopRules.StockGate.NothingCarried), "a full bench does not matter when nothing is carried");
+        Assert.That(WorkshopRules.StockState(3, 0, 0, 0, 0, 0), Is.EqualTo(WorkshopRules.StockGate.Can));
+        Assert.That(WorkshopRules.StockState(3, 0, 0, 5, 0, 0), Is.EqualTo(WorkshopRules.StockGate.Can), "one more Log fits under the cap of 6");
+        Assert.That(WorkshopRules.StockState(3, 0, 0, 6, 0, 0), Is.EqualTo(WorkshopRules.StockGate.BenchFull), "Logs are at the cap");
+        Assert.That(WorkshopRules.StockState(3, 2, 0, 6, 8, 0), Is.EqualTo(WorkshopRules.StockGate.BenchFull), "both carried kinds are at their caps");
+        Assert.That(WorkshopRules.StockState(3, 2, 0, 6, 7, 0), Is.EqualTo(WorkshopRules.StockGate.Can), "Branches still have room");
+        Assert.That(WorkshopRules.StockState(0, 0, 1, 6, 8, 3), Is.EqualTo(WorkshopRules.StockGate.Can), "Cordage under its cap of 4");
+        Assert.That(WorkshopRules.StockState(0, 0, 1, 6, 8, 4), Is.EqualTo(WorkshopRules.StockGate.BenchFull));
+        Assert.That(WorkshopRules.StockState(1, 1, 1, 6, 8, 4), Is.EqualTo(WorkshopRules.StockGate.BenchFull));
+    }
+
+    [Test]
+    public void TheStockButtonWorksWhileAJobRunsBecauseTheGateDoesNotLookAtTheJob()
+    {
+        // The stock rule takes no job at all: R has always stocked a bench that is making something, and the button follows it.
+        MethodInfo state = typeof(WorkshopRules).GetMethod("StockState");
+        Assert.That(state.GetParameters().Select(p => p.Name), Is.EqualTo(new[] { "carriedLogs", "carriedBranches", "carriedCordage", "benchLogs", "benchBranches", "benchCordage" }));
+        Assert.That(WorkshopRules.StockState(2, 4, 1, 1, 1, 0), Is.EqualTo(WorkshopRules.StockGate.Can));
+    }
+
+    [Test]
+    public void TheStockReasonsReadInAFewWordsAndNeverNameAKey()
+    {
+        Assert.That(WorkshopRules.StockReason(WorkshopRules.StockGate.NothingCarried), Is.EqualTo("Your pack has none of these materials."));
+        Assert.That(WorkshopRules.StockReason(WorkshopRules.StockGate.BenchFull), Is.EqualTo("The bench is already full of what you carry."));
+        Assert.That(WorkshopRules.StockReason(WorkshopRules.StockGate.Can), Is.EqualTo(""));
+        Assert.That(WorkshopRules.StockButtonText, Is.EqualTo("PUT MY MATERIALS IN THE BENCH"));
+        foreach (string text in new[] { WorkshopRules.StockButtonText, WorkshopRules.StockReason(WorkshopRules.StockGate.BenchFull), WorkshopRules.PackLine(1, 1, 1) })
+            Assert.That(Regex.IsMatch(text, @"\b[ER]\b"), Is.False, text);
+    }
+
+    [Test]
+    public void TheDigitsChooseTheFourPiecesInOrder()
+    {
+        (WorkshopRules.Key key, int index)[] digits =
+        {
+            (WorkshopRules.Key.One, 0), (WorkshopRules.Key.Two, 1), (WorkshopRules.Key.Three, 2), (WorkshopRules.Key.Four, 3),
+        };
+        foreach ((WorkshopRules.Key key, int index) in digits)
+        {
+            WorkshopRules.KeyAction action = WorkshopRules.Resolve(key, 2, 4);
+            Assert.That(action.kind, Is.EqualTo(WorkshopRules.ActionKind.Choose), key.ToString());
+            Assert.That(action.choice, Is.EqualTo(index), key.ToString());
+        }
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Four, 0, 3).kind, Is.EqualTo(WorkshopRules.ActionKind.None), "a digit past the end of a shorter list does nothing");
+    }
+
+    [Test]
+    public void UpAndDownMoveTheChoiceAndWrapRoundAtTheEnds()
+    {
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Down, 0, 4).choice, Is.EqualTo(1));
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Down, 2, 4).choice, Is.EqualTo(3));
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Down, 3, 4).choice, Is.EqualTo(0), "Down from the last wraps to the first");
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Up, 3, 4).choice, Is.EqualTo(2));
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Up, 1, 4).choice, Is.EqualTo(0));
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Up, 0, 4).choice, Is.EqualTo(3), "Up from the first wraps to the last");
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Up, 0, 4).kind, Is.EqualTo(WorkshopRules.ActionKind.Choose));
+    }
+
+    [Test]
+    public void EnterStartsRStocksAndAnythingElseIsIgnored()
+    {
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Enter, 1, 4).kind, Is.EqualTo(WorkshopRules.ActionKind.Start));
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Stock, 1, 4).kind, Is.EqualTo(WorkshopRules.ActionKind.Stock));
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.None, 1, 4).kind, Is.EqualTo(WorkshopRules.ActionKind.None));
+        Assert.That(WorkshopRules.Resolve(WorkshopRules.Key.Enter, 1, 0).kind, Is.EqualTo(WorkshopRules.ActionKind.None), "no list, nothing to do");
+        // Every key the screen can see maps to an action or to nothing, and only the keys named above do anything.
+        var doing = Enum.GetValues(typeof(WorkshopRules.Key)).Cast<WorkshopRules.Key>().Where(k => WorkshopRules.Resolve(k, 0, 4).kind != WorkshopRules.ActionKind.None).ToArray();
+        Assert.That(doing, Is.EquivalentTo(new[]
+        {
+            WorkshopRules.Key.One, WorkshopRules.Key.Two, WorkshopRules.Key.Three, WorkshopRules.Key.Four,
+            WorkshopRules.Key.Up, WorkshopRules.Key.Down, WorkshopRules.Key.Enter, WorkshopRules.Key.Stock,
+        }));
+    }
+
+    [Test]
+    public void TheKeyHintIsOneShortLineThatNamesEveryKey()
+    {
+        string hint = WorkshopRules.KeyHint;
+        Assert.That(hint, Does.Not.Contain("\n"));
+        foreach (string word in new[] { "1-4", "Up/Down", "Enter", "R", "Esc" })
+            Assert.That(hint, Does.Contain(word));
+        Assert.That(hint.Length, Is.LessThanOrEqualTo(70), "one line at 28 px across 1436 px");
+    }
+
+    [Test]
+    public void ThePlacedStructureStocksThroughOneMethodTheScreenAndTheRKeyShare()
+    {
+        MethodInfo stock = Find("PlacedStructure").GetMethod("StockFromPack", BindingFlags.Public | BindingFlags.Instance);
+        Assert.That(stock, Is.Not.Null);
+        Assert.That(stock.ReturnType, Is.EqualTo(typeof(bool)));
+        Assert.That(stock.GetParameters().Select(p => p.ParameterType.Name), Is.EqualTo(new[] { "String&" }));
+        Assert.That(Find("PlacedStructure").GetMethod("StockGateNow", BindingFlags.Public | BindingFlags.Instance), Is.Not.Null);
+        Assert.That(Find("PlacedStructure").GetMethods(BindingFlags.Public | BindingFlags.Instance).Any(m => m.Name.Contains("Dismantle")), Is.False, "dismantling stays inside the structure and the Hammer's R");
+    }
+
+    [Test]
+    public void EverythingOnTheScreenFitsInsideThePanelWithoutOverlap()
+    {
+        Type screen = Find("WorkshopScreen");
+        var go = new GameObject("Workshop Screen Layout Test");
+        try
+        {
+            Component instance = go.AddComponent(screen);
+            screen.GetMethod("Build", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(instance, null);
+            string[] names =
+            {
+                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2",
+                "Reason", "Start", "Hint",
+            };
+            RectTransform[] all = go.GetComponentsInChildren<RectTransform>(true);
+            var boxes = new System.Collections.Generic.Dictionary<string, Rect>();
+            foreach (string name in names)
+            {
+                RectTransform rt = all.First(r => r.name == name);
+                boxes[name] = new Rect(rt.anchoredPosition.x, -rt.anchoredPosition.y, rt.sizeDelta.x, rt.sizeDelta.y); // top-left placed: x right, y down
+            }
+            var panel = new Rect(0f, 0f, 1500f, 920f);
+            foreach (var pair in boxes)
+            {
+                Assert.That(pair.Value.xMin, Is.GreaterThanOrEqualTo(panel.xMin), pair.Key);
+                Assert.That(pair.Value.yMin, Is.GreaterThanOrEqualTo(panel.yMin), pair.Key);
+                Assert.That(pair.Value.xMax, Is.LessThanOrEqualTo(panel.xMax), pair.Key);
+                Assert.That(pair.Value.yMax, Is.LessThanOrEqualTo(panel.yMax), pair.Key);
+            }
+            for (int a = 0; a < names.Length; a++)
+                for (int b = a + 1; b < names.Length; b++)
+                    Assert.That(boxes[names[a]].Overlaps(boxes[names[b]]), Is.False, names[a] + " overlaps " + names[b]);
+            Assert.That(boxes["Stock"].height, Is.GreaterThanOrEqualTo(80f));
+            Assert.That(boxes["Row 1"].yMin - boxes["Row 0"].yMax, Is.GreaterThanOrEqualTo(12f), "gap between rows");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+        }
     }
 }
