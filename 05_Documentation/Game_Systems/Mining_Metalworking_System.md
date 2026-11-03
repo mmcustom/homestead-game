@@ -104,3 +104,36 @@ Proposed: Steel = Iron + extra Charcoal, reheated at the Forge (carburizing), th
 1. Every stage here mirrors a real step in pre-industrial ironworking — mining, charcoal, smelting, consolidating, smithing, hardening — not a simplified "ore to tool" shortcut. Where a step gets simplified for playability later, that's a deliberate departure from this doc, not an oversight.
 2. This doc is design-only — no numbers are locked, no Unity work is implied. It exists so the Iron/Steel tiers already promised across three other docs have somewhere real to point to.
 3. Every new structure here (Charcoal Pit, Bloomery, Forge, Anvil, Workbench) is Future, blocked on Building_Housing_System.md's first real implementation, same as the Hammer and Site Preparation.
+
+
+---
+
+# Addendum 2026-11-04: v1 decisions and build plan (Mike, Claude Code read-only plan)
+
+This addendum supersedes the ore sources and the "Future" status above for the first build. Everything above stays as the long-term picture.
+
+## Decisions (Mike)
+
+- Iron ore is BOUGHT at the Trading Post ($4 each, sells back $1, Stocked group). There is nothing to mine or gather on the property, so no mining, no bog iron and no South Ridge vein in v1. Real terrain digging is a separate, later feature and is not part of this.
+- First version is iron only, but built so more metals (copper, tin, bronze) can be added later as rows (a MetalRules table keyed by metal) with no new kind or saved field.
+- Accepted all eight of Claude Code's recommendations: one combined roofed Smithy with Forge and Anvil (like the Workshop); iron Pick Axe and Shovel are better than the stone ones (25% fewer blows; Axe and Saw unchanged); Charcoal is the only fuel (Bloomery and Forge); a smelt takes 10 game hours for up to 2 Bars; first goods are Door Hinges, Hooks and Nails to sell plus the Iron Shovel and Pick Axe for own use; no separate bloom step in v1 (the Bloomery makes Iron Bars directly); no per-visit ore limit (the price and carry weight limit it); Charcoal is sellable at $1.
+- Iron's payoff beyond cash (the goods net only about $5 a day): plan a later phase M5 with building uses for iron (for example Door Hinges for a Cabin door, Cart wheel tyres, a hinged Workshop chest) after the Smithy is played.
+
+## The chain as planned (numbers to be confirmed when built)
+
+- Charcoal Pit: 4 Clay + 6 Tall Grass, 20 Hammer blows; open air; up to 6 Logs; 24 game hours; makes 4 Charcoal (1 kg each). 3 Logs per Iron Bar.
+- Bloomery: 8 Stone + 6 Clay, 36 blows (about 61 kg); open air; up to 4 Ore + 4 Charcoal; 10 game hours; 2 Iron Bars (2 kg each). Recipe: 2 Ore + 2 Charcoal make 1 Bar.
+- Smithy (Forge and Anvil, roofed shed): 6 Stone, 3 Clay, 2 Logs, 4 Branches, 6 Tall Grass, 40 blows (about 66 kg); 1 to 2 Charcoal per job; 2 to 4 game hours per job.
+- Items: Iron Ore $4 (3 kg, Stocked); Charcoal $1 (1 kg, WoodStone); Iron Bar (2 kg, not sold in v1); Box of Nails (20) $16 and Hook Set $18 (1 Bar, 2 h, 1 Charcoal); Door Hinges $26 (1 Bar, 3 h, 1 Charcoal); Iron Skillet $48 (2 Bars, 4 h, 2 Charcoal, optional); Iron Shovel and Iron Pick Axe (2 Bars + sticks and Cordage, 3 h, own use). Goods are Crafted group (10% drop per unit, floor 0.1). A forged Cooking Pot is not worth making (the store sells it for $12).
+- Economy (Claude Code's arithmetic, not measured): one batch a day (2 Bars) of Hinges plus Hooks earns about $34 for $16 of ore, about +$18 cash and about +$5 once the Logs burned for charcoal are valued at market; the ceiling is about $26 a day in cash for about 20 Logs a day, near the pottery ceiling of about $21 and above the $20.48 land payment, so watch it alongside the Workshop and pottery. Ore sells back for less than it costs and goods cannot be bought, so there is no buy and sell loop.
+- Stations: Charcoal Pit and Bloomery are prompt-only like the Kiln (R loads, E lights or starts, E collects, Hammer dismantles); the Smithy has a screen like the Workshop. Reuse KilnSmoke and the Kiln glow. New PileKinds 39 to 44 (CharcoalPitSite 39, CharcoalPit 40, BloomerySite 41, Bloomery 42, SmithySite 43, Smithy 44; 45 kinds in total). No new saved fields (jobItem, jobHours, jobCount and contents). SaveVersion and LedgerSaveData.CurrentVersion stay at 1. No rain or wind rule in v1.
+
+## Phases
+
+- M1 (medium): metal rules table, Ore and Charcoal items and market rows (added by hand to MarketData.asset, never seeded), the Charcoal Pit, know-how entries, dev key. Playtest: buy Ore, build the Pit, burn Logs, collect Charcoal, sell Charcoal.
+- M2 (medium): the Bloomery and the Iron Bar. Playtest a full smelt.
+- M3 (large): the Smithy, its screen and the four goods. Playtest forging, selling and the income.
+- M4 (small): Iron Shovel and Pick Axe with AxeTool recognising them (25% fewer blows).
+- M5 (later, after the Smithy is played): building uses for iron (Cabin door hinges, Cart tyres, hinged Workshop chest). Also later: copper, tin, bronze.
+
+Status: planned 2026-11-04, nothing built.
