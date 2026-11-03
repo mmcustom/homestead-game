@@ -49,7 +49,7 @@ The GDD priority order. Goal: survive the first week and learn the basics.
 Goal: stop living day to day and build reserves.
 
 - Run all five Year One food sources: forage (Summer berries), fishing, fish traps, hunting, trapping. Note which ones actually feed you and which are a waste of time.
-- Gather materials for the Small Cabin: logs, stone, clay (Clay Banks, Shovel). Build it in stages with the Hammer and use the site messages to see what is missing.
+- Gather materials for the Small Cabin: logs, stone, clay (dug with the Shovel at the water's edge or in the shallows; see Building_Housing_System.md update 2026-11-03). Build it in stages with the Hammer and use the site messages to see what is missing.
 - Place a Wood Pile, Food Cache and other storage; use the two-way transfer screen. Looking at a Wood Pile shows its contents.
 - **Spoilage (from the code): not built.** Items record the day acquired but nothing ages or removes them, so raw and cooked meat never spoil. Note whether that makes food storage feel trivial. There is no "days of food" readout, so keep your own tally of food on hand.
 - **Trading Post (from the code):** it buys small furs ($3), deer hide ($8), antlers, meat, fish, forage, firewood, logs and stone, and buys back a crafted Shovel for $4. Sell something, buy something, and note whether prices feel fair and whether income is enough to matter.
