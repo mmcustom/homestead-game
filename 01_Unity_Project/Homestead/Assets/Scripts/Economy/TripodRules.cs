@@ -11,6 +11,7 @@ public static class TripodRules
 {
     public const string TripodId = "tripod";
     public const string PotId = "cooking_pot";
+    public const string ClayPotId = "clay_pot";   // the Clay Cooking Pot (Pottery P3): a free route to a pot; serves wherever the iron pot is needed
     public const string KettleId = "potash_kettle";
 
     // The craft recipe (Crafting.cs): three poles lashed with cordage. A tripod is placed, not used up, so it comes back whole.
@@ -19,7 +20,18 @@ public static class TripodRules
     // The Build tab's ghost snaps to the nearest fire this close (metres) to where the player aims.
     public const float SnapMetres = 3f;
 
-    public static bool IsVessel(string itemId) => itemId == PotId || itemId == KettleId;
+    // THE one question "is this a cooking pot": the iron Cooking Pot or the Clay Cooking Pot. Everything that asks it goes through here.
+    public static bool IsCookingPot(string itemId) => itemId == PotId || itemId == ClayPotId;
+
+    // Whether what hangs on the tripod serves the vessel a job needs: the same one, or either cooking pot when the (iron) Cooking Pot is needed. The hung id stays specific, so the
+    // Tripod keeps drawing which pot hangs there and a refund gives that very pot back.
+    public static bool Serves(string hungId, string neededId) =>
+        !string.IsNullOrEmpty(hungId) && !string.IsNullOrEmpty(neededId) && (hungId == neededId || (neededId == PotId && IsCookingPot(hungId)));
+
+    // Which carried pot goes on the tripod: the iron one first (as before), else the clay one, else none.
+    public static string PotToHang(bool carriesIron, bool carriesClay) => carriesIron ? PotId : carriesClay ? ClayPotId : null;
+
+    public static bool IsVessel(string itemId) => IsCookingPot(itemId) || itemId == KettleId;
 
     // --- Setting a tripod up on a fire ---
 
@@ -61,21 +73,24 @@ public static class TripodRules
 
     // What E does. Nothing hung: hang the Pot if one is carried, else the Kettle. The Pot hung and a Kettle carried (or the other way round):
     // swap them. Otherwise the vessel comes down. An id that is not a known vessel (a bad save) just comes down.
-    public static Step NextStep(string hung, bool carriesPot, bool carriesKettle)
+    public static Step NextStep(string hung, bool carriesPot, bool carriesKettle) => NextStep(hung, carriesPot ? PotId : null, carriesKettle);
+
+    // The same with the id of the pot carried (PotToHang), null for none: the hung pot is that very one.
+    public static Step NextStep(string hung, string carriedPotId, bool carriesKettle)
     {
         if (string.IsNullOrEmpty(hung))
         {
-            if (carriesPot)
-                return new Step { kind = StepKind.Hang, hang = PotId };
+            if (carriedPotId != null)
+                return new Step { kind = StepKind.Hang, hang = carriedPotId };
             if (carriesKettle)
                 return new Step { kind = StepKind.Hang, hang = KettleId };
             return new Step { kind = StepKind.None };
         }
 
-        if (hung == PotId && carriesKettle)
-            return new Step { kind = StepKind.Swap, hang = KettleId, takeDown = PotId };
-        if (hung == KettleId && carriesPot)
-            return new Step { kind = StepKind.Swap, hang = PotId, takeDown = KettleId };
+        if (IsCookingPot(hung) && carriesKettle)
+            return new Step { kind = StepKind.Swap, hang = KettleId, takeDown = hung };
+        if (hung == KettleId && carriedPotId != null)
+            return new Step { kind = StepKind.Swap, hang = carriedPotId, takeDown = KettleId };
         return new Step { kind = StepKind.TakeDown, takeDown = hung };
     }
 
@@ -139,7 +154,7 @@ public static class TripodRules
             return Gate.NoTripod;
         if (string.IsNullOrEmpty(hung))
             return Gate.NoVessel;
-        if (hung != needed)
+        if (!Serves(hung, needed))
             return Gate.WrongVessel;
         return Gate.Ok;
     }

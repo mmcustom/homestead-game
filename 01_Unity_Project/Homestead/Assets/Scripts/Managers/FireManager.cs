@@ -15,7 +15,7 @@ public class CampfireState
     public float ashMade;   // Ash burnt and waiting in the ring to be collected; the fraction carries on to the next burn
     public bool builtWithSticks; // built from Sticks, not Firewood, so a dismantle refunds half the Sticks; absent (false) in an older save
     public bool tripod;     // a Tripod stands over the fire (TripodRules); absent (false) in a save from before the tripod
-    public string vessel;   // what hangs on it: cooking_pot, potash_kettle, or empty/absent for nothing
+    public string vessel;   // what hangs on it: cooking_pot, clay_pot, potash_kettle, or empty/absent for nothing
 }
 
 // The Bow Drill's tuning, in the Inspector on FireManager. Chances are 0-1.
@@ -701,7 +701,7 @@ public class FireManager : MonoBehaviour, ISaveable
         if (fire == null || !fire.tripod || inventory == null)
             return "";
 
-        TripodRules.Step step = TripodRules.NextStep(fire.vessel, inventory.Player.Has(TripodRules.PotId), inventory.Player.Has(TripodRules.KettleId));
+        TripodRules.Step step = TripodRules.NextStep(fire.vessel, TripodRules.PotToHang(inventory.Player.Has(TripodRules.PotId), inventory.Player.Has(TripodRules.ClayPotId)), inventory.Player.Has(TripodRules.KettleId));
         if (step.kind == TripodRules.StepKind.None)
             return TripodRules.StepDone(step, ItemName);
 
@@ -720,7 +720,7 @@ public class FireManager : MonoBehaviour, ISaveable
 
         fire.vessel = step.hang ?? "";
         Changed(fire);
-        if (step.hang == TripodRules.PotId && JournalManager.Instance != null)
+        if (TripodRules.IsCookingPot(step.hang) && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.PotHung);
         return TripodRules.StepDone(step, ItemName) + (step.hang != null ? KnowHowRules.AfterHang(step.hang) : "");
     }

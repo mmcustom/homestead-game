@@ -151,7 +151,7 @@ public class CampfireCooking : MonoBehaviour
     // What the queued boil at this vessel is doing now, for the tripod's prompt: "boiling Lye, 2 Potash to go" (null when nothing is queued for it).
     public string JobTextFor(string vesselId)
     {
-        if (queue.Count == 0 || vesselId == null || Cooking.BoilVessel(queue[0].item.Id) != vesselId)
+        if (queue.Count == 0 || vesselId == null || !TripodRules.Serves(vesselId, Cooking.BoilVessel(queue[0].item.Id)))
             return null;
         ItemDefinition item = queue[0].item;
         int left = RemainingOf(item);

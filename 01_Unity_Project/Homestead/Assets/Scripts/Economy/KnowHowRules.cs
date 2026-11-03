@@ -157,6 +157,7 @@ public static class KnowHowRules
             case PotashRules.PotashId: return "Sells for far more than the Ash it came from.";
             case TripodRules.KettleId: return "Hang it on a tripod at a lit fire (hold E), then Boil Lye (I).";
             case TripodRules.PotId: return "Hang it on a tripod at a fire (hold E) to boil water or sap.";
+            case TripodRules.ClayPotId: return "Hang it on a tripod at a fire (hold E) to boil water or sap, like the iron Cooking Pot.";
             case TripodRules.TripodId: return "Set it up on a fire from Build, then hang a Pot or Kettle (hold E).";
             case MapleRules.SpileId: return "Equip it and click a Sugar Maple to tap it; needs a Sap Bucket.";
             case MapleRules.SapBucketId: return "Hangs under a Spile. Hold E at the tap to collect sap; boil it in the Pot.";
@@ -178,7 +179,8 @@ public static class KnowHowRules
     {
         switch (vesselId)
         {
-            case TripodRules.PotId: return " Open Inventory (I) to Boil water or sap.";
+            case TripodRules.PotId:
+            case TripodRules.ClayPotId: return " Open Inventory (I) to Boil water or sap.";
             case TripodRules.KettleId: return " Open Inventory (I) to Boil Lye.";
             default: return "";
         }

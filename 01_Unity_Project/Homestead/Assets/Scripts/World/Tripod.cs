@@ -11,6 +11,8 @@ public class Tripod : MonoBehaviour, IInteractable, ISecondaryInteractable
     static readonly Color LashColor = new Color(0.55f, 0.47f, 0.3f);
     static readonly Color ChainColor = new Color(0.16f, 0.16f, 0.17f);
     static readonly Color PotColor = new Color(0.13f, 0.13f, 0.15f);
+    static readonly Color ClayPotColor = new Color(0.52f, 0.34f, 0.22f);   // the Clay Cooking Pot, the same brown as the Kiln's clay
+    static readonly Color ClayRimColor = new Color(0.66f, 0.5f, 0.36f);
     static readonly Color KettleColor = new Color(0.55f, 0.32f, 0.16f);
 
     const float PoleHeight = 1.6f, PoleSpread = 0.6f, VesselHeight = 0.8f;
@@ -73,14 +75,14 @@ public class Tripod : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (hung == TripodRules.KettleId)
             BuildKettle(vesselRoot.transform);
         else
-            BuildPot(vesselRoot.transform);
+            BuildPot(vesselRoot.transform, hung == TripodRules.ClayPotId);
     }
 
-    // A squat iron pot with a lighter rim; the chain's end is at its top.
-    void BuildPot(Transform parent)
+    // A squat iron pot with a lighter rim, or the Clay Cooking Pot in clay brown with a paler rim (Pottery P3); the chain's end is at its top.
+    void BuildPot(Transform parent, bool clay)
     {
-        Piece(parent, PrimitiveType.Cylinder, Vector3.zero, Quaternion.identity, new Vector3(0.36f, 0.12f, 0.36f), PotColor, true);
-        Piece(parent, PrimitiveType.Cylinder, new Vector3(0f, 0.12f, 0f), Quaternion.identity, new Vector3(0.4f, 0.014f, 0.4f), ChainColor, false);
+        Piece(parent, PrimitiveType.Cylinder, Vector3.zero, Quaternion.identity, new Vector3(0.36f, 0.12f, 0.36f), clay ? ClayPotColor : PotColor, true);
+        Piece(parent, PrimitiveType.Cylinder, new Vector3(0f, 0.12f, 0f), Quaternion.identity, new Vector3(0.4f, 0.014f, 0.4f), clay ? ClayRimColor : ChainColor, false);
     }
 
     // A round copper kettle with a lid knob and a spout.
@@ -111,7 +113,7 @@ public class Tripod : MonoBehaviour, IInteractable, ISecondaryInteractable
     TripodRules.Step NextStep()
     {
         InventoryManager inventory = InventoryManager.Instance;
-        bool pot = inventory != null && inventory.Player.Has(TripodRules.PotId);
+        string pot = inventory != null ? TripodRules.PotToHang(inventory.Player.Has(TripodRules.PotId), inventory.Player.Has(TripodRules.ClayPotId)) : null;
         bool kettle = inventory != null && inventory.Player.Has(TripodRules.KettleId);
         return TripodRules.NextStep(state.vessel, pot, kettle);
     }

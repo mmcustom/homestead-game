@@ -74,7 +74,7 @@ public static class Cooking
         float bestDistance = Range;
         foreach (CampfireState fire in fires.Fires)
         {
-            if (!fire.lit || !fire.tripod || fire.vessel != vesselId)
+            if (!fire.lit || !fire.tripod || !TripodRules.Serves(fire.vessel, vesselId))
                 continue;
             float distance = Vector3.Distance(fire.position, player.transform.position);
             if (distance <= bestDistance)

@@ -221,7 +221,7 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
                          ? "Light Fire  — equip the Bow Drill and hold click"
                          : "Light Fire  — needs Flint and Steel (or a Bow Drill)";
             string cook = state.lit && CarryingCookables
-                ? (state.vessel == TripodRules.PotId ? "  · Cook or boil from Inventory (I)" : "  · Cook from Inventory (I); boiling needs the Pot hung on a tripod")
+                ? (TripodRules.IsCookingPot(state.vessel) ? "  · Cook or boil from Inventory (I)" : "  · Cook from Inventory (I); boiling needs the Pot hung on a tripod")
                 : "";
             string pick = FireManager.SelectedFuel;
             string change = FireManager.CarriedFuelKinds > 1 ? "  · F: change fuel" : "";
