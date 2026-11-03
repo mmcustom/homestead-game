@@ -161,6 +161,12 @@ public static class MarketCatalog
         Row(WorkshopRules.EndTableId, MarketGroup.Crafted, WorkshopRules.Recipes[1].baseCents, MarketKind.Bought),
         Row(WorkshopRules.ChairId, MarketGroup.Crafted, WorkshopRules.Recipes[2].baseCents, MarketKind.Bought),
         Row(WorkshopRules.TableId, MarketGroup.Crafted, WorkshopRules.Recipes[3].baseCents, MarketKind.Bought),
+        // Pottery P2: the five fired pieces from the Kiln, in the Crafted group (10% off per unit, floor 0.1); the dry pieces and Sand have no row, so they do not sell. PotteryRules has the prices.
+        Row(PotteryRules.FiredCupId, MarketGroup.Crafted, PotteryRules.Recipes[0].firedCents, MarketKind.Bought),
+        Row(PotteryRules.FiredBowlId, MarketGroup.Crafted, PotteryRules.Recipes[1].firedCents, MarketKind.Bought),
+        Row(PotteryRules.FiredPotId, MarketGroup.Crafted, PotteryRules.Recipes[2].firedCents, MarketKind.Bought),
+        Row(PotteryRules.FiredCrockId, MarketGroup.Crafted, PotteryRules.Recipes[3].firedCents, MarketKind.Bought),
+        Row(PotteryRules.FiredBrickId, MarketGroup.Crafted, PotteryRules.Recipes[4].firedCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

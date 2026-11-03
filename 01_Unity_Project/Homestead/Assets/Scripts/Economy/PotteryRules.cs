@@ -24,6 +24,13 @@ public static class PotteryRules
     public const string DryCrockId = "dry_water_crock";
     public const string DryBrickId = "dry_brick_batch";
 
+    // The fired pieces the Kiln makes (Pottery P2); they sell at the Trading Post, the dry ones do not.
+    public const string FiredCupId = "clay_cup";
+    public const string FiredBowlId = "clay_bowl";
+    public const string FiredPotId = "clay_pot";
+    public const string FiredCrockId = "water_crock";
+    public const string FiredBrickId = "brick_batch";
+
     // --- The site: staged like the Workshop (about 35 kg), finished with the Hammer ---
 
     public const int SiteLogs = 3;
@@ -63,15 +70,18 @@ public static class PotteryRules
         public int dryDays;         // game days on the shelf before it is dry
         public int space;           // shelf space units
         public float dryKg;
+        public string firedId;      // the fired piece it becomes in the Kiln (Pottery P2)
+        public float firedKg;
+        public long firedCents;     // its base price at the Trading Post (the Crafted group)
     }
 
     public static readonly Recipe[] Recipes =
     {
-        new Recipe { itemId = DryCupId,   name = "Clay Cup",          one = "Cup",           many = "Cups",           clay = 1,  sand = 1, shapeHours = 1, dryDays = 1, space = 1, dryKg = 0.3f },
-        new Recipe { itemId = DryBowlId,  name = "Clay Bowl",         one = "Bowl",          many = "Bowls",          clay = 2,  sand = 1, shapeHours = 1, dryDays = 2, space = 1, dryKg = 0.6f },
-        new Recipe { itemId = DryPotId,   name = "Clay Cooking Pot",  one = "Cooking Pot",   many = "Cooking Pots",   clay = 3,  sand = 1, shapeHours = 2, dryDays = 3, space = 2, dryKg = 2f },
-        new Recipe { itemId = DryCrockId, name = "Water Crock",       one = "Water Crock",   many = "Water Crocks",   clay = 4,  sand = 1, shapeHours = 2, dryDays = 3, space = 2, dryKg = 6f },
-        new Recipe { itemId = DryBrickId, name = "Brick Batch",       one = "Brick Batch",   many = "Brick Batches",  clay = 10, sand = 1, shapeHours = 2, dryDays = 3, space = 4, dryKg = 16f },
+        new Recipe { itemId = DryCupId,   name = "Clay Cup",          one = "Cup",           many = "Cups",           clay = 1,  sand = 1, shapeHours = 1, dryDays = 1, space = 1, dryKg = 0.3f, firedId = FiredCupId,   firedKg = 0.3f, firedCents = 400 },
+        new Recipe { itemId = DryBowlId,  name = "Clay Bowl",         one = "Bowl",          many = "Bowls",          clay = 2,  sand = 1, shapeHours = 1, dryDays = 2, space = 1, dryKg = 0.6f, firedId = FiredBowlId,  firedKg = 0.6f, firedCents = 600 },
+        new Recipe { itemId = DryPotId,   name = "Clay Cooking Pot",  one = "Cooking Pot",   many = "Cooking Pots",   clay = 3,  sand = 1, shapeHours = 2, dryDays = 3, space = 2, dryKg = 2f,   firedId = FiredPotId,   firedKg = 1.8f, firedCents = 1000 },
+        new Recipe { itemId = DryCrockId, name = "Water Crock",       one = "Water Crock",   many = "Water Crocks",   clay = 4,  sand = 1, shapeHours = 2, dryDays = 3, space = 2, dryKg = 6f,   firedId = FiredCrockId, firedKg = 5.5f, firedCents = 1200 },
+        new Recipe { itemId = DryBrickId, name = "Brick Batch",       one = "Brick Batch",   many = "Brick Batches",  clay = 10, sand = 1, shapeHours = 2, dryDays = 3, space = 4, dryKg = 16f,  firedId = FiredBrickId, firedKg = 14f,  firedCents = 600 },
     };
 
     public static bool TryFind(string itemId, out Recipe recipe)
@@ -410,6 +420,195 @@ public static class PotteryRules
     }
 
     public const string KeyHint = "1-5 choose   Up/Down move   Left/Right count   Enter start   R stock   Esc close";
+
+    // --- The Kiln (Pottery P2; Mike, 2026-11-03): an open-air kiln, staged like the Kitchen's hearth, loaded from the pack and fired for 24 game hours ---
+    //
+    // Saved with no new field: the loaded dry pieces and the Firewood are ordinary stacks (day 0), a running firing is jobItem = FiringMarker with jobHours the hours left (ticked one
+    // game hour at a time like the other jobs, so sleeping and being away count), and when it ends each dry stack becomes its fired stack and the Ash is added. Fired pieces are told
+    // from loaded ones by their id.
+
+    public const string FirewoodId = "firewood";
+    public const string AshId = "ash";
+    public const string FiringMarker = "kiln_firing";
+
+    public const int KilnStone = 6;
+    public const int KilnClay = 6;          // about 51 kg with the Stone, so the Hand Cart (100 kg, which carries Stone and Clay) takes it in one trip
+    public const int KilnBuildBlows = 30;
+    public const int KilnSpace = 12;        // shelf-space units a firing holds (the same units as the shed's shelf)
+    public const int KilnFirewood = 10;     // fixed per firing, whatever the load
+    public const int KilnFireHours = 24;
+    public const float KilnRadiusMetres = 1.2f;        // the dome's reach from its centre
+    public const float KilnClearanceMetres = 3f;       // clear air from other structures and trees, and (both ways) from a placed Kiln
+    public const float KilnTreeReachMetres = KilnRadiusMetres + KilnClearanceMetres;
+    public const float RegrowMetres = 1.8f;            // no sprout inside the kiln's footprint (RegrowRules.Blocker.Kiln)
+
+    // Ash from one firing: the Firewood burnt, through the same rule as a campfire (3.33 Ash, 3 whole).
+    public static int KilnAsh => AshRules.Whole(AshRules.Owed(AshRules.FirewoodId, KilnFirewood));
+
+    public static bool IsFired(string itemId) => FiredIdIndex(itemId) >= 0;
+
+    static int FiredIdIndex(string itemId)
+    {
+        for (int i = 0; i < Recipes.Length; i++)
+            if (Recipes[i].firedId == itemId)
+                return i;
+        return -1;
+    }
+
+    // The fired id a dry id becomes ("" for something that is not a dry piece), and the other way round.
+    public static string FiredIdOf(string dryId) => TryFind(dryId, out Recipe recipe) ? recipe.firedId : "";
+
+    public static string DryIdOf(string firedId)
+    {
+        int i = FiredIdIndex(firedId);
+        return i >= 0 ? Recipes[i].itemId : "";
+    }
+
+    public static bool TryFindFired(string firedId, out Recipe recipe)
+    {
+        int i = FiredIdIndex(firedId);
+        recipe = i >= 0 ? Recipes[i] : default;
+        return i >= 0;
+    }
+
+    // The order R loads in: the dry pieces in the recipe order, then the Firewood.
+    public static string[] LoadOrder
+    {
+        get
+        {
+            var ids = new string[Recipes.Length + 1];
+            for (int i = 0; i < Recipes.Length; i++)
+                ids[i] = Recipes[i].itemId;
+            ids[Recipes.Length] = FirewoodId;
+            return ids;
+        }
+    }
+
+    public static int KilnFreeSpace(IEnumerable<ShelfEntry> loaded) => Math.Max(0, KilnSpace - SpaceUsed(loaded));
+
+    // How many more of this the kiln takes: the dry pieces that still fit in the space left, or the Firewood up to the fixed 10.
+    public static int KilnRoomFor(string itemId, int spaceUsed, int firewoodHeld)
+    {
+        if (itemId == FirewoodId)
+            return Math.Max(0, KilnFirewood - firewoodHeld);
+        return TryFind(itemId, out Recipe recipe) ? Math.Max(0, (KilnSpace - spaceUsed) / recipe.space) : 0;
+    }
+
+    public static bool KilnAccepts(string itemId, int spaceUsed, int firewoodHeld) => KilnRoomFor(itemId, spaceUsed, firewoodHeld) > 0;
+
+    public enum KilnPhase { Empty, Loading, Ready, Firing, Done }
+
+    // pieces: the loaded dry pieces, firewood: the Firewood in, firedWaiting: the fired pieces and Ash waiting to be collected.
+    public static KilnPhase PhaseOf(bool firing, int firedWaiting, int pieces, int firewood)
+    {
+        if (firing)
+            return KilnPhase.Firing;
+        if (firedWaiting > 0)
+            return KilnPhase.Done;
+        if (pieces <= 0 && firewood <= 0)
+            return KilnPhase.Empty;
+        return pieces > 0 && firewood >= KilnFirewood ? KilnPhase.Ready : KilnPhase.Loading;
+    }
+
+    public enum KilnGate { Ok, Firing, Waiting, NothingFits }
+
+    // Whether R may load now: not while a firing runs, and not while fired pieces wait to be collected. loadableCarried: what the pack carries that the kiln would take.
+    public static KilnGate LoadGate(KilnPhase phase, int loadableCarried)
+    {
+        if (phase == KilnPhase.Firing)
+            return KilnGate.Firing;
+        if (phase == KilnPhase.Done)
+            return KilnGate.Waiting;
+        return loadableCarried > 0 ? KilnGate.Ok : KilnGate.NothingFits;
+    }
+
+    public static bool CanFire(KilnPhase phase) => phase == KilnPhase.Ready;
+
+    // The Hammer's R takes it down only when it is empty (nothing in it) and not firing.
+    public static bool CanDismantleKiln(KilnPhase phase) => phase == KilnPhase.Empty;
+
+    static string PiecesText(int n) => CountText(n, "piece", "pieces");
+
+    public static string KilnCostText => $"{KilnStone} Stone and {KilnClay} Clay";
+
+    // E's line, by phase.
+    public static string KilnPrompt(KilnPhase phase, int pieces, int firewood, int firedPieces, int ash, float hoursLeft)
+    {
+        switch (phase)
+        {
+            case KilnPhase.Empty: return $"Kiln  (load dry pieces and {KilnFirewood} Firewood)";
+            case KilnPhase.Loading: return $"Kiln  ({PiecesText(pieces)}, {firewood} of {KilnFirewood} Firewood in)";
+            case KilnPhase.Ready: return $"Fire the kiln  ({PiecesText(pieces)}, {KilnFirewood} Firewood)";
+            case KilnPhase.Firing: return $"Kiln  (firing, {HoursText(hoursLeft)} to go)";
+            default: return firedPieces > 0 ? $"Collect fired pieces  ({firedPieces})" : $"Collect the Ash  ({ash})";
+        }
+    }
+
+    // R's line without the Hammer: what it loads, or why it will not.
+    public static string KilnLoadPrompt(KilnGate gate, string carriedNames)
+    {
+        switch (gate)
+        {
+            case KilnGate.Ok: return $"Load {carriedNames}";
+            case KilnGate.Firing: return "Can't load the kiln while it is firing";
+            case KilnGate.Waiting: return "Collect the fired pieces before loading again";
+            default: return "Load dry pieces and Firewood  (carry some)";
+        }
+    }
+
+    public static string KilnLoadRefusal(KilnGate gate)
+    {
+        switch (gate)
+        {
+            case KilnGate.Firing: return "The kiln is firing - nothing can be loaded until it is done.";
+            case KilnGate.Waiting: return "Fired pieces are waiting - collect them before loading again.";
+            default: return $"Nothing you carry fits (dry pieces up to {KilnSpace} spaces, {KilnFirewood} Firewood).";
+        }
+    }
+
+    // What E says when the kiln is not ready to fire.
+    public static string KilnNotReady(int pieces, int firewood)
+    {
+        if (pieces <= 0 && firewood >= KilnFirewood)
+            return "Load at least one dry piece first.";
+        if (pieces <= 0)
+            return $"Load at least one dry piece and {KilnFirewood} Firewood first.";
+        return $"Needs {KilnFirewood - firewood} more Firewood to fire.";
+    }
+
+    public static string KilnStarted(int pieces) => $"The kiln is lit: {PiecesText(pieces)} will fire for {KilnFireHours} hours.";
+
+    // What E flashes after collecting: the fired pieces, the Ash, and what stayed behind for want of room.
+    public static string KilnTook(int took, int ash, int stayed)
+    {
+        var parts = new List<string>();
+        if (took > 0)
+            parts.Add(CountText(took, "fired piece", "fired pieces"));
+        if (ash > 0)
+            parts.Add($"{ash} Ash");
+        if (parts.Count == 0)
+            return "Too heavy - no room to carry them";
+        string text = "Took " + string.Join(" and ", parts);
+        return stayed > 0 ? text + $" ({stayed} left in the kiln, no room)." : text + ".";
+    }
+
+    public static string KilnLoaded(string what, int pieces, int firewood) =>
+        $"Loaded {what}  (the kiln holds {PiecesText(pieces)}, {firewood} of {KilnFirewood} Firewood)";
+
+    public static string KilnDismantlePrompt(KilnPhase phase, float hoursLeft)
+    {
+        switch (phase)
+        {
+            case KilnPhase.Firing: return $"Can't take down the kiln while it is firing  ({HoursText(hoursLeft)} to go)";
+            case KilnPhase.Empty: return "Take down the kiln  (half the materials back, rounded down)";
+            default: return "Empty the kiln before taking it down";
+        }
+    }
+
+    public static string KilnSiteHelp => $"Deliver {KilnCostText} (Stone first)";
+
+    public static string KilnBuiltMessage =>
+        $"Kiln built. Load dry pieces and {KilnFirewood} Firewood from your pack, then light it; it fires for {KilnFireHours} hours and gives {KilnAsh} Ash.";
 
     // --- Digging: what a Shovel blow gives (Mike, 2026-11-02; the wet bank and shallows added the same day) ---
     //

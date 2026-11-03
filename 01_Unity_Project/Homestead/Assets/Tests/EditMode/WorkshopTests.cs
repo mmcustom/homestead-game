@@ -370,7 +370,7 @@ public class WorkshopTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(37), "nothing was inserted in the middle");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(39), "nothing was inserted in the middle");
     }
 
     [Test]
@@ -742,7 +742,7 @@ public class WorkshopTests
         Assert.That(names, Does.Contain("jobHours"));
         Assert.That(names.Length, Is.EqualTo(15), "a2-1 added no saved field; Pottery P1 added jobCount");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(37), "only the two Potter kinds were added");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(39), "only the Potter and Kiln kinds were added");
     }
 
     // --- The Workshop screen's text ---

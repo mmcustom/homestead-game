@@ -187,6 +187,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.HandCartSite:
             case PileKind.WorkshopSite:
             case PileKind.PotterSite:
+            case PileKind.KilnSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -209,6 +210,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.HandCartSite: return PileKind.HandCart;
             case PileKind.WorkshopSite: return PileKind.Workshop;
             case PileKind.PotterSite: return PileKind.PotterShed;
+            case PileKind.KilnSite: return PileKind.Kiln;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -239,6 +241,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.HandCartSite: return HandCartCost();
             case PileKind.WorkshopSite: return WorkshopCost();
             case PileKind.PotterSite: return PotterCost();
+            case PileKind.KilnSite: return KilnCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -272,6 +275,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.LogsId } };
         if (site == PileKind.KitchenSite)
             return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.ClayId } }; // the Stone first, then the Clay
+        if (site == PileKind.KilnSite)
+            return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.ClayId } }; // the Stone first, then the Clay, as for the Kitchen's hearth
         if (site == PileKind.KitchenRoofSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
         if (site == PileKind.LeachHopperSite)
@@ -417,6 +422,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.HandCartSite: return CartRules.BuildBlows;
             case PileKind.WorkshopSite: return WorkshopRules.BuildBlows;
             case PileKind.PotterSite: return PotteryRules.BuildBlows;
+            case PileKind.KilnSite: return PotteryRules.KilnBuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -452,6 +458,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return WorkshopRules.BuiltMessage;
         if (site == PileKind.PotterSite)
             return PotteryRules.BuiltMessage;
+        if (site == PileKind.KilnSite)
+            return PotteryRules.KilnBuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -554,6 +562,13 @@ public class WellsAndOuthouses : MonoBehaviour
         new WoodStack { itemId = WoodManager.BranchesId, count = PotteryRules.SiteBranches },
         new WoodStack { itemId = WoodManager.TallGrassId, count = PotteryRules.SiteTallGrass },
         new WoodStack { itemId = PotteryRules.CordageId, count = PotteryRules.SiteCordage },
+    };
+
+    // A Kiln (Pottery P2): 6 Stone and 6 Clay, about 51 kg, so a staged site the Hand Cart carries. PotteryRules has the numbers.
+    public static WoodStack[] KilnCost() => new[]
+    {
+        new WoodStack { itemId = WoodManager.StoneId, count = PotteryRules.KilnStone },
+        new WoodStack { itemId = WoodManager.ClayId, count = PotteryRules.KilnClay },
     };
 
     public static WoodStack[] CountertopCost()
@@ -680,6 +695,9 @@ public class WellsAndOuthouses : MonoBehaviour
         kitchenFromStructure = setbackKitchenFromStructureMetres,
         kitchenFromTree = setbackKitchenFromTreeMetres,
         kitchenRadius = kitchenRoofRadiusMetres,
+        kilnRadius = PotteryRules.KilnRadiusMetres,
+        kilnFromStructure = PotteryRules.KilnClearanceMetres,
+        kilnFromTree = PotteryRules.KilnClearanceMetres,
         upgradientRange = setbackUpgradientRangeMetres,
         hollowDepth = setbackHollowDepthMetres,
         floodBand = floodplainBandMetres,
@@ -731,7 +749,7 @@ public class WellsAndOuthouses : MonoBehaviour
     }
 
     // Every built structure but the one being placed, with how far each reaches from its position (the kitchen's gap is clear air).
-    List<SiteInfo> KitchenNeighbours(WoodPileState ignore)
+    List<SiteInfo> KitchenNeighbours(WoodPileState ignore, bool skipCarts = false)
     {
         var found = new List<SiteInfo>();
         WoodManager wood = WoodManager.Instance;
@@ -739,30 +757,52 @@ public class WellsAndOuthouses : MonoBehaviour
             return found;
         foreach (WoodPileState pile in wood.Piles)
         {
-            if (pile == ignore || pile.kind == PileKind.Felled || pile.IsKitchenAddon)
+            if (pile == ignore || pile.kind == PileKind.Felled || pile.IsKitchenAddon || (skipCarts && WoodManager.IsHandCart(pile.kind)))
                 continue; // a kitchen's own countertop, shelving, grill or sink is part of it, not a neighbour
-            float radius;
-            switch (pile.kind)
-            {
-                case PileKind.Cabin:
-                case PileKind.CabinSite: radius = 2.5f; break;      // half the cabin's depth
-                case PileKind.Kitchen:
-                case PileKind.KitchenSite:
-                case PileKind.KitchenRoofSite: radius = kitchenRoofRadiusMetres; break;
-                case PileKind.Workshop:
-                case PileKind.WorkshopSite: radius = 1.9f; break;   // the shed's half-diagonal (3 m by 2.4 m)
-                case PileKind.PotterShed:
-                case PileKind.PotterSite: radius = PotteryRules.KitchenRadiusMetres; break;   // the shed's half-diagonal (2.4 m by 2.0 m)
-                case PileKind.WoodShed:
-                case PileKind.WoodShedSite:
-                case PileKind.Tent:
-                case PileKind.LeanTo:
-                case PileKind.TarpShelter: radius = 1.2f; break;
-                default: radius = 0.7f; break;
-            }
+            float radius = ReachOf(pile.kind);
             found.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = radius });
         }
         return found;
+    }
+
+    // How far a structure of this kind reaches from its position, in metres (the Kitchen's and the Kiln's gaps are measured from its edge).
+    float ReachOf(PileKind kind)
+    {
+        switch (kind)
+        {
+            case PileKind.Cabin:
+            case PileKind.CabinSite: return 2.5f;      // half the cabin's depth
+            case PileKind.Kitchen:
+            case PileKind.KitchenSite:
+            case PileKind.KitchenRoofSite: return kitchenRoofRadiusMetres;
+            case PileKind.Workshop:
+            case PileKind.WorkshopSite: return 1.9f;   // the shed's half-diagonal (3 m by 2.4 m)
+            case PileKind.PotterShed:
+            case PileKind.PotterSite: return PotteryRules.KitchenRadiusMetres;   // the shed's half-diagonal (2.4 m by 2.0 m)
+            case PileKind.Kiln:
+            case PileKind.KilnSite: return PotteryRules.KilnRadiusMetres;
+            case PileKind.WoodShed:
+            case PileKind.WoodShedSite:
+            case PileKind.Tent:
+            case PileKind.LeanTo:
+            case PileKind.TarpShelter: return 1.2f;
+            default: return 0.7f;
+        }
+    }
+
+    // What a Kiln keeps clear of: the same list as the Kitchen's, except a parked Hand Cart, which may stand beside the site it feeds (the generic pile spacing covers it).
+    List<SiteInfo> KilnNeighbours(WoodPileState ignore) => KitchenNeighbours(ignore, true);
+
+    // The Kiln's clearance the other way (Pottery P2): whether something of this kind may go up here, given the Kilns and Kiln Sites that already stand (empty, loaded, firing or not).
+    public bool CanPlaceBesideKiln(PileKind kind, Vector3 point, out string reason)
+    {
+        var kilns = new List<SiteInfo>();
+        WoodManager wood = WoodManager.Instance;
+        if (wood != null)
+            foreach (WoodPileState pile in wood.Piles)
+                if (WoodManager.IsKiln(pile.kind))
+                    kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = PotteryRules.KilnRadiusMetres });
+        return Setbacks.CanPlaceBesideKiln(point, ReachOf(kind), kilns, Rules, out reason);
     }
 
     // Metres from the point to the creek channel's edge (negative inside the channel).
@@ -854,6 +894,18 @@ public class WellsAndOuthouses : MonoBehaviour
         // A Wood Shed only needs dry ground clear of the cabin (the floodplain test above is its other rule); the Workshop is a roofed shed too.
         if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed || kind == PileKind.WorkshopSite || kind == PileKind.Workshop || kind == PileKind.PotterSite || kind == PileKind.PotterShed)
             return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
+
+        // A Kiln is open air: dry ground (the floodplain test above), not under a roof, its dome's edge 3 m clear of every other structure and every tree.
+        if (kind == PileKind.KilnSite || kind == PileKind.Kiln)
+        {
+            if (OverheadCover.Roofed(point))
+            {
+                reason = "A kiln needs open sky: not under a roof.";
+                return false;
+            }
+            bool treeNear = WoodManager.Instance != null && WoodManager.Instance.FindTree(point, PotteryRules.KilnTreeReachMetres) >= 0;
+            return Setbacks.CanPlaceKiln(point, KilnNeighbours(ignore), treeNear, rules, out reason);
+        }
 
         // A Covered Kitchen keeps its roof edge clear of every other structure and every tree (a fire under a roof).
         if (kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen)
@@ -1094,6 +1146,70 @@ public class WellsAndOuthouses : MonoBehaviour
         return done;
     }
 
+    // --- The Kiln (Pottery P2) ---
+
+    // A firing has run its hours: every loaded dry stack becomes its fired stack (the same count) and the Ash is added. A loaded piece this build does not know stays as it is.
+    public static void FinishFiring(WoodPileState kiln)
+    {
+        if (kiln == null || string.IsNullOrEmpty(kiln.jobItem))
+            return;
+        var fired = new List<WoodStack>();
+        for (int i = kiln.contents.Count - 1; i >= 0; i--)
+        {
+            string firedId = PotteryRules.FiredIdOf(kiln.contents[i].itemId);
+            if (firedId.Length == 0)
+                continue;
+            fired.Add(new WoodStack { itemId = firedId, count = kiln.contents[i].count, day = 0 });
+            kiln.contents.RemoveAt(i);
+        }
+        foreach (WoodStack stack in fired)
+            kiln.Add(stack.itemId, stack.count, 0);
+        kiln.Add(PotteryRules.AshId, PotteryRules.KilnAsh, 0);
+        kiln.jobItem = "";
+        kiln.jobHours = 0f;
+        kiln.jobCount = 0;
+    }
+
+    // The loaded dry pieces as plain entries (the shelf-space maths in PotteryRules reads them), and the fired pieces waiting.
+    public static List<PotteryRules.ShelfEntry> KilnLoadOf(WoodPileState kiln)
+    {
+        var load = new List<PotteryRules.ShelfEntry>();
+        foreach (WoodStack stack in kiln.contents)
+            if (stack.count > 0 && PotteryRules.IsPiece(stack.itemId))
+                load.Add(new PotteryRules.ShelfEntry { itemId = stack.itemId, count = stack.count, ready = 0 });
+        return load;
+    }
+
+    public static int KilnPiecesIn(WoodPileState kiln)
+    {
+        int n = 0;
+        foreach (WoodStack stack in kiln.contents)
+            if (PotteryRules.IsPiece(stack.itemId))
+                n += stack.count;
+        return n;
+    }
+
+    public static PotteryRules.KilnPhase KilnPhaseOf(WoodPileState kiln) =>
+        PotteryRules.PhaseOf(kiln.KilnFiring, kiln.KilnWaiting, KilnPiecesIn(kiln), kiln.Count(PotteryRules.FirewoodId));
+
+    // Testing only (TimeDebugControls, Ctrl+semicolon): every firing is done now. Returns how many kilns changed.
+    public int DebugFinishKilns()
+    {
+        WoodManager wood = WoodManager.Instance;
+        int done = 0;
+        if (wood == null)
+            return 0;
+        foreach (WoodPileState kiln in wood.Piles)
+        {
+            if (kiln.kind != PileKind.Kiln || !kiln.KilnFiring)
+                continue;
+            FinishFiring(kiln);
+            wood.NotifyChanged(kiln);
+            done++;
+        }
+        return done;
+    }
+
     // Stacks of one piece with the same ready hour become one.
     static void MergeShelf(WoodPileState shed)
     {
@@ -1189,6 +1305,17 @@ public class WellsAndOuthouses : MonoBehaviour
             if (PotteryRules.IsDone(shed.jobHours))
                 FinishPotteryJob(shed, PotteryRules.AbsoluteHour(Today, hour));
             wood.NotifyChanged(shed);
+        }
+
+        // A Kiln's firing runs one game hour at a time too (sleeping, skipping days and being away all count); at the end the pieces are fired and the Ash is in.
+        foreach (WoodPileState kiln in wood.Piles)
+        {
+            if (kiln.kind != PileKind.Kiln || !kiln.KilnFiring)
+                continue;
+            kiln.jobHours = PotteryRules.AfterHour(kiln.jobHours);
+            if (PotteryRules.IsDone(kiln.jobHours))
+                FinishFiring(kiln);
+            wood.NotifyChanged(kiln);
         }
 
         bool flood = StreamManager.State == StreamState.FlashFlood;

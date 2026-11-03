@@ -28,6 +28,8 @@ public static class StructureVisuals
             case PileKind.Workshop: BuildWorkshop(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.PotterSite: BuildPotterSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.PotterShed: BuildPotterShed(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.KilnSite: BuildKilnSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Kiln: BuildKiln(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -246,6 +248,91 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.7f, -postZ + 0.35f);
         boxSize = new Vector3(2.2f, 1.4f, 0.7f);
+    }
+
+    static readonly Color SootColor = new Color(0.16f, 0.13f, 0.12f);
+    static readonly Color FiredClayColor = new Color(0.72f, 0.38f, 0.22f);
+    static readonly Color EmberColor = new Color(1f, 0.45f, 0.1f);
+
+    // The Kiln's marked-out plot (about 2.4 m square: half = 1.2): the stakes, bare earth, and the delivered Stone and Clay beside it.
+    static void BuildKilnSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 1.2f, out boxCenter, out boxSize);
+        int stone = Mathf.Min(state.Count(WoodManager.StoneId), PotteryRules.KilnStone);
+        for (int i = 0; i < stone; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-1.6f + (i % 3) * 0.3f, 0.1f + (i / 3) * 0.2f, -0.5f + (i % 2) * 0.1f), new Vector3(0f, i * 23f, 0f), new Vector3(0.28f, 0.18f, 0.24f), null), SlabColor);
+        int clay = Mathf.Min(state.Count(WoodManager.ClayId), PotteryRules.KilnClay);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(1.6f, 0.1f + (i / 2) * 0.16f, -0.5f + (i % 2) * 0.28f), Vector3.zero, new Vector3(0.26f, 0.2f, 0.26f), null), ClayColor);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(2.4f, 0.9f, 2.4f);
+    }
+
+    // The finished Kiln (Pottery P2): a stone pad under a clay dome about 2 m across with a mouth at the front (+Z), open to the sky. It reads at a glance: bare when empty; Firewood
+    // stacked and a few dry pieces at the mouth when loaded; a sooty dome, glowing mouth and smoke while it fires; pale, ash-dusted dome, a heap of Ash and the fired pieces (terracotta)
+    // set out at the mouth when they are waiting. No particles: everything is a plain shape coloured here.
+    static void BuildKiln(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        PotteryRules.KilnPhase phase = WellsAndOuthouses.KilnPhaseOf(state);
+        bool firing = phase == PotteryRules.KilnPhase.Firing, done = phase == PotteryRules.KilnPhase.Done;
+
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.07f, 0f), Vector3.zero, new Vector3(2.4f, 0.07f, 2.4f), null), SlabColor);
+        Color dome = firing ? SootColor : done ? Color.Lerp(ClayColor, AshColor, 0.45f) : ClayColor;
+        Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0f, 0.15f, 0f), Vector3.zero, new Vector3(2.0f, 1.7f, 2.0f), null), dome);
+        for (int i = 0; i < 5; i++) // a ring of stones bedded in the dome's foot
+        {
+            float angle = (i - 2) * 0.55f + Mathf.PI / 2f;
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(Mathf.Cos(angle) * 0.92f, 0.25f, Mathf.Sin(angle) * 0.92f), new Vector3(0f, -angle * Mathf.Rad2Deg, 0f),
+                         new Vector3(0.3f, 0.26f, 0.3f), null), SlabColor);
+        }
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 1.0f, 0f), Vector3.zero, new Vector3(0.28f, 0.1f, 0.28f), null), firing ? SootColor : SlabColor); // the vent
+
+        // The mouth: dark and empty, a glowing ember while it fires.
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.45f, 0.92f), Vector3.zero, new Vector3(0.62f, 0.5f, 0.3f), null), firing ? EmberColor : SootColor);
+
+        int wood = Mathf.Min(state.Count(PotteryRules.FirewoodId), PotteryRules.KilnFirewood);
+        if (!firing && !done)
+            for (int i = 0; i < wood; i++)
+                Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-1.45f + (i % 5) * 0.02f, 0.1f + (i / 2) * 0.12f, -0.2f + (i % 2) * 0.35f), new Vector3(90f, 12f * (i % 3), 0f), new Vector3(0.1f, 0.55f, 0.1f), bark);
+
+        if (firing)
+        {
+            for (int i = 0; i < 3; i++) // three smoke puffs rising from the vent
+                Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0.1f * i, 1.35f + i * 0.45f, 0.05f * i), Vector3.zero, Vector3.one * (0.35f + i * 0.14f), null), new Color(0.5f, 0.5f, 0.5f));
+        }
+        else if (!done)
+        {
+            // Dry pieces in the load, up to six at the mouth (one small shape for each kind, pale as on the shed's shelf).
+            int slot = 0;
+            foreach (PotteryRules.ShelfEntry entry in WellsAndOuthouses.KilnLoadOf(state))
+                for (int i = 0; i < Mathf.Min(entry.count, 3) && slot < 6; i++, slot++)
+                    KilnPiece(parent, pieces, entry.itemId, new Vector3(1.4f - (slot % 3) * 0.25f, 0.06f + (slot / 3) * 0.2f, 0.7f), DryClayColor);
+        }
+        else
+        {
+            int slot = 0;
+            foreach (PotteryRules.Recipe recipe in PotteryRules.Recipes)
+                for (int i = 0; i < Mathf.Min(state.Count(recipe.firedId), 3) && slot < 6; i++, slot++)
+                    KilnPiece(parent, pieces, recipe.itemId, new Vector3(1.4f - (slot % 3) * 0.25f, 0.06f + (slot / 3) * 0.2f, 0.7f), FiredClayColor);
+            if (state.Count(PotteryRules.AshId) > 0)
+                Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-0.5f, 0.1f, 1.25f), Vector3.zero, new Vector3(0.5f, 0.2f, 0.4f), null), AshColor);
+        }
+
+        boxCenter = new Vector3(0f, 0.75f, 0f);
+        boxSize = new Vector3(2.2f, 1.5f, 2.2f);
+    }
+
+    // One small piece, by its dry id's shape (the same shapes as on the Potter's Shed's shelf).
+    static void KilnPiece(Transform parent, List<GameObject> pieces, string dryId, Vector3 at, Color tone)
+    {
+        switch (dryId)
+        {
+            case PotteryRules.DryCupId: Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(0f, 0.06f, 0f), Vector3.zero, new Vector3(0.09f, 0.06f, 0.09f), null), tone); break;
+            case PotteryRules.DryBowlId: Tinted(Piece(parent, pieces, PrimitiveType.Sphere, at + new Vector3(0f, 0.05f, 0f), Vector3.zero, new Vector3(0.2f, 0.1f, 0.2f), null), tone); break;
+            case PotteryRules.DryPotId: Tinted(Piece(parent, pieces, PrimitiveType.Sphere, at + new Vector3(0f, 0.1f, 0f), Vector3.zero, new Vector3(0.22f, 0.2f, 0.22f), null), tone); break;
+            case PotteryRules.DryCrockId: Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(0f, 0.14f, 0f), Vector3.zero, new Vector3(0.2f, 0.14f, 0.2f), null), tone); break;
+            default: Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0f, 0.07f, 0f), Vector3.zero, new Vector3(0.22f, 0.14f, 0.18f), null), tone); break;
+        }
     }
 
     // A finished Workshop piece standing on the bench (a2-1), a small plain shape for each: the stool's round seat on three legs, the End Table's square top on four legs,
@@ -644,6 +731,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.LeachHopper: return HopperPrompt();
                 case PileKind.Workshop: return WorkshopPrompt();
                 case PileKind.PotterShed: return PotteryPrompt();
+                case PileKind.Kiln: return KilnPromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -1300,6 +1388,172 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // --- The Kiln (Pottery P2): R loads dry pieces then Firewood from the pack, E lights it or collects what was fired, R with the Hammer takes it down. No screen: prompts only. ---
+
+    PotteryRules.KilnPhase KilnPhaseNow => WellsAndOuthouses.KilnPhaseOf(state);
+
+    string KilnPromptText() =>
+        PotteryRules.KilnPrompt(KilnPhaseNow, WellsAndOuthouses.KilnPiecesIn(state), state.Count(PotteryRules.FirewoodId), KilnFiredPieces(), state.Count(PotteryRules.AshId), state.jobHours);
+
+    int KilnFiredPieces()
+    {
+        int n = 0;
+        foreach (PotteryRules.Recipe recipe in PotteryRules.Recipes)
+            n += state.Count(recipe.firedId);
+        return n;
+    }
+
+    // What the pack carries that the kiln would take now (dry pieces in the space left, Firewood to 10), and a short name for it.
+    int KilnCarriedLoadable(out string what)
+    {
+        what = "";
+        int total = 0;
+        bool pieces = false, wood = false;
+        int used = state.KilnSpaceUsed(), fire = state.Count(PotteryRules.FirewoodId);
+        foreach (string id in PotteryRules.LoadOrder)
+        {
+            int n = Mathf.Min(PotteryRules.KilnRoomFor(id, used, fire), Inventory.Player.Count(id));
+            if (n <= 0)
+                continue;
+            total += n;
+            if (id == PotteryRules.FirewoodId)
+                wood = true;
+            else
+                pieces = true;
+        }
+        what = pieces && wood ? "dry pieces and Firewood" : pieces ? "dry pieces" : "Firewood";
+        return total;
+    }
+
+    string KilnSecondaryPrompt()
+    {
+        PotteryRules.KilnPhase phase = KilnPhaseNow;
+        if (WoodManager.HammerEquipped)
+            return PotteryRules.KilnDismantlePrompt(phase, state.jobHours);
+        int loadable = KilnCarriedLoadable(out string what);
+        return PotteryRules.KilnLoadPrompt(PotteryRules.LoadGate(phase, loadable), what);
+    }
+
+    // E: light it when it is ready, say what is missing when it is not, show the hours while it fires, and collect what was fired.
+    void KilnInteract()
+    {
+        PotteryRules.KilnPhase phase = KilnPhaseNow;
+        int pieces = WellsAndOuthouses.KilnPiecesIn(state), firewood = state.Count(PotteryRules.FirewoodId);
+        switch (phase)
+        {
+            case PotteryRules.KilnPhase.Firing:
+                ToolStatus.Flash(KilnPromptText(), 3f);
+                return;
+            case PotteryRules.KilnPhase.Done:
+                KilnCollect();
+                return;
+            case PotteryRules.KilnPhase.Ready:
+                KilnStartFiring(out string started);
+                ToolStatus.Flash(started, 4f);
+                return;
+            default:
+                ToolStatus.Flash(PotteryRules.KilnNotReady(pieces, firewood), 4f);
+                return;
+        }
+    }
+
+    // Lights the kiln: takes the fixed 10 Firewood and starts the 24 hours. The firing marker is jobItem; jobHours is the hours left.
+    public bool KilnStartFiring(out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.Kiln || WoodManager.Instance == null || !PotteryRules.CanFire(KilnPhaseNow))
+            return false;
+        int pieces = WellsAndOuthouses.KilnPiecesIn(state);
+        state.Take(PotteryRules.FirewoodId, PotteryRules.KilnFirewood);
+        state.jobItem = PotteryRules.FiringMarker;
+        state.jobCount = 0;
+        state.jobHours = PotteryRules.KilnFireHours;
+        WoodManager.Instance.NotifyChanged(state);
+        message = PotteryRules.KilnStarted(pieces);
+        return true;
+    }
+
+    // Everything fired and the Ash go to the pack; whatever does not fit stays in the kiln.
+    void KilnCollect()
+    {
+        int took = 0, ashTook = 0, stayed = 0;
+        var ids = new List<string>();
+        foreach (PotteryRules.Recipe recipe in PotteryRules.Recipes)
+            ids.Add(recipe.firedId);
+        ids.Add(PotteryRules.AshId);
+        foreach (string id in ids)
+        {
+            int n = state.Count(id);
+            if (n <= 0)
+                continue;
+            ItemDefinition item = ItemDatabase.Get(id);
+            int fits = item != null ? Mathf.Min(n, Inventory.Player.SpaceFor(item)) : 0;
+            int added = fits > 0 ? Inventory.AddToPlayer(id, fits) : 0;
+            state.Take(id, added);
+            if (id == PotteryRules.AshId)
+                ashTook += added;
+            else
+                took += added;
+            stayed += n - added;
+        }
+        if (took + ashTook > 0)
+            WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(PotteryRules.KilnTook(took, ashTook, stayed), 4f);
+    }
+
+    // R: with the Hammer it takes the kiln down; without, it loads from the pack (KilnLoadFromPack).
+    void KilnSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        PotteryRules.KilnGate gate = PotteryRules.LoadGate(KilnPhaseNow, KilnCarriedLoadable(out _));
+        if (gate != PotteryRules.KilnGate.Ok)
+        {
+            ToolStatus.Flash(PotteryRules.KilnLoadRefusal(gate), 4f);
+            return;
+        }
+        KilnLoadFromPack(out string message);
+        ToolStatus.Flash(message, 4f);
+    }
+
+    // Puts the dry pieces first (in the recipe order, up to the 12 space units) and then the Firewood (up to 10) from the pack into the kiln. Returns whether anything moved.
+    public bool KilnLoadFromPack(out string message)
+    {
+        message = PotteryRules.KilnLoadRefusal(PotteryRules.KilnGate.NothingFits);
+        if (state == null || state.kind != PileKind.Kiln || Inventory == null || WoodManager.Instance == null || !state.KilnOpen)
+            return false;
+
+        int used = state.KilnSpaceUsed(), fire = state.Count(PotteryRules.FirewoodId);
+        int moved = 0;
+        var names = new List<string>();
+        foreach (string id in PotteryRules.LoadOrder)
+        {
+            int n = Mathf.Min(PotteryRules.KilnRoomFor(id, used, fire), Inventory.Player.Count(id));
+            if (n <= 0)
+                continue;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.SilenceNextRemoval();
+            int removed = Inventory.Player.RemoveBatches(id, n, (day, count) => state.Add(id, count, 0));
+            if (removed <= 0)
+                continue;
+            moved += removed;
+            names.Add($"{removed} {ItemDatabase.Get(id)?.DisplayName ?? id}");
+            if (id == PotteryRules.FirewoodId)
+                fire += removed;
+            else if (PotteryRules.TryFind(id, out PotteryRules.Recipe recipe))
+                used += recipe.space * removed;
+        }
+
+        if (moved <= 0)
+            return false;
+        WoodManager.Instance.NotifyChanged(state);
+        message = PotteryRules.KilnLoaded(string.Join(", ", names), WellsAndOuthouses.KilnPiecesIn(state), state.Count(PotteryRules.FirewoodId));
+        return true;
+    }
+
     string WellPrompt()
     {
         WellsAndOuthouses w = Rules;
@@ -1343,6 +1597,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return HopperSecondaryPrompt();
             if (state.kind == PileKind.PotterShed)
                 return PotterySecondaryPrompt();
+            if (state.kind == PileKind.Kiln)
+                return KilnSecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -1387,6 +1643,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.LeachHopper: CollectLye(); break;
             case PileKind.Workshop: WorkshopInteract(); break;
             case PileKind.PotterShed: PotteryInteract(); break;
+            case PileKind.Kiln: KilnInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -1551,6 +1808,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             HopperSecondary();
         }
+        else if (state.kind == PileKind.Kiln)
+        {
+            KilnSecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -1654,6 +1915,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (state.kind == PileKind.PotterShed && (PotteryWorking || PotteryRules.WetPieces(PotteryShelf(), WellsAndOuthouses.PotteryNow()) > 0))
         {
             ToolStatus.Flash(PotteryRules.DismantlePrompt(PotteryWorking, state.jobHours, PotteryRules.WetPieces(PotteryShelf(), WellsAndOuthouses.PotteryNow())), 4f);
+            return;
+        }
+        // A Kiln is taken down only when it is empty and not firing (what is in it would be lost).
+        if (state.kind == PileKind.Kiln && !PotteryRules.CanDismantleKiln(KilnPhaseNow))
+        {
+            ToolStatus.Flash(PotteryRules.KilnDismantlePrompt(KilnPhaseNow, state.jobHours), 4f);
             return;
         }
         var refund = new StructureRefund(state.position, transform);

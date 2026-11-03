@@ -32,6 +32,9 @@ public struct SetbackRules
     public float kitchenFromStructure; // covered kitchen's roof edge to any other structure (3 m, fire safety)
     public float kitchenFromTree;     // covered kitchen's roof edge to a tree trunk (3 m, fire safety)
     public float kitchenRadius;       // the kitchen roof's reach from its centre, so the gaps are measured from its edge (2.3 m, the roof corner)
+    public float kilnRadius;          // the kiln dome's reach from its centre (1.2 m), so the gaps are measured from its edge
+    public float kilnFromStructure;   // a kiln's edge to any other structure, and any new structure to a kiln's edge (3 m, both ways)
+    public float kilnFromTree;        // a kiln's edge to a tree trunk (3 m)
     public float upgradientRange;     // a well must be higher than any privy within this distance
     public float hollowDepth;         // a point this much lower than the ground around it is a hollow
     public float floodBand;           // ground within this distance of the channel edge ...
@@ -39,7 +42,7 @@ public struct SetbackRules
 
     public static SetbackRules Defaults => new SetbackRules
     {
-        privyFromWater = 30f, privyFromWell = 30f, privyFromBuilding = 7.5f, wellFromBuilding = 3f, wellFromPen = 15f, shedFromBuilding = 3f, kitchenFromStructure = 3f, kitchenFromTree = 3f, kitchenRadius = 2.3f,
+        privyFromWater = 30f, privyFromWell = 30f, privyFromBuilding = 7.5f, wellFromBuilding = 3f, wellFromPen = 15f, shedFromBuilding = 3f, kitchenFromStructure = 3f, kitchenFromTree = 3f, kitchenRadius = 2.3f, kilnRadius = 1.2f, kilnFromStructure = 3f, kilnFromTree = 3f, // the same figures as PotteryRules.KilnRadiusMetres and KilnClearanceMetres (a test checks they agree)
         upgradientRange = 60f, hollowDepth = 0.5f, floodBand = 25f, floodRise = 1.5f,
     };
 }
@@ -159,6 +162,43 @@ public static class Setbacks
         {
             reason = TooClose("a tree", rules.kitchenFromTree);
             return false;
+        }
+        reason = "";
+        return true;
+    }
+
+    // An open-air Kiln (a fire in a clay dome; Pottery P2): its edge keeps kilnFromStructure clear of every other structure and kilnFromTree clear of a tree, measured from edge
+    // to edge (a structure's own reach, SiteInfo.radius, counts). The same maths as the Kitchen's, with the kiln's own radius.
+    public static bool CanPlaceKiln(Vector3 point, IList<SiteInfo> structures, bool treeNear, SetbackRules rules, out string reason)
+    {
+        foreach (SiteInfo site in structures)
+        {
+            if (Flat(point, site.position) < rules.kilnRadius + site.radius + rules.kilnFromStructure)
+            {
+                reason = TooClose($"the {site.name}", rules.kilnFromStructure);
+                return false;
+            }
+        }
+        if (treeNear)
+        {
+            reason = TooClose("a tree", rules.kilnFromTree);
+            return false;
+        }
+        reason = "";
+        return true;
+    }
+
+    // The other way round: something new with this reach going up beside a Kiln that already stands (a loaded or a lit one included: a Kiln counts whatever it holds) stays
+    // kilnFromStructure clear of the kiln's edge. Exactly CanPlaceKiln's gap, so the two directions can never disagree.
+    public static bool CanPlaceBesideKiln(Vector3 point, float reach, IList<SiteInfo> kilns, SetbackRules rules, out string reason)
+    {
+        foreach (SiteInfo kiln in kilns)
+        {
+            if (Flat(point, kiln.position) < rules.kilnRadius + reach + rules.kilnFromStructure)
+            {
+                reason = TooClose($"the {kiln.name}", rules.kilnFromStructure);
+                return false;
+            }
         }
         reason = "";
         return true;

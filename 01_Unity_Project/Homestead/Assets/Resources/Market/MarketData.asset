@@ -505,6 +505,36 @@ MonoBehaviour:
     baseCents: 2800
     kind: 1
     seasonalBuy: 0
+  - itemId: clay_cup
+    group: 5
+    pool: clay_cup
+    baseCents: 400
+    kind: 1
+    seasonalBuy: 0
+  - itemId: clay_bowl
+    group: 5
+    pool: clay_bowl
+    baseCents: 600
+    kind: 1
+    seasonalBuy: 0
+  - itemId: clay_pot
+    group: 5
+    pool: clay_pot
+    baseCents: 1000
+    kind: 1
+    seasonalBuy: 0
+  - itemId: water_crock
+    group: 5
+    pool: water_crock
+    baseCents: 1200
+    kind: 1
+    seasonalBuy: 0
+  - itemId: brick_batch
+    group: 5
+    pool: brick_batch
+    baseCents: 600
+    kind: 1
+    seasonalBuy: 0
   groups:
   - group: 0
     dropBp: 400

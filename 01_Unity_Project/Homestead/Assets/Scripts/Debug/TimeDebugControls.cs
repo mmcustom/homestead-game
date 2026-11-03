@@ -39,7 +39,8 @@ using UnityEngine.InputSystem;
 //   \  give the Workshop site's materials (a Hammer, an Axe, 10 Branches, 10 Tall Grass, 3 Cordage) and stand a Wood Pile with its 5 Logs 3 m ahead;  Shift+\  stand a finished Workshop 4 m
 //      ahead with the bench stocked for a Table and a Chair (5 Logs, 8 Branches, 3 Cordage);  Ctrl+\  finish every running Workshop job now
 //   ;  give the Potter's Shed site's materials (a Hammer, a Shovel, 8 Branches, 8 Tall Grass, 2 Cordage, 12 Clay, 6 Sand) and stand a Wood Pile with its 3 Logs 3 m ahead;  Shift+;  stand a
-//      finished Potter's Shed 4 m ahead, stocked, with 2 wet Bowls and 3 dry Cups on the shelf;  Ctrl+;  finish every shaping job and dry every piece now
+//      finished Potter's Shed 4 m ahead, stocked, with 2 wet Bowls and 3 dry Cups on the shelf;  Ctrl+;  finish every shaping job and dry every piece now, and every firing
+//   '  stand a finished Kiln 4 m ahead, loaded with 8 dry pieces and 10 Firewood, ready to light;  Shift+'  give a Kiln site kit (a Hammer, 6 Stone, 6 Clay, 10 Firewood, 3 dry Cups, 2 dry Bowls)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -221,8 +222,9 @@ public class TimeDebugControls : MonoBehaviour
         {
             if (ctrl)
             {
-                int done = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishPottery() : 0;
-                Show(done > 0 ? $"Pottery finished in {done} shed(s): shaping done, every piece dry" : "No Potter's Shed has a job or a wet piece", time);
+                int sheds = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishPottery() : 0;
+                int kilns = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishKilns() : 0;
+                Show(sheds + kilns > 0 ? $"Pottery finished: {sheds} shed(s) done shaping with every piece dry, {kilns} kiln(s) done firing" : "No Potter's Shed or Kiln has anything running or drying", time);
                 return;
             }
 
@@ -261,6 +263,39 @@ public class TimeDebugControls : MonoBehaviour
             WoodManager.Instance.NotifyChanged(potLogs);
             Show(potMissed == 0 ? $"Pottery kit given: a Hammer, a Shovel, {PotteryRules.SiteBranches} Branches, {PotteryRules.SiteTallGrass} Tall Grass, {PotteryRules.SiteCordage} Cordage, 12 Clay, 6 Sand; a Wood Pile with {PotteryRules.SiteLogs} Logs is ahead"
                                   : $"Pottery kit given ({potMissed} items didn't fit); a Wood Pile with {PotteryRules.SiteLogs} Logs is ahead", time);
+            return;
+        }
+
+        // Pottery P2. ' stands a finished Kiln 4 m ahead, loaded (4 dry Cups, 2 Bowls, a Cooking Pot, a Crock) with 10 Firewood and ready to light; Shift+' gives a Kiln site kit
+        // (a Hammer, 6 Stone, 6 Clay, 10 Firewood, 3 dry Cups and 2 dry Bowls; no cart needed to test it). Ctrl+; (above) also finishes every firing.
+        if (keyboard.quoteKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
+        {
+            Transform kilnBody = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 kilnFlat = Vector3.ProjectOnPlane(kilnBody.forward, Vector3.up).normalized;
+            if (keyboard.shiftKey.isPressed)
+            {
+                InventoryManager kilnInventory = InventoryManager.Instance;
+                int kilnMissed = 0;
+                foreach ((string id, int count) in new (string, int)[] { ("hammer", 1), (WoodManager.StoneId, PotteryRules.KilnStone), (WoodManager.ClayId, PotteryRules.KilnClay),
+                                                                          (PotteryRules.FirewoodId, PotteryRules.KilnFirewood), (PotteryRules.DryCupId, 3), (PotteryRules.DryBowlId, 2) })
+                    kilnMissed += count - kilnInventory.AddToPlayer(id, count);
+                Show(kilnMissed == 0 ? "Kiln kit given: a Hammer, 6 Stone, 6 Clay, 10 Firewood, 3 dry Cups and 2 dry Bowls"
+                                     : $"Kiln kit given ({kilnMissed} items didn't fit): a Hammer, 6 Stone, 6 Clay, 10 Firewood, 3 dry Cups and 2 dry Bowls", time);
+                return;
+            }
+
+            Vector3 kilnAt = kilnBody.position + kilnFlat * 4f;
+            Terrain kilnTerrain = Terrain.activeTerrain;
+            if (kilnTerrain != null)
+                kilnAt.y = kilnTerrain.SampleHeight(kilnAt) + kilnTerrain.transform.position.y;
+            WoodPileState kiln = WoodManager.Instance.DebugPlace(PileKind.Kiln, kilnAt, kilnBody.eulerAngles.y + 180f);
+            kiln.Add(PotteryRules.DryCupId, 4);
+            kiln.Add(PotteryRules.DryBowlId, 2);
+            kiln.Add(PotteryRules.DryPotId, 1);
+            kiln.Add(PotteryRules.DryCrockId, 1);
+            kiln.Add(PotteryRules.FirewoodId, PotteryRules.KilnFirewood);
+            WoodManager.Instance.NotifyChanged(kiln);
+            Show("Kiln placed ahead: 8 dry pieces and 10 Firewood in it, ready to light (E)", time);
             return;
         }
 

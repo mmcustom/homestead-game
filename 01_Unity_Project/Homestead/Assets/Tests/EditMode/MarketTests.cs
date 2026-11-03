@@ -572,7 +572,7 @@ public class MarketTests
     public void TheDefaultCatalogHasNoProblems()
     {
         Assert.That(Table.Problems, Is.Empty);
-        Assert.That(Table.Rows.Count, Is.EqualTo(82), "the 71 of the old tables, plus Ash, the Kindling Bundle, Maple Syrup, Lye, Potash, the Potash Kettle, the Wood Saw, the Rough Stool, the End Table, the Chair and the Table");
+        Assert.That(Table.Rows.Count, Is.EqualTo(87), "the 71 of the old tables, plus the five fired pottery pieces and Ash, the Kindling Bundle, Maple Syrup, Lye, Potash, the Potash Kettle, the Wood Saw, the Rough Stool, the End Table, the Chair and the Table");
         Assert.That(Table.Stock.Count, Is.EqualTo(21));
     }
 
@@ -639,7 +639,7 @@ public class MarketTests
         Assert.That(counts[MarketGroup.GameMeat], Is.EqualTo(8));
         Assert.That(counts[MarketGroup.Hides], Is.EqualTo(5));
         Assert.That(counts[MarketGroup.Forage], Is.EqualTo(12));
-        Assert.That(counts[MarketGroup.Crafted], Is.EqualTo(17), "12, the Kindling Bundle, the Rough Stool, the End Table, the Chair and the Table");
+        Assert.That(counts[MarketGroup.Crafted], Is.EqualTo(22), "12, the Kindling Bundle, the Rough Stool, the End Table, the Chair, the Table and the five fired pottery pieces");
         Assert.That(counts[MarketGroup.Ash], Is.EqualTo(1));
         Assert.That(counts[MarketGroup.Maple], Is.EqualTo(1));
         Assert.That(counts[MarketGroup.Potash], Is.EqualTo(2), "Lye and Potash");
@@ -662,12 +662,12 @@ public class MarketTests
     {
         // 19 stocked items totalling $255.00 and 52 bought items totalling $110.00, taken from the b03ebc3 TradingPost.cs; Ash ($2.00), the
         // Kindling Bundle ($1.00), Maple Syrup ($10.00), Lye ($3.00) and Potash ($16.00) came later, so the bought items are now 57 totalling
-        // $142.00, and the Rough Stool ($14.00), End Table ($12.00), Chair ($18.00) and Table ($28.00) make 61 totalling $214.00. The Potash Kettle ($25.00) and the Wood Saw ($30.00) are stocked, so the 21 stocked items total $310.00.
+        // $142.00, and the Rough Stool ($14.00), End Table ($12.00), Chair ($18.00) and Table ($28.00) make 61 totalling $214.00, and the five fired pottery pieces ($4 + $6 + $10 + $12 + $6 = $38.00) make 66 totalling $252.00. The Potash Kettle ($25.00) and the Wood Saw ($30.00) are stocked, so the 21 stocked items total $310.00.
         Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(31000L));
         Assert.That(Table.Stock.Where(r => r.itemId != "potash_kettle" && r.itemId != "wood_saw").Sum(r => r.baseCents), Is.EqualTo(25500L), "the original 19");
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup" && r.itemId != "lye" && r.itemId != "potash" && r.itemId != "rough_stool" && r.itemId != "end_table" && r.itemId != "chair" && r.itemId != "table").Count(), Is.EqualTo(52));
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup" && r.itemId != "lye" && r.itemId != "potash" && r.itemId != "rough_stool" && r.itemId != "end_table" && r.itemId != "chair" && r.itemId != "table").Sum(r => r.baseCents), Is.EqualTo(11000L));
-        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought).Sum(r => r.baseCents), Is.EqualTo(21400L));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup" && r.itemId != "lye" && r.itemId != "potash" && r.itemId != "rough_stool" && r.itemId != "end_table" && r.itemId != "chair" && r.itemId != "table" && r.itemId != "clay_cup" && r.itemId != "clay_bowl" && r.itemId != "clay_pot" && r.itemId != "water_crock" && r.itemId != "brick_batch").Count(), Is.EqualTo(52));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought && r.itemId != "ash" && r.itemId != "kindling_bundle" && r.itemId != "maple_syrup" && r.itemId != "lye" && r.itemId != "potash" && r.itemId != "rough_stool" && r.itemId != "end_table" && r.itemId != "chair" && r.itemId != "table" && r.itemId != "clay_cup" && r.itemId != "clay_bowl" && r.itemId != "clay_pot" && r.itemId != "water_crock" && r.itemId != "brick_batch").Sum(r => r.baseCents), Is.EqualTo(11000L));
+        Assert.That(Table.Rows.Where(r => r.kind == MarketKind.Bought).Sum(r => r.baseCents), Is.EqualTo(25200L));
         Assert.That(Table.BuyBaseCents("tent"), Is.EqualTo(2500L));
         Assert.That(Table.BuyBaseCents("bolt_action_rifle"), Is.EqualTo(6000L));
         Assert.That(Table.SellBaseCents("deer_hide"), Is.EqualTo(800L));
