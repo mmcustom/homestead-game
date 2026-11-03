@@ -30,8 +30,8 @@ using UnityEngine.InputSystem;
 //   PageDown teleport to the nearest Sugar Maple, standing about 2 m from the trunk and facing it. Press again for the next nearest, Shift+PageDown
 //          for the one before (the order is fixed by where you stood at the first press); the message gives the distance and the new position
 //   Delete give 20 L of Maple Sap (to try a boil at a fire without tapping a tree; End already exports the ledger, even with Shift held)
-//   Ctrl+Delete finish every running Leach Hopper batch now (the Ash in it becomes Lye); Ctrl+Insert stand a finished Leach Hopper about 3 m ahead and give
-//          12 Ash and 12 L of water (6 Unsafe, 6 Good) to load it with (Insert alone still loses the game)
+//   Ctrl+Delete finish every running Leach Hopper batch now (the Ash in the batch becomes Lye; Ash stocked for the next batch stays); Ctrl+Insert stand an empty Leach Hopper about
+//          3 m ahead and give the PACK 12 Ash and 12 L of water (6 Unsafe, 6 Good): R stocks them, E starts the batch (Insert alone still loses the game)
 //   Shift+Delete give 12 Lye and 4 Potash (to try the Lye and Potash prices at the Trading Post without leaching or boiling; every Numpad key is already a rain control)
 //   [  give the Hand Cart kit: 2 Wooden Wheels, 3 Logs, 6 Branches, 3 Cordage and a Hammer (the F11 kit has no Hammer);  ]  stand a finished Hand Cart about 3 m ahead
 //      holding 4 Logs, 6 Stone and 10 Firewood (77 kg) to try the transfer screen and the 100 kg cap;  Shift+]  stand a Wood Pile with 12 Logs (96 kg) 3 m ahead,
@@ -150,7 +150,7 @@ public class TimeDebugControls : MonoBehaviour
         if (ctrl && keyboard.deleteKey.wasPressedThisFrame && WellsAndOuthouses.Instance != null)
         {
             int done = WellsAndOuthouses.Instance.DebugFinishLeaches();
-            Show(done > 0 ? $"Leach finished in {done} hopper(s): the Ash is Lye" : "No Leach Hopper is leaching", time);
+            Show(done > 0 ? $"Leach finished in {done} hopper(s): the batch's Ash is Lye" : "No Leach Hopper is leaching", time);
             return;
         }
 
@@ -165,7 +165,7 @@ public class TimeDebugControls : MonoBehaviour
             WoodManager.Instance.DebugPlace(PileKind.LeachHopper, at, body.eulerAngles.y);
             int ash = InventoryManager.Instance.AddToPlayer(AshRules.ItemId, 12);
             int bad = InventoryManager.Instance.AddToPlayer("water_unsafe", 6), good = InventoryManager.Instance.AddToPlayer("water_good", 6);
-            Show($"Leach Hopper placed ahead. Given {ash} Ash and {bad + good} L of water", time);
+            Show($"Leach Hopper placed ahead, empty. Your pack has {ash} Ash and {bad + good} L of water: R stocks them, E starts the batch", time);
             return;
         }
 

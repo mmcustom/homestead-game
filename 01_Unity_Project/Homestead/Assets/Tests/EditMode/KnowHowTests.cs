@@ -241,10 +241,10 @@ public class KnowHowTests
     [Test]
     public void TheHopperLinesNameTheHammerAndTheLoadStep()
     {
-        Assert.That(KnowHowRules.HopperBuilt, Is.EqualTo("Leach Hopper built. Put the Hammer away, then hold R to load Ash and water."));
+        Assert.That(KnowHowRules.HopperBuilt, Is.EqualTo("Leach Hopper built. Put the Hammer away, press R to load Ash and water, then E to start leaching."));
         Assert.That(KnowHowRules.HopperEmptyPrompt("Leach Hopper", false), Is.EqualTo("Leach Hopper  (empty)"));
         Assert.That(KnowHowRules.HopperEmptyPrompt("Leach Hopper", true), Is.EqualTo("Leach Hopper  (empty). Put the Hammer away to load Ash and water"));
-        Assert.That(KnowHowRules.HopperLoadHelp(), Does.StartWith("Load Ash and water"));
+        Assert.That(KnowHowRules.HopperLoadHelp(), Is.EqualTo("Load Ash and water  (you're not carrying any)"));
         Assert.That(KnowHowRules.LyeTaken, Does.Contain("Potash Kettle"));
         Assert.That(KnowHowRules.SiteBuildInfo, Does.StartWith("Leaches Ash into Lye for Potash"));
     }

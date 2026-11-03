@@ -1064,10 +1064,12 @@ public class WellsAndOuthouses : MonoBehaviour
         return weather != null && weather.IsDrought ? numbers.droughtRecoveryLitresPerHour : numbers.recoveryLitresPerHour;
     }
 
-    // The batch has leached: the Ash in the hopper is Lye now (one for one).
+    // The batch has leached: its Ash is Lye now (one for one). The Ash beyond the running batch is stock for the next one and stays. A save from before hopperBatch existed has 0 there,
+    // and the whole Ash count is the batch, as it always was.
     public static void TurnAshIntoLye(WoodPileState hopper)
     {
-        int ash = hopper.Count(AshRules.ItemId);
+        int ash = PotashRules.RunningBatch(hopper.Count(AshRules.ItemId), hopper.hopperBatch);
+        hopper.hopperBatch = 0;
         if (ash <= 0)
             return;
         hopper.Take(AshRules.ItemId, ash);

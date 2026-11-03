@@ -61,7 +61,7 @@ Trigger: Leach Hopper site first placed.
 
 A Leach Hopper turns Ash into Lye. Build it from the Build tab: place the site, deliver 3 Logs and 4 Tall Grass by hand with R (the site holds them between trips), then equip the Hammer and hold click for about 20 blows.
 
-To load it, put the Hammer away and press R at the hopper. Each Lye takes 1 Ash and 1 L of water (the poorest water goes in first), up to 12 at a time. It leaches for 24 game hours, and sleeping counts. Hold E at the hopper to collect the Lye. With the Hammer equipped, R dismantles the hopper instead and gives back half the materials, with any Ash or Lye inside.
+To use it, put the Hammer away. Press R at the hopper to store the Ash and water you carry; you can load Ash alone or water alone, and top up either one later. It holds 12 Ash (with any Lye waiting) and 12 L of water, and the poorest water goes in first. Press E to start a batch: it turns as much Ash as there is water into Lye, 1 Ash and 1 L per Lye, and anything left over waits for the next batch. A batch leaches for 24 game hours, and sleeping counts. Ash and water you add while a batch runs wait for the next one. E collects the Lye when it is ready. With the Hammer equipped, R dismantles the hopper instead and gives back half the materials, with any Ash or Lye inside (the stored water is lost).
 
 ## 7. From Ash to Potash
 

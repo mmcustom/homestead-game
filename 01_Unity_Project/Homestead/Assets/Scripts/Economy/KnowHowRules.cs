@@ -37,7 +37,7 @@ public static class KnowHowRules
         new Entry(Tripod, "The Tripod and Boiling Water", "Boiling needs the Cooking Pot hung on a tripod over a lit fire. Carrying the Pot is not enough.\n\n1. Craft a Tripod (Craft tab, Fire and Light: 3 Branches and 1 Cordage).\n2. Open Build, then Other, and click Set Up. Aim at a campfire or hearth within 3 m and click when the ghost is green. The Grill cannot take a tripod.\n3. Aim at the tripod and hold E to hang the Cooking Pot from your pack.\n4. Stand within 3 m of the lit fire, open Inventory (I) and press Boil on the water.\n\nOne vessel hangs at a time, and holding E swaps or takes it down. To dismantle the tripod, put the fire out, equip the Hammer and hold R; the Tripod and the Pot come back to you."),
         new Entry(Tapping, "Tapping Maples", "Maples run sap only in Winter and Spring, on days that thaw after a freezing night.\n\n1. Craft a Spile (3 Sticks) and a Sap Bucket (1 Log, 3 Branches and 1 Cordage) for each tap.\n2. Equip the Spile. While you hold it, a green droplet floats over each Maple within 80 m that you can tap.\n3. Walk up and click the Maple. One tap per tree, up to 12.\n\nYour taps show a pail marker, visible from far away and on the minimap: grey while filling, amber when 4 L or more is ready, brown-red when the sap has soured. Hold E at a tap to collect, and R to take the tap down. Sap sours after 48 hours in the bucket, so check your taps about once a day."),
         new Entry(Syrup, "Sap to Syrup", "10 L of sap boils down to 1 Maple Syrup in about 12 seconds. You need the Cooking Pot hung on a tripod over a lit fire, and you must stand within 3 m of it. Open Inventory (I), find the Maple Sap row and press Boil. It uses no extra Firewood.\n\nCarried sap does not spoil. Syrup sells for about $10 at the Trading Post, and you can eat it too."),
-        new Entry(Hopper, "Using the Leach Hopper", "A Leach Hopper turns Ash into Lye. Build it from the Build tab: place the site, deliver 3 Logs and 4 Tall Grass by hand with R (the site holds them between trips), then equip the Hammer and hold click for about 20 blows.\n\nTo load it, put the Hammer away and press R at the hopper. Each Lye takes 1 Ash and 1 L of water (the poorest water goes in first), up to 12 at a time. It leaches for 24 game hours, and sleeping counts. Hold E at the hopper to collect the Lye. With the Hammer equipped, R dismantles the hopper instead and gives back half the materials, with any Ash or Lye inside."),
+        new Entry(Hopper, "Using the Leach Hopper", "A Leach Hopper turns Ash into Lye. Build it from the Build tab: place the site, deliver 3 Logs and 4 Tall Grass by hand with R (the site holds them between trips), then equip the Hammer and hold click for about 20 blows.\n\nTo use it, put the Hammer away. Press R at the hopper to store the Ash and water you carry; you can load Ash alone or water alone, and top up either one later. It holds 12 Ash (with any Lye waiting) and 12 L of water, and the poorest water goes in first. Press E to start a batch: it turns as much Ash as there is water into Lye, 1 Ash and 1 L per Lye, and anything left over waits for the next batch. A batch leaches for 24 game hours, and sleeping counts. Ash and water you add while a batch runs wait for the next one. E collects the Lye when it is ready. With the Hammer equipped, R dismantles the hopper instead and gives back half the materials, with any Ash or Lye inside (the stored water is lost)."),
         new Entry(Potash, "From Ash to Potash", "Potash sells for far more than the Ash it comes from: about $5 of Potash per Ash, against $2 for the raw Ash. The chain has three steps.\n\n1. Leach. Build a Leach Hopper (see \"Using the Leach Hopper\"), load Ash and water, and wait 24 game hours.\n2. Collect. Hold E at the hopper to take the Lye. Lye also sells by itself for about $3, but it is worth more as Potash.\n3. Boil. Buy a Potash Kettle at the Trading Post ($25). Set up a tripod over a lit fire and hold E at it to hang the Kettle. Open Inventory (I) and press Boil on the Lye row: 3 Lye and 2 Firewood make 1 Potash in 18 seconds. The Firewood is used up and leaves no Ash.\n\nSell the Potash at the Trading Post (about $16 each)."),
     };
 
@@ -186,7 +186,7 @@ public static class KnowHowRules
         }
     }
 
-    public const string HopperBuilt = "Leach Hopper built. Put the Hammer away, then hold R to load Ash and water.";
+    public const string HopperBuilt = "Leach Hopper built. Put the Hammer away, press R to load Ash and water, then E to start leaching.";
     public const string LyeTaken = "Boil 3 Lye + 2 Firewood into Potash in a Potash Kettle at a fire.";
     public const string SiteBuildInfo = "Leaches Ash into Lye for Potash. Free to place, no Hammer; deliver the materials at the site (R).";
 
@@ -195,8 +195,7 @@ public static class KnowHowRules
         hammerEquipped ? $"{name}  (empty). Put the Hammer away to load Ash and water"
                        : $"{name}  (empty)";
 
-    public static string HopperLoadHelp() =>
-        "Load Ash and water  (1 Ash and 1 L each, up to 12; the worst water goes in first). Equip the Hammer to dismantle";
+    public static string HopperLoadHelp() => "Load Ash and water  (you're not carrying any)";
 
     // The Tap's prompt, with what the sap is for while the pack holds too little for a Syrup.
     public static string TapBoilHint(int sapCarriedLitres) =>

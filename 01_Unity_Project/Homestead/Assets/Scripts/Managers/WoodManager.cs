@@ -66,6 +66,10 @@ public class WoodPileState
     // Potash B (appended, so older saves load 0): a Leach Hopper's game hours still to leach (PotashRules.LeachGameHours when a batch is loaded, 0 when none
     // is running). The Ash waiting and the Lye ready are in contents.
     public float leachHours;
+    // Leach Hopper stocking (appended, so older saves load 0): the litres of water stored in the hopper, waiting for a batch to start (PotashRules.HopperWaterCapacity), and the Lye the
+    // running batch will make (the Ash beyond it is stock for the next batch). A batch running with hopperBatch 0 is from before the field: the whole Ash count is the batch.
+    public int hopperWater;
+    public int hopperBatch;
     // Workshop W1(a1) (appended, so older saves load these empty): the piece the Workshop's bench is making (an item id, empty when idle) and the game hours still to go
     // (WorkshopRules). The stock and any finished piece are in contents.
     public string jobItem;

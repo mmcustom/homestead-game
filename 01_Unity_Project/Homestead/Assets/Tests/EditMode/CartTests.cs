@@ -390,7 +390,7 @@ public class CartTests
     {
         string[] expected =
         {
-            "id", "kind", "position", "yaw", "contents", "litres", "contaminatedHours", "digProgress", "builtDay", "buildProgress", "depthToWater", "leachHours",
+            "id", "kind", "position", "yaw", "contents", "litres", "contaminatedHours", "digProgress", "builtDay", "buildProgress", "depthToWater", "leachHours", "hopperWater", "hopperBatch",
             "jobItem", "jobHours", // the Workshop's two (W1(a1)), appended after the cart: the cart itself added none
             "jobCount", // the Potter's Shed piece count (Pottery P1), appended after the Workshop's two
         };

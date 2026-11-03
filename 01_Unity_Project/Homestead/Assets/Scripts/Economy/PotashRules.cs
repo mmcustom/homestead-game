@@ -98,30 +98,72 @@ public static class PotashRules
     // The raw and boiled water a load can take, worst first: the poorest water goes into the hopper and the best is kept to drink.
     public static readonly string[] WaterWorstFirst = { "water_unsafe", "water_questionable", "water_good", "water_excellent", "water" };
 
-    public struct LoadPlan
+    // --- Stocking: Ash and water go in separately and E starts the batch (Mike, 2026-11-04) ---
+    //
+    // The Ash (the running batch and any stock waiting for the next one) is in the hopper's contents; the Lye ready is there too. The stored water is its own saved litre count
+    // (WoodPileState.hopperWater) and the running batch's size is hopperBatch (0 means the whole Ash count, as a save from before the field had it).
+
+    // The most water the hopper stores, in litres. The Ash and Lye share HopperCapacity.
+    public const int HopperWaterCapacity = 12;
+
+    public static int WaterRoom(int litresStored) => Math.Max(0, HopperWaterCapacity - Math.Max(0, litresStored));
+
+    // The Lye the running batch will make: the saved batch size, or every Ash in the hopper when none was saved (an old save mid-batch), never more than the Ash there.
+    public static int RunningBatch(int ashHeld, int savedBatch)
     {
-        public int lye;      // Lye the load will make
-        public int ash;      // Ash it takes
+        if (ashHeld <= 0)
+            return 0;
+        return savedBatch > 0 ? Math.Min(savedBatch, ashHeld) : ashHeld;
+    }
+
+    // The Ash waiting for the next batch: all of it when nothing is leaching, the Ash beyond the running batch when something is.
+    public static int AshStock(int ashHeld, bool leaching, int savedBatch) =>
+        leaching ? Math.Max(0, ashHeld - RunningBatch(ashHeld, savedBatch)) : Math.Max(0, ashHeld);
+
+    // What E starts: as many Lye as the Ash stock and the stored litres allow, up to the capacity. The leftover stays as stock.
+    public static int NextBatch(int ashStock, int litresStored)
+    {
+        if (ashStock <= 0 || litresStored <= 0)
+            return 0;
+        return Math.Min(Math.Min(ashStock / AshPerLye, litresStored / WaterLitresPerLye), HopperCapacity);
+    }
+
+    public struct StockPlan
+    {
+        public int ash;      // Ash taken from the pack
+        public int litres;   // litres taken from the pack, all kinds
         public int[] water;  // litres taken from each of WaterWorstFirst, in that order
     }
 
-    // What one R press loads: up to the room in the hopper, limited by the Ash and the litres carried. waterCarried lines up with WaterWorstFirst.
-    public static LoadPlan PlanLoad(int ash, int[] waterCarried, int room)
+    // What one R press stocks: the Ash carried up to the Ash room, and the water carried (worst first) up to the water room. waterCarried lines up with WaterWorstFirst.
+    public static StockPlan PlanStock(int ashCarried, int[] waterCarried, int ashRoom, int waterRoom)
     {
-        int total = 0;
-        if (waterCarried != null)
-            foreach (int litres in waterCarried)
-                total += Math.Max(0, litres);
-
-        var plan = new LoadPlan { lye = LyeBatch(ash, total, room), water = new int[WaterWorstFirst.Length] };
-        plan.ash = AshFor(plan.lye);
-        int still = WaterFor(plan.lye);
+        var plan = new StockPlan { water = new int[WaterWorstFirst.Length] };
+        plan.ash = Math.Max(0, Math.Min(ashCarried, ashRoom));
+        int still = Math.Max(0, waterRoom);
         for (int i = 0; i < plan.water.Length && still > 0 && waterCarried != null && i < waterCarried.Length; i++)
         {
             plan.water[i] = Math.Min(Math.Max(0, waterCarried[i]), still);
             still -= plan.water[i];
+            plan.litres += plan.water[i];
         }
         return plan;
+    }
+
+    public enum HopperAction { CollectLye, StillLeaching, Start, NeedAsh, NeedWater, NeedBoth }
+
+    // What E does: Lye ready is collected first (even while a batch leaches or stock waits); otherwise a batch that runs is reported; otherwise a batch starts when there is Ash and water.
+    public static HopperAction ActionFor(int lyeReady, bool leaching, int ashStock, int litresStored)
+    {
+        if (lyeReady > 0)
+            return HopperAction.CollectLye;
+        if (leaching)
+            return HopperAction.StillLeaching;
+        if (NextBatch(ashStock, litresStored) > 0)
+            return HopperAction.Start;
+        if (ashStock <= 0 && litresStored <= 0)
+            return HopperAction.NeedBoth;
+        return ashStock <= 0 ? HopperAction.NeedAsh : HopperAction.NeedWater;
     }
 
     // Room left in a hopper holding this many pieces (the Ash waiting to leach and the Lye waiting to be collected).
@@ -135,11 +177,100 @@ public static class PotashRules
 
     public static string HoursText(float hoursLeft) => $"{Math.Max(0, (int)Math.Ceiling(hoursLeft - 0.0001f))} h";
 
-    public static string LoadedMessage(int lye, int ash, int litres) =>
-        $"Loaded {ash} Ash and {litres} L of water - {lye} Lye in {HoursText(LeachGameHours)}";
+    // --- The hopper's words ---
 
-    public static string LoadRefusedWhileLeaching(float hoursLeft) =>
-        $"The hopper is still leaching - {HoursText(hoursLeft)} to go. Collect the Lye when it is done.";
+    static string StockText(int ash, int litres)
+    {
+        if (ash > 0 && litres > 0)
+            return $"{ash} Ash and {litres} L of water";
+        return ash > 0 ? $"{ash} Ash" : $"{litres} L of water";
+    }
+
+    // The E line while a batch runs: its Lye, the hours to go, any Lye already ready, and the stock waiting for the next batch.
+    public static string LeachingPrompt(string name, int batchLye, float hoursLeft, int lyeReady, int ashStock, int litresStored)
+    {
+        string ready = lyeReady > 0 ? $", {lyeReady} ready" : "";
+        string waiting = ashStock > 0 || litresStored > 0 ? $"; {StockText(ashStock, litresStored)} waiting" : "";
+        return $"{name}  (leaching {batchLye} Lye, {HoursText(hoursLeft)} to go{ready}{waiting})";
+    }
+
+    // The E line when nothing leaches and no Lye is ready, with stock in: start it, or say what it still needs.
+    public static string StockedPrompt(string name, int ashStock, int litresStored)
+    {
+        int batch = NextBatch(ashStock, litresStored);
+        if (batch > 0)
+        {
+            int ashLeft = ashStock - AshFor(batch), litresLeft = litresStored - WaterFor(batch);
+            string left = ashLeft > 0 || litresLeft > 0 ? $"; {StockText(ashLeft, litresLeft)} left over" : "";
+            return $"Start leaching  ({AshFor(batch)} Ash + {WaterFor(batch)} L -> {batch} Lye in {HoursText(LeachGameHours)}{left})";
+        }
+        string needs = ashStock <= 0 ? "needs Ash to start" : "needs water to start";
+        return $"{name}  ({ashStock} Ash, {litresStored} L of water - {needs})";
+    }
+
+    public static string StartedMessage(int batch, int ashLeft, int litresLeft)
+    {
+        string left = ashLeft > 0 || litresLeft > 0 ? $" {StockText(ashLeft, litresLeft)} wait for the next batch." : "";
+        return $"Started leaching {AshFor(batch)} Ash with {WaterFor(batch)} L of water - {batch} Lye in {HoursText(LeachGameHours)}.{left}";
+    }
+
+    public static string StillLeachingMessage(float hoursLeft) => $"Still leaching - {HoursText(hoursLeft)} to go.";
+
+    public static string NeedToStartMessage(HopperAction action, int ashStock, int litresStored)
+    {
+        switch (action)
+        {
+            case HopperAction.NeedAsh: return $"It has {litresStored} L of water but no Ash. Load Ash with R.";
+            case HopperAction.NeedWater: return $"It has {ashStock} Ash but no water. Load water with R (1 L per Lye; raw or boiled).";
+            default: return "The hopper is empty. Load Ash and water with R, then start it with E.";
+        }
+    }
+
+    // What an R press would stock, with what is missing or full for the part that is not loaded. carried*: what the pack holds; room*: what the hopper can still take.
+    public static string LoadPrompt(StockPlan plan, int ashCarried, int litresCarried, int ashRoom, int waterRoom)
+    {
+        if (plan.ash <= 0 && plan.litres <= 0)
+        {
+            if (ashCarried <= 0 && litresCarried <= 0)
+                return "Load Ash and water  (you're not carrying any)";
+            return "Can't load  (" + FullNotes(ashCarried > 0 && ashRoom <= 0, litresCarried > 0 && waterRoom <= 0) + ")";
+        }
+
+        string what = "Load " + StockText(plan.ash, plan.litres);
+        string note = MissingNote(plan, ashCarried, litresCarried);
+        return note.Length > 0 ? $"{what}  ({note})" : what;
+    }
+
+    static string FullNotes(bool ashFull, bool waterFull)
+    {
+        if (ashFull && waterFull)
+            return $"the hopper is full of Ash and Lye ({HopperCapacity}) and of water ({HopperWaterCapacity} L)";
+        return ashFull ? $"the hopper is full of Ash and Lye ({HopperCapacity})" : $"the hopper is full of water ({HopperWaterCapacity} L)";
+    }
+
+    // Why the part that is not being loaded is not: nothing carried, or the hopper is full of it.
+    static string MissingNote(StockPlan plan, int ashCarried, int litresCarried)
+    {
+        if (plan.ash <= 0)
+            return ashCarried <= 0 ? "no Ash in your pack" : "the Ash is full";
+        if (plan.litres <= 0)
+            return litresCarried <= 0 ? "no water in your pack" : "the water is full";
+        return "";
+    }
+
+    // What R flashes after stocking: what went in, what the hopper holds now, and what was left out. carried*: what the pack held before.
+    public static string LoadedMessage(StockPlan plan, int ashHeld, int litresHeld, int ashCarried, int litresCarried)
+    {
+        string text = $"Loaded {StockText(plan.ash, plan.litres)}  (the hopper holds {ashHeld} Ash and {litresHeld} L of water).";
+        string note = MissingNote(plan, ashCarried, litresCarried);
+        return note.Length > 0 ? $"{text} Not loaded: {note}." : text;
+    }
+
+    // What R flashes when it can load nothing.
+    public static string LoadRefusedMessage(int ashCarried, int litresCarried, int ashRoom, int waterRoom) =>
+        ashCarried <= 0 && litresCarried <= 0
+            ? "You're not carrying any Ash or water to load. Load Ash and water with R, then start it with E."
+            : $"Can't load - {FullNotes(ashCarried > 0 && ashRoom <= 0, litresCarried > 0 && waterRoom <= 0)}. Collect the Lye (E) or start a batch.";
 
     // --- The market ---
 

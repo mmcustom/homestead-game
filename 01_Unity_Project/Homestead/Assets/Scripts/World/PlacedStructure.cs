@@ -384,6 +384,9 @@ public static class StructureVisuals
         foreach (Vector2 side in new[] { new Vector2(-0.5f, 0f), new Vector2(0.5f, 0f) })
             Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side.x, 1.15f, side.y), Vector3.zero, new Vector3(0.08f, 0.4f, 1.05f), bark);
 
+        if (state.hopperWater > 0)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.975f, 0f), Vector3.zero,
+                         new Vector3(0.95f, 0.02f + 0.04f * Mathf.Clamp01(state.hopperWater / (float)PotashRules.HopperWaterCapacity), 0.95f), null), new Color(0.2f, 0.28f, 0.34f));
         int held = state.Total;
         if (held > 0)
         {
@@ -939,9 +942,14 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         Dismantle();
     }
 
-    // --- The Leach Hopper (Potash B): R loads Ash and water, E collects the Lye, R with the Hammer dismantles ---
+    // --- The Leach Hopper (Potash B): R stocks Ash and water (separately, any time), E collects the Lye or starts a batch, R with the Hammer dismantles ---
 
     bool Leaching => state.leachHours > 0f;
+
+    // The Ash in the running batch, and the Ash waiting for the next one (all of it when nothing leaches).
+    int HopperBatchAsh => Leaching ? PotashRules.RunningBatch(state.Count(AshRules.ItemId), state.hopperBatch) : 0;
+    int HopperAshStock => PotashRules.AshStock(state.Count(AshRules.ItemId), Leaching, state.hopperBatch);
+    int HopperAshRoom => PotashRules.Room(state.Total);
 
     int[] CarriedWater()
     {
@@ -951,29 +959,67 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return litres;
     }
 
-    PotashRules.LoadPlan CarriedLoad() =>
-        PotashRules.PlanLoad(Inventory.Player.Count(AshRules.ItemId), CarriedWater(), PotashRules.Room(state.Total));
+    int CarriedWaterLitres()
+    {
+        int total = 0;
+        foreach (int litres in CarriedWater())
+            total += litres;
+        return total;
+    }
+
+    PotashRules.StockPlan CarriedStock() =>
+        PotashRules.PlanStock(Inventory.Player.Count(AshRules.ItemId), CarriedWater(), HopperAshRoom, PotashRules.WaterRoom(state.hopperWater));
 
     string HopperPrompt()
     {
-        int ready = state.Count(PotashRules.LyeId), pending = state.Count(AshRules.ItemId);
+        int ready = state.Count(PotashRules.LyeId), stock = HopperAshStock, water = state.hopperWater;
         if (Leaching)
-            return $"{Name}  (leaching {pending} Lye, {PotashRules.HoursText(state.leachHours)} to go{(ready > 0 ? $", {ready} ready" : "")})";
+            return PotashRules.LeachingPrompt(Name, HopperBatchAsh, state.leachHours, ready, stock, water);
         if (ready > 0)
             return $"Collect Lye  ({ready} ready in the {Name})";
-        return KnowHowRules.HopperEmptyPrompt(Name, WoodManager.HammerEquipped);
+        if (stock <= 0 && water <= 0)
+            return KnowHowRules.HopperEmptyPrompt(Name, WoodManager.HammerEquipped);
+        string line = PotashRules.StockedPrompt(Name, stock, water);
+        return WoodManager.HammerEquipped ? line + ". Put the Hammer away to load more" : line;
     }
 
     string HopperSecondaryPrompt()
     {
         if (WoodManager.HammerEquipped)
             return $"Dismantle the {Name}  (half the Logs and Tall Grass back, rounded down; the Ash and Lye in it come back, the water is lost)";
-        if (Leaching)
-            return $"Still leaching - {PotashRules.HoursText(state.leachHours)} to go  (loading waits; equip the Hammer to dismantle)";
-        PotashRules.LoadPlan plan = CarriedLoad();
-        if (plan.lye > 0)
-            return $"Load {plan.ash} Ash and {PotashRules.WaterFor(plan.lye)} L of water  ({plan.lye} Lye in {PotashRules.HoursText(PotashRules.LeachGameHours)})";
-        return KnowHowRules.HopperLoadHelp();
+        PotashRules.StockPlan plan = CarriedStock();
+        if (plan.ash <= 0 && plan.litres <= 0 && Inventory.Player.Count(AshRules.ItemId) <= 0 && CarriedWaterLitres() <= 0)
+            return KnowHowRules.HopperLoadHelp();
+        return PotashRules.LoadPrompt(plan, Inventory.Player.Count(AshRules.ItemId), CarriedWaterLitres(), HopperAshRoom, PotashRules.WaterRoom(state.hopperWater));
+    }
+
+    // E: Lye that is ready comes first (even while a batch leaches or stock waits); otherwise it starts a batch when there is Ash and water, or says what is missing.
+    void HopperInteract()
+    {
+        PotashRules.HopperAction action = PotashRules.ActionFor(state.Count(PotashRules.LyeId), Leaching, HopperAshStock, state.hopperWater);
+        switch (action)
+        {
+            case PotashRules.HopperAction.CollectLye: CollectLye(); break;
+            case PotashRules.HopperAction.StillLeaching: ToolStatus.Flash(PotashRules.StillLeachingMessage(state.leachHours), 3f); break;
+            case PotashRules.HopperAction.Start: HopperStart(); break;
+            default: ToolStatus.Flash(PotashRules.NeedToStartMessage(action, HopperAshStock, state.hopperWater), 3.5f); break;
+        }
+    }
+
+    // Starts a batch of min(Ash stock, stored litres) Lye. Its Ash stays in the hopper (marked as the batch), its water is used up, and the rest stays as stock for the next batch.
+    void HopperStart()
+    {
+        int stock = HopperAshStock;
+        int batch = PotashRules.NextBatch(stock, state.hopperWater);
+        if (batch <= 0)
+            return;
+        state.hopperBatch = batch;
+        state.hopperWater -= PotashRules.WaterFor(batch);
+        state.leachHours = PotashRules.LeachGameHours;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.Pour);
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(PotashRules.StartedMessage(batch, stock - PotashRules.AshFor(batch), state.hopperWater), 5f);
     }
 
     // E: the Lye that has finished leaching, as much as the pack can carry.
@@ -982,7 +1028,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         int ready = state.Count(PotashRules.LyeId);
         if (ready <= 0)
         {
-            ToolStatus.Flash(Leaching ? $"Still leaching - {PotashRules.HoursText(state.leachHours)} to go." : $"The {Name} is empty. Load Ash and water with R.", 3f);
+            ToolStatus.Flash(Leaching ? PotashRules.StillLeachingMessage(state.leachHours) : $"The {Name} has no Lye ready.", 3f);
             return;
         }
         ItemDefinition lye = ItemDatabase.Get(PotashRules.LyeId);
@@ -999,7 +1045,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                                        : $"Took {added} Lye. " + KnowHowRules.LyeTaken, 5f);
     }
 
-    // R: with the Hammer it dismantles; without, it loads Ash and water (worst water first), unless a batch is still leaching.
+    // R: with the Hammer it dismantles; without, it stocks Ash and water from the pack, each up to its cap, at any time (a batch that runs keeps going; the new stock waits for the next).
     void HopperSecondary()
     {
         if (WoodManager.HammerEquipped)
@@ -1007,40 +1053,33 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             Dismantle();
             return;
         }
-        if (Leaching)
-        {
-            ToolStatus.Flash(PotashRules.LoadRefusedWhileLeaching(state.leachHours), 3.5f);
-            return;
-        }
 
-        PotashRules.LoadPlan plan = CarriedLoad();
-        if (plan.lye <= 0)
+        int ashCarried = Inventory.Player.Count(AshRules.ItemId), litresCarried = CarriedWaterLitres();
+        int ashRoom = HopperAshRoom, waterRoom = PotashRules.WaterRoom(state.hopperWater);
+        PotashRules.StockPlan plan = PotashRules.PlanStock(ashCarried, CarriedWater(), ashRoom, waterRoom);
+        if (plan.ash <= 0 && plan.litres <= 0)
         {
-            int ash = Inventory.Player.Count(AshRules.ItemId), water = 0;
-            foreach (int litres in CarriedWater())
-                water += litres;
-            ToolStatus.Flash(PotashRules.Room(state.Total) <= 0 ? $"The {Name} is full - collect the Lye (E)."
-                           : ash <= 0 ? "You need Ash to load it (1 Ash and 1 L of water per Lye)."
-                           : water <= 0 ? "You need water to load it (1 L per Lye; raw or boiled)." : "Nothing to load.", 3.5f);
+            ToolStatus.Flash(PotashRules.LoadRefusedMessage(ashCarried, litresCarried, ashRoom, waterRoom), 4f);
             return;
         }
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.SilenceNextRemoval();
-        Inventory.RemoveFromPlayer(AshRules.ItemId, plan.ash);
-        int litresUsed = 0;
+        int ashTaken = plan.ash > 0 ? Inventory.RemoveFromPlayer(AshRules.ItemId, plan.ash) : 0;
+        int litresTaken = 0;
         for (int i = 0; i < plan.water.Length; i++)
         {
             if (plan.water[i] <= 0)
                 continue;
-            litresUsed += Inventory.RemoveFromPlayer(PotashRules.WaterWorstFirst[i], plan.water[i]);
+            litresTaken += Inventory.RemoveFromPlayer(PotashRules.WaterWorstFirst[i], plan.water[i]);
         }
-        state.Add(AshRules.ItemId, plan.ash);
-        state.leachHours = PotashRules.LeachGameHours;
+        state.Add(AshRules.ItemId, ashTaken);
+        state.hopperWater += litresTaken;
         if (AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.Pour);
         WoodManager.Instance.NotifyChanged(state);
-        ToolStatus.Flash(PotashRules.LoadedMessage(plan.lye, plan.ash, litresUsed), 4f);
+        var done = new PotashRules.StockPlan { ash = ashTaken, litres = litresTaken, water = plan.water };
+        ToolStatus.Flash(PotashRules.LoadedMessage(done, state.Count(AshRules.ItemId), state.hopperWater, ashCarried, litresCarried), 5f);
     }
 
     // --- The Workshop (Workshop W1(a1)): R stocks the bench, E starts a piece or collects the finished one, R with the Hammer dismantles ---
@@ -1647,7 +1686,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Countertop: ToolStatus.Flash($"{Name}: a work surface under the roof. Nothing to do at it yet.", 3f); break;
             case PileKind.Grill: ToolStatus.Flash($"{Name}: {GrillFire()}. Light it, feed it and cook at the fire on top.", 3.5f); break;
             case PileKind.SlopSink: DrawFromSink(); break;
-            case PileKind.LeachHopper: CollectLye(); break;
+            case PileKind.LeachHopper: HopperInteract(); break;
             case PileKind.Workshop: WorkshopInteract(); break;
             case PileKind.PotterShed: PotteryInteract(); break;
             case PileKind.Kiln: KilnInteract(); break;

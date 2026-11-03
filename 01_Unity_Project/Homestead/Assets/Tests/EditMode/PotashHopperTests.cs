@@ -1,7 +1,7 @@
 using System.Linq;
 using NUnit.Framework;
 
-// EditMode tests for Potash B's pure rules (PotashRules, Homestead.Economy): what a hopper load takes (worst water first, the cap of 12), the
+// EditMode tests for Potash B's pure rules (PotashRules, Homestead.Economy): the room in the hopper, the
 // leach clock, and the words the prompts and the Inventory's Lye row use. The hopper and the Kettle boil in the world are in PotashWorldTests.
 public class PotashHopperTests
 {
@@ -25,57 +25,6 @@ public class PotashHopperTests
         Assert.That(PotashRules.WaterWorstFirst, Is.EqualTo(new[] { "water_unsafe", "water_questionable", "water_good", "water_excellent", "water" }));
     }
 
-    // --- A load ---
-
-    [Test]
-    public void ALoadTakesTheWorstWaterFirst()
-    {
-        PotashRules.LoadPlan plan = PotashRules.PlanLoad(12, Water(unsafeL: 3, questionable: 4, good: 10, excellent: 5), 12);
-        Assert.That(plan.lye, Is.EqualTo(12));
-        Assert.That(plan.ash, Is.EqualTo(12));
-        Assert.That(plan.water, Is.EqualTo(new[] { 3, 4, 5, 0, 0 }), "all the Unsafe, all the Questionable, then 5 of the Good");
-    }
-
-    [Test]
-    public void TheGoodWaterIsOnlyTouchedWhenThePoorWaterRunsOut()
-    {
-        PotashRules.LoadPlan plan = PotashRules.PlanLoad(5, Water(unsafeL: 9, good: 9), 12);
-        Assert.That(plan.lye, Is.EqualTo(5));
-        Assert.That(plan.water, Is.EqualTo(new[] { 5, 0, 0, 0, 0 }));
-    }
-
-    [Test]
-    public void BoiledWaterIsUsedLast()
-    {
-        PotashRules.LoadPlan plan = PotashRules.PlanLoad(6, Water(unsafeL: 1, excellent: 1, boiled: 10), 12);
-        Assert.That(plan.water, Is.EqualTo(new[] { 1, 0, 0, 1, 4 }));
-    }
-
-    [TestCase(30, 30, 12, 12)]
-    [TestCase(30, 30, 7, 7)]
-    [TestCase(30, 30, 0, 0)]
-    [TestCase(3, 30, 12, 3)]
-    [TestCase(30, 4, 12, 4)]
-    [TestCase(0, 30, 12, 0)]
-    [TestCase(30, 0, 12, 0)]
-    public void ALoadIsCappedByTheAshTheWaterAndTheRoom(int ash, int litres, int room, int lye)
-    {
-        PotashRules.LoadPlan plan = PotashRules.PlanLoad(ash, Water(good: litres), room);
-        Assert.That(plan.lye, Is.EqualTo(lye));
-        Assert.That(plan.ash, Is.EqualTo(lye));
-        Assert.That(plan.water.Sum(), Is.EqualTo(lye), "1 L of water for each Lye");
-    }
-
-    [Test]
-    public void ALoadWithNothingCarriedIsEmpty()
-    {
-        PotashRules.LoadPlan none = PotashRules.PlanLoad(5, null, 12);
-        Assert.That(none.lye, Is.EqualTo(0));
-        Assert.That(none.water.Sum(), Is.EqualTo(0));
-        Assert.That(PotashRules.PlanLoad(-4, Water(good: 3), 12).lye, Is.EqualTo(0));
-        Assert.That(PotashRules.PlanLoad(4, Water(good: -3), 12).lye, Is.EqualTo(0));
-    }
-
     [Test]
     public void TheRoomIsWhatIsLeftOfTwelveAfterTheAshAndLyeAlreadyInIt()
     {
@@ -84,13 +33,6 @@ public class PotashHopperTests
         Assert.That(PotashRules.Room(12), Is.EqualTo(0));
         Assert.That(PotashRules.Room(20), Is.EqualTo(0));
         Assert.That(PotashRules.Room(-3), Is.EqualTo(12));
-    }
-
-    [Test]
-    public void LyeWaitingToBeCollectedTakesRoomFromTheNextLoad()
-    {
-        PotashRules.LoadPlan plan = PotashRules.PlanLoad(12, Water(good: 12), PotashRules.Room(9));
-        Assert.That(plan.lye, Is.EqualTo(3));
     }
 
     // --- The leach clock ---
@@ -146,13 +88,6 @@ public class PotashHopperTests
     }
 
     // --- The words ---
-
-    [Test]
-    public void TheHopperMessages()
-    {
-        Assert.That(PotashRules.LoadedMessage(12, 12, 12), Is.EqualTo("Loaded 12 Ash and 12 L of water - 12 Lye in 24 h"));
-        Assert.That(PotashRules.LoadRefusedWhileLeaching(10.5f), Is.EqualTo("The hopper is still leaching - 11 h to go. Collect the Lye when it is done."));
-    }
 
     [Test]
     public void TheLyeRowSaysWhatIsMissing()
