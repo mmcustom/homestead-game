@@ -627,3 +627,26 @@ Dev keys: Ctrl+Insert stands an empty Hopper about 3 m ahead and gives the pack 
 Files: 16 paths (7 modified code: PotashRules, PlacedStructure, WellsAndOuthouses, WoodManager, KnowHowRules, CraftingScreen, TimeDebugControls; 6 modified tests: PotashHopperTests, KnowHowTests, CartTests, KilnTests, PotteryTests, WorkshopTests; 2 new: HopperStockTests.cs plus meta; plus Journal_KnowHow_Text.md), 641 insertions and 136 deletions. Edit-mode suite 1413 of 1413 (22 new tests).
 
 Still open from the P3 playtest feedback: (5) Sand and Clay bank spots look the same. The read-only plan recommends painting two new terrain layers (Wet Clay and Creek Sand) with a separate Editor tool; before building, Claude Code must check World/SeasonalGround.cs, which paints snow and leaf litter onto a runtime copy of the terrain (snow would cover the paint in winter; the layer total is higher than first counted).
+
+
+## BUILT: Creek banks, Wet Clay and Creek Sand (2026-11-04, playtest 1 to 22 passed, committed d096995)
+
+Item 5 of the P3 playtest feedback: Sand and Clay spots looked the same (both were the grey Gravel painted along every bank). Read-only plan first, then a follow-up check because World/SeasonalGround.cs paints snow and leaf litter onto a runtime copy of the terrain. The saved-terrain painter was dropped in favour of computing the bands at load.
+
+How the ground works: one generated Unity Terrain (480 m, 3 saved layers Grass, Dirt, Gravel; Gravel runs along every bank out to about 3 m). RuntimeTerrain makes a runtime copy of the terrain data; SeasonalGround appends Leaf Litter and Snow layers to that copy. HDRP TerrainLit allows 8 layers (read from the package source); the game now uses 7 at runtime (3 + Wet Clay + Creek Sand + Leaf Litter + Snow), so one slot is left.
+
+As built: CreekBanks (World) runs when RuntimeTerrain makes its copy, before SeasonalGround stores its painting. It finds the water with batched downward rays on the Water layer on a 1 m grid (same start height and "dry within 5 cm of the ground" rule as Animal.IsOverWater; checked against it on all 230,400 squares, 0 mismatches), makes an exact distance-to-water grid, and paints two layers into the copy: Wet Clay (dark red-brown 0.42, 0.24, 0.16, smoothness 0.35, 2.5 m tile) where the dig rule gives Clay (water 0.3 m deep or less, or dry ground within PotteryRules.WetBankMetres 2 m) and Creek Sand (pale tan 0.76, 0.68, 0.5, smoothness 0.05, 3 m tile) from there out to PotteryRules.BankReachMetres 3 m. Edges are soft and irregular (fixed hash noise). Beyond 3 m the old painting stays. The terrain asset, scenes and saves are untouched and nothing is saved. Build time about 80 ms in the Editor (Mike's log: 79 ms, 2868 water hits, 15228 bank cells); logged in the Editor and development builds only. Colours, tile sizes, smoothness and noise are public fields on a CreekBanks component on the Terrain. Edges can differ from the dig edges by up to about a metre (the dig rule uses ring probes); the Shovel prompt is the authority.
+
+Seasons: SeasonalGround keeps a share of snow and leaf litter on bank cells (bankSnowShare and bankLitterShare, both 0.25 on a full bank cell), read from the bank layers' weights in the painting it already holds; weights still sum to 1 and a map with no banks gives exactly the old result (GroundCoverRules.Cover). The banks stay visible under snow and under tree crowns in Fall. Footsteps (GroundSurface) treat the two layers as Gravel; the minimap shows clay brown and sand tan and now ignores the weather layers.
+
+Wording change: the Shovel prompt "Dry creek bank" is now "Sandy bank" (the rule text above that still says "Dry creek bank" is the old wording). "Wet clay bank" and "Creek bed" are unchanged. Digging has no season, snow or frozen-ground rule today (decision: leave as is; frozen ground could be a later rule).
+
+Dev key: Ctrl+Home cycles the ground snow 0, 0.5, 1 (holds 24 game hours, shows a yellow message). Season keys for checking: F6 next season, F8 Winter 1, F5 one day, Shift+F5 ten days (they move the calendar and fire land payments).
+
+A later rebuild (if the water or ground ever changes) would call CreekBanks.Scan and Compose on the pristine painting (RuntimeTerrain.Source) and then need small refresh methods in SeasonalGround (take the new base painting and repaint), GroundSurface (drop its cached painting) and the minimap (clear its cached image). Not wired. This matters for a future terrain-digging feature.
+
+Files: 15 paths (6 modified code: PotteryRules, RuntimeTerrain, SeasonalGround, GroundSurface, MinimapTerrain, TimeDebugControls; 1 modified test: PotteryTests; 8 new: CreekBanks.cs, CreekBankRules.cs, GroundCoverRules.cs, CreekBankTests.cs plus metas), 1677 insertions, 15 deletions. Edit-mode suite 1448 of 1448 (35 new tests). No save change; SaveVersion and LedgerSaveData.CurrentVersion stay at 1. Extra memory at play about 17 MB.
+
+Known: the placeholder water ribbon and the grey pillar in the pond are placeholders, not part of this work. Layer budget: only one terrain layer slot is left (a future field or mud layer would use it).
+
+All P3 playtest feedback items are now done. Next in the queue: a read-only plan for the metal chain (ores bought at the Trading Post; charcoal, bloomery, forge and anvil, iron tools and goods).
