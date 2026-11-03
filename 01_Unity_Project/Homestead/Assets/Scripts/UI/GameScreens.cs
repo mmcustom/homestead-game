@@ -93,8 +93,8 @@ public class GameScreens : MonoBehaviour
 
     void Update()
     {
-        if (IsTyping || FinancesScreen.IsOpen || WorkshopScreen.IsOpen)
-            return; // the Finances (L) and Workshop screens are their own windows; the tab keys don't open a second one over them
+        if (IsTyping || FinancesScreen.IsOpen || WorkshopScreen.IsOpen || PotteryScreen.IsOpen)
+            return; // the Finances (L), Workshop and Potter screens are their own windows; the tab keys don't open a second one over them
 
         for (int i = 0; i < actions.Length; i++)
         {

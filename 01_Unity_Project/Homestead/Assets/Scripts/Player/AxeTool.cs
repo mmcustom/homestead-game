@@ -25,10 +25,12 @@ using UnityEngine.InputSystem;
 // hardwood about 7 instead of 11) and 0.65 times the splitting time. Equipped it fells and splits at a pile; carried, the fastest of
 // the Saw, Axe and Primitive Axe sets the Inventory's splitting speed (AxeRules). Later it is also the tool boards will need.
 //
-// Clay (Building_Housing_System.md's Small Cabin, 2026-09-26): the Shovel also digs Clay straight out of a creek or
-// pond bank — dry ground close enough to the water's edge (Animal.IsOverWater checked in a ring around the aim point,
-// so it needs no placed deposit object) but not the water itself. Banks run the whole length of the property's water,
-// so unlike the one rock outcrop this never runs out.
+// Clay and Sand (Building_Housing_System.md's Small Cabin, 2026-09-26; Pottery P1, 2026-11-02): the Shovel also digs the creek and
+// pond banks, with no placed deposit object. Clay comes from the wet bank (dry ground with water within PotteryRules.WetBankMetres of
+// the aim point) and from the bed in shallow water (PotteryRules.WadeDigDepthMetres); Sand from the dry bank beyond that, out to
+// bankReach. A ClayBank patch is optional and always gives Clay, but none are placed in the scene. Every water question goes through
+// WaterAt (Animal.IsOverWater), and PotteryRules.DigFor decides from plain numbers. Banks run the whole length of the property's
+// water, so unlike the one rock outcrop this never runs out.
 [DefaultExecutionOrder(90)]
 public class AxeTool : MonoBehaviour
 {
@@ -60,8 +62,8 @@ public class AxeTool : MonoBehaviour
     [SerializeField, Min(1)] int blowsPerStone = 4;
     [SerializeField, Min(1)] int blowsPerStump = 6;
     [SerializeField, Min(1)] int blowsPerClay = 4;
-    [Tooltip("How close to the water's edge counts as bank, for digging Clay (metres).")]
-    [SerializeField, Min(0.5f)] float bankReach = 3f;
+    [Tooltip("How close to the water's edge counts as bank, for digging Sand (metres); the wet bank, where Clay is, is PotteryRules.WetBankMetres.")]
+    [SerializeField, Min(0.5f)] float bankReach = PotteryRules.BankReachMetres;
 
     [Header("Firewood")]
     [SerializeField, Min(1)] int firewoodPerLog = 5;
@@ -80,6 +82,22 @@ public class AxeTool : MonoBehaviour
     WoodPile pileTarget;
     Object otherTarget; // the outcrop or stump the Pick Axe or Shovel is working
     bool diggingBank; // the Shovel digging Clay out of a creek/pond bank, which has no target object of its own
+    PotteryRules.Dig diggingKind; // what the Shovel is aimed at on the bank: patch, wet bank, creek bed or dry bank (Pottery P1)
+
+    // The last water measurement (WaterAt, IsWetBank, IsCreekBank), kept while the aim point stays within MeasureMoveMetres of it so
+    // a steady aim costs nothing; it is refreshed after MeasureSeconds anyway, so a waterline that moves under a standing player is followed.
+    const float MeasureMoveMetres = 0.25f, MeasureSeconds = 1f;
+    Vector3 measuredAt;
+    float measuredTime = float.NegativeInfinity;
+    WaterReading measuredWater;
+    float measuredWaterline;
+
+    // What the water is at a point: over it or not, the surface height, and how deep it is above the ground there (0 on dry ground).
+    public struct WaterReading
+    {
+        public bool over;
+        public float surface, depth;
+    }
     float blows;
     float lastBlowTime;
 
@@ -198,6 +216,7 @@ public class AxeTool : MonoBehaviour
     {
         Object target = null;
         bool bank = false;
+        PotteryRules.Dig dig = PotteryRules.Dig.None;
         Vector3 point = Vector3.zero;
         if (player.AimRaycast(reach, out RaycastHit hit))
         {
@@ -222,29 +241,34 @@ public class AxeTool : MonoBehaviour
                         target = stump;
                         break;
                     }
-            // A placed Clay bank patch (ClayBank) always counts, and so does any dry ground within bankReach of the water.
+            // The bank and the shallows (PotteryRules.DigFor): Clay at a patch, at the wet bank and on the bed in shallow water; Sand up the bank.
             if (!pick && target == null)
-                bank = hit.collider.GetComponentInParent<ClayBank>() != null || IsCreekBank(hit.point);
+            {
+                dig = DigAt(hit.point, hit.collider.GetComponentInParent<ClayBank>() != null);
+                bank = PotteryRules.CanDig(dig);
+            }
         }
 
-        bool changed = target != otherTarget || bank != diggingBank;
+        bool changed = target != otherTarget || bank != diggingBank || dig != diggingKind;
         if (changed && (target != null || bank))
         {
             otherTarget = target;
             diggingBank = bank;
+            diggingKind = dig;
             blows = 0f;
         }
         else if (changed && Time.time - lastBlowTime > 4f)
         {
             otherTarget = null;
             diggingBank = false;
+            diggingKind = PotteryRules.Dig.None;
             blows = 0f;
         }
 
         if (target == null && !bank)
         {
             ToolStatus.Report(pick ? "Stone Pick Axe — hold click on the rock outcrop on South Ridge to mine Stone"
-                                   : "Shovel — hold click on a stump to dig it out, or a creek/pond bank to dig Clay");
+                                   : dig == PotteryRules.Dig.TooDeep ? PotteryRules.DigText(dig) : PotteryRules.ShovelIdleText);
             return;
         }
 
@@ -257,7 +281,7 @@ public class AxeTool : MonoBehaviour
         else if (target is PlacedStructure well)
             DigWell(well, point);
         else
-            DigClay(point);
+            DigBank(point, dig);
     }
 
     // The Hammer on a fully stocked staged site (Well, Outhouse, Water Barrel, Rain Barrel or Food Cache Site, or the Small Cabin site):
@@ -371,33 +395,74 @@ public class AxeTool : MonoBehaviour
         }
     }
 
-    // Dry ground close enough to the water's edge in some direction to count as a bank, but not the water itself.
-    bool IsCreekBank(Vector3 point)
+    // THE one place the dig rule asks about water: is the point over it, the surface height there, and how deep it is above the ground
+    // (Animal.IsOverWater reads the Water layer, so a water surface that rises and falls, or a replaced water plane on that layer, is
+    // followed with no other change; IsOverWater itself says dry when the water is within 5 cm of the ground).
+    static WaterReading WaterAt(Vector3 point)
     {
-        if (Animal.IsOverWater(point, out _))
-            return false;
+        if (!Animal.IsOverWater(point, out float surface))
+            return default;
+        Terrain terrain = Terrain.activeTerrain;
+        float ground = terrain != null ? terrain.SampleHeight(point) + terrain.transform.position.y : surface;
+        return new WaterReading { over = true, surface = surface, depth = Mathf.Max(0f, surface - ground) };
+    }
+
+    // What the Shovel finds at the aim point. Measured again only when the aim moves MeasureMoveMetres or MeasureSeconds pass.
+    PotteryRules.Dig DigAt(Vector3 point, bool onClayPatch)
+    {
+        if (onClayPatch)
+            return PotteryRules.DigFor(true, false, 0f, float.PositiveInfinity);
+
+        Vector3 moved = point - measuredAt;
+        moved.y = 0f;
+        if (Time.time - measuredTime >= MeasureSeconds || moved.sqrMagnitude > MeasureMoveMetres * MeasureMoveMetres)
+        {
+            measuredAt = point;
+            measuredTime = Time.time;
+            measuredWater = WaterAt(point);
+            measuredWaterline = measuredWater.over ? 0f
+                : IsWetBank(point) ? PotteryRules.WetBankMetres
+                : IsCreekBank(point) ? PotteryRules.BankReachMetres
+                : float.PositiveInfinity;
+        }
+        return PotteryRules.DigFor(false, measuredWater.over, measuredWater.depth, measuredWaterline);
+    }
+
+    // Whether any of 8 probes on a ring of this radius around a dry point is over water.
+    bool WaterOnRing(Vector3 point, float radius)
+    {
         const int rays = 8;
         for (int i = 0; i < rays; i++)
         {
             float angle = i * (360f / rays) * Mathf.Deg2Rad;
-            Vector3 probe = point + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * bankReach;
-            if (Animal.IsOverWater(probe, out _))
+            if (WaterAt(point + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * radius).over)
                 return true;
         }
         return false;
     }
 
-    void DigClay(Vector3 point)
+    // Dry ground with water within PotteryRules.WetBankMetres: two rings, at 1 m and 2 m, so a narrow creek tip is not missed.
+    bool IsWetBank(Vector3 point) => WaterOnRing(point, PotteryRules.InnerProbeMetres) || WaterOnRing(point, PotteryRules.WetBankMetres);
+
+    // Dry ground close enough to the water's edge in some direction to count as a bank: a ring at bankReach. (Both ring tests are for a
+    // point already known to be dry.)
+    bool IsCreekBank(Vector3 point) => WaterOnRing(point, bankReach);
+
+    // The Shovel on the bank or the bed in shallow water: Clay at a patch, the wet bank or the creek bed, Sand up the dry bank, with the same four blows.
+    void DigBank(Vector3 point, PotteryRules.Dig dig)
     {
+        bool sand = PotteryRules.GivesSand(dig);
+        string what = PotteryRules.DigName(dig);
+        string itemId = sand ? PotteryRules.SandId : WoodManager.ClayId;
         InventoryManager inventory = InventoryManager.Instance;
-        ItemDefinition item = ItemDatabase.Get(WoodManager.ClayId);
+        ItemDefinition item = ItemDatabase.Get(itemId);
         if (inventory == null || item == null || inventory.Player.SpaceFor(item) <= 0)
         {
-            ToolStatus.Report("Creek bank — no room to carry more Clay");
+            ToolStatus.Report($"{PotteryRules.PlaceName(dig)} - no room to carry more {what}");
             return;
         }
 
-        ToolStatus.Report(blows > 0f ? "Digging Clay out of the bank" : "Creek bank — hold click to dig Clay",
+        ToolStatus.Report(blows > 0f ? PotteryRules.DiggingText(dig) : PotteryRules.DigText(dig),
                           blows > 0f ? blows / blowsPerClay : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
@@ -406,8 +471,8 @@ public class AxeTool : MonoBehaviour
             return;
 
         blows = 0f;
-        inventory.AddToPlayer(WoodManager.ClayId, 1);
-        ToolStatus.Flash("Dug a lump of Clay out of the bank");
+        inventory.AddToPlayer(itemId, 1);
+        ToolStatus.Flash(PotteryRules.DugText(dig));
     }
 
     void MineStone(Vector3 point)

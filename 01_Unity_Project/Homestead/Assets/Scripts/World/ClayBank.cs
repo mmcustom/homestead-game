@@ -1,9 +1,9 @@
 using UnityEngine;
 
-// A patch of wet clay on a creek or pond bank (Building_Housing_System.md's Clay). Placed by Homestead > Place Clay
-// Banks as a marker, because Mike couldn't find any Clay by looking for a bank (2026-10-09). The Primitive Shovel digs
-// Clay on a patch or anywhere else on the bank within reach of the water (AxeTool.IsCreekBank); the patch only shows
-// where to dig. It never runs out, so it keeps no state and has nothing to save.
+// An OPTIONAL patch of wet clay on a creek or pond bank (Building_Housing_System.md's Clay), a marker that Homestead > Place Clay Banks
+// can lay along the shore. None are placed in the scene today (the placer has not been run). The Shovel does not need one: it digs Clay
+// at the wet bank and in the shallows and Sand further up the bank (PotteryRules.DigFor, AxeTool); a patch only always gives Clay.
+// It never runs out, so it keeps no state and has nothing to save.
 public class ClayBank : MonoBehaviour, IInteractable
 {
     [SerializeField] int id;

@@ -186,6 +186,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.LeachHopperSite:
             case PileKind.HandCartSite:
             case PileKind.WorkshopSite:
+            case PileKind.PotterSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -207,6 +208,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.LeachHopperSite: return PileKind.LeachHopper;
             case PileKind.HandCartSite: return PileKind.HandCart;
             case PileKind.WorkshopSite: return PileKind.Workshop;
+            case PileKind.PotterSite: return PileKind.PotterShed;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -236,6 +238,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.LeachHopperSite: return LeachHopperCost();
             case PileKind.HandCartSite: return HandCartCost();
             case PileKind.WorkshopSite: return WorkshopCost();
+            case PileKind.PotterSite: return PotterCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -275,6 +278,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.LogsId, WoodManager.TallGrassId } };
         if (site == PileKind.HandCartSite)
             return new[] { new[] { CartRules.WheelId, WoodManager.LogsId, WoodManager.BranchesId, "cordage" } };
+        if (site == PileKind.PotterSite)
+            return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId, PotteryRules.CordageId } };
         if (site == PileKind.WorkshopSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId, WorkshopRules.CordageId } };
         if (site == PileKind.RainBarrelSite || site == PileKind.FoodCacheSite || site == PileKind.WoodShedSite)
@@ -411,6 +416,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.LeachHopperSite: return PotashRules.HopperBuildBlows;
             case PileKind.HandCartSite: return CartRules.BuildBlows;
             case PileKind.WorkshopSite: return WorkshopRules.BuildBlows;
+            case PileKind.PotterSite: return PotteryRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -444,6 +450,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return "Hand Cart built. Load it with R or E - it holds up to 100 kg of Logs, Branches, Firewood, Stone, Clay and Tall Grass.";
         if (site == PileKind.WorkshopSite)
             return WorkshopRules.BuiltMessage;
+        if (site == PileKind.PotterSite)
+            return PotteryRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -537,6 +545,15 @@ public class WellsAndOuthouses : MonoBehaviour
         new WoodStack { itemId = WoodManager.BranchesId, count = WorkshopRules.SiteBranches },
         new WoodStack { itemId = WoodManager.TallGrassId, count = WorkshopRules.SiteTallGrass },
         new WoodStack { itemId = WorkshopRules.CordageId, count = WorkshopRules.SiteCordage },
+    };
+
+    // A Potter's Shed (Pottery P1): 3 Logs, 8 Branches, 8 Tall Grass (the thatch roof) and 2 Cordage, about 35 kg, so a staged site. PotteryRules has the numbers.
+    public static WoodStack[] PotterCost() => new[]
+    {
+        new WoodStack { itemId = WoodManager.LogsId, count = PotteryRules.SiteLogs },
+        new WoodStack { itemId = WoodManager.BranchesId, count = PotteryRules.SiteBranches },
+        new WoodStack { itemId = WoodManager.TallGrassId, count = PotteryRules.SiteTallGrass },
+        new WoodStack { itemId = PotteryRules.CordageId, count = PotteryRules.SiteCordage },
     };
 
     public static WoodStack[] CountertopCost()
@@ -734,6 +751,8 @@ public class WellsAndOuthouses : MonoBehaviour
                 case PileKind.KitchenRoofSite: radius = kitchenRoofRadiusMetres; break;
                 case PileKind.Workshop:
                 case PileKind.WorkshopSite: radius = 1.9f; break;   // the shed's half-diagonal (3 m by 2.4 m)
+                case PileKind.PotterShed:
+                case PileKind.PotterSite: radius = PotteryRules.KitchenRadiusMetres; break;   // the shed's half-diagonal (2.4 m by 2.0 m)
                 case PileKind.WoodShed:
                 case PileKind.WoodShedSite:
                 case PileKind.Tent:
@@ -833,7 +852,7 @@ public class WellsAndOuthouses : MonoBehaviour
         }
 
         // A Wood Shed only needs dry ground clear of the cabin (the floodplain test above is its other rule); the Workshop is a roofed shed too.
-        if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed || kind == PileKind.WorkshopSite || kind == PileKind.Workshop)
+        if (kind == PileKind.WoodShedSite || kind == PileKind.WoodShed || kind == PileKind.WorkshopSite || kind == PileKind.Workshop || kind == PileKind.PotterSite || kind == PileKind.PotterShed)
             return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
 
         // A Covered Kitchen keeps its roof edge clear of every other structure and every tree (a fire under a roof).
@@ -1014,6 +1033,84 @@ public class WellsAndOuthouses : MonoBehaviour
         bench.jobHours = 0f;
     }
 
+    // --- The Potter's Shed (Pottery P1) ---
+
+    // The game hour now, on the same scale as the shelf's stamps (PotteryRules.AbsoluteHour).
+    public static int PotteryNow() =>
+        PotteryRules.AbsoluteHour(Today, TimeManager.Instance != null ? TimeManager.Instance.Hour : 0);
+
+    // The shed's shelf as plain entries: every stack of a dry-piece id, its day being the hour it is dry.
+    public static List<PotteryRules.ShelfEntry> ShelfOf(WoodPileState shed)
+    {
+        var shelf = new List<PotteryRules.ShelfEntry>();
+        foreach (WoodStack stack in shed.contents)
+            if (stack.count > 0 && PotteryRules.IsPiece(stack.itemId))
+                shelf.Add(new PotteryRules.ShelfEntry { itemId = stack.itemId, count = stack.count, ready = stack.day });
+        return shelf;
+    }
+
+    // A shaping job has run its hours: all its pieces go on the shelf together, each dry at nowHour + 24 x dryDays. A piece this build does not know is dropped rather than
+    // left where nothing could collect it.
+    public static void FinishPotteryJob(WoodPileState shed, int nowHour)
+    {
+        if (shed == null || string.IsNullOrEmpty(shed.jobItem))
+            return;
+        if (PotteryRules.TryFind(shed.jobItem, out PotteryRules.Recipe recipe))
+            shed.Add(shed.jobItem, PotteryRules.SavedCount(shed.jobCount), PotteryRules.ReadyStamp(nowHour, recipe.dryDays));
+        shed.jobItem = "";
+        shed.jobHours = 0f;
+        shed.jobCount = 0;
+    }
+
+    // Testing only (TimeDebugControls, Ctrl+semicolon): every shaping job is done now and every wet piece is dry now. Returns how many sheds changed.
+    public int DebugFinishPottery()
+    {
+        WoodManager wood = WoodManager.Instance;
+        int done = 0;
+        if (wood == null)
+            return 0;
+        int now = PotteryNow();
+        foreach (WoodPileState shed in wood.Piles)
+        {
+            if (shed.kind != PileKind.PotterShed)
+                continue;
+            bool changed = !string.IsNullOrEmpty(shed.jobItem);
+            FinishPotteryJob(shed, now);
+            foreach (WoodStack stack in shed.contents)
+            {
+                if (PotteryRules.IsPiece(stack.itemId) && stack.day > now)
+                {
+                    stack.day = now;
+                    changed = true;
+                }
+            }
+            MergeShelf(shed);
+            if (changed)
+            {
+                wood.NotifyChanged(shed);
+                done++;
+            }
+        }
+        return done;
+    }
+
+    // Stacks of one piece with the same ready hour become one.
+    static void MergeShelf(WoodPileState shed)
+    {
+        for (int i = shed.contents.Count - 1; i > 0; i--)
+        {
+            for (int j = 0; j < i; j++)
+            {
+                if (shed.contents[j].itemId == shed.contents[i].itemId && shed.contents[j].day == shed.contents[i].day)
+                {
+                    shed.contents[j].count += shed.contents[i].count;
+                    shed.contents.RemoveAt(i);
+                    break;
+                }
+            }
+        }
+    }
+
     // Testing only (TimeDebugControls, Ctrl+backslash): every running job is done now. Returns how many benches finished a piece.
     public int DebugFinishJobs()
     {
@@ -1080,6 +1177,18 @@ public class WellsAndOuthouses : MonoBehaviour
             if (WorkshopRules.IsDone(bench.jobHours))
                 FinishJob(bench);
             wood.NotifyChanged(bench);
+        }
+
+        // A Potter's Shed's shaping job runs one game hour at a time too, so being away, sleeping or skipping days all count; the finished pieces are stamped with the hour
+        // they are dry (the shelf needs no hourly tick of its own).
+        foreach (WoodPileState shed in wood.Piles)
+        {
+            if (shed.kind != PileKind.PotterShed || string.IsNullOrEmpty(shed.jobItem))
+                continue;
+            shed.jobHours = PotteryRules.AfterHour(shed.jobHours);
+            if (PotteryRules.IsDone(shed.jobHours))
+                FinishPotteryJob(shed, PotteryRules.AbsoluteHour(Today, hour));
+            wood.NotifyChanged(shed);
         }
 
         bool flood = StreamManager.State == StreamState.FlashFlood;

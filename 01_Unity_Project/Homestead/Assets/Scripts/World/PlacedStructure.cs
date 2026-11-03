@@ -26,6 +26,8 @@ public static class StructureVisuals
             case PileKind.HandCartSite: BuildHandCartSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.WorkshopSite: BuildWorkshopSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.Workshop: BuildWorkshop(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.PotterSite: BuildPotterSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.PotterShed: BuildPotterShed(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -167,6 +169,83 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.55f, bench.z);
         boxSize = new Vector3(2.0f, 1.1f, 0.7f);
+    }
+
+    // The Potter's Shed's marked-out plot (about 2.4 m by 2.0 m: half = 1.0): the stakes, bare earth and the delivered Logs, Branches and Tall Grass beside it.
+    static void BuildPotterSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 1.0f, out boxCenter, out boxSize);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(2.4f, 0.9f, 2.0f);
+    }
+
+    static readonly Color WetClayColor = new Color(0.36f, 0.25f, 0.19f);
+    static readonly Color DryClayColor = new Color(0.74f, 0.58f, 0.44f);
+    static readonly Color SandColor = new Color(0.82f, 0.73f, 0.5f);
+
+    // The finished Potter's Shed (Pottery P1): a roofed shed about 2.4 m wide and 2.0 m deep, open at the front (+Z), with a shaping table on the left and a two-board shelf
+    // against the back wall on the right. Pieces on the shelf are dark while wet and pale once dry; a lump of clay on the table shows a job in progress. The stock lies beside
+    // the shed (Clay on the left, Sand on the right). Posts, back wall and roof are Solid like the Workshop's; the back wall is what is aimed at (the interaction box).
+    static void BuildPotterShed(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float halfW = 1.2f, halfD = 1.0f, top = 2.1f, postX = halfW - 0.12f, postZ = halfD - 0.12f;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f, 0f), Vector3.zero, new Vector3(postX * 2f, 0.01f, postZ * 2f), null), SoilColor);
+
+        foreach (Vector2 corner in new[] { new Vector2(-postX, -postZ), new Vector2(postX, -postZ), new Vector2(-postX, postZ), new Vector2(postX, postZ) })
+            Solid(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, top / 2f, corner.y), Vector3.zero, new Vector3(0.16f, top / 2f, 0.16f), bark));
+        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 1.05f, -postZ), Vector3.zero, new Vector3(postX * 2f, 2.0f, 0.08f), bark), BenchWoodColor));
+
+        const int bundles = 6;
+        float span = halfD * 2f + 0.4f;
+        for (int i = 0; i < bundles; i++)
+        {
+            float t = i / (float)(bundles - 1);
+            float tone = 0.85f + (float)random.NextDouble() * 0.3f;
+            Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, top + 0.1f + Mathf.Lerp(-0.1f, 0.1f, t), Mathf.Lerp(-span / 2f, span / 2f, t)),
+                               new Vector3(-3f, 0f, 0f), new Vector3(halfW * 2f + 0.5f, 0.09f, span / bundles + 0.16f), null),
+                         new Color(ThatchColor.r * tone, ThatchColor.g * tone, ThatchColor.b * tone)));
+        }
+
+        // The shaping table on the left, and the two shelf boards on the right (low and high) against the back wall.
+        WorkTable(parent, pieces, bark, new Vector3(-0.55f, 0f, -postZ + 0.35f), 0.95f, 0.5f, 0.8f, false);
+        float shelfX = 0.5f, shelfZ = -postZ + 0.22f;
+        foreach (float shelfY in new[] { 0.55f, 1.15f })
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(shelfX, shelfY, shelfZ), Vector3.zero, new Vector3(0.95f, 0.04f, 0.38f), bark), BenchWoodColor);
+
+        bool working = !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
+        if (working)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-0.55f, 0.9f, -postZ + 0.35f), Vector3.zero, new Vector3(0.3f, 0.2f, 0.3f), null), WetClayColor);
+
+        // The shelf, up to eight pieces drawn (a stack of any size shows as at most four).
+        int now = WellsAndOuthouses.PotteryNow();
+        int slot = 0;
+        foreach (PotteryRules.ShelfEntry entry in WellsAndOuthouses.ShelfOf(state))
+        {
+            Color tone = PotteryRules.IsDry(entry.ready, now) ? DryClayColor : WetClayColor;
+            for (int i = 0; i < Mathf.Min(entry.count, 4) && slot < 8; i++, slot++)
+            {
+                float y = slot < 4 ? 0.57f : 1.17f;
+                Vector3 at = new Vector3(shelfX - 0.36f + (slot % 4) * 0.24f, y, shelfZ);
+                switch (entry.itemId)
+                {
+                    case PotteryRules.DryCupId: Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(0f, 0.06f, 0f), Vector3.zero, new Vector3(0.09f, 0.06f, 0.09f), null), tone); break;
+                    case PotteryRules.DryBowlId: Tinted(Piece(parent, pieces, PrimitiveType.Sphere, at + new Vector3(0f, 0.05f, 0f), Vector3.zero, new Vector3(0.2f, 0.1f, 0.2f), null), tone); break;
+                    case PotteryRules.DryPotId: Tinted(Piece(parent, pieces, PrimitiveType.Sphere, at + new Vector3(0f, 0.1f, 0f), Vector3.zero, new Vector3(0.22f, 0.2f, 0.22f), null), tone); break;
+                    case PotteryRules.DryCrockId: Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(0f, 0.14f, 0f), Vector3.zero, new Vector3(0.2f, 0.14f, 0.2f), null), tone); break;
+                    default: Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0f, 0.07f, 0f), Vector3.zero, new Vector3(0.22f, 0.14f, 0.18f), null), tone); break;
+                }
+            }
+        }
+
+        int clay = Mathf.Min(state.Count(PotteryRules.ClayId), 5);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-halfW - 0.4f + (i % 2) * 0.22f, 0.1f + (i / 2) * 0.16f, -0.3f + (i % 3) * 0.2f), Vector3.zero, new Vector3(0.26f, 0.2f, 0.26f), null), WetClayColor);
+        int sand = Mathf.Min(state.Count(PotteryRules.SandId), 4);
+        for (int i = 0; i < sand; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(halfW + 0.4f, 0.09f + i * 0.1f, -0.3f + (i % 2) * 0.24f), Vector3.zero, new Vector3(0.34f, 0.18f, 0.3f), null), SandColor);
+
+        boxCenter = new Vector3(0f, 0.7f, -postZ + 0.35f);
+        boxSize = new Vector3(2.2f, 1.4f, 0.7f);
     }
 
     // A finished Workshop piece standing on the bench (a2-1), a small plain shape for each: the stool's round seat on three legs, the End Table's square top on four legs,
@@ -528,7 +607,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         bool kitchen = state.kind == PileKind.Kitchen;
         box.enabled = !kitchen;
         // The Workshop keeps its interaction box (the bench) and also has solid posts, back wall and roof.
-        if (!kitchen && state.kind != PileKind.Workshop)
+        if (!kitchen && state.kind != PileKind.Workshop && state.kind != PileKind.PotterShed)
             return;
         foreach (GameObject piece in pieces)
         {
@@ -564,6 +643,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.SlopSink: return SinkPrompt();
                 case PileKind.LeachHopper: return HopperPrompt();
                 case PileKind.Workshop: return WorkshopPrompt();
+                case PileKind.PotterShed: return PotteryPrompt();
                 default: return OuthousePrompt();
             }
         }
@@ -1052,6 +1132,174 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // --- The Potter's Shed (Pottery P1): R stocks Clay and Sand, E collects dry pieces or else opens the Potter screen, R with the Hammer dismantles ---
+
+    bool PotteryWorking => !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
+
+    // The Potter screen (PotteryScreen) reads the shed through these: the running job, the shelf, and why a job can or cannot start now.
+    public bool PotteryRunning(out PotteryRules.Recipe made, out int count)
+    {
+        count = PotteryRules.SavedCount(state.jobCount);
+        made = default;
+        return PotteryWorking && PotteryRules.TryFind(state.jobItem, out made);
+    }
+
+    public List<PotteryRules.ShelfEntry> PotteryShelf() => WellsAndOuthouses.ShelfOf(state);
+
+    public PotteryRules.Gate PotteryGateFor(PotteryRules.Recipe recipe, int count) =>
+        PotteryRules.CanStart(recipe, count, PotteryWorking, state.Count(PotteryRules.ClayId), state.Count(PotteryRules.SandId), PotteryRules.FreeSpace(PotteryShelf()));
+
+    string PotteryPrompt()
+    {
+        int dry = PotteryRules.DryPieces(PotteryShelf(), WellsAndOuthouses.PotteryNow());
+        if (dry > 0)
+            return PotteryRules.CollectPrompt(dry);
+        if (PotteryRunning(out PotteryRules.Recipe made, out int count))
+            return PotteryRules.WorkingPrompt(made, count, state.jobHours);
+        return PotteryRules.OpenPrompt;
+    }
+
+    // The Clay and Sand the pack carries that the shed still has room for.
+    int PotteryCarried(out string what)
+    {
+        what = "";
+        int total = 0;
+        var names = new List<string>();
+        foreach (string id in PotteryRules.StockIds)
+        {
+            if (!state.Accepts(id))
+                continue;
+            int n = Inventory.Player.Count(id);
+            if (n <= 0)
+                continue;
+            total += n;
+            names.Add(ItemDatabase.Get(id)?.DisplayName ?? id);
+        }
+        what = string.Join(", ", names);
+        return total;
+    }
+
+    string PotterySecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return PotteryRules.DismantlePrompt(PotteryWorking, state.jobHours, PotteryRules.WetPieces(PotteryShelf(), WellsAndOuthouses.PotteryNow()));
+        return PotteryCarried(out string what) > 0 ? PotteryRules.StorePrompt(what) : PotteryRules.DeliverHelp;
+    }
+
+    // E: if any piece on the shelf is dry, take them all (what does not fit stays); otherwise open the Potter screen (a job starts there, through PotteryStartJob).
+    void PotteryInteract()
+    {
+        int now = WellsAndOuthouses.PotteryNow();
+        if (PotteryRules.DryPieces(PotteryShelf(), now) <= 0)
+        {
+            PotteryScreen.Open(this);
+            return;
+        }
+
+        int took = 0, stayed = 0;
+        foreach (PotteryRules.Recipe recipe in PotteryRules.Recipes)
+        {
+            int dry = 0;
+            foreach (PotteryRules.ShelfEntry entry in PotteryShelf())
+                if (entry.itemId == recipe.itemId && PotteryRules.IsDry(entry.ready, now))
+                    dry += entry.count;
+            if (dry <= 0)
+                continue;
+            ItemDefinition item = ItemDatabase.Get(recipe.itemId);
+            int fits = item != null ? Mathf.Min(dry, Inventory.Player.SpaceFor(item)) : 0;
+            int added = fits > 0 ? Inventory.AddToPlayer(recipe.itemId, fits) : 0;
+            state.Take(recipe.itemId, added); // the lowest day first, which is the dry stacks (their hour is already past)
+            took += added;
+            stayed += dry - added;
+        }
+        if (took <= 0)
+        {
+            ToolStatus.Flash("Too heavy - no room to carry them", 3f);
+            return;
+        }
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(PotteryRules.TookMessage(took, stayed), 4f);
+    }
+
+    // The one way a job starts (the Potter screen's Start button calls it): the gate is worked out again on the shed as it is now, so a stale click does nothing. On success it
+    // takes the Clay and Sand, sets the job and returns true with the "Started" message; otherwise false with the reason.
+    public bool PotteryStartJob(PotteryRules.Recipe recipe, int count, out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.PotterShed || Inventory == null || WoodManager.Instance == null)
+            return false;
+        count = PotteryRules.ClampCount(count);
+        int clay = state.Count(PotteryRules.ClayId), sand = state.Count(PotteryRules.SandId);
+        int free = PotteryRules.FreeSpace(PotteryShelf());
+        PotteryRules.Gate gate = PotteryGateFor(recipe, count);
+        if (gate != PotteryRules.Gate.Ok)
+        {
+            PotteryRunning(out PotteryRules.Recipe made, out int madeCount);
+            message = PotteryRules.ReasonText(gate, recipe, count, clay, sand, free, state.jobHours, made, madeCount);
+            return false;
+        }
+
+        state.Take(PotteryRules.ClayId, PotteryRules.ClayFor(recipe, count));
+        state.Take(PotteryRules.SandId, PotteryRules.SandFor(recipe, count));
+        state.jobItem = recipe.itemId;
+        state.jobCount = count;
+        state.jobHours = PotteryRules.HoursFor(recipe, count);
+        WoodManager.Instance.NotifyChanged(state);
+        message = PotteryRules.StartedMessage(recipe, count);
+        return true;
+    }
+
+    // R: with the Hammer it dismantles; without, it stocks the shed from the pack (PotteryStockFromPack, which the Potter screen's button and R key share).
+    void PotterySecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+
+        PotteryStockFromPack(out string message);
+        ToolStatus.Flash(message, 4f);
+    }
+
+    public PotteryRules.StockGate PotteryStockGateNow() =>
+        state == null || Inventory == null ? PotteryRules.StockGate.NothingCarried
+            : PotteryRules.StockState(Inventory.Player.Count(PotteryRules.ClayId), Inventory.Player.Count(PotteryRules.SandId),
+                                      state.Count(PotteryRules.ClayId), state.Count(PotteryRules.SandId));
+
+    // Puts what the pack carries of Clay and Sand into the shed, up to the caps. Works while a job runs. Returns whether anything moved, with the message R flashes.
+    public bool PotteryStockFromPack(out string message)
+    {
+        message = "Nothing you carry fits. " + PotteryRules.DeliverHelp;
+        if (state == null || state.kind != PileKind.PotterShed || Inventory == null || WoodManager.Instance == null)
+            return false;
+
+        int stored = 0;
+        var names = new List<string>();
+        foreach (string id in PotteryRules.StockIds)
+        {
+            if (!state.Accepts(id))
+                continue;
+            int n = Mathf.Min(PotteryRules.CapOf(id) - state.Count(id), Inventory.Player.Count(id));
+            if (n <= 0)
+                continue;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.SilenceNextRemoval();
+            int removed = Inventory.Player.RemoveBatches(id, n, (day, count) => state.Add(id, count, 0));
+            if (removed > 0)
+            {
+                stored += removed;
+                names.Add($"{removed} {ItemDatabase.Get(id)?.DisplayName ?? id}");
+            }
+        }
+
+        if (stored <= 0)
+            return false;
+        WoodManager.Instance.NotifyChanged(state);
+        message = $"Stored {string.Join(", ", names)}  (the shed holds {state.Count(PotteryRules.ClayId)} Clay, {state.Count(PotteryRules.SandId)} Sand)";
+        return true;
+    }
+
     string WellPrompt()
     {
         WellsAndOuthouses w = Rules;
@@ -1093,6 +1341,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return SinkSecondaryPrompt();
             if (state.kind == PileKind.LeachHopper)
                 return HopperSecondaryPrompt();
+            if (state.kind == PileKind.PotterShed)
+                return PotterySecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -1136,6 +1386,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.SlopSink: DrawFromSink(); break;
             case PileKind.LeachHopper: CollectLye(); break;
             case PileKind.Workshop: WorkshopInteract(); break;
+            case PileKind.PotterShed: PotteryInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -1300,6 +1551,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             HopperSecondary();
         }
+        else if (state.kind == PileKind.PotterShed)
+        {
+            PotterySecondary();
+        }
         else if (state.kind == PileKind.Workshop)
         {
             WorkshopSecondary();
@@ -1395,6 +1650,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash(WorkshopRules.DismantlePrompt(true, state.jobHours), 4f);
             return;
         }
+        // A Potter's Shed is not taken down while it is shaping or any piece is still wet on the shelf (the materials are in the work).
+        if (state.kind == PileKind.PotterShed && (PotteryWorking || PotteryRules.WetPieces(PotteryShelf(), WellsAndOuthouses.PotteryNow()) > 0))
+        {
+            ToolStatus.Flash(PotteryRules.DismantlePrompt(PotteryWorking, state.jobHours, PotteryRules.WetPieces(PotteryShelf(), WellsAndOuthouses.PotteryNow())), 4f);
+            return;
+        }
         var refund = new StructureRefund(state.position, transform);
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
@@ -1411,6 +1672,14 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             foreach (string stockId in WorkshopRules.StockIds)
                 refund.Return(stockId, state.Count(stockId));
             foreach (WorkshopRules.Recipe piece in WorkshopRules.Recipes)
+                refund.Return(piece.itemId, state.Count(piece.itemId));
+        }
+        // A Potter's Shed gives back the Clay and Sand in it and the dry pieces on its shelf whole, on top of half the materials.
+        if (state.kind == PileKind.PotterShed)
+        {
+            foreach (string stockId in PotteryRules.StockIds)
+                refund.Return(stockId, state.Count(stockId));
+            foreach (PotteryRules.Recipe piece in PotteryRules.Recipes)
                 refund.Return(piece.itemId, state.Count(piece.itemId));
         }
         WoodManager.Instance.RemovePile(state);

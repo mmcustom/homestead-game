@@ -370,7 +370,7 @@ public class WorkshopTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(35), "nothing was inserted in the middle");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(37), "nothing was inserted in the middle");
     }
 
     [Test]
@@ -446,7 +446,7 @@ public class WorkshopTests
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).OrderBy(n => n).ToArray();
         Assert.That(fields, Is.EqualTo(new[]
         {
-            "buildProgress", "builtDay", "contaminatedHours", "contents", "depthToWater", "digProgress", "id", "jobHours", "jobItem", "kind", "leachHours", "litres", "position", "yaw",
+            "buildProgress", "builtDay", "contaminatedHours", "contents", "depthToWater", "digProgress", "id", "jobCount", "jobHours", "jobItem", "kind", "leachHours", "litres", "position", "yaw",
         }));
         Assert.That(Find("WoodPileState").GetField("jobItem").FieldType, Is.EqualTo(typeof(string)));
         Assert.That(Find("WoodPileState").GetField("jobHours").FieldType, Is.EqualTo(typeof(float)));
@@ -740,9 +740,9 @@ public class WorkshopTests
         string[] names = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
         Assert.That(names, Does.Contain("jobItem"));
         Assert.That(names, Does.Contain("jobHours"));
-        Assert.That(names.Length, Is.EqualTo(14), "a2-1 added no saved field");
+        Assert.That(names.Length, Is.EqualTo(15), "a2-1 added no saved field; Pottery P1 added jobCount");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(35), "no pile kind was added");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(37), "only the two Potter kinds were added");
     }
 
     // --- The Workshop screen's text ---

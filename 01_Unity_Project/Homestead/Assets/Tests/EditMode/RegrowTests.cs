@@ -272,9 +272,9 @@ public class RegrowTests
     {
         Type kind = Find("PileKind");
         string[] names = Enum.GetNames(kind);
-        Assert.That(names.Length, Is.EqualTo(35));
+        Assert.That(names.Length, Is.EqualTo(37));
         Assert.That(names[0], Is.EqualTo("Felled"));
-        Assert.That(names.Last(), Is.EqualTo("Workshop"));
+        Assert.That(names.Last(), Is.EqualTo("PotterShed"));
         Assert.That((int)Enum.Parse(kind, "HandCart"), Is.EqualTo(32));
     }
 

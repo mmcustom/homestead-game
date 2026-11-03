@@ -31,8 +31,10 @@ public static class RegrowRules
 
     // The Workshop (about 3 m by 2.4 m) is wider than an ordinary structure: no sprout comes up inside its footprint (Workshop W1(a1)).
     public const float WorkshopMetres = 2.9f;
+    // The Potter's Shed (about 2.4 m by 2.0 m) likewise (Pottery P1).
+    public const float PotteryMetres = 2.4f;
 
-    public enum Blocker { Structure, Cabin, Kitchen, Fire, Player, ClearedGround, Workshop }
+    public enum Blocker { Structure, Cabin, Kitchen, Fire, Player, ClearedGround, Workshop, Pottery }
 
     // Whether a felled spot can ever grow again: a shrub always; a hardwood only while its stump is still there (a dug-out stump clears the spot for good).
     public static bool CanRegrow(int prototype, bool stump) => prototype == ShrubPrototype || stump;
@@ -87,6 +89,7 @@ public static class RegrowRules
             case Blocker.Player: return PlayerMetres;
             case Blocker.ClearedGround: return zoneMetres;
             case Blocker.Workshop: return WorkshopMetres;
+            case Blocker.Pottery: return PotteryMetres;
             default: return StructureMetres;
         }
     }

@@ -200,7 +200,7 @@ public class CartTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("HandCart"), Is.EqualTo(32));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(35), "nothing was inserted in the middle (the Workshop kinds, 33 and 34, came after the cart)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(37), "nothing was inserted in the middle (the Workshop kinds, 33 and 34, came after the cart; the Potter kinds, 35 and 36, after them)");
     }
 
     [Test]
@@ -392,6 +392,7 @@ public class CartTests
         {
             "id", "kind", "position", "yaw", "contents", "litres", "contaminatedHours", "digProgress", "builtDay", "buildProgress", "depthToWater", "leachHours",
             "jobItem", "jobHours", // the Workshop's two (W1(a1)), appended after the cart: the cart itself added none
+            "jobCount", // the Potter's Shed piece count (Pottery P1), appended after the Workshop's two
         };
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
         Assert.That(fields, Is.EquivalentTo(expected), "Phase 1 saves a cart with the fields every pile already has (plus the Workshop's two job fields)");
@@ -661,6 +662,6 @@ public class CartTests
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("HandCart"), Is.EqualTo(32));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(35), "no kind was added for the cart handle or the held cart (33 through the cart, plus the two Workshop kinds)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(37), "no kind was added for the cart handle or the held cart (33 through the cart, plus the two Workshop kinds and the two Potter kinds)");
     }
 }

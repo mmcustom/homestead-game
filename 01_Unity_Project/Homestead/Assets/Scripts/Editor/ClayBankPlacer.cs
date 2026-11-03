@@ -4,10 +4,10 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 
-// Homestead > Place Clay Banks: visible patches of wet clay along the creek and pond banks in the open World scene
-// (Building_Housing_System.md's Clay; Mike couldn't find any on 2026-10-09 because nothing marked a bank). The Shovel
-// already digs Clay anywhere on dry ground within 3 m of water (AxeTool.IsCreekBank); these patches only show where,
-// and dig the same way. They never run out, so there's no manager and nothing to save.
+// Homestead > Place Clay Banks: OPTIONAL visible patches of wet clay along the creek and pond banks in the open World scene
+// (Building_Housing_System.md's Clay). None are placed in the scene today and the placer has not been run. The Shovel does not need
+// them: it already digs Clay at the wet bank (water within 2 m) and in the shallows, and Sand up the bank to 3 m (PotteryRules.DigFor,
+// AxeTool); a patch only always gives Clay, wherever it stands. They never run out, so there's no manager and nothing to save.
 //
 // The shoreline is found by sampling the terrain on a grid for water (Animal.IsOverWater); every dry sample within
 // BankBand of water is a candidate. Candidates are shuffled with a fixed seed and kept if no other patch is within

@@ -38,6 +38,8 @@ using UnityEngine.InputSystem;
 //      the logs "at the stand" for timing a haul by hand against the cart
 //   \  give the Workshop site's materials (a Hammer, an Axe, 10 Branches, 10 Tall Grass, 3 Cordage) and stand a Wood Pile with its 5 Logs 3 m ahead;  Shift+\  stand a finished Workshop 4 m
 //      ahead with the bench stocked for a Table and a Chair (5 Logs, 8 Branches, 3 Cordage);  Ctrl+\  finish every running Workshop job now
+//   ;  give the Potter's Shed site's materials (a Hammer, a Shovel, 8 Branches, 8 Tall Grass, 2 Cordage, 12 Clay, 6 Sand) and stand a Wood Pile with its 3 Logs 3 m ahead;  Shift+;  stand a
+//      finished Potter's Shed 4 m ahead, stocked, with 2 wet Bowls and 3 dry Cups on the shelf;  Ctrl+;  finish every shaping job and dry every piece now
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -209,6 +211,56 @@ public class TimeDebugControls : MonoBehaviour
             WoodManager.Instance.NotifyChanged(logs);
             Show(missed == 0 ? $"Workshop kit given: a Hammer, an Axe, {WorkshopRules.SiteBranches} Branches, {WorkshopRules.SiteTallGrass} Tall Grass, {WorkshopRules.SiteCordage} Cordage; a Wood Pile with {WorkshopRules.SiteLogs} Logs is ahead"
                                 : $"Workshop kit given ({missed} items didn't fit); a Wood Pile with {WorkshopRules.SiteLogs} Logs is ahead", time);
+            return;
+        }
+
+        // Pottery P1. ; gives what the Potter's Shed site needs apart from its Logs (a Hammer, a Shovel, 8 Branches, 8 Tall Grass, 2 Cordage) and 12 Clay and 6 Sand, and stands a Wood Pile
+        // with its 3 Logs 3 m ahead (35 kg would not fit the pack); Shift+; stands a finished Potter's Shed 4 m ahead, stocked, with 2 wet Bowls and 3 dry Cups on the shelf; Ctrl+;
+        // finishes every shaping job and dries every piece now.
+        if (keyboard.semicolonKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
+        {
+            if (ctrl)
+            {
+                int done = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishPottery() : 0;
+                Show(done > 0 ? $"Pottery finished in {done} shed(s): shaping done, every piece dry" : "No Potter's Shed has a job or a wet piece", time);
+                return;
+            }
+
+            Transform potBody = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 potFlat = Vector3.ProjectOnPlane(potBody.forward, Vector3.up).normalized;
+            Terrain potTerrain = Terrain.activeTerrain;
+            Vector3 PotAhead(float metres)
+            {
+                Vector3 at = potBody.position + potFlat * metres;
+                if (potTerrain != null)
+                    at.y = potTerrain.SampleHeight(at) + potTerrain.transform.position.y;
+                return at;
+            }
+
+            if (keyboard.shiftKey.isPressed)
+            {
+                WoodPileState shed = WoodManager.Instance.DebugPlace(PileKind.PotterShed, PotAhead(4f), potBody.eulerAngles.y + 180f);
+                int now = WellsAndOuthouses.PotteryNow();
+                shed.Add(PotteryRules.ClayId, PotteryRules.ClayCap - 4);
+                shed.Add(PotteryRules.SandId, PotteryRules.SandCap - 2);
+                shed.Add(PotteryRules.DryBowlId, 2, PotteryRules.ReadyStamp(now, 2));   // wet: two days to go
+                shed.Add(PotteryRules.DryCupId, 3, now);                                // dry now
+                WoodManager.Instance.NotifyChanged(shed);
+                Show("Potter's Shed placed ahead: 12 Clay and 6 Sand in it, 2 wet Bowls and 3 dry Cups on the shelf", time);
+                return;
+            }
+
+            InventoryManager potInventory = InventoryManager.Instance;
+            int potMissed = 0;
+            foreach ((string id, int count) in new (string, int)[] { ("hammer", 1), (AxeTool.ShovelId, 1), (WoodManager.BranchesId, PotteryRules.SiteBranches),
+                                                                      (WoodManager.TallGrassId, PotteryRules.SiteTallGrass), (PotteryRules.CordageId, PotteryRules.SiteCordage),
+                                                                      (PotteryRules.ClayId, 12), (PotteryRules.SandId, 6) })
+                potMissed += count - potInventory.AddToPlayer(id, count);
+            WoodPileState potLogs = WoodManager.Instance.DebugPlace(PileKind.WoodStorage, PotAhead(3f), potBody.eulerAngles.y);
+            potLogs.Add(WoodManager.LogsId, PotteryRules.SiteLogs);
+            WoodManager.Instance.NotifyChanged(potLogs);
+            Show(potMissed == 0 ? $"Pottery kit given: a Hammer, a Shovel, {PotteryRules.SiteBranches} Branches, {PotteryRules.SiteTallGrass} Tall Grass, {PotteryRules.SiteCordage} Cordage, 12 Clay, 6 Sand; a Wood Pile with {PotteryRules.SiteLogs} Logs is ahead"
+                                  : $"Pottery kit given ({potMissed} items didn't fit); a Wood Pile with {PotteryRules.SiteLogs} Logs is ahead", time);
             return;
         }
 

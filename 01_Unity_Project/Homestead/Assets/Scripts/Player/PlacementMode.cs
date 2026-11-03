@@ -108,6 +108,7 @@ public class PlacementMode : MonoBehaviour
             case PileKind.OuthouseSite:
             case PileKind.HandCartSite:
             case PileKind.WorkshopSite:
+            case PileKind.PotterSite:
                 return true;
             default:
                 return false;
