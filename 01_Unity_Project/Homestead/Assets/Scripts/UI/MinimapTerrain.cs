@@ -13,6 +13,9 @@ public static class MinimapTerrain
         new Color(0.53f, 0.44f, 0.31f),
         new Color(0.64f, 0.61f, 0.55f),
     };
+    // The creek banks' two layers are made at play time (CreekBanks), so they are found by name.
+    static readonly Color ClayColor = new Color(0.5f, 0.31f, 0.2f);
+    static readonly Color SandColor = new Color(0.78f, 0.7f, 0.5f);
     static readonly Color Canopy = new Color(0.19f, 0.29f, 0.15f);
     static readonly Color Water = new Color(0.2f, 0.37f, 0.47f);
     static readonly Color OffTerrain = new Color(0.12f, 0.14f, 0.11f);
@@ -44,7 +47,9 @@ public static class MinimapTerrain
         var pixels = new Color[size * size];
         float metresPerPixel = worldSize / size;
 
-        TerrainData data = terrain != null ? terrain.terrainData : null;
+        // While playing, the terrain's play-time copy: it holds the creek banks. (Asking for it here also fixes the order: the map and SeasonalGround both start in the
+        // same frame, and the map used to see the bare asset or the copy with snow in it depending on which came first.)
+        TerrainData data = terrain == null ? null : Application.isPlaying ? RuntimeTerrain.Data(terrain) : terrain.terrainData;
         if (data == null)
         {
             for (int i = 0; i < pixels.Length; i++)
@@ -56,6 +61,11 @@ public static class MinimapTerrain
         Vector3 terrainSize = data.size;
         float[,,] alpha = data.GetAlphamaps(0, 0, data.alphamapWidth, data.alphamapHeight);
         int layers = alpha.GetLength(2);
+        TerrainLayer[] terrainLayers = data.terrainLayers;
+        var layerColors = new Color[layers];
+        var counts = new bool[layers];
+        for (int l = 0; l < layers; l++)
+            layerColors[l] = LayerColor(l < terrainLayers.Length ? terrainLayers[l] : null, l, out counts[l]);
         Vector3 light = new Vector3(-0.6f, 0.75f, 0.35f).normalized; // from the north-west, the usual map convention
 
         for (int py = 0; py < size; py++)
@@ -73,9 +83,17 @@ public static class MinimapTerrain
 
                 int ax = Mathf.Clamp((int)(u * data.alphamapWidth), 0, data.alphamapWidth - 1);
                 int ay = Mathf.Clamp((int)(v * data.alphamapHeight), 0, data.alphamapHeight - 1);
+                // Only the ground layers count, scaled back up to full (the map does not show snow or leaf litter, as its header says).
                 Color ground = Color.black;
+                float shown = 0f;
                 for (int l = 0; l < layers; l++)
-                    ground += LayerColors[Mathf.Min(l, LayerColors.Length - 1)] * alpha[ay, ax, l];
+                {
+                    if (!counts[l])
+                        continue;
+                    ground += layerColors[l] * alpha[ay, ax, l];
+                    shown += alpha[ay, ax, l];
+                }
+                ground = shown > 0.001f ? ground / shown : LayerColors[LayerColors.Length - 1];
 
                 float shade = 0.72f + 0.4f * Mathf.Max(0f, Vector3.Dot(data.GetInterpolatedNormal(u, v), light));
                 Color c = ground * shade;
@@ -98,6 +116,23 @@ public static class MinimapTerrain
             StampWater(pixels, size, water, worldMin, metresPerPixel);
 
         return ToTexture(pixels, size);
+    }
+
+    // The map colour of a terrain layer, and whether it counts as ground: the three painted layers by their order, the creek banks by name, and nothing else
+    // (SeasonalGround's snow and leaf litter are weather, not ground).
+    public static Color LayerColor(TerrainLayer layer, int index, out bool counts)
+    {
+        counts = true;
+        if (layer != null && layer.name == CreekBankRules.ClayLayerName)
+            return ClayColor;
+        if (layer != null && layer.name == CreekBankRules.SandLayerName)
+            return SandColor;
+        if (index >= LayerColors.Length)
+        {
+            counts = false;
+            return LayerColors[LayerColors.Length - 1];
+        }
+        return LayerColors[index];
     }
 
     static void StampTrees(Color[] pixels, int size, TerrainData data, Vector3 origin, Vector2 worldMin, float metresPerPixel)

@@ -25,6 +25,8 @@ using UnityEngine.InputSystem;
 //   PageUp add $1,000 cash per press (Shift+PageUp: set cash to $0, to test being broke, missed payments and the loss). Cash only, no
 //          ledger entry: it is never income and shows only as the statement's "Other" line. F11 was already taken by the starting kit
 //   Insert lose the game now, as if the third missed land payment had just landed (shows the loss screen; nothing is saved from it)
+//   Ctrl+Home  set the ground snow amount (SeasonalGround): 0, then 0.5, then 1, then back to 0; the ground repaints in about half a second, and the weather leaves the amount
+//          alone for 24 game hours (then it melts if the air is above freezing). The message shows the amount and the air temperature
 //   Home   toggle "sap always runs": every hour is a sap flow hour at every tap, whatever the season or the weather (TapManager). Shift+Home
 //          fills every Sap Bucket to the top with fresh sap
 //   PageDown teleport to the nearest Sugar Maple, standing about 2 m from the trunk and facing it. Press again for the next nearest, Shift+PageDown
@@ -84,6 +86,21 @@ public class TimeDebugControls : MonoBehaviour
             return;
 
         UpdateBodyReadout(time, keyboard);
+
+        if (keyboard.homeKey.wasPressedThisFrame && (keyboard.leftCtrlKey.isPressed || keyboard.rightCtrlKey.isPressed))
+        {
+            SeasonalGround ground = FindAnyObjectByType<SeasonalGround>();
+            if (ground == null)
+            {
+                Show("No ground snow here (SeasonalGround is not running)", time);
+                return;
+            }
+            ground.DebugSetSnow(GroundCoverRules.NextDebugSnow(ground.Amount), GroundCoverRules.DebugSnowHoldGameHours);
+            WeatherManager air = WeatherManager.Instance;
+            Show($"Ground snow set to {ground.Amount:0.0} (held {GroundCoverRules.DebugSnowHoldGameHours:0} game hours)" +
+                 (air != null ? $", air {air.TemperatureF:0} F" : ""), time);
+            return;
+        }
 
         if (keyboard.homeKey.wasPressedThisFrame && TapManager.Instance != null)
         {

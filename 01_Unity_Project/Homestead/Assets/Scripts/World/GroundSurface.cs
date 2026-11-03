@@ -16,7 +16,8 @@ public struct TerrainLayerSurface
 // Ground without one uses PlayerAudio's default surface. On a Terrain, each texture layer can be mapped to a
 // surface instead (Property_Layout.md: Grass by default, Dirt on trails, Gravel at creek and pond banks) — the
 // listed layer painted strongest at the player's feet wins. Unlisted layers (SeasonalGround's snow and litter) are
-// ignored, so snow over a trail still sounds like the trail.
+// ignored, so snow over a trail still sounds like the trail. CreekBanks' Wet Clay and Creek Sand are made at play time,
+// so they cannot be listed in the Inspector: they are found by name and count as Gravel, which is what the banks were before.
 public class GroundSurface : MonoBehaviour
 {
     [Tooltip("The surface for plain colliders, and for terrain layers not listed below.")]
@@ -68,8 +69,9 @@ public class GroundSurface : MonoBehaviour
         {
             TerrainLayer layer = i < data.terrainLayers.Length ? data.terrainLayers[i] : null;
             int mapped = terrainLayers.FindIndex(m => m.layer == layer);
-            layerListed[i] = mapped >= 0;
-            layerSurfaces[i] = mapped >= 0 ? terrainLayers[mapped].surface : surface;
+            bool bank = mapped < 0 && layer != null && CreekBankRules.IsBankLayer(layer.name);
+            layerListed[i] = mapped >= 0 || bank;
+            layerSurfaces[i] = mapped >= 0 ? terrainLayers[mapped].surface : bank ? SurfaceType.Gravel : surface;
         }
         return layerSurfaces.Length > 0;
     }

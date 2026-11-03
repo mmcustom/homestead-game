@@ -39,6 +39,12 @@ public class SeasonalGround : MonoBehaviour, ISaveable
     [SerializeField] Vector2 litterFadesInSpring = new Vector2(0f, 0.5f);
     [SerializeField, Min(0.1f)] float litterTileSize = 2.5f;
 
+    [Header("Creek banks")]
+    [Tooltip("Share of the snow a full Wet Clay or Creek Sand cell keeps, 0-1: the damp banks stay mostly bare so the dig spots can be seen all year.")]
+    [SerializeField, Range(0f, 1f)] float bankSnowShare = 0.25f;
+    [Tooltip("Share of the leaf litter a full Wet Clay or Creek Sand cell keeps, 0-1.")]
+    [SerializeField, Range(0f, 1f)] float bankLitterShare = 0.25f;
+
     [Tooltip("Repaint once either amount has changed by this much.")]
     [SerializeField, Range(0.005f, 0.2f)] float repaintStep = 0.02f;
 
@@ -53,6 +59,7 @@ public class SeasonalGround : MonoBehaviour, ISaveable
     float[,,] slice;
     TerrainLayer litterLayerAsset, snowLayerAsset;
     int res, baseLayers, litterLayer, snowLayer;
+    int bankClayLayer = -1, bankSandLayer = -1; // CreekBanks' layers in the terrain's own painting, or -1 when the terrain has none
 
     float amount, litter;
     float paintedSnow = -1f, paintedLitter = -1f;
@@ -60,6 +67,9 @@ public class SeasonalGround : MonoBehaviour, ISaveable
     float paintSnow, paintLitter;
     float lastHours = -1f;
     bool restored;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    float holdUntilHours = -1f; // testing only: until this game hour the weather neither builds nor melts the snow
+#endif
 
     public float Amount => amount;
     public float Litter => litter;
@@ -91,7 +101,17 @@ public class SeasonalGround : MonoBehaviour, ISaveable
         baseAlphas = data.GetAlphamaps(0, 0, res, res);
 
         TerrainLayer[] layers = data.terrainLayers;
-        var withSeasonal = new TerrainLayer[layers.Length + 2];
+        for (int i = 0; i < layers.Length && i < baseLayers; i++)
+        {
+            if (layers[i] == null)
+                continue;
+            if (layers[i].name == CreekBankRules.ClayLayerName)
+                bankClayLayer = i;
+            else if (layers[i].name == CreekBankRules.SandLayerName)
+                bankSandLayer = i;
+        }
+
+        var withSeasonal = new TerrainLayer[layers.Length + GroundCoverRules.SeasonalLayers];
         layers.CopyTo(withSeasonal, 0);
         litterLayer = layers.Length;
         snowLayer = layers.Length + 1;
@@ -131,8 +151,16 @@ public class SeasonalGround : MonoBehaviour, ISaveable
             float elapsed = lastHours < 0f ? 0f : Mathf.Max(0f, hours - lastHours);
             lastHours = hours;
 
+            bool held = false;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            held = hours < holdUntilHours;
+#endif
             float temperature = weather.TemperatureC;
-            if (temperature > 0f)
+            if (held)
+            {
+                // a held amount is left exactly as set: no melting, no building
+            }
+            else if (temperature > 0f)
                 amount -= (meltPerHour + meltPerHourPerDegreeC * temperature) * elapsed;
             else if (weather.IsSnowing)
                 amount += buildPerHour * elapsed;
@@ -179,7 +207,8 @@ public class SeasonalGround : MonoBehaviour, ISaveable
         }
     }
 
-    // Snow lies over litter, which lies over the terrain's own painting; the weights always sum to 1.
+    // Snow lies over litter, which lies over the terrain's own painting (the creek banks included, which keep only a share of both: GroundCoverRules.Cover);
+    // the weights always sum to 1.
     void PaintRows()
     {
         int rows = Mathf.Min(RowsPerFrame, res - paintRow);
@@ -190,13 +219,17 @@ public class SeasonalGround : MonoBehaviour, ISaveable
             for (int x = 0; x < res; x++)
             {
                 int cell = coverRow + x * CoverResolution / res;
-                float snow = paintSnow * snowMask[cell];
-                float leaves = paintLitter * canopyMask[cell];
-                float keep = (1f - snow) * (1f - leaves);
+                float bank = 0f;
+                if (bankClayLayer >= 0)
+                    bank += baseAlphas[row, x, bankClayLayer];
+                if (bankSandLayer >= 0)
+                    bank += baseAlphas[row, x, bankSandLayer];
+                GroundCoverRules.Cover(paintSnow * snowMask[cell], paintLitter * canopyMask[cell], Mathf.Clamp01(bank), bankSnowShare, bankLitterShare,
+                                       out float keep, out float litterWeight, out float snowWeight);
                 for (int layer = 0; layer < baseLayers; layer++)
                     slice[z, x, layer] = baseAlphas[row, x, layer] * keep;
-                slice[z, x, litterLayer] = leaves * (1f - snow);
-                slice[z, x, snowLayer] = snow;
+                slice[z, x, litterLayer] = litterWeight;
+                slice[z, x, snowLayer] = snowWeight;
             }
         }
 
@@ -275,6 +308,17 @@ public class SeasonalGround : MonoBehaviour, ISaveable
             smoothness = smoothness,
         };
     }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    // Testing only (TimeDebugControls, Ctrl+Home): sets the snow amount now and holds it there for hold game hours, so the weather does not melt it (or add to it) while it is looked at.
+    // The ground repaints through the normal path (Update sees the change and repaints over about 32 frames). The held amount is saved like any other; the hold itself is not.
+    public void DebugSetSnow(float value, float holdGameHours)
+    {
+        amount = Mathf.Clamp01(value);
+        TimeManager time = TimeManager.Instance;
+        holdUntilHours = time != null ? time.TotalDays * 24f + time.HourOfDay + Mathf.Max(0f, holdGameHours) : -1f;
+    }
+#endif
 
     string ISaveable.SaveFile => "world";
     string ISaveable.SaveKey => "groundSnow";

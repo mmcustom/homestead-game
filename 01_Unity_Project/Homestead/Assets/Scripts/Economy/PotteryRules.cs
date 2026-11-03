@@ -651,7 +651,7 @@ public static class PotteryRules
             case Dig.Patch: return "Clay patch";
             case Dig.WetBank: return "Wet clay bank";
             case Dig.CreekBed: return "Creek bed";
-            case Dig.DryBank: return "Dry creek bank";
+            case Dig.DryBank: return "Sandy bank";
             default: return "";
         }
     }

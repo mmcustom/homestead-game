@@ -434,7 +434,7 @@ public class PotteryTests
     public void TheHudNamesWhatTheNextDigGives()
     {
         Assert.That(PotteryRules.DigText(PotteryRules.Dig.WetBank), Is.EqualTo("Wet clay bank - hold click to dig Clay"));
-        Assert.That(PotteryRules.DigText(PotteryRules.Dig.DryBank), Is.EqualTo("Dry creek bank - hold click to dig Sand"));
+        Assert.That(PotteryRules.DigText(PotteryRules.Dig.DryBank), Is.EqualTo("Sandy bank - hold click to dig Sand"));
         Assert.That(PotteryRules.DigText(PotteryRules.Dig.Patch), Is.EqualTo("Clay patch - hold click to dig Clay"));
         Assert.That(PotteryRules.DigText(PotteryRules.Dig.CreekBed), Is.EqualTo("Creek bed - hold click to dig Clay"));
         Assert.That(PotteryRules.DigText(PotteryRules.Dig.TooDeep), Is.EqualTo("Water too deep to dig - try the shallows or the wet bank"));
