@@ -552,7 +552,7 @@ public static class PotteryRules
             case KilnGate.Ok: return $"Load {carriedNames}";
             case KilnGate.Firing: return "Can't load the kiln while it is firing";
             case KilnGate.Waiting: return "Collect the fired pieces before loading again";
-            default: return "Load dry pieces and Firewood  (carry some)";
+            default: return "Load dry pieces and Firewood  (you're not carrying any)";
         }
     }
 

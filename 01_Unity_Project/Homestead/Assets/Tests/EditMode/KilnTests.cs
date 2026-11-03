@@ -238,7 +238,7 @@ public class KilnTests
         Assert.That(PotteryRules.KilnPrompt(PotteryRules.KilnPhase.Done, 0, 0, 8, 3, 0f), Is.EqualTo("Collect fired pieces  (8)"));
         Assert.That(PotteryRules.KilnPrompt(PotteryRules.KilnPhase.Done, 0, 0, 0, 3, 0f), Is.EqualTo("Collect the Ash  (3)"));
         Assert.That(PotteryRules.KilnLoadPrompt(PotteryRules.KilnGate.Ok, "dry pieces and Firewood"), Is.EqualTo("Load dry pieces and Firewood"));
-        Assert.That(PotteryRules.KilnLoadPrompt(PotteryRules.KilnGate.NothingFits, ""), Is.EqualTo("Load dry pieces and Firewood  (carry some)"));
+        Assert.That(PotteryRules.KilnLoadPrompt(PotteryRules.KilnGate.NothingFits, ""), Is.EqualTo("Load dry pieces and Firewood  (you're not carrying any)"));
         Assert.That(PotteryRules.KilnLoadPrompt(PotteryRules.KilnGate.Firing, ""), Is.EqualTo("Can't load the kiln while it is firing"));
         Assert.That(PotteryRules.KilnLoadPrompt(PotteryRules.KilnGate.Waiting, ""), Is.EqualTo("Collect the fired pieces before loading again"));
     }

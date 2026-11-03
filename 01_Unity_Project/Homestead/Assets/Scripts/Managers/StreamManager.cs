@@ -63,6 +63,7 @@ public class StreamManager : MonoBehaviour, ISaveable
     WeatherManager linkedWeather;
 
     bool wasAway;
+    bool awaySlept;          // the player really slept (or collapsed) while the creek rose, as against a pause or a screen
     StreamState awayPeak;
     int awaySwept;
     float summaryAt = -1f;
@@ -175,8 +176,12 @@ public class StreamManager : MonoBehaviour, ISaveable
         if (after <= before)
             return; // only a rise is announced
 
-        awayPeak = (StreamState)Mathf.Max((int)awayPeak, (int)after);
-        if (!Suppressed)
+        if (Suppressed)
+        {
+            awayPeak = (StreamState)Mathf.Max((int)awayPeak, (int)after);
+            awaySlept |= IsAsleep;
+        }
+        else
         {
             if (after == StreamState.FlashFlood)
                 ToolStatus.Banner("The creek is in flood.", floodBannerSeconds);
@@ -268,6 +273,26 @@ public class StreamManager : MonoBehaviour, ISaveable
         }
     }
 
+    // Asleep or collapsed (the sleep fade runs for both); a pause, a menu or a screen is Suppressed but not this.
+    static bool IsAsleep
+    {
+        get
+        {
+            SleepManager sleep = SleepManager.Instance;
+            return sleep != null && sleep.IsSleeping;
+        }
+    }
+
+    // The line after a rise nobody saw: "While you slept ..." only when the player really slept, otherwise the awake wording the live toast uses.
+    public static string AwaySummaryText(StreamState peak, bool slept)
+    {
+        if (peak == StreamState.FlashFlood)
+            return slept ? "While you slept the creek flooded." : "The creek is in flood.";
+        if (peak == StreamState.HighWater)
+            return slept ? "While you slept the creek rose." : "The creek is rising.";
+        return "";
+    }
+
     // Fish Traps tell us what a flood swept away so the message can wait for the wake-up.
     public static void ReportSweptTraps(int count)
     {
@@ -285,6 +310,7 @@ public class StreamManager : MonoBehaviour, ISaveable
         if (Suppressed)
         {
             wasAway = true;
+            awaySlept |= IsAsleep;
             return;
         }
 
@@ -298,20 +324,21 @@ public class StreamManager : MonoBehaviour, ISaveable
         if (summaryAt >= 0f && Time.unscaledTime >= summaryAt)
         {
             summaryAt = -1f;
-            string text = awayPeak == StreamState.FlashFlood ? "While you slept the creek flooded."
-                        : awayPeak == StreamState.HighWater ? "While you slept the creek rose." : "";
+            string text = AwaySummaryText(awayPeak, awaySlept);
             if (awaySwept > 0)
                 text += (text.Length > 0 ? " " : "") + (awaySwept == 1 ? "A flood swept away a Fish Trap." : $"A flood swept away {awaySwept} Fish Traps.");
             if (text.Length > 0)
                 ToolStatus.Flash(text, 6f);
             awayPeak = StreamState.Normal;
             awaySwept = 0;
+            awaySlept = false;
         }
     }
 
     void ClearAway()
     {
         wasAway = false;
+        awaySlept = false;
         awayPeak = StreamState.Normal;
         awaySwept = 0;
         summaryAt = -1f;

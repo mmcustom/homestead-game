@@ -270,7 +270,7 @@ public static class StructureVisuals
 
     // The finished Kiln (Pottery P2): a stone pad under a clay dome about 2 m across with a mouth at the front (+Z), open to the sky. It reads at a glance: bare when empty; Firewood
     // stacked and a few dry pieces at the mouth when loaded; a sooty dome, glowing mouth and smoke while it fires; pale, ash-dusted dome, a heap of Ash and the fired pieces (terracotta)
-    // set out at the mouth when they are waiting. No particles: everything is a plain shape coloured here.
+    // set out at the mouth when they are waiting. The shapes are plain pieces coloured here; the smoke is KilnSmoke, a persistent child that Rebuild only switches on and off.
     static void BuildKiln(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
     {
         PotteryRules.KilnPhase phase = WellsAndOuthouses.KilnPhaseOf(state);
@@ -287,8 +287,9 @@ public static class StructureVisuals
         }
         Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 1.0f, 0f), Vector3.zero, new Vector3(0.28f, 0.1f, 0.28f), null), firing ? SootColor : SlabColor); // the vent
 
-        // The mouth: dark and empty, a glowing ember while it fires.
-        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.45f, 0.92f), Vector3.zero, new Vector3(0.62f, 0.5f, 0.3f), null), firing ? EmberColor : SootColor);
+        // The mouth: dark and empty, a glowing ember while it fires. Its front face stands at z 1.10, 3 cm proud of the front ring stone's (1.07): at 0.92 the two faces were
+        // coplanar and the stone's tan and the ember's orange fought over the same pixels, so they flashed as the view moved.
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.45f, 0.95f), Vector3.zero, new Vector3(0.62f, 0.5f, 0.3f), null), firing ? EmberColor : SootColor);
 
         int wood = Mathf.Min(state.Count(PotteryRules.FirewoodId), PotteryRules.KilnFirewood);
         if (!firing && !done)
@@ -297,8 +298,7 @@ public static class StructureVisuals
 
         if (firing)
         {
-            for (int i = 0; i < 3; i++) // three smoke puffs rising from the vent
-                Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0.1f * i, 1.35f + i * 0.45f, 0.05f * i), Vector3.zero, Vector3.one * (0.35f + i * 0.14f), null), new Color(0.5f, 0.5f, 0.5f));
+            // The smoke is not a piece: KilnSmoke is switched on by PlacedStructure.Rebuild.
         }
         else if (!done)
         {
@@ -662,6 +662,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     Material bark;
     BoxCollider box;
     readonly List<GameObject> pieces = new List<GameObject>();
+    KilnSmoke kilnSmoke; // a Kiln's smoke, kept across Rebuild so its particles are not restarted every game hour
 
     public WoodPileState State => state;
 
@@ -687,6 +688,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return;
 
         StructureVisuals.Build(transform, state, bark, pieces, out Vector3 center, out Vector3 size);
+        if (state.kind == PileKind.Kiln)
+        {
+            if (kilnSmoke == null)
+                kilnSmoke = KilnSmoke.Create(transform);
+            kilnSmoke.SetFiring(WellsAndOuthouses.KilnPhaseOf(state) == PotteryRules.KilnPhase.Firing);
+        }
         box.center = center;
         box.size = size;
         // The finished kitchen has no interaction box (it would be a solid block to walk into): its roof, posts and table are the colliders,
