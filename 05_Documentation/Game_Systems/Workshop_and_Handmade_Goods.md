@@ -575,3 +575,24 @@ Economy as built (my arithmetic, not measured): the shelf (12 space units times 
 Not recorded in the playtest: prices after repeated sales, readability of the prompts at size 24 beyond "readable", the hotkey-slot behaviour of the Clay Cooking Pot as a Tool (Mike checked it; nothing odd reported), the 3 Logs that did not fit from the overweight Shift+' kit.
 
 Next: P3, the Clay Cooking Pot works as a Cooking Pot on the Tripod (TripodRules.Serves matcher for the exact-id checks; NextStep needs "carries any pot"; the hung id stays specific so the Tripod draws a clay pot; the bought iron Pot keeps its starting-kit, ledger and journal rules; check the boiling and Maple rules for litres and heat).
+
+
+## BUILT: Pottery P3 (2026-11-03, playtest passed, committed 782e74f)
+
+The Clay Cooking Pot now works as a Cooking Pot on the Tripod. One helper, TripodRules.IsCookingPot(id), is true for cooking_pot (the bought iron Pot) and clay_pot. One matcher, TripodRules.Serves(hungId, neededId), replaces the exact-id checks. The id of the hung pot stays specific, so the Tripod draws the pot that was hung and gives back that same pot when it is taken down. When the player carries both pots, the iron pot hangs first (TripodRules.PotToHang). The old NextStep overload is kept so older callers and tests still work.
+
+Same 4 L, same cooking and boiling behaviour, no breakage. The clay pot is drawn clay brown (0.52, 0.34, 0.22) with a paler rim; the iron pot looks as before. The Journal "pot hung" note fires for either pot. Lye still needs the Potash Kettle. Nothing changed in the starting kits, the Ledger or the market. The iron pot sells back for $4.00 (40% rounded down to whole dollars); the clay pot sells for $10 in the Crafted group and is not sold in the store, so there is no buy and sell loop.
+
+Files: 7 modified (KnowHowRules.cs, TripodRules.cs, FireManager.cs, CampfireCooking.cs, Cooking.cs, Campfire.cs, Tripod.cs) and 1 new test file (ClayPotTests.cs, 16 new tests). Edit-mode suite 1382 of 1382. No save changes: SaveVersion and LedgerSaveData.CurrentVersion stay at 1.
+
+Playtest: Mike reported "the clay cooking pot looks good and works as planned".
+
+Playtest feedback that is not a P3 regression (queued, see Current_Task_List.md):
+1. The Kiln R prompt says "Load dry pieces and Firewood (carry some)"; it should say the player is not carrying any. Check the Potter's Shed prompts for the same phrase.
+2. The Kiln smoke is three grey glossy spheres (placeholder); it should look like smoke.
+3. The tan block at the front of the Kiln base and the dark orange shape at the mouth appear to flash or change shape while firing. Cause unknown; the flicker should change colour and intensity only.
+4. "While you slept the creek rose" shows in daytime heavy rain when the player is awake; it should say "The creek is rising" when awake.
+5. Sand and Clay bank spots look the same (same grey bank terrain); Mike wants them to look different. Needs a read-only plan first.
+6. The Leach Hopper only accepts Ash and water together; Mike wants to load Ash and water separately and top up later, like the Workshop bench and the Potter's Shed. Needs a read-only plan first.
+
+Pottery is now complete as planned (P1 Potter's Shed and shaping, P2 Kiln and firing, P3 Clay Cooking Pot). Later option: the Kick Wheel as an upgrade of the same shed.
