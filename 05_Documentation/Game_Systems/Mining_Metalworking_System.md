@@ -204,3 +204,26 @@ Economy (Claude Code's arithmetic, not measured; prices unchanged): steady-state
 Files: 33 paths (11 modified code and data including MarketData.asset, 9 modified tests, 12 new: SmithyRules.cs, SmithyScreen.cs, SmithyTests.cs, door_hinges, hook_set, nails_box plus metas, and the docs file Journal_KnowHow_Text.md), 2464 insertions and 55 deletions. Edit-mode suite 1557 of 1557 (40 new tests).
 
 Next: M4, iron Shovel and Pick Axe (2 Bars + sticks and Cordage, 3 h, own use, 25% fewer blows; AxeTool recognises the new ids); then M5, building uses for iron (Cabin door hinges, Cart tyres, hinged Workshop chest).
+
+
+## BUILT: Metal M4, the iron Shovel and iron Pick Axe (2026-11-04, playtest 1 to 23 passed, committed 948abad)
+
+Fourth phase of the iron chain. Not built yet: building uses of iron (M5). Mike's verdict on the saving: "feels ok", so the factor and recipes stay as built.
+
+Recipes (new rows in the SmithyRules table, price 0 = own use, no market row, so they cannot be sold): Iron Shovel 2 Iron Bars + 2 Charcoal + 3 Sticks + 1 Cordage, 3 game hours, 1.8 kg; Iron Pick Axe 2 Bars + 2 Charcoal + 2 Sticks + 1 Cordage, 3 game hours, 2 kg. Two item assets (iron_shovel, iron_pick_axe) in Resources/Items/Tools. The stone Shovel and Stone Pick Axe stay exactly as before and still sell.
+
+Forge and screen: the forge now also stocks Sticks (cap 6) and Cordage (cap 4) besides Iron Bars and Charcoal (cap 8 each); R and the stock button load all four ("PUT MY IRON, CHARCOAL, STICKS AND CORDAGE IN THE FORGE"). SmithyScreen has five rows (keys 1 to 5): the three goods and the two tools, the tools marked "own use"; still nothing below 26 and body 28, five rows fit at 21:9 and 32:9. One job at a time, finished tool waits on the anvil until taken ("yours to use, cannot be sold"). Dismantling gives half the materials back; stock, Sticks and Cordage return whole.
+
+Effect: ToolRules is the one place that says what is a shovel and what is a pick axe (so later metals are rows, not edits across files). IronToolBlowFactor 0.75 on AxeTool: 25 percent fewer swings, rounded up. Stone mined 4 to 3; stump 6 to 5 (4.5 rounded up); Clay and Sand 4 to 3; well shaft 20/40/60 to 15/30/45; new Outhouse pit 10 to 8. Saving is about one second per swing set (Claude Code's own view: small payoff for a large cost; the lever is the factor or the recipe, not changed).
+
+No tool is drawn in hand in this game (the equipped tool is logic plus HUD text), so there is no iron head to see; a finished tool lies on the anvil. See Art_Readiness_and_Placeholders.md (held tools, high priority) and the hands and tools plan.
+
+Save: no new field (jobItem holds the tool id, jobHours). No market, Ledger, price or SaveVersion change.
+
+Teaching: Know-how entry "The Smithy: Forging Iron Goods" now covers the tools, stock caps and the 25 percent saving; item help for both tools (one line each). Code text and Journal_KnowHow_Text.md updated together.
+
+Dev keys: Shift+minus stands a finished Smithy 4 m ahead stocked with 4 Bars, 6 Charcoal, 6 Sticks and 2 Cordage (exactly one Shovel and one Pick Axe); the others as in M3.
+
+Files: 20 paths (12 modified: TimeDebugControls, KnowHowRules, SmithyRules, AxeTool, CraftingScreen, SmithyScreen, ClayBank, PlacedStructure, RockDeposit, Stump, SmithyTests and the docs file Journal_KnowHow_Text.md; 8 new: ToolRules.cs, iron_shovel, iron_pick_axe, SmithyToolTests.cs plus metas), 1151 insertions and 139 deletions. Edit-mode suite 1582 of 1582 (25 new tests). SavesBackup46 made after the playtest.
+
+Next: M5, building uses for iron (Cabin door hinges, Cart tyres, hinged Workshop chest), after the art-readiness phase A1 (ArtSwap and the Kiln pilot) if Mike keeps that order.
