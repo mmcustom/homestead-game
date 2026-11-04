@@ -4,11 +4,12 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 // The Smithy screen (Metalworking M3, Mike 2026-11-04), modelled on the Workshop screen: E at the forge opens it to choose what to forge. Its own window (own canvas, 1920x1080 scaler,
-// sort order 150), not a tab of the shared game window. The three goods are listed on the left (name, hours, what the Trading Post pays now) and, under them, the stock button; the
-// chosen good's details are on the right (hours, weight, base price, what it needs against what the forge holds in plain words, and why it cannot start when it cannot) with a Start
-// button below. Across the top: the forge's status (idle, a good being forged, a good ready) and what the pack carries of Iron Bars and Charcoal. While a good is being forged the list
+// sort order 150), not a tab of the shared game window. The five entries (three goods and, since M4, the iron Shovel and iron Pick Axe) are listed on the left (name, hours, what the
+// Trading Post pays now, or "own use" for a tool) and, under them, the stock button; the chosen entry's details are on the right (hours, weight, base price or "your own use, not sold",
+// what it needs against what the forge holds in plain words, and why it cannot start when it cannot) with a Start button below. Across the top: the forge's status (idle, an item being
+// forged, an item ready) and what the pack carries of Iron Bars, Charcoal, Sticks and Cordage. While a good is being forged the list
 // can still be browsed and the forge stocked, but Start is off.
-// Mouse and keyboard: 1-3 choose, Up and Down move the choice, Enter starts, R stocks the forge, Esc closes (the pause key, as for the other screens). The keys are read from the new
+// Mouse and keyboard: 1-5 choose, Up and Down move the choice, Enter starts, R stocks the forge, Esc closes (the pause key, as for the other screens). The keys are read from the new
 // Input System's keyboard, one action per fresh press, and SmithyRules.Resolve turns each into its action. Esc and the Close button shut it, and so does any change out of the Menu
 // state (a load, the main menu). The screen holds the Smithy it was opened for and starts a job through PlacedStructure.TryStartForge and stocks it through
 // PlacedStructure.ForgeStockFromPack (the same method as the R key in the world), which work the gate out again on the Smithy as it is at the click. The Menu state stops the clock
@@ -24,7 +25,8 @@ public class SmithyScreen : MonoBehaviour
     public const int TitleSize = 36, StatusSize = 28, PackSize = 28, ListNameSize = 32, ListDetailSize = 28, DetailNameSize = 40, BodySize = 28, StartSize = 36,
                      StockSize = 32, CloseSize = 28, HintSize = 28;
     // Row heights and the gap between rows (UI pixels), and the stock button's height.
-    public const float RowHeight = 104f, RowGap = 12f, StockButtonHeight = 88f;
+    // Five rows (M4) in the 920 px panel: 5 x 88 + 4 x 8 = 472 px of list from y 204 to 676, the stock reason (72) and the 88 px button below it end at 850, ten px above the hint line.
+    public const float RowHeight = 88f, RowGap = 8f, StockButtonHeight = 88f;
 
     const float PanelWidth = SmithyRules.PanelWidthPx, PanelHeight = SmithyRules.PanelHeightPx;
     const float ListX = 32f, ListY = 204f, ListWidth = 700f;
@@ -64,7 +66,7 @@ public class SmithyScreen : MonoBehaviour
     GameObject root;
     CanvasScaler scaler;
     Text statusLabel, packLabel, detailName, detailLine, needsHeading, reasonLabel, stockReasonLabel;
-    readonly Text[] needLabels = new Text[2];
+    readonly Text[] needLabels = new Text[4]; // Iron Bars, Charcoal, and for a tool Sticks and Cordage
     readonly Button[] rows = new Button[SmithyRules.Recipes.Length];
     readonly Text[] rowNames = new Text[SmithyRules.Recipes.Length];
     readonly Text[] rowDetails = new Text[SmithyRules.Recipes.Length];
@@ -114,7 +116,7 @@ public class SmithyScreen : MonoBehaviour
         packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Cream, TextAnchor.MiddleLeft);
         Place(packLabel.rectTransform, 32f, 142f, PanelWidth - 64f, 48f);
 
-        // The list: three rows, each a button holding the name and, under it, the hours and the price.
+        // The list: five rows, each a button holding the name and, under it, the hours and the price (or "own use").
         for (int i = 0; i < rows.Length; i++)
         {
             int index = i;
@@ -123,18 +125,18 @@ public class SmithyScreen : MonoBehaviour
             rowNames[i] = row.GetComponentInChildren<Text>(); // the button's own label becomes the name; the hours and price go in a second label under it
             rowNames[i].fontStyle = FontStyle.Bold;
             rowNames[i].alignment = TextAnchor.MiddleLeft;
-            Place(rowNames[i].rectTransform, 18f, 6f, ListWidth - 36f, 46f);
+            Place(rowNames[i].rectTransform, 18f, 3f, ListWidth - 36f, 42f);
             rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Cream, TextAnchor.MiddleLeft);
-            Place(rowDetails[i].rectTransform, 18f, 52f, ListWidth - 36f, 44f);
+            Place(rowDetails[i].rectTransform, 18f, 45f, ListWidth - 36f, 40f);
             rows[i] = row;
         }
 
         // Under the list: why the stock button is off (or what it just did), then the button.
         float listEnd = ListY + rows.Length * RowHeight + (rows.Length - 1) * RowGap;
         stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
-        Place(stockReasonLabel.rectTransform, ListX, listEnd + 12f, ListWidth, 72f);
+        Place(stockReasonLabel.rectTransform, ListX, listEnd + 8f, ListWidth, 72f);
         stockButton = UiKit.Button(panel, "Stock", SmithyRules.StockButtonText, StockSize, StockClicked);
-        Place((RectTransform)stockButton.transform, ListX, listEnd + 12f + 72f + 8f, ListWidth, StockButtonHeight);
+        Place((RectTransform)stockButton.transform, ListX, listEnd + 8f + 72f + 6f, ListWidth, StockButtonHeight);
         stockButton.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
 
         // The chosen good.
@@ -152,10 +154,10 @@ public class SmithyScreen : MonoBehaviour
         }
 
         reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
-        Place(reasonLabel.rectTransform, DetailX, ListY + 330f, DetailWidth, 72f);
+        Place(reasonLabel.rectTransform, DetailX, ListY + 372f, DetailWidth, 72f);
 
         startButton = UiKit.Button(panel, "Start", "", StartSize, StartClicked);
-        Place((RectTransform)startButton.transform, DetailX, ListY + 414f, DetailWidth, 104f);
+        Place((RectTransform)startButton.transform, DetailX, ListY + 456f, DetailWidth, 104f);
         startLabel = startButton.GetComponentInChildren<Text>();
         startLabel.fontStyle = FontStyle.Bold;
 
@@ -288,6 +290,8 @@ public class SmithyScreen : MonoBehaviour
         if (keyboard.digit1Key.wasPressedThisFrame) return SmithyRules.Key.One;
         if (keyboard.digit2Key.wasPressedThisFrame) return SmithyRules.Key.Two;
         if (keyboard.digit3Key.wasPressedThisFrame) return SmithyRules.Key.Three;
+        if (keyboard.digit4Key.wasPressedThisFrame) return SmithyRules.Key.Four;
+        if (keyboard.digit5Key.wasPressedThisFrame) return SmithyRules.Key.Five;
         if (keyboard.upArrowKey.wasPressedThisFrame) return SmithyRules.Key.Up;
         if (keyboard.downArrowKey.wasPressedThisFrame) return SmithyRules.Key.Down;
         if (keyboard.enterKey.wasPressedThisFrame) return SmithyRules.Key.Enter;
@@ -359,16 +363,19 @@ public class SmithyScreen : MonoBehaviour
 
         WoodPileState state = smithy.State;
         int bars = state.Count(SmithyRules.BarId), charcoal = state.Count(SmithyRules.CharcoalId);
+        int sticks = state.Count(SmithyRules.SticksId), cordage = state.Count(SmithyRules.CordageId);
         bool working = smithy.SmithyRunning(out SmithyRules.Recipe made);
         bool waiting = smithy.SmithyWaiting(out SmithyRules.Recipe waitingGood);
-        statusLabel.text = SmithyRules.ForgeLine(working, made, state.jobHours, waiting, waitingGood, bars, charcoal);
+        statusLabel.text = SmithyRules.ForgeLine(working, made, state.jobHours, waiting, waitingGood, bars, charcoal, sticks, cordage);
         statusLabel.color = working || waiting ? UiKit.Accent : UiKit.Cream;
 
-        // What the pack carries of Iron Bars and Charcoal.
+        // What the pack carries of the four stock materials.
         InventoryManager inventory = InventoryManager.Instance;
         int packBars = inventory != null ? inventory.Player.Count(SmithyRules.BarId) : 0;
         int packCharcoal = inventory != null ? inventory.Player.Count(SmithyRules.CharcoalId) : 0;
-        packLabel.text = SmithyRules.PackLine(packBars, packCharcoal);
+        int packSticks = inventory != null ? inventory.Player.Count(SmithyRules.SticksId) : 0;
+        int packCordage = inventory != null ? inventory.Player.Count(SmithyRules.CordageId) : 0;
+        packLabel.text = SmithyRules.PackLine(packBars, packCharcoal, packSticks, packCordage);
 
         for (int i = 0; i < rows.Length; i++)
         {
@@ -377,7 +384,7 @@ public class SmithyScreen : MonoBehaviour
             string[] lines = SmithyRules.ListLabel(recipe, price).Split('\n');
             rowNames[i].text = lines[0];
             rowDetails[i].text = lines[1];
-            bool covered = SmithyRules.Covers(recipe, bars, charcoal);
+            bool covered = SmithyRules.Covers(recipe, bars, charcoal, sticks, cordage);
             rowNames[i].color = covered ? UiKit.Cream : UiKit.Muted;
             rowDetails[i].color = covered ? UiKit.Cream : UiKit.Muted;
             UiKit.SetSelected(rows[i], i == selected);
@@ -386,7 +393,7 @@ public class SmithyScreen : MonoBehaviour
         SmithyRules.Recipe chosen = SmithyRules.Recipes[selected];
         detailName.text = chosen.name;
         detailLine.text = SmithyRules.DetailLine(chosen);
-        SmithyRules.NeedRow[] needs = SmithyRules.NeedRows(chosen, bars, charcoal);
+        SmithyRules.NeedRow[] needs = SmithyRules.NeedRows(chosen, bars, charcoal, sticks, cordage);
         for (int i = 0; i < needLabels.Length; i++)
         {
             needLabels[i].gameObject.SetActive(i < needs.Length);
@@ -400,7 +407,7 @@ public class SmithyScreen : MonoBehaviour
         SmithyRules.Gate gate = smithy.SmithyGateFor(chosen);
         startLabel.text = SmithyRules.StartButtonText(gate, chosen);
         startButton.interactable = gate == SmithyRules.Gate.Ok;
-        string reason = SmithyRules.ReasonText(gate, chosen, made, bars, charcoal, state.jobHours);
+        string reason = SmithyRules.ReasonText(gate, chosen, made, bars, charcoal, state.jobHours, sticks, cordage);
         reasonLabel.text = !string.IsNullOrEmpty(notice) ? notice : reason;
         reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.Accent : gate == SmithyRules.Gate.Ok ? UiKit.Cream : UiKit.Warning;
 

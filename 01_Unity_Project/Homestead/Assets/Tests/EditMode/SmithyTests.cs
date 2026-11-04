@@ -50,7 +50,7 @@ public class SmithyTests
     static bool Waiting(object pile) => SmithyRules.Recipes.Any(r => Count(pile, r.itemId) > 0);
 
     static SmithyRules.Gate Gate(object pile, SmithyRules.Recipe recipe) =>
-        SmithyRules.CanStart(recipe, Working(pile), Waiting(pile), Count(pile, "iron_bar"), Count(pile, "charcoal"));
+        SmithyRules.CanStart(recipe, Working(pile), Waiting(pile), Count(pile, "iron_bar"), Count(pile, "charcoal"), Count(pile, "sticks"), Count(pile, "cordage"));
 
     // What PlacedStructure.TryStartForge does to the saved pile, step for step (the same gate, the same takes, the same job fields).
     static bool Start(object forge, SmithyRules.Recipe recipe)
@@ -59,6 +59,8 @@ public class SmithyTests
             return false;
         Take(forge, "iron_bar", recipe.bars);
         Take(forge, "charcoal", recipe.charcoal);
+        Take(forge, "sticks", recipe.sticks);
+        Take(forge, "cordage", recipe.cordage);
         Set(forge, "jobItem", recipe.itemId);
         Set(forge, "jobHours", (float)recipe.hours);
         return true;
@@ -83,18 +85,18 @@ public class SmithyTests
     // --- The recipe table ---
 
     [Test]
-    public void TheRecipeTableHasMikesThreeGoodsInOrderAndNoSkilletOrTools()
+    public void TheRecipeTableHasMikesThreeGoodsThenTheTwoIronToolsAndNoSkillet()
     {
-        Assert.That(SmithyRules.Recipes.Length, Is.EqualTo(3));
-        Assert.That(SmithyRules.Recipes.Select(r => r.itemId), Is.EqualTo(new[] { "door_hinges", "hook_set", "nails_box" }));
-        Assert.That(SmithyRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Door Hinges", "Hook Set", "Box of Nails (20)" }));
-        Assert.That(SmithyRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 2 }));
-        Assert.That(SmithyRules.Recipes.Select(r => r.baseCents), Is.EqualTo(new[] { 2600L, 1800L, 1600L }));
-        Assert.That(SmithyRules.Recipes.Select(r => r.weightKg), Is.EqualTo(new[] { 0.8f, 0.5f, 0.6f }));
-        Assert.That(SmithyRules.Recipes.All(r => r.bars == 1 && r.charcoal == 1), Is.True, "1 Iron Bar and 1 Charcoal each");
+        Assert.That(SmithyRules.Recipes.Length, Is.EqualTo(5));
+        Assert.That(SmithyRules.Recipes.Select(r => r.itemId), Is.EqualTo(new[] { "door_hinges", "hook_set", "nails_box", "iron_shovel", "iron_pick_axe" }));
+        Assert.That(SmithyRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Door Hinges", "Hook Set", "Box of Nails (20)", "Iron Shovel", "Iron Pick Axe" }));
+        Assert.That(SmithyRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 2, 3, 3 }));
+        Assert.That(SmithyRules.Recipes.Take(3).Select(r => r.baseCents), Is.EqualTo(new[] { 2600L, 1800L, 1600L }), "the goods' prices are unchanged");
+        Assert.That(SmithyRules.Recipes.Skip(3).Select(r => r.baseCents), Is.EqualTo(new[] { 0L, 0L }), "the tools have no price");
+        Assert.That(SmithyRules.Recipes.Select(r => r.weightKg), Is.EqualTo(new[] { 0.8f, 0.5f, 0.6f, 1.8f, 2f }));
+        Assert.That(SmithyRules.Recipes.Take(3).All(r => r.bars == 1 && r.charcoal == 1 && r.sticks == 0 && r.cordage == 0), Is.True, "the goods: 1 Iron Bar and 1 Charcoal each, as before");
         Assert.That(SmithyRules.Recipes.All(r => r.metalId == MetalRules.IronId), Is.True);
-        Assert.That(SmithyRules.Recipes.Any(r => r.itemId.Contains("skillet")), Is.False, "the Iron Skillet is left out for now");
-        Assert.That(SmithyRules.Recipes.Any(r => r.itemId.Contains("shovel") || r.itemId.Contains("pick")), Is.False, "and the iron tools (M4)");
+        Assert.That(SmithyRules.Recipes.Any(r => r.itemId.Contains("skillet")), Is.False, "the Iron Skillet is still left out");
     }
 
     [Test]
@@ -120,7 +122,7 @@ public class SmithyTests
     {
         Assert.That(SmithyRules.BarsCap, Is.EqualTo(8));
         Assert.That(SmithyRules.CharcoalCap, Is.EqualTo(8));
-        Assert.That(SmithyRules.StockIds, Is.EqualTo(new[] { "iron_bar", "charcoal" }));
+        Assert.That(SmithyRules.StockIds, Is.EqualTo(new[] { "iron_bar", "charcoal", "sticks", "cordage" }), "M4 added the tools' Sticks and Cordage to the stock");
         Assert.That(SmithyRules.IsStockId("iron_bar"), Is.True);
         Assert.That(SmithyRules.IsStockId("iron_ore"), Is.False);
         Assert.That(SmithyRules.CapOf("iron_bar"), Is.EqualTo(8));
@@ -160,21 +162,24 @@ public class SmithyTests
         Assert.That(SmithyRules.CanStart(Hinges, false, false, 0, 5), Is.EqualTo(SmithyRules.Gate.ShortOfStock));
         Assert.That(SmithyRules.CanStart(Hinges, false, false, 5, 0), Is.EqualTo(SmithyRules.Gate.ShortOfStock));
         Assert.That(SmithyRules.CanStart(Hinges, false, false, 0, 0), Is.EqualTo(SmithyRules.Gate.ShortOfStock));
-        Assert.That(typeof(SmithyRules).GetMethod("CanStart").GetParameters().Select(p => p.ParameterType.Name), Does.Not.Contain("Boolean").Or.Not.Empty, "no tool argument");
-        Assert.That(typeof(SmithyRules).GetMethod("CanStart").GetParameters().Length, Is.EqualTo(5), "recipe, working, waiting, bars, charcoal: no tool is needed in the pack");
+        Assert.That(typeof(SmithyRules).GetMethod("CanStart").GetParameters().Length, Is.EqualTo(7), "recipe, working, waiting, bars, charcoal, sticks, cordage: no tool is needed in the pack");
     }
 
     [Test]
-    public void AJobTakesItsBarAndCharcoalAtTheStartAndMakesOneGoodAfterItsHours()
+    public void AJobTakesItsIngredientsAtTheStartAndMakesOneItemAfterItsHours()
     {
         foreach (SmithyRules.Recipe recipe in SmithyRules.Recipes)
         {
             object forge = NewPile("Smithy");
-            Add(forge, "iron_bar", 3);
+            Add(forge, "iron_bar", 5);
             Add(forge, "charcoal", 5);
+            Add(forge, "sticks", 6);
+            Add(forge, "cordage", 3);
             Assert.That(Start(forge, recipe), Is.True, recipe.name);
-            Assert.That(Count(forge, "iron_bar"), Is.EqualTo(2), "one Bar taken at the start");
-            Assert.That(Count(forge, "charcoal"), Is.EqualTo(4), "and one Charcoal");
+            Assert.That(Count(forge, "iron_bar"), Is.EqualTo(5 - recipe.bars), "the Bars are taken at the start");
+            Assert.That(Count(forge, "charcoal"), Is.EqualTo(5 - recipe.charcoal), "and the Charcoal");
+            Assert.That(Count(forge, "sticks"), Is.EqualTo(6 - recipe.sticks), "and the Sticks");
+            Assert.That(Count(forge, "cordage"), Is.EqualTo(3 - recipe.cordage), "and the Cordage");
             Assert.That(Get(forge, "jobItem"), Is.EqualTo(recipe.itemId));
             Assert.That((float)Get(forge, "jobHours"), Is.EqualTo((float)recipe.hours));
             Assert.That(Count(forge, recipe.itemId), Is.EqualTo(0), "nothing yet");
@@ -186,8 +191,10 @@ public class SmithyTests
             Assert.That(Count(forge, recipe.itemId), Is.EqualTo(1), $"one {recipe.name} after {recipe.hours} h");
             Assert.That(Get(forge, "jobItem"), Is.EqualTo(""));
             Assert.That((float)Get(forge, "jobHours"), Is.EqualTo(0f));
-            Assert.That(Count(forge, "iron_bar"), Is.EqualTo(2));
-            Assert.That(Count(forge, "charcoal"), Is.EqualTo(4));
+            Assert.That(Count(forge, "iron_bar"), Is.EqualTo(5 - recipe.bars), "nothing more is taken at the finish");
+            Assert.That(Count(forge, "charcoal"), Is.EqualTo(5 - recipe.charcoal));
+            Assert.That(Count(forge, "sticks"), Is.EqualTo(6 - recipe.sticks));
+            Assert.That(Count(forge, "cordage"), Is.EqualTo(3 - recipe.cordage));
         }
     }
 
@@ -399,7 +406,7 @@ public class SmithyTests
     [Test]
     public void DismantlingIsRefusedWhileAJobRunsAndOtherwiseReturnsEverythingWhole()
     {
-        Assert.That(SmithyRules.DismantlePrompt(true, 2f), Is.EqualTo("Can't dismantle the Smithy while a good is being forged  (2 h to go)"));
+        Assert.That(SmithyRules.DismantlePrompt(true, 2f), Is.EqualTo("Can't dismantle the Smithy while something is being forged  (2 h to go)"));
         Assert.That(SmithyRules.DismantlePrompt(false, 0f), Does.StartWith("Dismantle the Smithy").And.Contain("come back whole"));
         string placed = SourceText("Scripts/World/PlacedStructure.cs");
         Assert.That(placed, Does.Contain("if (state.kind == PileKind.Smithy && SmithyWorking)"));
@@ -436,7 +443,7 @@ public class SmithyTests
         Assert.That(rule.floorBp, Is.EqualTo(1000), "floor 0.1");
         Assert.That((rule.spring, rule.summer, rule.fall, rule.winter), Is.EqualTo((10000, 10000, 10000, 10000)), "100% target in every season");
         Assert.That(MarketRules.Drop(10000, rule.dropBp, rule.floorBp), Is.EqualTo(9000), "the second Door Hinges sells at 90%");
-        Assert.That(SmithyRules.Recipes.Select(r => r.baseCents), Is.EqualTo(new[] { table.SellBaseCents("door_hinges"), table.SellBaseCents("hook_set"), table.SellBaseCents("nails_box") }));
+        Assert.That(SmithyRules.Recipes.Take(3).Select(r => r.baseCents), Is.EqualTo(new[] { table.SellBaseCents("door_hinges"), table.SellBaseCents("hook_set"), table.SellBaseCents("nails_box") }));
     }
 
     [Test]
@@ -645,13 +652,13 @@ public class SmithyTests
         Assert.That(SmithyRules.WorkingPrompt(Hinges, 2.2f), Is.EqualTo("Smithy  (forging Door Hinges, 3 h to go)"));
         Assert.That(SmithyRules.DonePrompt(Hooks), Is.EqualTo("Collect Hook Set  (ready in the Smithy)"));
         Assert.That(SmithyRules.StorePrompt("Iron Bar, Charcoal"), Is.EqualTo("Store Iron Bar, Charcoal"));
-        Assert.That(SmithyRules.DeliverHelp, Is.EqualTo("Deliver Iron Bars and Charcoal  (the forge holds 8 Iron Bars and 8 Charcoal)"));
+        Assert.That(SmithyRules.DeliverHelp, Is.EqualTo("Deliver Iron Bars, Charcoal, Sticks and Cordage  (the forge holds up to 8, 8, 6 and 4)"));
         Assert.That(SmithyRules.StartedMessage(Hinges), Is.EqualTo("Started Door Hinges. It will be ready in 3 h, even while you sleep or are away."));
         Assert.That(SmithyRules.TookMessage(Hinges, 1, 0), Is.EqualTo("Took the Door Hinges. Sell it at the Trading Post."));
         Assert.That(SmithyRules.TookMessage(Hinges, 1, 1), Is.EqualTo("Took 1 Door Hinges (1 left in the Smithy, no room)."));
-        Assert.That(SmithyRules.BuiltMessage, Does.StartWith("Smithy built.").And.Contain("8 Iron Bars and 8 Charcoal"));
+        Assert.That(SmithyRules.BuiltMessage, Does.StartWith("Smithy built.").And.Contain("8 Iron Bars, 8 Charcoal, 6 Sticks and 4 Cordage"));
         Assert.That(SmithyRules.GateMessage(SmithyRules.Gate.Busy, Hooks, 2, 2, 3f), Is.EqualTo("The forge is busy: Hook Set is 3 h from done."));
-        Assert.That(SmithyRules.GateMessage(SmithyRules.Gate.ProductWaiting, Hooks, 2, 2, 0f), Is.EqualTo("A finished good is waiting: collect it first."));
+        Assert.That(SmithyRules.GateMessage(SmithyRules.Gate.ProductWaiting, Hooks, 2, 2, 0f), Is.EqualTo("A finished item is waiting: collect it first."));
         Assert.That(SmithyRules.GateMessage(SmithyRules.Gate.ShortOfStock, Hooks, 0, 1, 0f), Is.EqualTo("The forge is short of 1 Iron Bar for Hook Set. Deliver more."));
         Assert.That(SmithyRules.ShortText(Hinges, 0, 0), Is.EqualTo("1 Iron Bar, 1 Charcoal"));
         Assert.That(SmithyRules.ShortText(Hinges, 1, 0), Is.EqualTo("1 Charcoal"));
@@ -661,7 +668,7 @@ public class SmithyTests
     [Test]
     public void TheScreensTextsSayWhatIsMissingWhenAJobCannotStart()
     {
-        Assert.That(SmithyRules.ForgeLine(false, default, 0f, false, default, 4, 6), Is.EqualTo("Forge is idle - it holds 4 Iron Bars, 6 Charcoal"));
+        Assert.That(SmithyRules.ForgeLine(false, default, 0f, false, default, 4, 6), Is.EqualTo("Forge is idle - it holds 4 Iron Bars, 6 Charcoal, 0 Sticks, 0 Cordage"));
         Assert.That(SmithyRules.ForgeLine(true, Nails, 1.5f, false, default, 4, 6), Is.EqualTo("Forging Box of Nails (20), 2 h to go"));
         Assert.That(SmithyRules.ForgeLine(false, default, 0f, true, Hooks, 4, 6), Is.EqualTo("Hook Set is ready - collect it"));
         Assert.That(SmithyRules.ListLabel(Hinges, 0), Is.EqualTo("Door Hinges\n3 h  -  $26.00"), "no market price yet: the base price");
@@ -669,7 +676,7 @@ public class SmithyTests
         Assert.That(SmithyRules.DetailLine(Hooks), Is.EqualTo("2 h  -  0.5 kg  -  base price $18.00"));
         Assert.That(SmithyRules.StartButtonText(SmithyRules.Gate.Ok, Nails), Is.EqualTo("START BOX OF NAILS (20)"));
         Assert.That(SmithyRules.StartButtonText(SmithyRules.Gate.Busy, Nails), Is.EqualTo("FORGE IS BUSY"));
-        Assert.That(SmithyRules.StartButtonText(SmithyRules.Gate.ProductWaiting, Nails), Is.EqualTo("COLLECT THE GOOD FIRST"));
+        Assert.That(SmithyRules.StartButtonText(SmithyRules.Gate.ProductWaiting, Nails), Is.EqualTo("COLLECT THE ITEM FIRST"));
         Assert.That(SmithyRules.StartButtonText(SmithyRules.Gate.ShortOfStock, Nails), Is.EqualTo("SHORT OF MATERIALS"));
         Assert.That(SmithyRules.ReasonText(SmithyRules.Gate.Busy, Hinges, Hooks, 2, 2, 1f), Is.EqualTo("Hook Set is 1 h from done."), "names the good being made, not the one chosen");
         Assert.That(SmithyRules.ReasonText(SmithyRules.Gate.ShortOfStock, Hinges, default, 0, 3, 0f), Is.EqualTo("Still short 1 Iron Bar. Deliver more."));
@@ -684,8 +691,8 @@ public class SmithyTests
         Assert.That(SmithyRules.PackLine(1, 0), Is.EqualTo("You carry: 1 Iron Bar"));
         Assert.That(SmithyRules.PackLine(0, 2), Is.EqualTo("You carry: 2 Charcoal"));
         Assert.That(SmithyRules.PackLine(0, 0), Is.EqualTo("You carry: nothing the forge uses"));
-        Assert.That(SmithyRules.StockButtonText, Is.EqualTo("PUT MY IRON BARS AND CHARCOAL IN THE FORGE"));
-        Assert.That(SmithyRules.Stored("3 Iron Bars", 3, 0), Is.EqualTo("Stored 3 Iron Bars  (the forge holds 3 Iron Bars, 0 Charcoal)"));
+        Assert.That(SmithyRules.StockButtonText, Is.EqualTo("PUT MY IRON, CHARCOAL, STICKS AND CORDAGE IN THE FORGE"));
+        Assert.That(SmithyRules.Stored("3 Iron Bars", 3, 0), Is.EqualTo("Stored 3 Iron Bars  (the forge holds 3 Iron Bars, 0 Charcoal, 0 Sticks, 0 Cordage)"));
     }
 
     [Test]
@@ -699,7 +706,7 @@ public class SmithyTests
         Assert.That(SmithyRules.StockState(3, 2, 8, 8), Is.EqualTo(SmithyRules.StockGate.ForgeFull));
         Assert.That(SmithyRules.StockState(3, 2, 8, 7), Is.EqualTo(SmithyRules.StockGate.Can));
         Assert.That(SmithyRules.StockReason(SmithyRules.StockGate.Can), Is.EqualTo(""));
-        Assert.That(SmithyRules.StockReason(SmithyRules.StockGate.NothingCarried), Is.EqualTo("Your pack has no Iron Bars or Charcoal."));
+        Assert.That(SmithyRules.StockReason(SmithyRules.StockGate.NothingCarried), Is.EqualTo("Your pack has no Iron Bars, Charcoal, Sticks or Cordage."));
         Assert.That(SmithyRules.StockReason(SmithyRules.StockGate.ForgeFull), Is.EqualTo("The forge is already full of what you carry."));
     }
 
@@ -716,7 +723,7 @@ public class SmithyTests
         Assert.That(SmithyRules.Resolve(SmithyRules.Key.Stock, 1, 3).kind, Is.EqualTo(SmithyRules.ActionKind.Stock));
         Assert.That(SmithyRules.Resolve(SmithyRules.Key.None, 1, 3).kind, Is.EqualTo(SmithyRules.ActionKind.None));
         Assert.That(SmithyRules.Resolve(SmithyRules.Key.One, 0, 0).kind, Is.EqualTo(SmithyRules.ActionKind.None));
-        Assert.That(SmithyRules.KeyHint, Is.EqualTo("1-3 choose    Up/Down move    Enter start    R stock    Esc close"));
+        Assert.That(SmithyRules.KeyHint, Is.EqualTo("1-5 choose    Up/Down move    Enter start    R stock    Esc close"));
     }
 
     // --- The screen ---
@@ -755,6 +762,8 @@ public class SmithyTests
             Assert.That(SizeOf("Needs Heading"), Is.EqualTo(28));
             Assert.That(SizeOf("Need 0"), Is.EqualTo(28), "body text 28");
             Assert.That(SizeOf("Need 1"), Is.EqualTo(28));
+            Assert.That(SizeOf("Need 2"), Is.EqualTo(28), "Sticks, for a tool");
+            Assert.That(SizeOf("Need 3"), Is.EqualTo(28), "Cordage, for a tool");
             Assert.That(SizeOf("Reason"), Is.EqualTo(28));
             Assert.That(SizeOf("Hint"), Is.EqualTo(28));
             Assert.That(SizeOf("Pack"), Is.EqualTo(28));
@@ -764,7 +773,7 @@ public class SmithyTests
             Assert.That((int)size.GetValue(stocks[0]), Is.EqualTo(32), "the stock button");
             Assert.That((int)style.GetValue(stocks[0]), Is.EqualTo((int)FontStyle.Bold));
             Assert.That(labels.Where(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")).Select(l => (int)size.GetValue(l)), Is.All.EqualTo(32), "the list names");
-            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(3), "three goods");
+            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(5), "three goods and two tools");
             Assert.That(labels.Where(l => l.name == "Detail").Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28), "the hours and price");
             Component[] starts = labels.Where(l => l.transform.parent != null && l.transform.parent.name == "Start").ToArray();
             Assert.That(starts.Length, Is.EqualTo(1));
@@ -773,8 +782,8 @@ public class SmithyTests
             Assert.That(closes.Length, Is.EqualTo(1));
             Assert.That((int)size.GetValue(closes[0]), Is.EqualTo(28), "the Close button");
             Assert.That(ScreenConstant("MinimumSize"), Is.EqualTo(26f));
-            Assert.That(ScreenConstant("RowHeight"), Is.GreaterThanOrEqualTo(96f));
-            Assert.That(ScreenConstant("RowGap"), Is.GreaterThanOrEqualTo(12f));
+            Assert.That(ScreenConstant("RowHeight"), Is.GreaterThanOrEqualTo(88f));
+            Assert.That(ScreenConstant("RowGap"), Is.GreaterThanOrEqualTo(8f));
             Assert.That(ScreenConstant("StockButtonHeight"), Is.GreaterThanOrEqualTo(80f));
             Assert.That(labels.Select(l => l.GetComponent(text)).All(l => l != null), Is.True);
             Assert.That(labels.Any(l => l.name == "Hint" && (string)text.GetProperty("text").GetValue(l) == SmithyRules.KeyHint), Is.True);
@@ -794,7 +803,7 @@ public class SmithyTests
         {
             string[] names =
             {
-                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Reason", "Start", "Hint",
+                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2", "Need 3", "Reason", "Start", "Hint",
             };
             RectTransform[] all = go.GetComponentsInChildren<RectTransform>(true);
             var boxes = new Dictionary<string, Rect>();
@@ -815,7 +824,7 @@ public class SmithyTests
                 for (int b = a + 1; b < names.Length; b++)
                     Assert.That(boxes[names[a]].Overlaps(boxes[names[b]]), Is.False, names[a] + " overlaps " + names[b]);
             Assert.That(boxes["Stock"].height, Is.GreaterThanOrEqualTo(80f));
-            Assert.That(boxes["Row 1"].yMin - boxes["Row 0"].yMax, Is.GreaterThanOrEqualTo(12f), "gap between rows");
+            Assert.That(boxes["Row 1"].yMin - boxes["Row 0"].yMax, Is.GreaterThanOrEqualTo(8f), "gap between rows");
             RectTransform panelRect = all.First(r => r.name == "Panel");
             Assert.That(panelRect.sizeDelta, Is.EqualTo(new Vector2(1500f, 920f)));
         }
@@ -923,12 +932,12 @@ public class SmithyTests
         KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry smithy);
         Assert.That(smithy.body, Does.Contain("6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass"));
         Assert.That(smithy.body, Does.Contain("about 61 kg"));
-        Assert.That(smithy.body, Does.Contain("it holds 8 of each"));
+        Assert.That(smithy.body, Does.Contain("it holds 8 Iron Bars, 8 Charcoal, 6 Sticks and 4 Cordage"));
         Assert.That(smithy.body, Does.Contain("Door Hinges take 3 game hours; a Hook Set and a Box of Nails take 2"));
         Assert.That(smithy.body, Does.Contain("Each uses 1 Iron Bar and 1 Charcoal"));
         Assert.That(smithy.body, Does.Contain("about $26").And.Contain("about $18").And.Contain("about $16"));
         Assert.That(smithy.body, Does.Contain("3 m clear of trees"));
-        Assert.That(smithy.body, Does.Contain("not while a good is being forged"));
+        Assert.That(smithy.body, Does.Contain("not while something is being forged"));
         Assert.That(SmithyRules.SiteStone + SmithyRules.SiteClay + SmithyRules.SiteLogs + SmithyRules.SiteBranches + SmithyRules.SiteTallGrass, Is.EqualTo(21));
 
         foreach (string id in new[] { "door_hinges", "hook_set", "nails_box", "iron_bar" })
@@ -1033,7 +1042,7 @@ public class SmithyTests
         Assert.That(MarketCatalog.Table.SellBaseCents("clay_cup"), Is.EqualTo(400L));
         Assert.That(Enum.GetValues(typeof(MarketGroup)).Length, Is.EqualTo(11), "no new market group");
         Assert.That(MetalRules.Metals.Length, Is.EqualTo(1));
-        Assert.That(SourceText("Scripts/Player/AxeTool.cs"), Does.Not.Contain("Smithy"));
+        Assert.That(SourceText("Scripts/Player/AxeTool.cs").Contains("SmithyRules"), Is.False, "the Axe and Saw code knows nothing of the Smithy");
         Assert.That(SourceText("Scripts/Editor/MarketDataSeeder.cs"), Does.Not.Contain("Smithy"), "the seeder was not touched");
     }
 }

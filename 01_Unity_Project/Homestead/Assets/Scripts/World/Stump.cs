@@ -8,7 +8,7 @@ public class Stump : MonoBehaviour, IInteractable
 
     public string InteractionPrompt =>
         InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null &&
-        InventoryManager.Instance.EquippedTool.Id == AxeTool.ShovelId
+        ToolRules.IsShovel(InventoryManager.Instance.EquippedTool.Id)
             ? "" // the Shovel's own HUD line takes over
             : "Stump  — dig it out with a Shovel";
 

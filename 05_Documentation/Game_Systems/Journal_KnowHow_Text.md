@@ -124,13 +124,13 @@ Nobody buys Iron Bars; forge them into iron goods at a Smithy (see "The Smithy: 
 
 Trigger: first Smithy site placed, or first Iron Bar held.
 
-A Smithy turns Iron Bars and Charcoal into iron goods that sell at the Trading Post. Its forge and anvil stand under a roof.
+A Smithy turns Iron Bars and Charcoal into iron goods that sell at the Trading Post, and into an iron Shovel and Pick Axe for your own use. Its forge and anvil stand under a roof.
 
 1. Make Iron Bars first (see "Smelting Iron in the Bloomery").
 2. Open Build, then Other, and place a Smithy Site on dry ground, 3 m clear of other buildings and, for the forge fire, 3 m clear of trees. Turn it with the mouse wheel so the open front faces where you want to work.
 3. Deliver 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build it.
-4. Put the Hammer away. Press R at the Smithy to store the Iron Bars and Charcoal you carry (it holds 8 of each).
-5. Press E to open the Smithy screen and choose what to forge. Door Hinges take 3 game hours; a Hook Set and a Box of Nails take 2. Each uses 1 Iron Bar and 1 Charcoal, and the job runs even while you sleep or are away.
-6. Press E at the Smithy to collect the finished good. One job runs at a time, and the next cannot start until the good is collected.
+4. Put the Hammer away. Press R at the Smithy to store the Iron Bars, Charcoal, Sticks and Cordage you carry (it holds 8 Iron Bars, 8 Charcoal, 6 Sticks and 4 Cordage).
+5. Press E to open the Smithy screen and choose what to forge. Door Hinges take 3 game hours; a Hook Set and a Box of Nails take 2. Each uses 1 Iron Bar and 1 Charcoal. An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each. A job runs even while you sleep or are away.
+6. Press E at the Smithy to collect the finished item. One job runs at a time, and the next cannot start until the item is collected.
 
-Door Hinges sell for about $26, a Hook Set for about $18 and a Box of Nails for about $16, and each price drops a little with every one you sell, then recovers over the next days. With the Hammer equipped, R takes the Smithy down, but not while a good is being forged; you get back half the materials and all the Bars, Charcoal and goods inside.
+Door Hinges sell for about $26, a Hook Set for about $18 and a Box of Nails for about $16, and each price drops a little with every one you sell, then recovers over the next days. The iron Shovel and Pick Axe cannot be sold. They work like the stone ones but need a quarter fewer blows for everything: a Stone from the outcrop, a stump, Clay and Sand, a Well shaft and a new Outhouse pit. The stone tools stay as they are. With the Hammer equipped, R takes the Smithy down, but not while something is being forged; you get back half the materials and all the Bars, Charcoal, Sticks, Cordage and finished items inside.

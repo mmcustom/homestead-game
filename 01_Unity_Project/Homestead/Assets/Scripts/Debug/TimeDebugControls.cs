@@ -47,7 +47,7 @@ using UnityEngine.InputSystem;
 //      Pit 4 m ahead loaded with 6 Logs, ready to light;  Ctrl+,  finish every running charcoal burn now (the Charcoal is in the pit)
 //   =  give 10 Iron Ore and 10 Charcoal (40 kg; what does not fit is left out and the message says so);  Shift+=  give 4 Iron Bars (8 kg)
 //   -  give the Smithy site's small materials (a Hammer, 3 Clay, 4 Branches, 6 Tall Grass) and stand a Rock Pile with its 6 Stone and a Wood Pile with its 2 Logs 3 m ahead: the whole kit is
-//      about 61 kg and the pack holds 45;  Shift+-  stand a finished Smithy 4 m ahead stocked with 4 Iron Bars and 6 Charcoal;  Ctrl+-  finish every running Smithy job now
+//      about 61 kg and the pack holds 45;  Shift+-  stand a finished Smithy 4 m ahead stocked with 4 Iron Bars, 6 Charcoal, 6 Sticks and 2 Cordage (enough for both iron tools);  Ctrl+-  finish every running Smithy job now
 //   .  give the Bloomery site's small materials (a Hammer, 6 Clay) and stand a Rock Pile with its 8 Stone (40 kg) 3 m ahead: the whole kit is about 61 kg and the pack holds 45;
 //      Shift+.  stand a finished Bloomery 4 m ahead loaded with 4 Ore and 4 Charcoal, ready to start;  Ctrl+.  finish every running smelt now (the Bars are in the furnace)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
@@ -334,7 +334,7 @@ public class TimeDebugControls : MonoBehaviour
         }
 
         // Metalworking M3. - gives the Smithy site's small materials (a Hammer, 3 Clay, 4 Branches, 6 Tall Grass) and stands a Rock Pile with its 6 Stone and a Wood Pile with its 2 Logs 3 m ahead
-        // (61 kg would not fit the 45 kg pack); Shift+- stands a finished Smithy 4 m ahead stocked with 4 Iron Bars and 6 Charcoal; Ctrl+- finishes every running job now.
+        // (61 kg would not fit the 45 kg pack); Shift+- stands a finished Smithy 4 m ahead stocked with 4 Iron Bars, 6 Charcoal, 6 Sticks and 2 Cordage; Ctrl+- finishes every running job now.
         if (keyboard.minusKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
         {
             if (ctrl)
@@ -361,8 +361,10 @@ public class TimeDebugControls : MonoBehaviour
                 WoodPileState smithy = WoodManager.Instance.DebugPlace(PileKind.Smithy, ForgeAhead(4f), forgeBody.eulerAngles.y + 180f);
                 smithy.Add(SmithyRules.BarId, 4);
                 smithy.Add(SmithyRules.CharcoalId, 6);
+                smithy.Add(SmithyRules.SticksId, 6);
+                smithy.Add(SmithyRules.CordageId, 2);
                 WoodManager.Instance.NotifyChanged(smithy);
-                Show("Smithy placed ahead, its forge stocked with 4 Iron Bars and 6 Charcoal (E opens the screen)", time);
+                Show("Smithy placed ahead, its forge stocked with 4 Iron Bars, 6 Charcoal, 6 Sticks and 2 Cordage (E opens the screen)", time);
                 return;
             }
 

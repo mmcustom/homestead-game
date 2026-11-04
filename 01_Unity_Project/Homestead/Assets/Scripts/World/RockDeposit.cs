@@ -10,7 +10,7 @@ public class RockDeposit : MonoBehaviour, IInteractable
         get
         {
             InventoryManager inventory = InventoryManager.Instance;
-            bool pick = inventory != null && inventory.EquippedTool != null && inventory.EquippedTool.Id == AxeTool.PickAxeId;
+            bool pick = inventory != null && inventory.EquippedTool != null && ToolRules.IsPickAxe(inventory.EquippedTool.Id);
             if (pick)
                 return ""; // the Pick Axe's own HUD line takes over
             StoneManager stone = StoneManager.Instance;

@@ -411,6 +411,16 @@ public static class StructureVisuals
                 for (int i = 0; i < 3; i++)
                     Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(-0.1f + i * 0.1f, 0.06f, 0f), Vector3.zero, new Vector3(0.025f, 0.06f, 0.025f), null), IronBarColor);
                 break;
+            case ToolRules.IronShovelId:
+                // A shovel lying along the anvil: a wooden haft and a flat grey blade at one end.
+                Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(0f, 0.03f, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.03f, 0.25f, 0.03f), null), BenchWoodColor);
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0.26f, 0.025f, 0f), Vector3.zero, new Vector3(0.14f, 0.025f, 0.12f), null), IronBarColor);
+                break;
+            case ToolRules.IronPickAxeId:
+                // A pick axe lying along the anvil: a wooden haft and a grey head across one end.
+                Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(0f, 0.03f, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.03f, 0.25f, 0.03f), null), BenchWoodColor);
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0.24f, 0.04f, 0f), Vector3.zero, new Vector3(0.05f, 0.04f, 0.3f), null), IronBarColor);
+                break;
             default:
                 Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0f, 0.055f, 0f), Vector3.zero, new Vector3(0.22f, 0.1f, 0.14f), null), BenchWoodColor);
                 break;
@@ -990,6 +1000,9 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
 
     static bool Equipped(string itemId) => Inventory != null && Inventory.EquippedTool != null && Inventory.EquippedTool.Id == itemId;
 
+    // Any shovel in hand, stone or iron (ToolRules is the one place that lists them).
+    static bool EquippedShovel => Inventory != null && Inventory.EquippedTool != null && ToolRules.IsShovel(Inventory.EquippedTool.Id);
+
     // --- Prompts ---
 
     public bool CanInteract(PlayerController player) => state != null && Inventory != null && Rules != null;
@@ -1052,7 +1065,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return (WoodManager.HammerEquipped ? $"Hold click with the Hammer to build{what} ({percent})" : $"Fully stocked - equip the Hammer to build{what} ({percent})") + locked;
         }
         if (WellsAndOuthouses.RequiresDig(state.kind) && state.digProgress < 1f)
-            return Equipped(AxeTool.ShovelId) ? $"Dig the shaft: hold click ({state.digProgress * 100f:0}%)" : $"Dig the shaft: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
+            return EquippedShovel ? $"Dig the shaft: hold click ({state.digProgress * 100f:0}%)" : $"Dig the shaft: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
         if (state.kind == PileKind.WellSite)
         {
             int lining = WellsAndOuthouses.NeedOf(state, WoodManager.StoneId); // this well's own: its depth to water sets it
@@ -1909,7 +1922,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     }
 
     SmithyRules.Gate SmithyGate(SmithyRules.Recipe recipe) =>
-        SmithyRules.CanStart(recipe, SmithyWorking, SmithyProduct(out _, out _), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId));
+        SmithyRules.CanStart(recipe, SmithyWorking, SmithyProduct(out _, out _), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId),
+                             state.Count(SmithyRules.SticksId), state.Count(SmithyRules.CordageId));
 
     string SmithyPromptText()
     {
@@ -1977,16 +1991,19 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (state == null || state.kind != PileKind.Smithy || Inventory == null || WoodManager.Instance == null)
             return false;
         int bars = state.Count(SmithyRules.BarId), charcoal = state.Count(SmithyRules.CharcoalId);
+        int sticks = state.Count(SmithyRules.SticksId), cordage = state.Count(SmithyRules.CordageId);
         SmithyRules.Gate gate = SmithyGate(recipe);
         if (gate != SmithyRules.Gate.Ok)
         {
             SmithyMade(out SmithyRules.Recipe made);
-            message = SmithyRules.ReasonText(gate, recipe, made, bars, charcoal, state.jobHours);
+            message = SmithyRules.ReasonText(gate, recipe, made, bars, charcoal, state.jobHours, sticks, cordage);
             return false;
         }
 
         state.Take(SmithyRules.BarId, recipe.bars);
         state.Take(SmithyRules.CharcoalId, recipe.charcoal);
+        state.Take(SmithyRules.SticksId, recipe.sticks);
+        state.Take(SmithyRules.CordageId, recipe.cordage);
         state.jobItem = recipe.itemId;
         state.jobHours = recipe.hours;
         WoodManager.Instance.NotifyChanged(state);
@@ -2010,7 +2027,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     // What the pack could put in the forge now (the pure rule decides: nothing carried, the forge full of what is carried, or something to move).
     public SmithyRules.StockGate ForgeStockGateNow() =>
         state == null || Inventory == null ? SmithyRules.StockGate.NothingCarried
-            : SmithyRules.StockState(Inventory.Player.Count(SmithyRules.BarId), Inventory.Player.Count(SmithyRules.CharcoalId), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId));
+            : SmithyRules.StockState(Inventory.Player.Count(SmithyRules.BarId), Inventory.Player.Count(SmithyRules.CharcoalId), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId),
+                                     Inventory.Player.Count(SmithyRules.SticksId), Inventory.Player.Count(SmithyRules.CordageId), state.Count(SmithyRules.SticksId), state.Count(SmithyRules.CordageId));
 
     // Puts what the pack carries of Iron Bars and Charcoal into the forge, up to the caps. Works while a job runs. Returns whether anything moved, with the message R flashes. Never
     // dismantles: that is the Hammer's R in the world.
@@ -2042,7 +2060,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (stored <= 0)
             return false;
         WoodManager.Instance.NotifyChanged(state);
-        message = SmithyRules.Stored(string.Join(", ", names), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId));
+        message = SmithyRules.Stored(string.Join(", ", names), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId), state.Count(SmithyRules.SticksId), state.Count(SmithyRules.CordageId));
         return true;
     }
 
@@ -2294,7 +2312,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (fill >= 1f)
             {
             string dug = state.digProgress > 0f ? $" ({state.digProgress * 100f:0}%)" : "";
-            return Equipped(AxeTool.ShovelId) ? $"Outhouse  (the pit is full)\nHold click with the Shovel to dig a new pit{dug}"
+            return EquippedShovel ? $"Outhouse  (the pit is full)\nHold click with the Shovel to dig a new pit{dug}"
                                               : $"Outhouse  (the pit is full)\nEquip the Shovel and hold click to dig a new pit{dug}";
         }
         return $"Outhouse  (pit {fill * 100f:0}% full{(w.IsSanitary() ? ", the homestead is sanitary" : "")})";
@@ -2487,7 +2505,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash($"The pit still has room ({w.PitFill(state) * 100f:0}% full)", 2.5f);
             return;
         }
-        ToolStatus.Flash(Equipped(AxeTool.ShovelId) ? "Hold click with the Shovel on the outhouse to dig a new pit" : "Equip the Shovel, then hold click on the outhouse to dig a new pit", 3.5f);
+        ToolStatus.Flash(EquippedShovel ? "Hold click with the Shovel on the outhouse to dig a new pit" : "Equip the Shovel, then hold click on the outhouse to dig a new pit", 3.5f);
     }
 
     // Where a new pit could go: a couple of metres to either side, if the Outhouse rules and the ground allow it.

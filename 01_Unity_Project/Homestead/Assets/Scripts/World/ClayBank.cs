@@ -19,9 +19,9 @@ public class ClayBank : MonoBehaviour, IInteractable
             InventoryManager inventory = InventoryManager.Instance;
             if (inventory == null)
                 return "";
-            if (inventory.EquippedTool != null && inventory.EquippedTool.Id == AxeTool.ShovelId)
+            if (inventory.EquippedTool != null && ToolRules.IsShovel(inventory.EquippedTool.Id))
                 return ""; // the Shovel's own HUD line takes over
-            if (inventory.Player.Has(AxeTool.ShovelId))
+            if (ToolRules.HasShovel(id => inventory.Player.Has(id)))
                 return "Clay bank - equip a Shovel to dig";
             return $"Clay bank - a Primitive Shovel digs this ({ShovelCost})";
         }

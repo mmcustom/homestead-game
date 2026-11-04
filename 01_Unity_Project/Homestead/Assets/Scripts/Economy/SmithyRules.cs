@@ -38,12 +38,20 @@ public static class SmithyRules
 
     public const int BarsCap = 8;
     public const int CharcoalCap = 8;
+    public const int SticksCap = 6;       // M4: the iron tools' hafts (an Iron Shovel takes 3, an Iron Pick Axe 2)
+    public const int CordageCap = 4;      // M4: and their lashing (1 each)
 
-    public static readonly string[] StockIds = { BarId, CharcoalId };
+    public const string SticksId = "sticks";
+    public const string CordageId = "cordage";
+    public const string IronShovelId = ToolRules.IronShovelId;
+    public const string IronPickAxeId = ToolRules.IronPickAxeId;
+
+    public static readonly string[] StockIds = { BarId, CharcoalId, SticksId, CordageId };
 
     public static bool IsStockId(string itemId) => Array.IndexOf(StockIds, itemId) >= 0;
 
-    public static int CapOf(string itemId) => itemId == BarId ? BarsCap : itemId == CharcoalId ? CharcoalCap : 0;
+    public static int CapOf(string itemId) =>
+        itemId == BarId ? BarsCap : itemId == CharcoalId ? CharcoalCap : itemId == SticksId ? SticksCap : itemId == CordageId ? CordageCap : 0;
 
     // Whether the forge takes one more of this: it is a stock material and below its cap.
     public static bool Accepts(string itemId, int held) => IsStockId(itemId) && held < CapOf(itemId);
@@ -56,9 +64,11 @@ public static class SmithyRules
         public string name;
         public string metalId;     // the MetalRules row whose bars it uses
         public int bars, charcoal;
+        public int sticks, cordage; // M4: the iron tools' other ingredients, taken from the forge's stock like the Bars and the Charcoal (0 for the goods)
         public int hours;          // game hours the job takes
-        public long baseCents;     // the Trading Post's base price
+        public long baseCents;     // the Trading Post's base price; 0 = for the player's own use, with no market row (the iron tools)
         public float weightKg;
+        public bool OwnUse => baseCents <= 0;
     }
 
     // Mike's first set, in the order the Smithy screen lists it. Prices run through the Crafted market group: 10% off per unit sold, floor 0.1, 25% daily recovery.
@@ -67,6 +77,9 @@ public static class SmithyRules
         new Recipe { itemId = HingesId, name = "Door Hinges", metalId = MetalRules.IronId, bars = 1, charcoal = 1, hours = 3, baseCents = 2600, weightKg = 0.8f },
         new Recipe { itemId = HooksId, name = "Hook Set", metalId = MetalRules.IronId, bars = 1, charcoal = 1, hours = 2, baseCents = 1800, weightKg = 0.5f },
         new Recipe { itemId = NailsId, name = "Box of Nails (20)", metalId = MetalRules.IronId, bars = 1, charcoal = 1, hours = 2, baseCents = 1600, weightKg = 0.6f },
+        // M4: the iron tools, for the player's own use (baseCents 0: no market row, no price, no Ledger line). Each is a Bar-and-Charcoal job with a haft and lashing, like the stone tool's sticks and cordage.
+        new Recipe { itemId = IronShovelId, name = "Iron Shovel", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 3, cordage = 1, hours = 3, baseCents = 0, weightKg = 1.8f },
+        new Recipe { itemId = IronPickAxeId, name = "Iron Pick Axe", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 2, cordage = 1, hours = 3, baseCents = 0, weightKg = 2f },
     };
 
     public static bool TryFind(string itemId, out Recipe recipe)
@@ -85,20 +98,22 @@ public static class SmithyRules
 
     public static bool IsProduct(string itemId) => TryFind(itemId, out _);
 
-    public static bool Covers(Recipe recipe, int bars, int charcoal) => bars >= recipe.bars && charcoal >= recipe.charcoal;
+    // Whether the forge's stock covers a recipe. Sticks and Cordage default to 0 (the goods need none).
+    public static bool Covers(Recipe recipe, int bars, int charcoal, int sticks = 0, int cordage = 0) =>
+        bars >= recipe.bars && charcoal >= recipe.charcoal && sticks >= recipe.sticks && cordage >= recipe.cordage;
 
     // --- Starting a job ---
 
     public enum Gate { Ok, Busy, ProductWaiting, ShortOfStock }
 
     // Why a job can or cannot start. working: a job is running. productWaiting: a finished good has not been collected. No tool is needed in the pack (the Workshop needs an Axe).
-    public static Gate CanStart(Recipe recipe, bool working, bool productWaiting, int bars, int charcoal)
+    public static Gate CanStart(Recipe recipe, bool working, bool productWaiting, int bars, int charcoal, int sticks = 0, int cordage = 0)
     {
         if (working)
             return Gate.Busy;
         if (productWaiting)
             return Gate.ProductWaiting;
-        return Covers(recipe, bars, charcoal) ? Gate.Ok : Gate.ShortOfStock;
+        return Covers(recipe, bars, charcoal, sticks, cordage) ? Gate.Ok : Gate.ShortOfStock;
     }
 
     // --- The job's hours: one game hour at a time, like the Workshop ---
@@ -145,19 +160,25 @@ public static class SmithyRules
 
     static string BarsText(int n) => Count(n, "Iron Bar", "Iron Bars");
 
+    static string SticksText(int n) => Count(n, "Stick", "Sticks");
+
     public static string SiteCostText =>
         $"{SiteStone} Stone, {SiteClay} Clay, {SiteLogs} Logs, {SiteBranches} Branches and {SiteTallGrass} Tall Grass";
 
-    public static string CapsText => $"{BarsCap} Iron Bars and {CharcoalCap} Charcoal";
+    public static string CapsText => $"{BarsCap} Iron Bars, {CharcoalCap} Charcoal, {SticksCap} Sticks and {CordageCap} Cordage";
 
-    // What the forge still lacks for a good: "1 Iron Bar", "1 Charcoal" or "1 Iron Bar, 1 Charcoal".
-    public static string ShortText(Recipe recipe, int bars, int charcoal)
+    // What the forge still lacks for a recipe: "1 Iron Bar", "1 Charcoal" or "2 Iron Bars, 2 Charcoal, 3 Sticks, 1 Cordage".
+    public static string ShortText(Recipe recipe, int bars, int charcoal, int sticks = 0, int cordage = 0)
     {
         var parts = new List<string>();
         if (recipe.bars - bars > 0)
             parts.Add(BarsText(recipe.bars - bars));
         if (recipe.charcoal - charcoal > 0)
             parts.Add($"{recipe.charcoal - charcoal} Charcoal");
+        if (recipe.sticks - sticks > 0)
+            parts.Add(SticksText(recipe.sticks - sticks));
+        if (recipe.cordage - cordage > 0)
+            parts.Add($"{recipe.cordage - cordage} Cordage");
         return string.Join(", ", parts);
     }
 
@@ -170,35 +191,39 @@ public static class SmithyRules
 
     public static string StorePrompt(string what) => $"Store {what}";
 
-    public static string DeliverHelp => $"Deliver Iron Bars and Charcoal  (the forge holds {CapsText})";
+    public static string DeliverHelp =>
+        $"Deliver Iron Bars, Charcoal, Sticks and Cordage  (the forge holds up to {BarsCap}, {CharcoalCap}, {SticksCap} and {CordageCap})";
 
     public static string DismantlePrompt(bool working, float hoursLeft) => working
-        ? $"Can't dismantle the Smithy while a good is being forged  ({HoursText(hoursLeft)} to go)"
-        : "Dismantle the Smithy  (half the materials back, rounded down; the stock and any finished good come back whole)";
+        ? $"Can't dismantle the Smithy while something is being forged  ({HoursText(hoursLeft)} to go)"
+        : "Dismantle the Smithy  (half the materials back, rounded down; the stock and any finished item come back whole)";
 
     // The flash when a job cannot start.
-    public static string GateMessage(Gate gate, Recipe recipe, int bars, int charcoal, float hoursLeft)
+    public static string GateMessage(Gate gate, Recipe recipe, int bars, int charcoal, float hoursLeft, int sticks = 0, int cordage = 0)
     {
         switch (gate)
         {
             case Gate.Busy: return $"The forge is busy: {recipe.name} is {HoursText(hoursLeft)} from done.";
-            case Gate.ProductWaiting: return "A finished good is waiting: collect it first.";
-            case Gate.ShortOfStock: return $"The forge is short of {ShortText(recipe, bars, charcoal)} for {recipe.name}. Deliver more.";
+            case Gate.ProductWaiting: return "A finished item is waiting: collect it first.";
+            case Gate.ShortOfStock: return $"The forge is short of {ShortText(recipe, bars, charcoal, sticks, cordage)} for {recipe.name}. Deliver more.";
             default: return "";
         }
     }
 
     public static string StartedMessage(Recipe recipe) => $"Started {recipe.name}. It will be ready in {HoursText(recipe.hours)}, even while you sleep or are away.";
 
+    // What collecting a finished item flashes: goods are for sale, tools are the player's own.
     public static string TookMessage(Recipe good, int took, int stayed) =>
-        stayed > 0 ? $"Took {took} {good.name} ({stayed} left in the Smithy, no room)." : $"Took the {good.name}. Sell it at the Trading Post.";
+        stayed > 0 ? $"Took {took} {good.name} ({stayed} left in the Smithy, no room)."
+        : good.OwnUse ? $"Took the {good.name}. It is yours to use; it cannot be sold."
+        : $"Took the {good.name}. Sell it at the Trading Post.";
 
     public static string BuiltMessage =>
-        $"Smithy built. Deliver Iron Bars and Charcoal to the forge (it holds {CapsText}), then choose what to forge at it.";
+        $"Smithy built. Deliver Iron Bars, Charcoal, Sticks and Cordage to the forge (it holds {CapsText}), then choose what to forge at it.";
 
     // --- The Smithy screen's words ---
 
-    // One line of a good's needs: the material, what the good needs, what the forge holds and whether that is enough.
+    // One line of a recipe's needs: the material, what the recipe needs, what the forge holds and whether that is enough.
     public struct NeedRow
     {
         public string label;
@@ -208,28 +233,36 @@ public static class SmithyRules
         public string Text => $"{label} - need {need} - forge has {have} - " + (enough ? "enough" : $"short by {Short}");
     }
 
-    // The rows for a good: Iron Bars, then Charcoal.
-    public static NeedRow[] NeedRows(Recipe recipe, int bars, int charcoal)
+    // The rows for a recipe: Iron Bars and Charcoal always, then Sticks and Cordage when it needs them (the goods do not).
+    public static NeedRow[] NeedRows(Recipe recipe, int bars, int charcoal, int sticks = 0, int cordage = 0)
     {
         NeedRow Row(string label, int need, int have) => new NeedRow { label = label, need = need, have = have, enough = have >= need };
-        return new[] { Row("Iron Bars", recipe.bars, bars), Row("Charcoal", recipe.charcoal, charcoal) };
+        var rows = new List<NeedRow> { Row("Iron Bars", recipe.bars, bars), Row("Charcoal", recipe.charcoal, charcoal) };
+        if (recipe.sticks > 0)
+            rows.Add(Row("Sticks", recipe.sticks, sticks));
+        if (recipe.cordage > 0)
+            rows.Add(Row("Cordage", recipe.cordage, cordage));
+        return rows.ToArray();
     }
 
-    // The screen's status line: a finished good, the running job, or the idle forge and what it holds.
-    public static string ForgeLine(bool working, Recipe made, float hoursLeft, bool waiting, Recipe waitingGood, int bars, int charcoal)
+    // The screen's status line: a finished item, the running job, or the idle forge and what it holds.
+    public static string ForgeLine(bool working, Recipe made, float hoursLeft, bool waiting, Recipe waitingGood, int bars, int charcoal, int sticks = 0, int cordage = 0)
     {
         if (waiting)
             return $"{waitingGood.name} is ready - collect it";
         if (working)
             return $"Forging {made.name}, {HoursText(hoursLeft)} to go";
-        return $"Forge is idle - it holds {BarsText(bars)}, {charcoal} Charcoal";
+        return $"Forge is idle - it holds {BarsText(bars)}, {charcoal} Charcoal, {SticksText(sticks)}, {cordage} Cordage";
     }
 
-    // A list row: the name, then the hours and what the Trading Post pays now (cents; 0 shows the base price).
-    public static string ListLabel(Recipe recipe, long sellCents) => $"{recipe.name}\n{recipe.hours} h  -  {Money.Format(sellCents > 0 ? sellCents : recipe.baseCents)}";
+    // A list row: the name, then the hours and what the Trading Post pays now (cents; 0 shows the base price), or "own use" for a tool that is not sold.
+    public static string ListLabel(Recipe recipe, long sellCents) =>
+        recipe.OwnUse ? $"{recipe.name}\n{recipe.hours} h  -  own use" : $"{recipe.name}\n{recipe.hours} h  -  {Money.Format(sellCents > 0 ? sellCents : recipe.baseCents)}";
 
-    // The detail line under the name: hours, weight and the base price.
-    public static string DetailLine(Recipe recipe) => $"{recipe.hours} h  -  {recipe.weightKg:0.#} kg  -  base price {Money.Format(recipe.baseCents)}";
+    // The detail line under the name: hours, weight and the base price, or what a tool is for.
+    public static string DetailLine(Recipe recipe) =>
+        recipe.OwnUse ? $"{recipe.hours} h  -  {recipe.weightKg:0.#} kg  -  your own use, not sold"
+                      : $"{recipe.hours} h  -  {recipe.weightKg:0.#} kg  -  base price {Money.Format(recipe.baseCents)}";
 
     // The Start button: "START DOOR HINGES" when it can start, otherwise why not in a few words.
     public static string StartButtonText(Gate gate, Recipe recipe)
@@ -238,62 +271,68 @@ public static class SmithyRules
         {
             case Gate.Ok: return $"START {recipe.name.ToUpperInvariant()}";
             case Gate.Busy: return "FORGE IS BUSY";
-            case Gate.ProductWaiting: return "COLLECT THE GOOD FIRST";
+            case Gate.ProductWaiting: return "COLLECT THE ITEM FIRST";
             default: return "SHORT OF MATERIALS";
         }
     }
 
-    // The reason line under the Start button (empty when it can start). Busy names the good being made, not the one chosen.
-    public static string ReasonText(Gate gate, Recipe chosen, Recipe made, int bars, int charcoal, float hoursLeft)
+    // The reason line under the Start button (empty when it can start). Busy names the item being made, not the one chosen.
+    public static string ReasonText(Gate gate, Recipe chosen, Recipe made, int bars, int charcoal, float hoursLeft, int sticks = 0, int cordage = 0)
     {
         switch (gate)
         {
             case Gate.Busy: return $"{made.name} is {HoursText(hoursLeft)} from done.";
-            case Gate.ProductWaiting: return "A finished good is waiting: collect it first.";
-            case Gate.ShortOfStock: return $"Still short {ShortText(chosen, bars, charcoal)}. Deliver more.";
+            case Gate.ProductWaiting: return "A finished item is waiting: collect it first.";
+            case Gate.ShortOfStock: return $"Still short {ShortText(chosen, bars, charcoal, sticks, cordage)}. Deliver more.";
             default: return "";
         }
     }
 
-    // What the pack carries of the two stock materials, the kinds it has only: "You carry: 3 Iron Bars, 5 Charcoal".
-    public static string PackLine(int bars, int charcoal)
+    // What the pack carries of the four stock materials, the kinds it has only: "You carry: 3 Iron Bars, 5 Charcoal, 6 Sticks, 2 Cordage".
+    public static string PackLine(int bars, int charcoal, int sticks = 0, int cordage = 0)
     {
         var parts = new List<string>();
         if (bars > 0)
             parts.Add(BarsText(bars));
         if (charcoal > 0)
             parts.Add($"{charcoal} Charcoal");
+        if (sticks > 0)
+            parts.Add(SticksText(sticks));
+        if (cordage > 0)
+            parts.Add($"{cordage} Cordage");
         return "You carry: " + (parts.Count > 0 ? string.Join(", ", parts) : "nothing the forge uses");
     }
 
     public enum StockGate { Can, NothingCarried, ForgeFull }
 
-    // Whether the pack can put anything in the forge: the pack holds some Bars or Charcoal and the forge is below its cap on at least one of those.
-    public static StockGate StockState(int carriedBars, int carriedCharcoal, int forgeBars, int forgeCharcoal)
+    // Whether the pack can put anything in the forge: the pack holds some of a stock material and the forge is below that material's cap.
+    public static StockGate StockState(int carriedBars, int carriedCharcoal, int forgeBars, int forgeCharcoal, int carriedSticks = 0, int carriedCordage = 0, int forgeSticks = 0, int forgeCordage = 0)
     {
-        if (carriedBars <= 0 && carriedCharcoal <= 0)
+        if (carriedBars <= 0 && carriedCharcoal <= 0 && carriedSticks <= 0 && carriedCordage <= 0)
             return StockGate.NothingCarried;
-        bool room = (carriedBars > 0 && forgeBars < BarsCap) || (carriedCharcoal > 0 && forgeCharcoal < CharcoalCap);
+        bool room = (carriedBars > 0 && forgeBars < BarsCap) || (carriedCharcoal > 0 && forgeCharcoal < CharcoalCap)
+                 || (carriedSticks > 0 && forgeSticks < SticksCap) || (carriedCordage > 0 && forgeCordage < CordageCap);
         return room ? StockGate.Can : StockGate.ForgeFull;
     }
 
-    public const string StockButtonText = "PUT MY IRON BARS AND CHARCOAL IN THE FORGE";
+    public const string StockButtonText = "PUT MY IRON, CHARCOAL, STICKS AND CORDAGE IN THE FORGE";
 
     // The line under the stock button when it is greyed (empty when it can stock).
     public static string StockReason(StockGate gate)
     {
         switch (gate)
         {
-            case StockGate.NothingCarried: return "Your pack has no Iron Bars or Charcoal.";
+            case StockGate.NothingCarried: return "Your pack has no Iron Bars, Charcoal, Sticks or Cordage.";
             case StockGate.ForgeFull: return "The forge is already full of what you carry.";
             default: return "";
         }
     }
 
-    public static string Stored(string what, int bars, int charcoal) => $"Stored {what}  (the forge holds {BarsText(bars)}, {charcoal} Charcoal)";
+    public static string Stored(string what, int bars, int charcoal, int sticks = 0, int cordage = 0) =>
+        $"Stored {what}  (the forge holds {BarsText(bars)}, {charcoal} Charcoal, {SticksText(sticks)}, {cordage} Cordage)";
 
     // The keys the Smithy screen answers, as plain names (the screen turns the keyboard's own keys into these) and what each does.
-    public enum Key { None, One, Two, Three, Up, Down, Enter, Stock }
+    public enum Key { None, One, Two, Three, Four, Five, Up, Down, Enter, Stock }
     public enum ActionKind { None, Choose, Start, Stock }
 
     public struct KeyAction
@@ -302,16 +341,22 @@ public static class SmithyRules
         public int choice; // the list index to choose (Choose only)
     }
 
-    // The digits choose that good (ignored past the end of the list), Up and Down move the choice and wrap round, Enter starts it, R stocks; anything else does nothing.
+    // The digits choose that entry (ignored past the end of the list), Up and Down move the choice and wrap round, Enter starts it, R stocks; anything else does nothing.
     public static KeyAction Resolve(Key key, int selected, int goods)
     {
         if (goods <= 0)
             return default;
         switch (key)
         {
-            case Key.One: return new KeyAction { kind = ActionKind.Choose, choice = 0 };
-            case Key.Two: return goods > 1 ? new KeyAction { kind = ActionKind.Choose, choice = 1 } : default;
-            case Key.Three: return goods > 2 ? new KeyAction { kind = ActionKind.Choose, choice = 2 } : default;
+            case Key.One:
+            case Key.Two:
+            case Key.Three:
+            case Key.Four:
+            case Key.Five:
+            {
+                int index = (int)key - (int)Key.One;
+                return index < goods ? new KeyAction { kind = ActionKind.Choose, choice = index } : default;
+            }
             case Key.Up: return new KeyAction { kind = ActionKind.Choose, choice = (selected - 1 + goods) % goods };
             case Key.Down: return new KeyAction { kind = ActionKind.Choose, choice = (selected + 1) % goods };
             case Key.Enter: return new KeyAction { kind = ActionKind.Start };
@@ -321,5 +366,5 @@ public static class SmithyRules
     }
 
     // The one-line key hint along the bottom of the screen.
-    public const string KeyHint = "1-3 choose    Up/Down move    Enter start    R stock    Esc close";
+    public const string KeyHint = "1-5 choose    Up/Down move    Enter start    R stock    Esc close";
 }

@@ -25,6 +25,10 @@ using UnityEngine.InputSystem;
 // hardwood about 7 instead of 11) and 0.65 times the splitting time. Equipped it fells and splits at a pile; carried, the fastest of
 // the Saw, Axe and Primitive Axe sets the Inventory's splitting speed (AxeRules). Later it is also the tool boards will need.
 //
+// The iron Shovel and iron Pick Axe (Metalworking M4, Mike 2026-11-04) are made at the Smithy and do everything the stone ones do in 0.75 times the blows (25% fewer) on every dig
+// and mine: a Stone 4 -> 3, a stump 6 -> 4.5 (the 5th blow), Clay or Sand 4 -> 3, and the Well shaft and the new Outhouse pit by the same fraction. ToolRules lists which ids are a
+// shovel or a pick axe; ironToolBlowFactor below is the tunable. The Axe and the Saw are untouched.
+//
 // Clay and Sand (Building_Housing_System.md's Small Cabin, 2026-09-26; Pottery P1, 2026-11-02): the Shovel also digs the creek and
 // pond banks, with no placed deposit object. Clay comes from the wet bank (dry ground with water within PotteryRules.WetBankMetres of
 // the aim point) and from the bed in shallow water (PotteryRules.WadeDigDepthMetres); Sand from the dry bank beyond that, out to
@@ -59,6 +63,8 @@ public class AxeTool : MonoBehaviour
     [SerializeField, Range(0.1f, 1f)] float sawFactor = AxeRules.DefaultSawFactor;
 
     [Header("Pick Axe and Shovel")]
+    [Tooltip("How many times the blows an iron Shovel or iron Pick Axe needs, compared with the stone ones (every dig and mine): under 1, so it is faster. 0.75 is 25% fewer.")]
+    [SerializeField, Range(0.1f, 1f)] float ironToolBlowFactor = ToolRules.DefaultIronToolBlowFactor;
     [SerializeField, Min(1)] int blowsPerStone = 4;
     [SerializeField, Min(1)] int blowsPerStump = 6;
     [SerializeField, Min(1)] int blowsPerClay = 4;
@@ -154,15 +160,19 @@ public class AxeTool : MonoBehaviour
     // The equipped tool's blows multiplier: 1 for the Axe, more for the Primitive Axe, less for the Wood Saw.
     float AxeFactor => AxeRules.FactorFor(Equipped, primitiveAxeFactor, sawFactor);
 
+    // The iron Shovel and iron Pick Axe need ironToolBlowFactor times the blows of the stone ones (ToolRules.BlowsNeeded); the Axe and the Saw are not affected.
+    // What one swing counts for on an action whose blow count is fixed elsewhere (a Well shaft, an Outhouse pit): the work efficiency over the factor.
+    float DigSwing => ToolRules.SwingWeight(Efficiency, Equipped, ironToolBlowFactor);
+
     void Update()
     {
         UpdateSplitting();
         string equipped = Equipped;
         if (attack == null || !player.CanUseTools)
             return;
-        if (equipped == PickAxeId || equipped == ShovelId)
+        if (ToolRules.IsDiggingTool(equipped))
         {
-            UpdateDigging(equipped == PickAxeId);
+            UpdateDigging(ToolRules.IsPickAxe(equipped));
             return;
         }
         if (equipped == WoodManager.HammerId)
@@ -267,7 +277,7 @@ public class AxeTool : MonoBehaviour
 
         if (target == null && !bank)
         {
-            ToolStatus.Report(pick ? "Stone Pick Axe — hold click on the rock outcrop on South Ridge to mine Stone"
+            ToolStatus.Report(pick ? $"{InventoryManager.Instance.EquippedTool.DisplayName} — hold click on the rock outcrop on South Ridge to mine Stone"
                                    : dig == PotteryRules.Dig.TooDeep ? PotteryRules.DigText(dig) : PotteryRules.ShovelIdleText);
             return;
         }
@@ -361,7 +371,7 @@ public class AxeTool : MonoBehaviour
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
 
-        if (rules.PitDigBlow(state, Efficiency))
+        if (rules.PitDigBlow(state, DigSwing))
         {
             otherTarget = null;
             outhouse.MoveToNewPit(chosen);
@@ -382,14 +392,15 @@ public class AxeTool : MonoBehaviour
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
 
-        bool finished = rules.DigBlow(state, Efficiency);
+        float swing = DigSwing;
+        bool finished = rules.DigBlow(state, swing);
         otherTarget = finished ? null : otherTarget;
         if (finished)
         {
             ToolStatus.Banner("The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
             WoodManager.Instance.NotifyChanged(state);
         }
-        else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - Efficiency / rules.DigBlowsOf(state)) * 10f))
+        else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - swing / rules.DigBlowsOf(state)) * 10f))
         {
             WoodManager.Instance.NotifyChanged(state); // the visible shaft deepens a tenth at a time
         }
@@ -462,12 +473,13 @@ public class AxeTool : MonoBehaviour
             return;
         }
 
+        float clayBlows = ToolRules.BlowsNeeded(blowsPerClay, Equipped, ironToolBlowFactor);
         ToolStatus.Report(blows > 0f ? PotteryRules.DiggingText(dig) : PotteryRules.DigText(dig),
-                          blows > 0f ? blows / blowsPerClay : -1f);
+                          blows > 0f ? blows / clayBlows : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
         blows += Efficiency;
-        if (blows < blowsPerClay)
+        if (blows < clayBlows)
             return;
 
         blows = 0f;
@@ -491,12 +503,13 @@ public class AxeTool : MonoBehaviour
             return;
         }
 
+        float stoneBlows = ToolRules.BlowsNeeded(blowsPerStone, Equipped, ironToolBlowFactor);
         ToolStatus.Report(blows > 0f ? "Breaking off Stone" : $"Rock Outcrop — hold click to mine Stone  ({stone.DepositRemaining} left)",
-                          blows > 0f ? blows / blowsPerStone : -1f);
+                          blows > 0f ? blows / stoneBlows : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayPickaxe : null))
             return;
         blows += Efficiency;
-        if (blows < blowsPerStone)
+        if (blows < stoneBlows)
             return;
 
         blows = 0f;
@@ -509,11 +522,12 @@ public class AxeTool : MonoBehaviour
 
     void DigStump(Stump stump, Vector3 point)
     {
-        ToolStatus.Report(blows > 0f ? "Digging out the stump" : "Stump — hold click to dig it out", blows > 0f ? blows / blowsPerStump : -1f);
+        float stumpBlows = ToolRules.BlowsNeeded(blowsPerStump, Equipped, ironToolBlowFactor);
+        ToolStatus.Report(blows > 0f ? "Digging out the stump" : "Stump — hold click to dig it out", blows > 0f ? blows / stumpBlows : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
         blows += Efficiency;
-        if (blows < blowsPerStump)
+        if (blows < stumpBlows)
             return;
 
         blows = 0f;
