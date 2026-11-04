@@ -185,6 +185,8 @@ public class PlayerController : MonoBehaviour, ISaveable
         stamina = maxStamina;
         if (GetComponent<CartHandler>() == null)
             gameObject.AddComponent<CartHandler>(); // the Hand Cart (Phase 2); no prefab change
+        if (GetComponent<PlayerHands>() == null)
+            gameObject.AddComponent<PlayerHands>(); // the first-person hands (Hands and tools M0a); no prefab change
 
         // Water surfaces carry a collider only so they can be looked at (WaterSource's Drink); the player wades through.
         int waterLayer = LayerMask.NameToLayer("Water");

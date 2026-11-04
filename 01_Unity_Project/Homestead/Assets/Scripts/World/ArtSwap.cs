@@ -253,6 +253,141 @@ public static class ArtSwap
         return made.transform;
     }
 
+    // --- Hands (Hands and tools M0a) ---
+    //
+    // THE SWAP POINT for the first-person hands: a prefab at Resources/Art/hands_player.prefab replaces the primitive forearms and mittens PlayerHands builds. PlayerHands.BuildRig calls
+    // TryAttachHands first and draws the primitives only when it returns null. The table is separate from the structure table above because a hands prefab has no PileKind, no state
+    // and no changing contents; it is keyed by id. What a hands-prefab author does:
+    //   * Name it hands_player. Origin at the camera, 1 unit = 1 m, x right, y up, z forward; it is parented to the camera and drawn by the viewmodel camera, so the world and the scope's
+    //     zoom do not change how it looks. Author it at normal size: PlayerHands scales the whole rig toward the eye (viewScale, 0.5) so it stays inside the player's body radius. Every renderer is put on the Viewmodel layer and stops casting shadows; every collider is removed.
+    //   * Hand_R and Hand_L: the objects the code moves for each hand (the arm and mitten under each). The left one is hidden on a one-handed tool. A missing one is made empty at the
+    //     origin, so the code still has something to move, but then the art under the prefab root does not follow the pose.
+    //   * Anchor_Hand_R and Anchor_Hand_L: a child of each hand where a held tool's grip is placed (the palm). Keep them unscaled. A missing one is made under its hand at the palm.
+    //   * A prefab's own Animator is not driven yet.
+    public const string HandsId = "hands_player";
+    public const string AnchorHandR = "Anchor_Hand_R";
+    public const string AnchorHandL = "Anchor_Hand_L";
+    public const string HandRName = "Hand_R";
+    public const string HandLName = "Hand_L";
+    public const string ViewmodelLayerName = "Viewmodel";
+
+    // Where a made-up palm anchor goes, in the hand's own space: a little ahead of the wrist.
+    public static readonly Vector3 PalmFallback = new Vector3(0f, 0f, 0.07f);
+
+    public sealed class ViewSpec
+    {
+        public string id;
+        public AnchorSpec[] anchors;
+        public string[] optionalChildren; // shown or hidden by the code, never required
+
+        public AnchorSpec Anchor(string anchorName)
+        {
+            foreach (AnchorSpec a in anchors)
+                if (a.name == anchorName)
+                    return a;
+            return null;
+        }
+    }
+
+    static readonly ViewSpec[] ViewSpecs =
+    {
+        new ViewSpec
+        {
+            id = HandsId,
+            anchors = new[]
+            {
+                A(AnchorHandR, true, PalmFallback.x, PalmFallback.y, PalmFallback.z),
+                A(AnchorHandL, true, PalmFallback.x, PalmFallback.y, PalmFallback.z),
+            },
+            optionalChildren = new[] { HandRName, HandLName },
+        },
+    };
+
+    public static IReadOnlyList<ViewSpec> AllViewSpecs => ViewSpecs;
+
+    public static ViewSpec ViewSpecFor(string id)
+    {
+        foreach (ViewSpec spec in ViewSpecs)
+            if (spec.id == id)
+                return spec;
+        return null;
+    }
+
+    // The hands prefab instance under parent (made the first time, found after that), or null when there is no prefab: PlayerHands then builds its primitives. Colliders are removed, every
+    // renderer goes on the given layer and stops casting shadows.
+    public static Transform TryAttachHands(Transform parent, int layer)
+    {
+        ViewSpec spec = ViewSpecFor(HandsId);
+        Transform existing = parent.Find(spec.id);
+        if (existing != null)
+            return existing;
+        GameObject prefab = Resolve(spec.id);
+        if (prefab == null)
+            return null;
+
+        GameObject instance = UnityEngine.Object.Instantiate(prefab, parent, false);
+        instance.name = spec.id;
+        instance.SetActive(true);
+        instance.transform.localPosition = Vector3.zero;
+        instance.transform.localRotation = Quaternion.identity;
+
+        foreach (Collider collider in instance.GetComponentsInChildren<Collider>(true))
+            UnityEngine.Object.DestroyImmediate(collider);
+        SetViewLayer(instance, layer);
+        return instance.transform;
+    }
+
+    // Puts a whole object on a layer and stops its renderers casting shadows (the hands receive light but throw none).
+    public static void SetViewLayer(GameObject root, int layer)
+    {
+        if (layer < 0)
+            return;
+        foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            t.gameObject.layer = layer;
+        foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
+        {
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            // The pass is culled with the main camera's frustum, which the rifle scope narrows; bounds this large keep the hands from being culled away then.
+            r.localBounds = new Bounds(Vector3.zero, Vector3.one * ViewBoundsSize);
+        }
+    }
+
+    // Local-space size of the bounds given to every viewmodel renderer (the hands are small and scaled down, so this still comes to a few metres).
+    public const float ViewBoundsSize = 1000f;
+
+    // The object the code moves for one hand: the prefab's Hand_R or Hand_L, or an empty one made at the origin.
+    public static Transform HandRoot(Transform art, HandSide side)
+    {
+        string name = side == HandSide.Right ? HandRName : HandLName;
+        List<Transform> own = Named(art, name);
+        if (own.Count > 0)
+            return own[0];
+        var made = new GameObject(name);
+        made.layer = art.gameObject.layer;
+        made.transform.SetParent(art, false);
+        return made.transform;
+    }
+
+    // Where a held tool's grip is placed: the prefab's Anchor_Hand_R or _L, or an empty one made under the hand at the palm. One found outside its hand is moved under it.
+    public static Transform HandAnchor(Transform art, HandSide side)
+    {
+        string name = side == HandSide.Right ? AnchorHandR : AnchorHandL;
+        Transform hand = HandRoot(art, side);
+        List<Transform> own = Named(art, name);
+        if (own.Count > 0)
+        {
+            if (!own[0].IsChildOf(hand))
+                own[0].SetParent(hand, true);
+            return own[0];
+        }
+        var made = new GameObject(name);
+        made.layer = art.gameObject.layer;
+        made.transform.SetParent(hand, false);
+        AnchorSpec anchor = ViewSpecFor(HandsId).Anchor(name);
+        made.transform.localPosition = anchor != null ? anchor.fallback : Vector3.zero;
+        return made.transform;
+    }
+
     // Body stays on; exactly one of the spec's State_* children is shown; each On_* child follows its flag. Names the prefab does not have are skipped.
     public static void ApplyState(Transform art, Spec spec, WoodPileState state)
     {

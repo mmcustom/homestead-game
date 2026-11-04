@@ -231,7 +231,7 @@ public class DroppedItems : MonoBehaviour, ISaveable
         return pickup;
     }
 
-    static Color Tint(ItemCategory category)
+    internal static Color Tint(ItemCategory category) // also the colour of the placeholder in the player's hand (PlayerHands)
     {
         switch (category)
         {

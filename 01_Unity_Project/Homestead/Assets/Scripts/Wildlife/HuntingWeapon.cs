@@ -64,6 +64,9 @@ public class HuntingWeapon : MonoBehaviour
     float draw;
     float readyAt;
     float scope;          // 0-1, how far the rifle's scope is raised
+
+    // Read-only: how far the rifle's scope is raised (0 = down, 1 = fully up; the overlay shows past 0.5). PlayerHands lowers and hides the hands with it. Zero for the bows, which have no scope.
+    public float ScopeFraction => scope;
     Camera view;
     float baseFov;
 
