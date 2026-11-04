@@ -137,3 +137,24 @@ This addendum supersedes the ore sources and the "Future" status above for the f
 - M5 (later, after the Smithy is played): building uses for iron (Cabin door hinges, Cart tyres, hinged Workshop chest). Also later: copper, tin, bronze.
 
 Status: planned 2026-11-04, nothing built.
+
+
+## BUILT: Metal M1, Iron Ore, Charcoal and the Charcoal Pit (2026-11-04, playtest 1 to 25 passed, committed e4e806f)
+
+First phase of the iron chain. Not built yet: the Bloomery and Iron Bar (M2), the Smithy and goods (M3), the iron tools (M4).
+
+Items: Iron Ore is bought at the Trading Post for $4 (3 kg, Stocked group, sells back $1) and is the 22nd stocked item; no per-visit limit. Charcoal is made at the Pit (1 kg, WoodStone group, sells for $1, never sold in the store; 6 Logs worth $18 make 4 Charcoal worth $4, so there is no buy loop). Market rows were added by hand to the catalog and MarketData.asset (89 rows in total, sell-back items 19; a test checks they agree); Seed MarketData was never run. Ledger: Ore files under "Bought: other goods" (one line added in Ledger.cs; "Bought: building materials", where Lumber and Cordage sit, would be a possible alternative), Charcoal sales under "Firewood, logs and stone", Ore sold back under "Stocked goods sold back".
+
+Rules: MetalRules (Economy) is a table keyed by metal with the iron row only (ore id iron_ore, fuel id charcoal, $4, 3 kg); copper and tin are later rows. CharcoalRules holds every Pit number (build cost, blows, Logs cap, burn hours, yield, clearances, smoke).
+
+Charcoal Pit: new PileKinds CharcoalPitSite 39 and CharcoalPit 40 (41 kinds in total; 41 to 44 stay reserved for the Bloomery and Smithy). Staged site: 4 Clay and 6 Tall Grass in any order delivered with R (14.6 kg, just under the 15 kg staging line), 20 Hammer blows, no Shovel stage. Placement follows the Kiln: open air (not under a roof), its edge 3 m clear of every structure and tree, keeps later buildings 3 m clear, no tree sprouts within 1.4 m, a parked Hand Cart is exempt; one line in Setbacks.cs now uses a structure's own radius when it has one (Kiln results identical); the mouse wheel turns the site. Prompt-only use: R (without the Hammer) loads Logs from the pack up to 6; E lights it at 3 or more Logs ("Light the pit  (6 Logs -> 4 Charcoal in 24 h)"); it burns 24 game hours one hour at a time (sleeping, being away and skipping days count; rain does not stop it); yield is Logs x 2/3 rounded down (3 gives 2, 4 gives 2, 5 gives 3, 6 gives 4); E collects as much as the pack holds and the rest stays; loading is blocked while Charcoal waits. The Hammer with R dismantles it (half the Clay and Tall Grass back, Logs and Charcoal whole), refused while it burns. Look: a clay-coloured earth mound 1.5 m across and 0.8 m high on a ring of trodden earth, with a vent on top and a draught hole at the front (8 cm clear of the mound, no z-fighting); KilnSmoke is reused with smaller settings only while a burn runs, a dim ember glow (no light, no flicker) shows at the hole, and the mound darkens while it burns. Mike's playtest passed all 25 items.
+
+Save: no new saved field. Logs and Charcoal are ordinary stacks in contents; a burn is jobItem charcoal_burn, jobCount (the Charcoal it will make, fixed when lit) and jobHours (hours left). The pile still has 17 fields; the Hopper's hopperWater and hopperBatch are untouched. Kinds 39 and 40 appear only in new saves. SaveVersion and LedgerSaveData.CurrentVersion stay at 1.
+
+Teaching: Know-how entries "Charcoal: Burning Logs Slowly" (unlocks on holding Charcoal or placing a Pit site) and "Iron Ore at the Trading Post" (unlocks on holding Ore), in code and in Journal_KnowHow_Text.md (a test compares them); item help lines for Ore and Charcoal; Build-tab help for the site and the finished Pit.
+
+Dev keys: comma gives a Hammer, 4 Clay and 6 Tall Grass and stands a Wood Pile with 6 Logs 3 m ahead (6 Logs weigh 48 kg and the pack holds 45 kg, so a full load takes two trips); Shift+comma stands a finished Pit 4 m ahead with 6 Logs ready to light; Ctrl+comma finishes every running burn; equals gives 10 Iron Ore and 10 Charcoal (40 kg).
+
+Files: 32 paths (13 modified code and data including MarketData.asset, 8 modified tests, 10 new: MetalRules.cs, CharcoalRules.cs, CharcoalPitTests.cs, iron_ore.asset, charcoal.asset plus metas, and the docs file Journal_KnowHow_Text.md), 1558 insertions and 43 deletions. Edit-mode suite 1484 of 1484 (36 new tests).
+
+Next: M2, the Bloomery and the Iron Bar (8 Stone + 6 Clay, 36 blows, about 61 kg, open air; up to 4 Ore + 4 Charcoal; 10 game hours; 2 Iron Bars; PileKinds BloomerySite 41 and Bloomery 42).
