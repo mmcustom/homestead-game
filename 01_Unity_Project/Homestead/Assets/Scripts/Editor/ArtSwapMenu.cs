@@ -80,6 +80,78 @@ public static class ArtSwapMenu
         Debug.Log("[Art] Test Kiln prefab removed; the Kiln draws its primitives again.");
     }
 
+    // The Axe test prefab (Hands and tools M0b): Resources/Art/tool_axe.prefab, its own marker and materials folder. A double-headed orange axe, nothing like the primitive one.
+    const string AxePrefabPath = ArtFolder + "/tool_axe.prefab";
+    const string AxeMaterialFolder = ArtFolder + "/_TestAxeMaterials";
+    const string AxeMarkerName = "TestAxe_Marker";
+
+    [MenuItem("Homestead/Art/Create Test Axe Prefab")]
+    public static void CreateTestAxe()
+    {
+        if (AssetDatabase.LoadAssetAtPath<GameObject>(AxePrefabPath) != null)
+        {
+            Debug.LogWarning("[Art] " + AxePrefabPath + " already exists; use Homestead/Art/Remove Test Axe Prefab first (it only removes the generated test prefab).");
+            return;
+        }
+        if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        if (!AssetDatabase.IsValidFolder(ArtFolder))
+            AssetDatabase.CreateFolder("Assets/Resources", "Art");
+        if (!AssetDatabase.IsValidFolder(AxeMaterialFolder))
+            AssetDatabase.CreateFolder(ArtFolder, "_TestAxeMaterials");
+
+        // In the tool's own space: the origin at the right grip, +Z along the handle, -Y the cutting side.
+        var root = new GameObject(ArtSwap.ToolId("axe"));
+        new GameObject(AxeMarkerName).transform.SetParent(root.transform, false);
+        Cube(root.transform, "Handle", new Vector3(0f, 0f, 0.4f), new Vector3(0.055f, 0.055f, 1.0f), new Color(0.95f, 0.5f, 0.1f), AxeMaterialFolder);
+        Cube(root.transform, "Head Front", new Vector3(0f, -0.13f, 0.82f), new Vector3(0.03f, 0.26f, 0.22f), new Color(0.1f, 0.85f, 0.9f), AxeMaterialFolder);
+        Cube(root.transform, "Head Back", new Vector3(0f, 0.13f, 0.82f), new Vector3(0.03f, 0.26f, 0.22f), new Color(0.9f, 0.2f, 0.75f), AxeMaterialFolder);
+        TestAnchor(root.transform, ArtSwap.AnchorGripR, Vector3.zero);
+        TestAnchor(root.transform, ArtSwap.AnchorGripL, new Vector3(0f, 0f, 0.42f));
+        TestAnchor(root.transform, ArtSwap.AnchorTip, new Vector3(0f, -0.26f, 0.82f));
+
+        PrefabUtility.SaveAsPrefabAsset(root, AxePrefabPath);
+        Object.DestroyImmediate(root);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        ArtSwap.ResetCache();
+        Debug.Log("[Art] Test Axe prefab created at " + AxePrefabPath + " (not to be committed). Enter Play Mode and equip the Axe to see it; remove it with Homestead/Art/Remove Test Axe Prefab.");
+    }
+
+    [MenuItem("Homestead/Art/Remove Test Axe Prefab")]
+    public static void RemoveTestAxe()
+    {
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AxePrefabPath);
+        if (prefab == null)
+        {
+            Debug.Log("[Art] No Axe prefab at " + AxePrefabPath + "; nothing to remove.");
+            ArtSwap.ResetCache();
+            return;
+        }
+        if (prefab.transform.Find(AxeMarkerName) == null)
+        {
+            Debug.LogWarning("[Art] " + AxePrefabPath + " is not the generated test prefab (it has no " + AxeMarkerName + " child), so it was left alone.");
+            return;
+        }
+        AssetDatabase.DeleteAsset(AxePrefabPath);
+        if (AssetDatabase.IsValidFolder(AxeMaterialFolder))
+            AssetDatabase.DeleteAsset(AxeMaterialFolder);
+        if (AssetDatabase.IsValidFolder(ArtFolder) && AssetDatabase.FindAssets("", new[] { ArtFolder }).Length == 0)
+            AssetDatabase.DeleteAsset(ArtFolder);
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        ArtSwap.ResetCache();
+        Debug.Log("[Art] Test Axe prefab removed; the Axe is drawn from its primitives again.");
+    }
+
+    static void TestAnchor(Transform parent, string name, Vector3 position)
+    {
+        var anchor = new GameObject(name).transform;
+        anchor.SetParent(parent, false);
+        anchor.localPosition = position;
+        Cube(anchor, "Marker", Vector3.zero, Vector3.one * 0.04f, Color.yellow, AxeMaterialFolder);
+    }
+
     [MenuItem("Homestead/Art/Create Test Hands Prefab")]
     public static void CreateTestHands()
     {

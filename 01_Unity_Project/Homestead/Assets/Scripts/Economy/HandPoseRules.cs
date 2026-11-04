@@ -28,8 +28,8 @@ public static class HandPoseRules
     const float RestX = 0.29f, RestY = -0.19f, RestZ = 0.50f, RestPitch = -30f, RestYaw = 10f, RestRoll = 10f;
 
     // The wrist of a hand holding a tool: higher and nearer the middle. The right hand holds the tool, the left hand steadies it on a two-handed one.
-    const float HeldRightX = 0.24f, HeldRightY = -0.22f, HeldRightZ = 0.50f, HeldRightPitch = -12f, HeldRightYaw = 6f, HeldRightRoll = 4f;
-    const float HeldLeftX = 0.15f, HeldLeftY = -0.16f, HeldLeftZ = 0.56f, HeldLeftPitch = -30f, HeldLeftYaw = 18f, HeldLeftRoll = -6f;
+    const float HeldRightX = 0.24f, HeldRightY = -0.20f, HeldRightZ = 0.50f, HeldRightPitch = -12f, HeldRightYaw = 6f, HeldRightRoll = 4f;
+    const float HeldLeftX = 0.10f, HeldLeftY = -0.16f, HeldLeftZ = 0.56f, HeldLeftPitch = -32f, HeldLeftYaw = 45f, HeldLeftRoll = -10f;
 
     // Breathing: a slow rise and fall that never stops.
     const float BreathSeconds = 4.5f, BreathRise = 0.004f, BreathTilt = 0.6f;

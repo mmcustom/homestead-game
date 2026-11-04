@@ -388,6 +388,119 @@ public static class ArtSwap
         return made.transform;
     }
 
+    // --- Tools in hand (Hands and tools M0b) ---
+    //
+    // THE SWAP POINT for the tools the hands hold: a prefab at Resources/Art/tool_<itemid>.prefab replaces the primitive shape ToolViewPrimitives builds. PlayerHands.ShowHeld is the one place
+    // that decides: it calls TryAttachTool first and draws the primitive only when it returns null (and the generic placeholder for a tool outside the table). The table below is keyed by item
+    // id, next to the hands table and separate from the structure table. M0b has eight rows: axe, primitive_axe, wood_saw, hammer, shovel, iron_shovel, stone_pick_axe, iron_pick_axe. Stone and
+    // iron are separate ids with no fallback between them. What a tool-prefab author does:
+    //   * Name it tool_<itemid> (tool_axe). Author it at normal size, in the tool's own space: the origin where the right hand grips, +Z along the handle toward the working end, -Y the cutting
+    //     side. The hands rig scales it toward the eye. Every renderer goes on the Viewmodel layer and stops casting shadows; every collider is removed.
+    //   * Anchor_Grip_R (required): where the right hand holds it. Anchor_Grip_L (optional): where the left hand steadies a two-handed tool. Anchor_Tip (optional): the working point.
+    //   * A missing anchor is made at the primitive's own grip (ToolViewPrimitives.LayoutFor), so the tool still sits in the hand.
+    public const string ToolPrefix = "tool_";
+    public const string AnchorGripR = "Anchor_Grip_R";
+    public const string AnchorGripL = "Anchor_Grip_L";
+    public const string AnchorTip = "Anchor_Tip";
+
+    public sealed class ToolSpec
+    {
+        public string itemId;
+        public string id;             // tool_<itemid>: the prefab is Resources/Art/<id>.prefab
+        public bool twoHanded;
+        public float holdPitch;       // degrees the tool leans up from the hand's forward
+        public float holdRoll;        // degrees it is turned about its own handle
+        public AnchorSpec[] anchors;
+
+        public AnchorSpec Anchor(string anchorName)
+        {
+            foreach (AnchorSpec a in anchors)
+                if (a.name == anchorName)
+                    return a;
+            return null;
+        }
+    }
+
+    static readonly ToolSpec[] ToolSpecs = BuildToolSpecs();
+
+    static ToolSpec[] BuildToolSpecs()
+    {
+        string[] ids = ToolWork.ViewToolIds;
+        var specs = new ToolSpec[ids.Length];
+        for (int i = 0; i < ids.Length; i++)
+        {
+            ToolViewPrimitives.Layout layout = ToolViewPrimitives.LayoutFor(ids[i]);
+            specs[i] = new ToolSpec
+            {
+                itemId = ids[i],
+                id = ToolPrefix + ids[i],
+                twoHanded = layout.twoHanded,
+                holdPitch = layout.holdPitch,
+                holdRoll = layout.holdRoll,
+                anchors = new[]
+                {
+                    A(AnchorGripR, true, 0f, 0f, 0f),
+                    A(AnchorGripL, false, layout.gripLeft.x, layout.gripLeft.y, layout.gripLeft.z),
+                    A(AnchorTip, false, layout.tip.x, layout.tip.y, layout.tip.z),
+                },
+            };
+        }
+        return specs;
+    }
+
+    public static IReadOnlyList<ToolSpec> AllToolSpecs => ToolSpecs;
+
+    // The row for a tool's item id, or null: a tool outside the table keeps the generic placeholder.
+    public static ToolSpec ToolSpecFor(string itemId)
+    {
+        if (itemId == null)
+            return null;
+        foreach (ToolSpec spec in ToolSpecs)
+            if (spec.itemId == itemId)
+                return spec;
+        return null;
+    }
+
+    public static string ToolId(string itemId) => ToolPrefix + itemId;
+
+    // The tool's prefab instance under parent (a new one each time: PlayerHands frees the old one when the tool changes), or null when there is no prefab or the tool is not in the table.
+    // Colliders are removed, every renderer goes on the layer and stops casting shadows. Its pose is left to PlayerHands (it is aligned to the grip).
+    public static Transform TryAttachTool(Transform parent, string itemId, int layer)
+    {
+        ToolSpec spec = ToolSpecFor(itemId);
+        if (spec == null)
+            return null;
+        GameObject prefab = Resolve(spec.id);
+        if (prefab == null)
+            return null;
+
+        GameObject instance = UnityEngine.Object.Instantiate(prefab, parent, false);
+        instance.name = spec.id;
+        instance.SetActive(true);
+        instance.transform.localPosition = Vector3.zero;
+        instance.transform.localRotation = Quaternion.identity;
+        foreach (Collider collider in instance.GetComponentsInChildren<Collider>(true))
+            UnityEngine.Object.DestroyImmediate(collider);
+        SetViewLayer(instance, layer);
+        return instance.transform;
+    }
+
+    // The tool's anchor called name: its own, or an empty one made at the primitive's grip. Anchor_Grip_L on a one-handed tool is nobody's business: null.
+    public static Transform ToolAnchor(Transform tool, ToolSpec spec, string name)
+    {
+        if (name == AnchorGripL && !spec.twoHanded)
+            return null;
+        List<Transform> own = Named(tool, name);
+        if (own.Count > 0)
+            return own[0];
+        var made = new GameObject(name);
+        made.layer = tool.gameObject.layer;
+        made.transform.SetParent(tool, false);
+        AnchorSpec anchor = spec.Anchor(name);
+        made.transform.localPosition = anchor != null ? anchor.fallback : Vector3.zero;
+        return made.transform;
+    }
+
     // Body stays on; exactly one of the spec's State_* children is shown; each On_* child follows its flag. Names the prefab does not have are skipped.
     public static void ApplyState(Transform art, Spec spec, WoodPileState state)
     {

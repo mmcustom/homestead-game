@@ -339,6 +339,7 @@ public class AxeTool : MonoBehaviour
         bool finished = rules.BuildBlow(state, Efficiency);
         if (!finished)
             return; // the prompts read the saved progress directly
+        ToolEvents.JobFinished();
 
         if (cabin)
         {
@@ -373,6 +374,7 @@ public class AxeTool : MonoBehaviour
 
         if (rules.PitDigBlow(state, DigSwing))
         {
+            ToolEvents.JobFinished();
             otherTarget = null;
             outhouse.MoveToNewPit(chosen);
             ToolStatus.Flash("Dug a new pit and moved the outhouse over it - good for another season", 4f);
@@ -397,6 +399,7 @@ public class AxeTool : MonoBehaviour
         otherTarget = finished ? null : otherTarget;
         if (finished)
         {
+            ToolEvents.JobFinished();
             ToolStatus.Banner("The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
             WoodManager.Instance.NotifyChanged(state);
         }
@@ -481,6 +484,7 @@ public class AxeTool : MonoBehaviour
         blows += Efficiency;
         if (blows < clayBlows)
             return;
+        ToolEvents.JobFinished();
 
         blows = 0f;
         inventory.AddToPlayer(itemId, 1);
@@ -511,6 +515,7 @@ public class AxeTool : MonoBehaviour
         blows += Efficiency;
         if (blows < stoneBlows)
             return;
+        ToolEvents.JobFinished();
 
         blows = 0f;
         if (stone.TakeFromDeposit())
@@ -529,6 +534,7 @@ public class AxeTool : MonoBehaviour
         blows += Efficiency;
         if (blows < stumpBlows)
             return;
+        ToolEvents.JobFinished();
 
         blows = 0f;
         otherTarget = null;
@@ -558,6 +564,7 @@ public class AxeTool : MonoBehaviour
         blows += Efficiency;
         if (blows < needed)
             return;
+        ToolEvents.JobFinished();
 
         wood.Fell(tree, player.transform.position);
         ToolStatus.Flash(wood.Prototype(tree) == WoodManager.Shrub ? "Cut down the shrub" : "Timber! The tree comes down");
@@ -581,11 +588,13 @@ public class AxeTool : MonoBehaviour
         ToolStatus.Report(blows > 0f ? $"Splitting {what} into Firewood" : $"Wood pile — hold click to split {what} into Firewood",
                           blows > 0f ? blows / needed : -1f);
 
+        ToolEvents.WorkingOn(WorkKind.Split); // the blow below is a split (Hands M0b)
         if (!Swing(point))
             return;
         blows += Efficiency;
         if (blows < needed)
             return;
+        ToolEvents.JobFinished();
 
         blows = 0f;
         if (logs)
@@ -622,10 +631,12 @@ public class AxeTool : MonoBehaviour
         {
             nextSwing = Time.time + 0.5f;
             ToolStatus.Flash("Too tired to swing — catch your breath", 1.5f);
+            ToolEvents.RaiseTired(Equipped); // the hands droop (Hands M0b)
             return false;
         }
 
         nextSwing = Time.time + swingSeconds;
+        ToolEvents.RaiseSwung(Equipped); // a blow landed: the hands swing (Hands M0b)
         lastBlowTime = Time.time;
         if (sound != null)
             sound(point);

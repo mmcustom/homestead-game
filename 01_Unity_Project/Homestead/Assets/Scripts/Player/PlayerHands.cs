@@ -8,8 +8,11 @@ using UnityEngine.Rendering.HighDefinition;
 // only while the world is live (GameState.Playing), so every menu, the pause screen and sleep hide them. Where each hand sits is HandPoseRules; this class only moves objects.
 //
 // THE SWAP POINT for the hands is BuildRig: it asks ArtSwap.TryAttachHands for Resources/Art/hands_player.prefab and draws the primitive forearms and mittens only when there is none.
-// The primitive tree has the same names a prefab uses (hands_player > Hand_R, Hand_L, Anchor_Hand_R, Anchor_Hand_L). The held shape is a placeholder (HeldPlaceholder); the real tool
-// shapes replace it in M0b through ArtSwap's tool table.
+// The primitive tree has the same names a prefab uses (hands_player > Hand_R, Hand_L, Anchor_Hand_R, Anchor_Hand_L).
+//
+// THE SWAP POINT for the held tools (M0b) is ShowHeld: it asks ArtSwap.TryAttachTool for Resources/Art/tool_<itemid>.prefab, draws the ToolViewPrimitives shape when there is none, and keeps the
+// generic category-colour placeholder for a tool outside the eight (M0c). The right hand holds the tool at Anchor_Grip_R; on a two-handed tool the left hand goes to Anchor_Grip_L. A blow from
+// AxeTool (ToolEvents) plays a swing pose (SwingRules) on the right hand and the tool with it, and the left hand follows the tool.
 public class PlayerHands : MonoBehaviour
 {
     public static PlayerHands Instance { get; private set; }
@@ -49,6 +52,11 @@ public class PlayerHands : MonoBehaviour
     Transform art, handR, handL, anchorR, anchorL;
     GameObject held;
     string heldShown;
+    Transform heldRoot, gripL;   // the tool in hand (the prefab or the primitive, or the generic placeholder), and where the left hand steadies it
+    bool heldTwoHanded;
+    Transform heldGripR;
+    float heldPitch, heldRoll;
+    readonly SwingState swing = new SwingState();
     InventoryManager inventory;
     int layer = -1;
     bool failed;
@@ -70,6 +78,12 @@ public class PlayerHands : MonoBehaviour
     public string HeldShown => heldShown;
     public HandRaise Raise => raise;
     public int Layer => layer;
+    public SwingState Swing => swing;
+
+    // Holds the swing at whatever moment it is at (a diagnostic: with SwingState.Seek it lets a screenshot look at one pose).
+    public bool HoldSwing { get; set; }
+    public Transform HeldRoot => heldRoot;
+    public Transform LeftGrip => gripL;
 
     void Awake()
     {
@@ -77,6 +91,8 @@ public class PlayerHands : MonoBehaviour
         player = GetComponent<PlayerController>();
         body = GetComponent<CharacterController>();
         weapon = GetComponent<HuntingWeapon>();
+        ToolEvents.Swung += OnSwung;
+        ToolEvents.Tired += OnTired;
     }
 
     void OnDestroy()
@@ -85,6 +101,27 @@ public class PlayerHands : MonoBehaviour
             Instance = null;
         if (inventory != null)
             inventory.EquippedToolChanged -= OnEquippedChanged;
+        ToolEvents.Swung -= OnSwung;
+        ToolEvents.Tired -= OnTired;
+    }
+
+    // A blow landed with this tool (ToolEvents): the hands swing. Ignored when the hands are holding something else (mid-switch). A finishing flag that arrives with the swing it belongs to makes
+    // that swing the bigger one; otherwise a new blow replaces the one in progress, so a held click chains swings.
+    public void OnSwung(string toolId, WorkKind kind, bool finishing)
+    {
+        if (toolId != raise.Shown)
+            return;
+        if (finishing && swing.Active && !swing.Tired && swing.Kind == kind && swing.Time < 0.05f)
+            swing.MakeFinishing();
+        else
+            swing.Start(kind, finishing);
+    }
+
+    // A blow was refused for lack of stamina: the hands droop.
+    public void OnTired(string toolId)
+    {
+        if (toolId == raise.Shown)
+            swing.StartTired();
     }
 
     // Builds the whole thing for a camera: the layer, the hidden camera, the pass and the hands. False when the project has no Viewmodel layer (nothing is drawn, and it says so once).
@@ -177,7 +214,7 @@ public class PlayerHands : MonoBehaviour
         // The sleeve starts close to the wrist so its cuff is on screen where the arm comes in from the bottom corner (a hand at rest shows about 0.2 m of arm).
         Part(hand, PrimitiveType.Capsule, "Forearm", new Vector3(0f, 0f, -0.05f), new Vector3(0.068f, 0.075f, 0.068f), new Vector3(90f, 0f, 0f), skin);
         Part(hand, PrimitiveType.Cylinder, "Sleeve Cuff", new Vector3(0f, 0f, -0.115f), new Vector3(0.108f, 0.022f, 0.108f), new Vector3(90f, 0f, 0f), Color.Lerp(sleeve, Color.white, 0.40f));
-        Part(hand, PrimitiveType.Cylinder, "Sleeve", new Vector3(0f, 0f, -0.285f), new Vector3(0.096f, 0.15f, 0.096f), new Vector3(90f, 0f, 0f), sleeve);
+        Part(hand, PrimitiveType.Cylinder, "Sleeve", new Vector3(0f, 0f, -0.385f), new Vector3(0.096f, 0.25f, 0.096f), new Vector3(90f, 0f, 0f), sleeve);
 
         // The mitten: a flat palm block, a rounded finger block across its end (one lump, no separate fingers), and a thumb standing out from the inner side.
         Part(hand, PrimitiveType.Cube, "Mitten", new Vector3(0f, 0f, 0.045f), new Vector3(0.092f, 0.036f, 0.090f), Vector3.zero, skin);
@@ -229,10 +266,35 @@ public class PlayerHands : MonoBehaviour
                 DestroyImmediate(held); // edit-mode tests
         }
         held = null;
+        heldRoot = null;
+        gripL = null;
+        heldTwoHanded = false;
+        heldGripR = null;
         heldShown = toolId;
+        // The tool in hand decides the ready pose: the Axes, Pick Axes and Hammer are held cocked (drawn back), everything else neutral. This also drops any swing in progress.
+        swing.Configure(ToolWork.CockKind(toolId, out WorkKind cockKind), cockKind);
         if (toolId == null || anchorR == null)
             return;
 
+        // THE swap point for tools: the prefab if there is one, else the primitive shape, for the eight tools M0b draws.
+        ArtSwap.ToolSpec spec = ArtSwap.ToolSpecFor(toolId);
+        if (spec != null)
+        {
+            Transform tool = ArtSwap.TryAttachTool(anchorR, toolId, layer);
+            if (tool == null)
+                tool = ToolViewPrimitives.Build(toolId, anchorR, layer).transform;
+            Transform gripR = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripR);
+            gripL = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripL);
+            ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorTip);
+            heldGripR = gripR; heldPitch = spec.holdPitch; heldRoll = spec.holdRoll;
+            AlignToGrip(tool, gripR, heldPitch, heldRoll);
+            held = tool.gameObject;
+            heldRoot = tool;
+            heldTwoHanded = spec.twoHanded;
+            return;
+        }
+
+        // Every other tool keeps the generic placeholder in its category colour until M0c.
         ItemDefinition item = ItemDatabase.Get(toolId);
         Color color = DroppedItems.Tint(item != null ? item.Category : ItemCategory.Tool);
         bool twoHanded = HeldTools.IsTwoHanded(toolId);
@@ -242,6 +304,23 @@ public class PlayerHands : MonoBehaviour
         Vector3 center = twoHanded ? new Vector3(0f, 0f, 0.22f) : new Vector3(0f, 0f, 0.07f);
         held = Part(anchorR, PrimitiveType.Cube, "Held Placeholder", center, size, new Vector3(twoHanded ? -38f : -12f, 0f, 0f), color);
         ArtSwap.SetViewLayer(held, layer);
+        heldRoot = held.transform;
+    }
+
+    // Puts the tool in the right hand: its Anchor_Grip_R sits on the palm anchor, and the whole tool leans up by holdPitch from the hand's forward.
+    static void AlignToGrip(Transform tool, Transform gripR, float holdPitch, float holdRoll)
+    {
+        Quaternion gripRotation = Quaternion.Inverse(tool.rotation) * gripR.rotation;
+        Vector3 gripPosition = tool.InverseTransformPoint(gripR.position);
+        Quaternion rotation = Quaternion.Euler(holdPitch, 0f, holdRoll) * Quaternion.Inverse(gripRotation);
+        tool.localRotation = rotation;
+        tool.localPosition = -(rotation * gripPosition);
+    }
+
+    // The left hand goes to the tool's left grip: its palm anchor on the grip. It keeps its own pose angles, so its arm still comes in from the lower left corner instead of lying along the handle.
+    void PlaceLeftOnGrip()
+    {
+        handL.position += gripL.position - anchorL.position;
     }
 
     // --- Each frame ---
@@ -293,6 +372,8 @@ public class PlayerHands : MonoBehaviour
 
         float dt = Time.deltaTime;
         raise.Tick(dt, wanted);
+        if (!HoldSwing)
+            swing.Tick(dt);
         breathTime += dt;
 
         bool moving = body != null && new Vector2(body.velocity.x, body.velocity.z).sqrMagnitude > 0.09f && body.isGrounded;
@@ -310,10 +391,37 @@ public class PlayerHands : MonoBehaviour
 
         bool rightHolds = shownTool != null;
         bool leftShown = HeldTools.LeftHandShown(shownTool);
-        PlaceHand(handR, HandPoseRules.Pose(HandSide.Right, rightHolds, raiseAmount, breath, steps, motion));
+        HandPose right = HandPoseRules.Pose(HandSide.Right, rightHolds, raiseAmount, breath, steps, motion);
+        if (rightHolds)
+        {
+            // The ready pose (cocked or neutral) and a blow in progress: the hand turns about the elbow by only a share of the pitch (so the sleeve stays out of the view); the tool takes the rest about its grip.
+            HandPose offset = swing.Offset;
+            float toolPitch = offset.Pitch * (1f - SwingRules.HandPitchShare);
+            offset.Pitch *= SwingRules.HandPitchShare;
+            PlaceHandSwinging(handR, right, offset);
+            if (heldRoot != null && heldGripR != null)
+                AlignToGrip(heldRoot, heldGripR, heldPitch + toolPitch, heldRoll);
+        }
+        else
+            PlaceHand(handR, right);
         PlaceHand(handL, HandPoseRules.Pose(HandSide.Left, HeldTools.LeftHandHolds(shownTool), raiseAmount, breath, steps, motion));
         handR.gameObject.SetActive(true);
         handL.gameObject.SetActive(leftShown);
+        if (leftShown && heldTwoHanded && gripL != null && heldRoot != null)
+            PlaceLeftOnGrip(); // on a two-handed tool the left hand follows the tool's left grip
+    }
+
+    // The swing: the hand turns by the offset's angles about the elbow (SwingRules.ElbowBack behind the wrist), so the forearm stays near where it was and the hand arcs. The offset's own X, Y, Z
+    // then move the hand a little more.
+    void PlaceHandSwinging(Transform hand, HandPose pose, HandPose offset)
+    {
+        Quaternion before = Quaternion.Euler(pose.Pitch, pose.Yaw, pose.Roll);
+        Quaternion after = Quaternion.Euler(pose.Pitch + offset.Pitch, pose.Yaw + offset.Yaw, pose.Roll + offset.Roll);
+        Vector3 wrist = new Vector3(pose.X * WidthScale, pose.Y, pose.Z);
+        Vector3 back = new Vector3(0f, 0f, -SwingRules.ElbowBack);
+        Vector3 elbow = wrist + before * back;
+        hand.localPosition = elbow - after * back + new Vector3(offset.X * WidthScale, offset.Y, offset.Z);
+        hand.localRotation = after;
     }
 
     void PlaceHand(Transform hand, HandPose pose)

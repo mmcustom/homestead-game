@@ -613,13 +613,13 @@ public class HandsTests
         H hands = NewHands(out Camera cam);
         hands.Build(cam);
 
-        hands.Apply("axe", 1f, 0f, 0f, HandMotion.Idle);
+        hands.Apply("fishing_rod", 1f, 0f, 0f, HandMotion.Idle);
         Assert.That(hands.LeftHand.gameObject.activeSelf, Is.True);
-        Assert.That(hands.RightAnchor.Find("Held Placeholder"), Is.Not.Null, "a placeholder in the right hand");
+        Assert.That(hands.RightAnchor.Find("Held Placeholder"), Is.Not.Null, "the generic placeholder in the right hand (the rod is not one of the eight M0b tools)");
 
-        hands.Apply("hammer", 1f, 0f, 0f, HandMotion.Idle);
+        hands.Apply("torch", 1f, 0f, 0f, HandMotion.Idle);
         Assert.That(hands.LeftHand.gameObject.activeSelf, Is.False);
-        Assert.That(hands.RightAnchor.childCount, Is.EqualTo(1), "the axe's placeholder was replaced, not added to");
+        Assert.That(hands.RightAnchor.childCount, Is.EqualTo(1), "the rod placeholder was replaced, not added to");
 
         hands.Apply(null, 1f, 0f, 0f, HandMotion.Idle);
         Assert.That(hands.LeftHand.gameObject.activeSelf, Is.True);
@@ -632,7 +632,7 @@ public class HandsTests
         Load(null, path => null);
         H hands = NewHands(out Camera cam);
         hands.Build(cam);
-        hands.Apply("axe", 1f, 0f, 0f, HandMotion.Idle);
+        hands.Apply("fishing_rod", 1f, 0f, 0f, HandMotion.Idle);
         Transform held = hands.RightAnchor.Find("Held Placeholder");
         Assert.That(held.gameObject.layer, Is.EqualTo(ViewLayer));
         Assert.That(held.GetComponent<Collider>(), Is.Null);
@@ -848,7 +848,6 @@ public class HandsTests
         string hands = Source("Scripts/Player/PlayerHands.cs") + Source("Scripts/Player/ViewmodelPass.cs") + Source("Scripts/Economy/HandPoseRules.cs");
         StringAssert.DoesNotContain("ToolStatus", hands);
         StringAssert.DoesNotContain("ToolHud", hands);
-        StringAssert.DoesNotContain("ToolEvents", hands);
         StringAssert.DoesNotContain("SaveVersion", hands);
         StringAssert.DoesNotContain("LedgerSaveData", hands);
     }
