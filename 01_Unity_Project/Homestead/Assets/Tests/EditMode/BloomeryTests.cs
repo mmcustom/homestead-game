@@ -239,15 +239,16 @@ public class BloomeryTests
     public void TheTwoBloomeryKindsAreFortyOneAndFortyTwoAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(43), "41 kinds before, plus the Bloomery's two");
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(45), "41 kinds before the Bloomery, plus its two and the Smithy's two (43, 44)");
         Assert.That((int)Enum.Parse(kind, "Kiln"), Is.EqualTo(38), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "CharcoalPitSite"), Is.EqualTo(39));
         Assert.That((int)Enum.Parse(kind, "CharcoalPit"), Is.EqualTo(40));
         Assert.That((int)Enum.Parse(kind, "BloomerySite"), Is.EqualTo(41));
         Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42));
         string[] names = Enum.GetNames(kind);
-        Assert.That(names.Any(n => n.Contains("Smithy") || n.Contains("Forge") || n.Contains("Anvil")), Is.False, "43 and 44 stay reserved for the Smithy");
-        Assert.That(names.Last(), Is.EqualTo("Bloomery"));
+        Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44), "the Smithy came last (M3)");
+        Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil")), Is.False, "no separate Forge or Anvil kinds");
+        Assert.That(names.Last(), Is.EqualTo("Smithy"));
     }
 
     // --- The staged site ---
@@ -491,7 +492,7 @@ public class BloomeryTests
         Assert.That(table.SellBaseCents("iron_bar"), Is.EqualTo(0L), "nothing buys it, so the sell list never shows it (TradingPostScreen lists what CanSell)");
         Assert.That(table.BuyBaseCents("iron_bar"), Is.EqualTo(0L), "and the store does not sell it");
         Assert.That(table.HasPool("iron_bar"), Is.False);
-        Assert.That(table.Rows.Count, Is.EqualTo(89), "no row was added in M2");
+        Assert.That(table.Rows.Count, Is.EqualTo(92), "M2 added no row; M3 added the three Smithy goods, and still none for the Iron Bar");
         Assert.That(table.Stock.Count, Is.EqualTo(22));
         Assert.That(SourceText("Resources/Market/MarketData.asset"), Does.Not.Contain("iron_bar"));
         Assert.That(SourceText("Scripts/UI/TradingPostScreen.cs"), Does.Contain("market.CanSell(stack.itemId)"));
@@ -545,7 +546,7 @@ public class BloomeryTests
         Assert.That(wells, Does.Contain("A Bloomery's smelt runs one game hour at a time too"));
         Assert.That(wells, Does.Contain("BloomeryRules.AfterHour(furnace.jobHours)"));
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite) && WellsAndOuthouses.Instance != null"));
+        Assert.That(wood, Does.Contain("kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite || kind == PileKind.SmithySite) && WellsAndOuthouses.Instance != null"));
         Assert.That(wood, Does.Contain("!IsKiln(kind) && !IsHandCart(kind) && !IsCharcoalPit(kind) && !IsBloomery(kind)"), "a parked Hand Cart is exempt, as for the Kiln");
     }
 
@@ -669,21 +670,21 @@ public class BloomeryTests
     [Test]
     public void TheSmeltingEntryUnlocksOnAPlacedSiteOrAnIronBar()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(10));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(11));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smelting, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("Smelting Iron in the Bloomery"));
-        Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting" }), "holding an Iron Bar");
+        Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }), "holding an Iron Bar opens both the smelting and the Smithy entries");
         Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.BloomerySitePlaced), Is.EqualTo(new[] { "smelting" }), "first placing a Bloomery site");
         Assert.That(KnowHowRules.ForItem("iron_ore"), Is.EqualTo(new[] { "ironore" }), "Ore still opens its own entry");
 
         List<string> first = KnowHowRules.NewUnlocks(new string[0], KnowHowRules.ForItem("iron_bar"));
-        Assert.That(first, Is.EqualTo(new[] { "smelting" }));
+        Assert.That(first, Is.EqualTo(new[] { "smelting", "smithy" }));
         Assert.That(KnowHowRules.NewUnlocks(first, KnowHowRules.ForHappening(KnowHowRules.Happening.BloomerySitePlaced)), Is.Empty, "never twice");
 
-        Assert.That(KnowHowRules.Backfill(id => id == "iron_bar", false, false, false), Is.EqualTo(new[] { "smelting" }));
+        Assert.That(KnowHowRules.Backfill(id => id == "iron_bar", false, false, false), Is.EqualTo(new[] { "smelting", "smithy" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false, bloomeryPlaced: true), Is.EqualTo(new[] { "smelting" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false), Is.Empty);
-        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery)"));
+        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery, smithy)"));
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("KnowHowRules.Happening.BloomerySitePlaced"));
     }
 
@@ -709,7 +710,7 @@ public class BloomeryTests
         string tip = KnowHowRules.ItemTip("iron_bar");
         Assert.That(tip, Is.Not.Empty);
         Assert.That(tip.Length, Is.LessThanOrEqualTo(80), "fits in two lines of the row's info text");
-        Assert.That(tip, Does.Contain("Not sold"));
+        Assert.That(tip, Does.Contain("Smithy").And.Contain("not sold"));
         Assert.That(KnowHowRules.ItemTip("iron_ore").Length, Is.LessThanOrEqualTo(80));
 
         string craft = SourceText("Scripts/UI/CraftingScreen.cs");

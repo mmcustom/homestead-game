@@ -547,6 +547,24 @@ MonoBehaviour:
     baseCents: 600
     kind: 1
     seasonalBuy: 0
+  - itemId: door_hinges
+    group: 5
+    pool: door_hinges
+    baseCents: 2600
+    kind: 1
+    seasonalBuy: 0
+  - itemId: hook_set
+    group: 5
+    pool: hook_set
+    baseCents: 1800
+    kind: 1
+    seasonalBuy: 0
+  - itemId: nails_box
+    group: 5
+    pool: nails_box
+    baseCents: 1600
+    kind: 1
+    seasonalBuy: 0
   groups:
   - group: 0
     dropBp: 400

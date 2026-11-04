@@ -217,6 +217,12 @@ public class JournalManager : MonoBehaviour, ISaveable
             foreach (WoodPileState pile in WoodManager.Instance.Piles)
                 bloomery |= WoodManager.IsBloomery(pile.kind);
         }
+        bool smithy = false;
+        if (WoodManager.Instance != null)
+        {
+            foreach (WoodPileState pile in WoodManager.Instance.Piles)
+                smithy |= WoodManager.IsSmithy(pile.kind);
+        }
         bool tripod = false;
         if (FireManager.Instance != null)
         {
@@ -225,7 +231,7 @@ public class JournalManager : MonoBehaviour, ISaveable
         }
         bool taps = TapManager.Instance != null && TapManager.Instance.Taps.Count > 0;
 
-        List<string> earned = KnowHowRules.Backfill(id => inventory.Player.Has(id), hopper, tripod, taps, pit, bloomery);
+        List<string> earned = KnowHowRules.Backfill(id => inventory.Player.Has(id), hopper, tripod, taps, pit, bloomery, smithy);
         if (Unlock(earned, announce: false) > 0)
         {
             ToolStatus.Flash(KnowHowRules.BackfillFlash(earned), 4f);

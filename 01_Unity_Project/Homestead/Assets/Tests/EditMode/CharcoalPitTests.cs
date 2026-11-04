@@ -187,13 +187,14 @@ public class CharcoalPitTests
     public void TheTwoPitKindsAreThirtyNineAndFortyAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(43), "39 kinds before the Pit, plus the Pit's two and the Bloomery's two (41, 42)");
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(45), "39 kinds before the Pit, plus the Pit's two, the Bloomery's two (41, 42) and the Smithy's two (43, 44)");
         Assert.That((int)Enum.Parse(kind, "Kiln"), Is.EqualTo(38), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "CharcoalPitSite"), Is.EqualTo(39));
         Assert.That((int)Enum.Parse(kind, "CharcoalPit"), Is.EqualTo(40));
         string[] names = Enum.GetNames(kind);
         Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42), "the Bloomery came next (M2)");
-        Assert.That(names.Any(n => n.Contains("Smithy") || n.Contains("Forge") || n.Contains("Anvil")), Is.False, "43 and 44 stay reserved for the Smithy");
+        Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44), "the Smithy came last (M3)");
+        Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil")), Is.False, "no separate Forge or Anvil kinds: one combined Smithy");
     }
 
     // --- The staged site and the finished pit ---
@@ -409,7 +410,7 @@ public class CharcoalPitTests
         Assert.That(asset, Does.Contain("  - itemId: charcoal\n    group: 0\n    pool: charcoal\n    baseCents: 100\n    kind: 1\n    seasonalBuy: 0\n"));
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(89), "87 and the two");
+        Assert.That(rows, Is.EqualTo(92), "87, the two M1 rows and the three Smithy goods");
         Assert.That(SourceText("Scripts/Editor/MarketDataSeeder.cs"), Does.Not.Contain("CharcoalRules"), "the seeder was not touched");
     }
 
@@ -491,7 +492,7 @@ public class CharcoalPitTests
         Assert.That(wells, Does.Contain("case PileKind.CharcoalPitSite: return CharcoalRules.PitRadiusMetres;"), "other structures keep clear of its reach too");
         Assert.That(wells, Does.Contain("WoodManager.IsCharcoalPit(pile.kind)"), "a pit is among the structures later buildings keep 3 m from");
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite) && WellsAndOuthouses.Instance != null"), "the Build tab's placement check asks CanPlace");
+        Assert.That(wood, Does.Contain("kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite || kind == PileKind.SmithySite) && WellsAndOuthouses.Instance != null"), "the Build tab's placement check asks CanPlace");
     }
 
     [Test]
@@ -611,7 +612,7 @@ public class CharcoalPitTests
     [Test]
     public void TheCharcoalAndOreEntriesUnlockOnTheirTriggers()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(10));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(11));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Charcoal, out KnowHowRules.Entry charcoal), Is.True);
         Assert.That(charcoal.title, Is.EqualTo("Charcoal: Burning Logs Slowly"));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.IronOre, out KnowHowRules.Entry ore), Is.True);
@@ -635,7 +636,7 @@ public class CharcoalPitTests
         Assert.That(KnowHowRules.Backfill(id => id == "iron_ore", false, false, false), Is.EqualTo(new[] { "ironore" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false, pitPlaced: true), Is.EqualTo(new[] { "charcoal" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false), Is.Empty, "nothing earned, nothing added");
-        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery)"));
+        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery, smithy)"));
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("KnowHowRules.Happening.PitSitePlaced"));
     }
 

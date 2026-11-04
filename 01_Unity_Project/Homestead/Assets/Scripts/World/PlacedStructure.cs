@@ -34,6 +34,8 @@ public static class StructureVisuals
             case PileKind.CharcoalPit: BuildCharcoalPit(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.BloomerySite: BuildBloomerySite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.Bloomery: BuildBloomery(parent, state, pieces, out boxCenter, out boxSize); return;
+            case PileKind.SmithySite: BuildSmithySite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Smithy: BuildSmithy(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -376,6 +378,110 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.4f, 0f);
         boxSize = new Vector3(1.7f, 0.9f, 1.7f);
+    }
+
+    static readonly Color ForgeStoneColor = new Color(0.27f, 0.265f, 0.26f);
+    static readonly Color AnvilColor = new Color(0.27f, 0.28f, 0.31f);
+
+    // The Smithy's marked-out plot (3 m by 2.4 m: half = 1.2, as the Workshop's): the stakes, bare earth, the delivered Logs, Branches and Tall Grass lying beside it, and the Stone and
+    // the Clay in front.
+    static void BuildSmithySite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 1.2f, out boxCenter, out boxSize);
+        int stone = Mathf.Min(state.Count(SmithyRules.StoneId), SmithyRules.SiteStone);
+        for (int i = 0; i < stone; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-1.9f + (i % 3) * 0.3f, 0.1f + (i / 3) * 0.2f, 0.7f + (i % 2) * 0.1f), new Vector3(0f, i * 23f, 0f), new Vector3(0.28f, 0.18f, 0.24f), null), SlabColor);
+        int clay = Mathf.Min(state.Count(SmithyRules.ClayId), SmithyRules.SiteClay);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(1.9f, 0.1f + (i / 2) * 0.16f, 0.7f + (i % 2) * 0.28f), Vector3.zero, new Vector3(0.26f, 0.2f, 0.26f), null), ClayColor);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(2.8f, 0.9f, 2.4f);
+    }
+
+    // A finished good lying on the anvil (a small plain shape for each): the hinges' two leaves, the hooks standing in a row, the box of nails.
+    static void ForgeGood(Transform parent, List<GameObject> pieces, string itemId, Vector3 at)
+    {
+        switch (itemId)
+        {
+            case SmithyRules.HingesId:
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(-0.08f, 0.02f, 0f), Vector3.zero, new Vector3(0.12f, 0.03f, 0.2f), null), IronBarColor);
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0.08f, 0.02f, 0f), new Vector3(0f, 12f, 0f), new Vector3(0.12f, 0.03f, 0.2f), null), IronBarColor);
+                break;
+            case SmithyRules.HooksId:
+                for (int i = 0; i < 3; i++)
+                    Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(-0.1f + i * 0.1f, 0.06f, 0f), Vector3.zero, new Vector3(0.025f, 0.06f, 0.025f), null), IronBarColor);
+                break;
+            default:
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0f, 0.055f, 0f), Vector3.zero, new Vector3(0.22f, 0.1f, 0.14f), null), BenchWoodColor);
+                break;
+        }
+    }
+
+    // The finished Smithy (Metalworking M3): a roofed shed about 3 m wide and 2.4 m deep, open at the front (+Z), like the Workshop but darker and sootier. A stone forge hearth stands
+    // against the back wall on the left with a chimney rising through the roof beside it; an anvil on a log stump stands in front, a little right of the middle. Posts, back wall and roof
+    // are Solid, so the roof shelters like the Workshop's; the forge and anvil are what is aimed at (the interaction box). Iron Bars (grey) lie outside on the left and Charcoal (black)
+    // on the right; a good waiting to be taken lies on the anvil; while a job runs the fire bed and the hearth's mouth glow a dim ember (no light, no flicker) and a hot piece lies on the
+    // anvil. The smoke is KilnSmoke, a persistent child at the chimney that Rebuild only switches on and off. No two faces share a plane: the hearth's back is 7 cm off the back wall,
+    // its mouth stands 8 cm proud of its front, the chimney starts inside the hearth, the anvil's parts overlap instead of touching, and the horn runs 3 cm into the face plate.
+    static void BuildSmithy(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float halfW = 1.5f, halfD = 1.2f, top = 2.2f, postX = halfW - 0.12f, postZ = halfD - 0.12f;
+        bool working = !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
+        Color glow = Color.Lerp(SootColor, EmberColor, 0.55f);
+
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f, 0f), Vector3.zero, new Vector3(postX * 2f, 0.01f, postZ * 2f), null), SoilColor);
+
+        foreach (Vector2 corner in new[] { new Vector2(-postX, -postZ), new Vector2(postX, -postZ), new Vector2(-postX, postZ), new Vector2(postX, postZ) })
+            Solid(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, top / 2f, corner.y), Vector3.zero, new Vector3(0.18f, top / 2f, 0.18f), bark));
+        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 1.1f, -postZ), Vector3.zero, new Vector3(postX * 2f, 2.1f, 0.08f), bark), Color.Lerp(SootColor, BenchWoodColor, 0.3f)));
+
+        // Thatch roof, sooty: the Workshop's bundles in a much darker tone.
+        const int bundles = 7;
+        float span = halfD * 2f + 0.4f;
+        for (int i = 0; i < bundles; i++)
+        {
+            float t = i / (float)(bundles - 1);
+            float tone = (0.85f + (float)random.NextDouble() * 0.3f) * 0.55f;
+            Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, top + 0.1f + Mathf.Lerp(-0.1f, 0.1f, t), Mathf.Lerp(-span / 2f, span / 2f, t)),
+                               new Vector3(-3f, 0f, 0f), new Vector3(halfW * 2f + 0.5f, 0.09f, span / bundles + 0.16f), null),
+                         new Color(ThatchColor.r * tone, ThatchColor.g * tone, ThatchColor.b * tone)));
+        }
+
+        // The forge: a stone hearth 0.9 m wide, 0.8 m high and 0.7 m deep against the back wall on the left (z -0.97 to -0.27), a dark fire bed on top, a mouth in front, and the chimney.
+        var hearth = new Vector3(-0.8f, 0f, -0.62f);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, hearth + new Vector3(0f, 0.4f, 0f), Vector3.zero, new Vector3(0.9f, 0.8f, 0.7f), null), ForgeStoneColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, hearth + new Vector3(0f, 0.83f, 0f), Vector3.zero, new Vector3(0.6f, 0.05f, 0.4f), null), working ? glow : SootColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, hearth + new Vector3(0f, 0.3f, 0.35f), Vector3.zero, new Vector3(0.5f, 0.3f, 0.16f), null), working ? glow : SootColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(SmithyRules.ChimneyX, 1.5f, SmithyRules.ChimneyZ), Vector3.zero, new Vector3(0.34f, 1.5f, 0.34f), null), ForgeStoneColor);
+
+        // The anvil on its log stump, in front and a little right of the middle.
+        Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0.55f, 0.2f, 0.15f), Vector3.zero, new Vector3(0.4f, 0.2f, 0.4f), bark);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0.55f, 0.46f, 0.15f), Vector3.zero, new Vector3(0.2f, 0.14f, 0.16f), null), AnvilColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0.55f, 0.56f, 0.15f), Vector3.zero, new Vector3(0.5f, 0.07f, 0.16f), null), AnvilColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0.92f, 0.55f, 0.15f), new Vector3(0f, 0f, 90f), new Vector3(0.07f, 0.15f, 0.07f), null), AnvilColor);
+
+        if (working)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0.45f, 0.62f, 0.15f), Vector3.zero, new Vector3(0.2f, 0.035f, 0.06f), null), EmberColor);
+        else
+        {
+            foreach (SmithyRules.Recipe recipe in SmithyRules.Recipes)
+            {
+                if (state.Count(recipe.itemId) > 0)
+                {
+                    ForgeGood(parent, pieces, recipe.itemId, new Vector3(0.6f, 0.6f, 0.15f));
+                    break;
+                }
+            }
+        }
+
+        // The stock lies outside: Iron Bars on the left, Charcoal on the right.
+        for (int i = 0; i < Mathf.Min(state.SmithyBars, 4); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-halfW - 0.4f, 0.06f + (i / 2) * 0.09f, -0.25f + (i % 2) * 0.3f), Vector3.zero, new Vector3(0.14f, 0.07f, 0.4f), null), IronBarColor);
+        for (int i = 0; i < Mathf.Min(state.SmithyCharcoal, 6); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(halfW + 0.35f + (i % 3) * 0.17f, 0.07f + (i / 3) * 0.11f, -0.2f + (i % 2) * 0.2f), Vector3.zero, new Vector3(0.2f, 0.12f, 0.16f), null), CharcoalColor);
+
+        boxCenter = new Vector3(-0.07f, 0.55f, -0.31f);
+        boxSize = new Vector3(2.4f, 1.1f, 1.3f);
     }
 
     static readonly Color OreColor = new Color(0.45f, 0.24f, 0.16f);
@@ -776,6 +882,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     KilnSmoke kilnSmoke; // a Kiln's smoke, kept across Rebuild so its particles are not restarted every game hour
     KilnSmoke pitSmoke;  // a Charcoal Pit's, the same smoke made smaller
     KilnSmoke bloomerySmoke; // a Bloomery's, likewise
+    KilnSmoke smithySmoke;   // a Smithy's, from its chimney
 
     public WoodPileState State => state;
 
@@ -841,6 +948,26 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             }
             bloomerySmoke.SetFiring(state.SmeltRunning);
         }
+        else if (state.kind == PileKind.Smithy)
+        {
+            if (smithySmoke == null)
+            {
+                var chimney = new GameObject("Chimney");
+                chimney.transform.SetParent(transform, false);
+                chimney.transform.localPosition = new Vector3(SmithyRules.ChimneyX, 0f, SmithyRules.ChimneyZ);
+                smithySmoke = KilnSmoke.Create(chimney.transform);
+                smithySmoke.gameObject.name = "Smithy Smoke";
+                smithySmoke.height = SmithyRules.SmokeHeight;
+                smithySmoke.spreadRadius = SmithyRules.SmokeSpread;
+                smithySmoke.startSizeMin = SmithyRules.SmokeSizeMin;
+                smithySmoke.startSizeMax = SmithyRules.SmokeSizeMax;
+                smithySmoke.puffsPerSecond = SmithyRules.SmokePuffsPerSecond;
+                smithySmoke.riseSpeed = SmithyRules.SmokeRiseSpeed;
+                smithySmoke.maxPuffs = SmithyRules.SmokeMaxPuffs;
+                smithySmoke.Apply();
+            }
+            smithySmoke.SetFiring(SmithyWorking);
+        }
         box.center = center;
         box.size = size;
         // The finished kitchen has no interaction box (it would be a solid block to walk into): its roof, posts and table are the colliders,
@@ -848,7 +975,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         bool kitchen = state.kind == PileKind.Kitchen;
         box.enabled = !kitchen;
         // The Workshop keeps its interaction box (the bench) and also has solid posts, back wall and roof.
-        if (!kitchen && state.kind != PileKind.Workshop && state.kind != PileKind.PotterShed)
+        if (!kitchen && state.kind != PileKind.Workshop && state.kind != PileKind.PotterShed && state.kind != PileKind.Smithy)
             return;
         foreach (GameObject piece in pieces)
         {
@@ -888,6 +1015,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Kiln: return KilnPromptText();
                 case PileKind.CharcoalPit: return PitPromptText();
                 case PileKind.Bloomery: return BloomeryPromptText();
+                case PileKind.Smithy: return SmithyPromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -1746,6 +1874,178 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // --- The Smithy (Metalworking M3, as the Workshop): R stocks the forge, E collects a finished good or else opens the Smithy screen, R with the Hammer dismantles ---
+
+    bool SmithyWorking => !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
+
+    // The good being forged. False when the forge is idle, or when the job names a good this build does not know.
+    bool SmithyMade(out SmithyRules.Recipe made)
+    {
+        made = default;
+        return SmithyWorking && SmithyRules.TryFind(state.jobItem, out made);
+    }
+
+    // The Smithy screen (SmithyScreen) reads the forge through these: the running good, a waiting good, and why a good can or cannot start now.
+    public bool SmithyRunning(out SmithyRules.Recipe made) => SmithyMade(out made);
+    public bool SmithyWaiting(out SmithyRules.Recipe good) => SmithyProduct(out good, out _);
+    public SmithyRules.Gate SmithyGateFor(SmithyRules.Recipe recipe) => SmithyGate(recipe);
+
+    // A finished good waiting to be collected.
+    bool SmithyProduct(out SmithyRules.Recipe good, out int count)
+    {
+        foreach (SmithyRules.Recipe recipe in SmithyRules.Recipes)
+        {
+            int n = state.Count(recipe.itemId);
+            if (n > 0)
+            {
+                good = recipe;
+                count = n;
+                return true;
+            }
+        }
+        good = default;
+        count = 0;
+        return false;
+    }
+
+    SmithyRules.Gate SmithyGate(SmithyRules.Recipe recipe) =>
+        SmithyRules.CanStart(recipe, SmithyWorking, SmithyProduct(out _, out _), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId));
+
+    string SmithyPromptText()
+    {
+        if (SmithyProduct(out SmithyRules.Recipe good, out _))
+            return SmithyRules.DonePrompt(good);
+        if (SmithyMade(out SmithyRules.Recipe made))
+            return SmithyRules.WorkingPrompt(made, state.jobHours);
+        return SmithyRules.OpenPrompt;
+    }
+
+    // The stock materials the pack carries that the forge still has room for.
+    int SmithyCarried(out string what)
+    {
+        what = "";
+        int total = 0;
+        var names = new List<string>();
+        foreach (string id in SmithyRules.StockIds)
+        {
+            if (!state.Accepts(id))
+                continue;
+            int n = Inventory.Player.Count(id);
+            if (n <= 0)
+                continue;
+            total += n;
+            names.Add(ItemDatabase.Get(id)?.DisplayName ?? id);
+        }
+        what = string.Join(", ", names);
+        return total;
+    }
+
+    string SmithySecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return SmithyRules.DismantlePrompt(SmithyWorking, state.jobHours);
+        return SmithyCarried(out string what) > 0 ? SmithyRules.StorePrompt(what) : SmithyRules.DeliverHelp;
+    }
+
+    // E: collect a finished good, or else open the Smithy screen (a job starts there, through TryStartForge).
+    void SmithyInteract()
+    {
+        if (SmithyProduct(out SmithyRules.Recipe good, out int waiting))
+        {
+            ItemDefinition item = ItemDatabase.Get(good.itemId);
+            int fits = item != null ? Mathf.Min(waiting, Inventory.Player.SpaceFor(item)) : 0;
+            if (fits <= 0)
+            {
+                ToolStatus.Flash("Too heavy - no room to carry it", 3f);
+                return;
+            }
+            int added = Inventory.AddToPlayer(good.itemId, fits);
+            state.Take(good.itemId, added);
+            WoodManager.Instance.NotifyChanged(state);
+            ToolStatus.Flash(SmithyRules.TookMessage(good, added, waiting - added), 4f);
+            return;
+        }
+
+        SmithyScreen.Open(this);
+    }
+
+    // The one way a job starts (the Smithy screen's Start button calls it): the gate is worked out again on the forge as it is now, so a stale click does nothing. On success it takes
+    // the Bar and the Charcoal, sets the job and returns true with the "Started" message; otherwise false with the reason.
+    public bool TryStartForge(SmithyRules.Recipe recipe, out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.Smithy || Inventory == null || WoodManager.Instance == null)
+            return false;
+        int bars = state.Count(SmithyRules.BarId), charcoal = state.Count(SmithyRules.CharcoalId);
+        SmithyRules.Gate gate = SmithyGate(recipe);
+        if (gate != SmithyRules.Gate.Ok)
+        {
+            SmithyMade(out SmithyRules.Recipe made);
+            message = SmithyRules.ReasonText(gate, recipe, made, bars, charcoal, state.jobHours);
+            return false;
+        }
+
+        state.Take(SmithyRules.BarId, recipe.bars);
+        state.Take(SmithyRules.CharcoalId, recipe.charcoal);
+        state.jobItem = recipe.itemId;
+        state.jobHours = recipe.hours;
+        WoodManager.Instance.NotifyChanged(state);
+        message = SmithyRules.StartedMessage(recipe);
+        return true;
+    }
+
+    // R: with the Hammer it dismantles; without, it stocks the forge from the pack (ForgeStockFromPack, which the Smithy screen's button and R key share).
+    void SmithySecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+
+        ForgeStockFromPack(out string message);
+        ToolStatus.Flash(message, 4f);
+    }
+
+    // What the pack could put in the forge now (the pure rule decides: nothing carried, the forge full of what is carried, or something to move).
+    public SmithyRules.StockGate ForgeStockGateNow() =>
+        state == null || Inventory == null ? SmithyRules.StockGate.NothingCarried
+            : SmithyRules.StockState(Inventory.Player.Count(SmithyRules.BarId), Inventory.Player.Count(SmithyRules.CharcoalId), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId));
+
+    // Puts what the pack carries of Iron Bars and Charcoal into the forge, up to the caps. Works while a job runs. Returns whether anything moved, with the message R flashes. Never
+    // dismantles: that is the Hammer's R in the world.
+    public bool ForgeStockFromPack(out string message)
+    {
+        message = "Nothing you carry fits. " + SmithyRules.DeliverHelp;
+        if (state == null || state.kind != PileKind.Smithy || Inventory == null || WoodManager.Instance == null)
+            return false;
+
+        int stored = 0;
+        var names = new List<string>();
+        foreach (string id in SmithyRules.StockIds)
+        {
+            if (!state.Accepts(id))
+                continue;
+            int n = Mathf.Min(SmithyRules.CapOf(id) - state.Count(id), Inventory.Player.Count(id));
+            if (n <= 0)
+                continue;
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.SilenceNextRemoval();
+            int removed = Inventory.Player.RemoveBatches(id, n, (day, count) => state.Add(id, count, 0));
+            if (removed > 0)
+            {
+                stored += removed;
+                names.Add($"{removed} {ItemDatabase.Get(id)?.DisplayName ?? id}");
+            }
+        }
+
+        if (stored <= 0)
+            return false;
+        WoodManager.Instance.NotifyChanged(state);
+        message = SmithyRules.Stored(string.Join(", ", names), state.Count(SmithyRules.BarId), state.Count(SmithyRules.CharcoalId));
+        return true;
+    }
+
     // --- The Bloomery (Metalworking M2) ---
 
     BloomeryRules.Phase SmeltPhaseNow => WellsAndOuthouses.BloomeryPhaseOf(state);
@@ -2026,6 +2326,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return PitSecondaryPrompt();
             if (state.kind == PileKind.Bloomery)
                 return BloomerySecondaryPrompt();
+            if (state.kind == PileKind.Smithy)
+                return SmithySecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -2073,6 +2375,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Kiln: KilnInteract(); break;
             case PileKind.CharcoalPit: PitInteract(); break;
             case PileKind.Bloomery: BloomeryInteract(); break;
+            case PileKind.Smithy: SmithyInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -2249,6 +2552,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             BloomerySecondary();
         }
+        else if (state.kind == PileKind.Smithy)
+        {
+            SmithySecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -2366,6 +2673,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash(CharcoalRules.DismantlePrompt(PitPhaseNow, state.jobHours), 4f);
             return;
         }
+        // A Smithy is not taken down while a good is being forged (the Bar and Charcoal are already in the work), as the Workshop is not while a piece is being made.
+        if (state.kind == PileKind.Smithy && SmithyWorking)
+        {
+            ToolStatus.Flash(SmithyRules.DismantlePrompt(true, state.jobHours), 4f);
+            return;
+        }
         // A Bloomery is not taken down while it smelts (the Ore and Charcoal are already in the fire).
         if (state.kind == PileKind.Bloomery && !BloomeryRules.CanDismantle(SmeltPhaseNow))
         {
@@ -2403,6 +2716,14 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             refund.Return(CharcoalRules.LogsId, state.Count(CharcoalRules.LogsId));
             refund.Return(CharcoalRules.CharcoalId, state.Count(CharcoalRules.CharcoalId));
+        }
+        // A Smithy gives back the Iron Bars and Charcoal in its forge and any finished good whole, on top of half the materials.
+        if (state.kind == PileKind.Smithy)
+        {
+            foreach (string stockId in SmithyRules.StockIds)
+                refund.Return(stockId, state.Count(stockId));
+            foreach (SmithyRules.Recipe good in SmithyRules.Recipes)
+                refund.Return(good.itemId, state.Count(good.itemId));
         }
         // A Bloomery gives back the Ore and Charcoal stocked and any Iron Bars waiting whole, on top of half the Stone and Clay.
         if (state.kind == PileKind.Bloomery)

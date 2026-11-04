@@ -17,11 +17,11 @@ public class KnowHowTests
     // --- The entries ---
 
     [Test]
-    public void ThereAreTenEntriesWithUniqueIdsTitlesAndBodies()
+    public void ThereAreElevenEntriesWithUniqueIdsTitlesAndBodies()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(10));
-        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(10));
-        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(10));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(11));
+        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(11));
+        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(11));
         foreach (KnowHowRules.Entry e in KnowHowRules.Entries)
         {
             Assert.That(e.title, Is.Not.Empty);
@@ -40,12 +40,12 @@ public class KnowHowTests
         {
             "Ash: Collect and Sell", "Kindling Bundles", "The Tripod and Boiling Water", "Tapping Maples", "Sap to Syrup",
             "Using the Leach Hopper", "From Ash to Potash", "Charcoal: Burning Logs Slowly", "Iron Ore at the Trading Post",
-            "Smelting Iron in the Bloomery",
+            "Smelting Iron in the Bloomery", "The Smithy: Forging Iron Goods",
         }));
         Assert.That(KnowHowRules.Entries.Select(e => e.id), Is.EqualTo(new[]
         {
             KnowHowRules.Ash, KnowHowRules.Kindling, KnowHowRules.Tripod, KnowHowRules.Tapping, KnowHowRules.Syrup, KnowHowRules.Hopper, KnowHowRules.Potash,
-            KnowHowRules.Charcoal, KnowHowRules.IronOre, KnowHowRules.Smelting,
+            KnowHowRules.Charcoal, KnowHowRules.IronOre, KnowHowRules.Smelting, KnowHowRules.Smithy,
         }));
     }
 
@@ -111,7 +111,7 @@ public class KnowHowTests
         Assert.That(ids, Is.Not.Empty);
         foreach (string id in ids)
             Assert.That(KnowHowRules.TryGet(id, out _), Is.True, id);
-        Assert.That(ids.Distinct().Count(), Is.EqualTo(10), "and every entry has a way to unlock");
+        Assert.That(ids.Distinct().Count(), Is.EqualTo(11), "and every entry has a way to unlock");
     }
 
     [Test]

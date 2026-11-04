@@ -42,7 +42,10 @@ public static class RegrowRules
     // The Bloomery (a stone-and-clay stack about 0.9 m across; Metalworking M2) likewise.
     public const float BloomeryMetres = BloomeryRules.RegrowMetres;
 
-    public enum Blocker { Structure, Cabin, Kitchen, Fire, Player, ClearedGround, Workshop, Pottery, Kiln, Pit, Bloomery }
+    // The Smithy (a roofed shed about 3 m by 2.4 m, the Workshop's size; Metalworking M3) likewise.
+    public const float SmithyMetres = SmithyRules.RegrowMetres;
+
+    public enum Blocker { Structure, Cabin, Kitchen, Fire, Player, ClearedGround, Workshop, Pottery, Kiln, Pit, Bloomery, Smithy }
 
     // Whether a felled spot can ever grow again: a shrub always; a hardwood only while its stump is still there (a dug-out stump clears the spot for good).
     public static bool CanRegrow(int prototype, bool stump) => prototype == ShrubPrototype || stump;
@@ -101,6 +104,7 @@ public static class RegrowRules
             case Blocker.Kiln: return KilnMetres;
             case Blocker.Pit: return PitMetres;
             case Blocker.Bloomery: return BloomeryMetres;
+            case Blocker.Smithy: return SmithyMetres;
             default: return StructureMetres;
         }
     }

@@ -190,6 +190,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.KilnSite:
             case PileKind.CharcoalPitSite:
             case PileKind.BloomerySite:
+            case PileKind.SmithySite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -215,6 +216,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.KilnSite: return PileKind.Kiln;
             case PileKind.CharcoalPitSite: return PileKind.CharcoalPit;
             case PileKind.BloomerySite: return PileKind.Bloomery;
+            case PileKind.SmithySite: return PileKind.Smithy;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -248,6 +250,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.KilnSite: return KilnCost();
             case PileKind.CharcoalPitSite: return CharcoalPitCost();
             case PileKind.BloomerySite: return BloomeryCost();
+            case PileKind.SmithySite: return SmithyCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -289,6 +292,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { CharcoalRules.ClayId, CharcoalRules.TallGrassId } }; // the Clay and the Tall Grass in any order
         if (site == PileKind.BloomerySite)
             return new[] { new[] { BloomeryRules.StoneId, BloomeryRules.ClayId } }; // the Stone and the Clay in any order
+        if (site == PileKind.SmithySite)
+            return new[] { new[] { SmithyRules.StoneId, SmithyRules.ClayId, SmithyRules.LogsId, SmithyRules.BranchesId, SmithyRules.TallGrassId } }; // all five, in any order
         if (site == PileKind.LeachHopperSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.TallGrassId } };
         if (site == PileKind.HandCartSite)
@@ -435,6 +440,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.KilnSite: return PotteryRules.KilnBuildBlows;
             case PileKind.CharcoalPitSite: return CharcoalRules.BuildBlows;
             case PileKind.BloomerySite: return BloomeryRules.BuildBlows;
+            case PileKind.SmithySite: return SmithyRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -476,6 +482,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return CharcoalRules.BuiltMessage;
         if (site == PileKind.BloomerySite)
             return BloomeryRules.BuiltMessage;
+        if (site == PileKind.SmithySite)
+            return SmithyRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -599,6 +607,16 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         new WoodStack { itemId = BloomeryRules.StoneId, count = BloomeryRules.SiteStone },
         new WoodStack { itemId = BloomeryRules.ClayId, count = BloomeryRules.SiteClay },
+    };
+
+    // A Smithy (Metalworking M3): 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass (the thatch roof), about 61 kg, a staged site. SmithyRules has the numbers.
+    public static WoodStack[] SmithyCost() => new[]
+    {
+        new WoodStack { itemId = SmithyRules.StoneId, count = SmithyRules.SiteStone },
+        new WoodStack { itemId = SmithyRules.ClayId, count = SmithyRules.SiteClay },
+        new WoodStack { itemId = SmithyRules.LogsId, count = SmithyRules.SiteLogs },
+        new WoodStack { itemId = SmithyRules.BranchesId, count = SmithyRules.SiteBranches },
+        new WoodStack { itemId = SmithyRules.TallGrassId, count = SmithyRules.SiteTallGrass },
     };
 
     public static WoodStack[] CountertopCost()
@@ -815,6 +833,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.CharcoalPitSite: return CharcoalRules.PitRadiusMetres;
             case PileKind.Bloomery:
             case PileKind.BloomerySite: return BloomeryRules.RadiusMetres;
+            case PileKind.Smithy:
+            case PileKind.SmithySite: return SmithyRules.ReachMetres;   // the shed's half-diagonal (3 m by 2.4 m), as the Workshop's
             case PileKind.WoodShed:
             case PileKind.WoodShedSite:
             case PileKind.Tent:
@@ -925,6 +945,21 @@ public class WellsAndOuthouses : MonoBehaviour
         // A Hand Cart stands on any dry ground too, the same single rule.
         if (kind == PileKind.LeachHopperSite || kind == PileKind.LeachHopper || kind == PileKind.HandCartSite || kind == PileKind.HandCart)
         {
+            reason = "";
+            return true;
+        }
+
+        // A Smithy is a wide roofed shed like the Workshop (dry ground clear of the cabin; WoodManager adds the wide-shed spacing and the 2 m trunk-free footprint), and the forge fire
+        // also wants clear air: no tree within SmithyRules.FireClearanceMetres (3 m) of the shed's edge, that is within SmithyRules.TreeReachMetres (4.9 m) of its centre.
+        if (kind == PileKind.SmithySite || kind == PileKind.Smithy)
+        {
+            if (!Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason))
+                return false;
+            if (WoodManager.Instance != null && WoodManager.Instance.FindTree(point, SmithyRules.TreeReachMetres) >= 0)
+            {
+                reason = "Too close to a tree: 3 m needed for the forge fire.";
+                return false;
+            }
             reason = "";
             return true;
         }
@@ -1316,6 +1351,37 @@ public class WellsAndOuthouses : MonoBehaviour
         return done;
     }
 
+    // --- The Smithy (Metalworking M3) ---
+
+    // A job has run its hours: the good is in the forge, waiting to be collected, and the forge is free for the next once it is taken.
+    public static void FinishForgeJob(WoodPileState forge)
+    {
+        if (forge == null || string.IsNullOrEmpty(forge.jobItem))
+            return;
+        if (SmithyRules.IsProduct(forge.jobItem))
+            forge.Add(forge.jobItem, 1, 0); // a good this build does not know is dropped rather than left in the forge where nothing could collect it
+        forge.jobItem = "";
+        forge.jobHours = 0f;
+    }
+
+    // Testing only (TimeDebugControls, Ctrl+minus): every running Smithy job is done now. Returns how many Smithies finished a good.
+    public int DebugFinishForges()
+    {
+        WoodManager wood = WoodManager.Instance;
+        int done = 0;
+        if (wood == null)
+            return 0;
+        foreach (WoodPileState forge in wood.Piles)
+        {
+            if (forge.kind != PileKind.Smithy || string.IsNullOrEmpty(forge.jobItem))
+                continue;
+            FinishForgeJob(forge);
+            wood.NotifyChanged(forge);
+            done++;
+        }
+        return done;
+    }
+
     // --- The Bloomery (Metalworking M2) ---
 
     // A smelt has run its hours: the Iron Bars it was started to make are in the furnace, waiting to be collected. The Ore and Charcoal it used were taken out when it started.
@@ -1456,6 +1522,17 @@ public class WellsAndOuthouses : MonoBehaviour
             if (CharcoalRules.IsDone(pit.jobHours))
                 FinishBurn(pit);
             wood.NotifyChanged(pit);
+        }
+
+        // A Smithy's job runs one game hour at a time too (Metalworking M3, as the Workshop's), so the player being away, sleeping or skipping days all count.
+        foreach (WoodPileState forge in wood.Piles)
+        {
+            if (forge.kind != PileKind.Smithy || string.IsNullOrEmpty(forge.jobItem))
+                continue;
+            forge.jobHours = SmithyRules.AfterHour(forge.jobHours);
+            if (SmithyRules.IsDone(forge.jobHours))
+                FinishForgeJob(forge);
+            wood.NotifyChanged(forge);
         }
 
         // A Bloomery's smelt runs one game hour at a time too (Metalworking M2): sleeping, skipping days and being away all count; at the end the Iron Bars are in.

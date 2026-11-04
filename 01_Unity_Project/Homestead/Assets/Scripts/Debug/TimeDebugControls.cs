@@ -46,6 +46,8 @@ using UnityEngine.InputSystem;
 //   ,  give the Charcoal Pit site's materials (a Hammer, 4 Clay, 6 Tall Grass) and stand a Wood Pile with 6 Logs (48 kg, more than the pack holds) 3 m ahead;  Shift+,  stand a finished Charcoal
 //      Pit 4 m ahead loaded with 6 Logs, ready to light;  Ctrl+,  finish every running charcoal burn now (the Charcoal is in the pit)
 //   =  give 10 Iron Ore and 10 Charcoal (40 kg; what does not fit is left out and the message says so);  Shift+=  give 4 Iron Bars (8 kg)
+//   -  give the Smithy site's small materials (a Hammer, 3 Clay, 4 Branches, 6 Tall Grass) and stand a Rock Pile with its 6 Stone and a Wood Pile with its 2 Logs 3 m ahead: the whole kit is
+//      about 61 kg and the pack holds 45;  Shift+-  stand a finished Smithy 4 m ahead stocked with 4 Iron Bars and 6 Charcoal;  Ctrl+-  finish every running Smithy job now
 //   .  give the Bloomery site's small materials (a Hammer, 6 Clay) and stand a Rock Pile with its 8 Stone (40 kg) 3 m ahead: the whole kit is about 61 kg and the pack holds 45;
 //      Shift+.  stand a finished Bloomery 4 m ahead loaded with 4 Ore and 4 Charcoal, ready to start;  Ctrl+.  finish every running smelt now (the Bars are in the furnace)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
@@ -328,6 +330,55 @@ public class TimeDebugControls : MonoBehaviour
             WoodManager.Instance.NotifyChanged(logsPile);
             Show(pitMissed == 0 ? $"Charcoal Pit kit given: a Hammer, {CharcoalRules.SiteClay} Clay and {CharcoalRules.SiteTallGrass} Tall Grass, and a Wood Pile with {CharcoalRules.LogsCap} Logs 3 m ahead"
                                 : $"Charcoal Pit kit given ({pitMissed} items didn't fit), and a Wood Pile with {CharcoalRules.LogsCap} Logs 3 m ahead", time);
+            return;
+        }
+
+        // Metalworking M3. - gives the Smithy site's small materials (a Hammer, 3 Clay, 4 Branches, 6 Tall Grass) and stands a Rock Pile with its 6 Stone and a Wood Pile with its 2 Logs 3 m ahead
+        // (61 kg would not fit the 45 kg pack); Shift+- stands a finished Smithy 4 m ahead stocked with 4 Iron Bars and 6 Charcoal; Ctrl+- finishes every running job now.
+        if (keyboard.minusKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
+        {
+            if (ctrl)
+            {
+                int forgesDone = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishForges() : 0;
+                Show(forgesDone > 0 ? $"Smithy job finished in {forgesDone} smithy(ies): the good is ready" : "No Smithy job is running", time);
+                return;
+            }
+
+            Transform forgeBody = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 forgeFlat = Vector3.ProjectOnPlane(forgeBody.forward, Vector3.up).normalized;
+            Vector3 forgeRight = Vector3.Cross(Vector3.up, forgeFlat).normalized;
+            Terrain forgeTerrain = Terrain.activeTerrain;
+            Vector3 ForgeAhead(float metres, float sideways = 0f)
+            {
+                Vector3 at = forgeBody.position + forgeFlat * metres + forgeRight * sideways;
+                if (forgeTerrain != null)
+                    at.y = forgeTerrain.SampleHeight(at) + forgeTerrain.transform.position.y;
+                return at;
+            }
+
+            if (keyboard.shiftKey.isPressed)
+            {
+                WoodPileState smithy = WoodManager.Instance.DebugPlace(PileKind.Smithy, ForgeAhead(4f), forgeBody.eulerAngles.y + 180f);
+                smithy.Add(SmithyRules.BarId, 4);
+                smithy.Add(SmithyRules.CharcoalId, 6);
+                WoodManager.Instance.NotifyChanged(smithy);
+                Show("Smithy placed ahead, its forge stocked with 4 Iron Bars and 6 Charcoal (E opens the screen)", time);
+                return;
+            }
+
+            InventoryManager forgeInventory = InventoryManager.Instance;
+            int forgeMissed = 0;
+            foreach ((string id, int count) in new (string, int)[] { ("hammer", 1), (SmithyRules.ClayId, SmithyRules.SiteClay), (SmithyRules.BranchesId, SmithyRules.SiteBranches),
+                                                                      (SmithyRules.TallGrassId, SmithyRules.SiteTallGrass) })
+                forgeMissed += count - forgeInventory.AddToPlayer(id, count);
+            WoodPileState forgeRocks = WoodManager.Instance.DebugPlace(PileKind.RockStorage, ForgeAhead(3f, -1.2f), forgeBody.eulerAngles.y);
+            forgeRocks.Add(SmithyRules.StoneId, SmithyRules.SiteStone);
+            WoodManager.Instance.NotifyChanged(forgeRocks);
+            WoodPileState forgeLogs = WoodManager.Instance.DebugPlace(PileKind.WoodStorage, ForgeAhead(3f, 1.2f), forgeBody.eulerAngles.y);
+            forgeLogs.Add(SmithyRules.LogsId, SmithyRules.SiteLogs);
+            WoodManager.Instance.NotifyChanged(forgeLogs);
+            Show(forgeMissed == 0 ? $"Smithy kit given: a Hammer, {SmithyRules.SiteClay} Clay, {SmithyRules.SiteBranches} Branches and {SmithyRules.SiteTallGrass} Tall Grass, and piles of {SmithyRules.SiteStone} Stone and {SmithyRules.SiteLogs} Logs 3 m ahead"
+                                  : $"Smithy kit given ({forgeMissed} items didn't fit), and piles of {SmithyRules.SiteStone} Stone and {SmithyRules.SiteLogs} Logs 3 m ahead", time);
             return;
         }
 

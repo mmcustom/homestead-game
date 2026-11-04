@@ -19,6 +19,7 @@ public static class KnowHowRules
     public const string Charcoal = "charcoal";
     public const string IronOre = "ironore";
     public const string Smelting = "smelting";
+    public const string Smithy = "smithy";
 
     public readonly struct Entry
     {
@@ -44,7 +45,8 @@ public static class KnowHowRules
         new Entry(Potash, "From Ash to Potash", "Potash sells for far more than the Ash it comes from: about $5 of Potash per Ash, against $2 for the raw Ash. The chain has three steps.\n\n1. Leach. Build a Leach Hopper (see \"Using the Leach Hopper\"), load Ash and water, and wait 24 game hours.\n2. Collect. Hold E at the hopper to take the Lye. Lye also sells by itself for about $3, but it is worth more as Potash.\n3. Boil. Buy a Potash Kettle at the Trading Post ($25). Set up a tripod over a lit fire and hold E at it to hang the Kettle. Open Inventory (I) and press Boil on the Lye row: 3 Lye and 2 Firewood make 1 Potash in 18 seconds. The Firewood is used up and leaves no Ash.\n\nSell the Potash at the Trading Post (about $16 each)."),
         new Entry(Charcoal, "Charcoal: Burning Logs Slowly", "Charcoal is Logs burned slowly under earth. It burns far hotter than Firewood and is the fuel iron smelting needs in a Bloomery (see \"Smelting Iron in the Bloomery\"). You make it in a Charcoal Pit.\n\n1. Open Build, then Other, and place a Charcoal Pit Site on open dry ground, 3 m clear of other buildings and trees, and not under a roof.\n2. Deliver 4 Clay and 6 Tall Grass with R over as many trips as you like. Then equip the Hammer and hold click on the site to build the pit.\n3. Put the Hammer away. Press R at the pit to load the Logs you carry (up to 6 in all; a Log weighs 8 kg, so a full pit may take two loads).\n4. Press E to light it once it holds 3 Logs. It burns for 24 game hours, even while you sleep or are away, and the Logs are used up. 3 or 4 Logs make 2 Charcoal, 5 make 3 and 6 make 4.\n5. Press E again to collect the Charcoal.\n\nCharcoal sells at the Trading Post for about $1. With the Hammer equipped, R takes the pit down, but not while it burns; you get back half the Clay and Tall Grass and all the Logs and Charcoal inside."),
         new Entry(IronOre, "Iron Ore at the Trading Post", "There is no iron to dig on your land yet, so iron ore is bought. The Trading Post sells Iron Ore for $4 each (3 kg). It buys it back for only $1, so buy only what you will use.\n\nSmelting iron needs Charcoal as well (see \"Charcoal: Burning Logs Slowly\") and a furnace, the Bloomery (see \"Smelting Iron in the Bloomery\")."),
-        new Entry(Smelting, "Smelting Iron in the Bloomery", "Iron ore is smelted in a Bloomery, a small furnace of Stone and Clay that burns Charcoal.\n\n1. Buy Iron Ore at the Trading Post and make Charcoal in a Charcoal Pit (see those two entries).\n2. Open Build, then Other, and place a Bloomery Site on open dry ground, 3 m clear of other buildings and trees, and not under a roof.\n3. Deliver 8 Stone and 6 Clay with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build the bloomery.\n4. Put the Hammer away. Press R at the bloomery to load the Ore and Charcoal you carry, up to 4 of each. You can load one without the other and top up either later.\n5. Press E to start a smelt once it holds 2 Ore and 2 Charcoal. Each 2 Ore and 2 Charcoal make 1 Iron Bar, up to 2 Bars at a time, and the smelt takes 10 game hours, even while you sleep or are away. Ore and Charcoal you add while it smelts wait for the next smelt.\n6. Press E again to collect the Iron Bars.\n\nNobody buys Iron Bars; they are for the iron goods and tools that are not in the game yet. With the Hammer equipped, R takes the bloomery down, but not while it smelts; you get back half the Stone and Clay and all the Ore, Charcoal and Bars inside."),
+        new Entry(Smelting, "Smelting Iron in the Bloomery", "Iron ore is smelted in a Bloomery, a small furnace of Stone and Clay that burns Charcoal.\n\n1. Buy Iron Ore at the Trading Post and make Charcoal in a Charcoal Pit (see those two entries).\n2. Open Build, then Other, and place a Bloomery Site on open dry ground, 3 m clear of other buildings and trees, and not under a roof.\n3. Deliver 8 Stone and 6 Clay with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build the bloomery.\n4. Put the Hammer away. Press R at the bloomery to load the Ore and Charcoal you carry, up to 4 of each. You can load one without the other and top up either later.\n5. Press E to start a smelt once it holds 2 Ore and 2 Charcoal. Each 2 Ore and 2 Charcoal make 1 Iron Bar, up to 2 Bars at a time, and the smelt takes 10 game hours, even while you sleep or are away. Ore and Charcoal you add while it smelts wait for the next smelt.\n6. Press E again to collect the Iron Bars.\n\nNobody buys Iron Bars; forge them into iron goods at a Smithy (see \"The Smithy: Forging Iron Goods\"). With the Hammer equipped, R takes the bloomery down, but not while it smelts; you get back half the Stone and Clay and all the Ore, Charcoal and Bars inside."),
+        new Entry(Smithy, "The Smithy: Forging Iron Goods", "A Smithy turns Iron Bars and Charcoal into iron goods that sell at the Trading Post. Its forge and anvil stand under a roof.\n\n1. Make Iron Bars first (see \"Smelting Iron in the Bloomery\").\n2. Open Build, then Other, and place a Smithy Site on dry ground, 3 m clear of other buildings and, for the forge fire, 3 m clear of trees. Turn it with the mouse wheel so the open front faces where you want to work.\n3. Deliver 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build it.\n4. Put the Hammer away. Press R at the Smithy to store the Iron Bars and Charcoal you carry (it holds 8 of each).\n5. Press E to open the Smithy screen and choose what to forge. Door Hinges take 3 game hours; a Hook Set and a Box of Nails take 2. Each uses 1 Iron Bar and 1 Charcoal, and the job runs even while you sleep or are away.\n6. Press E at the Smithy to collect the finished good. One job runs at a time, and the next cannot start until the good is collected.\n\nDoor Hinges sell for about $26, a Hook Set for about $18 and a Box of Nails for about $16, and each price drops a little with every one you sell, then recovers over the next days. With the Hammer equipped, R takes the Smithy down, but not while a good is being forged; you get back half the materials and all the Bars, Charcoal and goods inside."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -64,7 +66,7 @@ public static class KnowHowRules
     // --- Triggers ---
 
     // Things that happen in the world, besides an item entering the pack.
-    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced }
+    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced }
 
     // Entries a first-held item unlocks (none for most items). Ash opens both "Ash" and "From Ash to Potash".
     public static string[] ForItem(string itemId)
@@ -81,7 +83,7 @@ public static class KnowHowRules
             case TripodRules.KettleId: return new[] { Potash };
             case MetalRules.CharcoalId: return new[] { Charcoal };
             case MetalRules.IronOreId: return new[] { IronOre };
-            case MetalRules.IronBarId: return new[] { Smelting };
+            case MetalRules.IronBarId: return new[] { Smelting, Smithy };
             default: return Array.Empty<string>();
         }
     }
@@ -94,6 +96,7 @@ public static class KnowHowRules
             case Happening.HopperSitePlaced: return new[] { Hopper, Potash };
             case Happening.PitSitePlaced: return new[] { Charcoal };
             case Happening.BloomerySitePlaced: return new[] { Smelting };
+            case Happening.SmithySitePlaced: return new[] { Smithy };
             default: return Array.Empty<string>();
         }
     }
@@ -122,7 +125,7 @@ public static class KnowHowRules
 
     // The entries a loaded game has already earned: what the pack holds, and what it has built (a hopper site, a tripod, a tap). An old save
     // from before Know-how existed gets its help this way.
-    public static List<string> Backfill(Func<string, bool> holds, bool hopperPlaced, bool tripodStands, bool tapsOut, bool pitPlaced = false, bool bloomeryPlaced = false)
+    public static List<string> Backfill(Func<string, bool> holds, bool hopperPlaced, bool tripodStands, bool tapsOut, bool pitPlaced = false, bool bloomeryPlaced = false, bool smithyPlaced = false)
     {
         var triggered = new List<string>();
         foreach (string itemId in TriggerItems)
@@ -140,6 +143,8 @@ public static class KnowHowRules
             triggered.AddRange(ForHappening(Happening.PitSitePlaced));
         if (bloomeryPlaced)
             triggered.AddRange(ForHappening(Happening.BloomerySitePlaced));
+        if (smithyPlaced)
+            triggered.AddRange(ForHappening(Happening.SmithySitePlaced));
         return NewUnlocks(null, triggered);
     }
 
@@ -179,7 +184,10 @@ public static class KnowHowRules
             case MapleRules.SapId: return "10 L boils to 1 Syrup in the Pot on a tripod at a fire.";
             case AshRules.KindlingItemId: return "Sell it at the Trading Post.";
             case MetalRules.IronOreId: return "Smelt it with Charcoal in a Bloomery. Sells back for $1.";
-            case MetalRules.IronBarId: return "Smelted in a Bloomery. Not sold anywhere; iron goods will use it later.";
+            case MetalRules.IronBarId: return "Smelted in a Bloomery. Forge it into goods at a Smithy; not sold itself.";
+            case SmithyRules.HingesId: return "Forged at a Smithy. Sells at the Trading Post for about $26.";
+            case SmithyRules.HooksId: return "Forged at a Smithy. Sells at the Trading Post for about $18.";
+            case SmithyRules.NailsId: return "Forged at a Smithy. Sells at the Trading Post for about $16.";
             case MetalRules.CharcoalId: return "Made from Logs in a Charcoal Pit. Sells for $1; iron smelting burns it.";
             default: return "";
         }

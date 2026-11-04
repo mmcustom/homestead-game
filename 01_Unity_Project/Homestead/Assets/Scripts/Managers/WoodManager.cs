@@ -42,7 +42,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy }
 
 [Serializable]
 public class WoodPileState
@@ -125,6 +125,11 @@ public class WoodPileState
     public int BloomeryOre => Count(BloomeryRules.OreId);
     public int BloomeryCharcoal => Count(BloomeryRules.CharcoalId);
     public int BloomeryBars => Count(BloomeryRules.BarId);
+
+    // The Smithy (Metalworking M3): like the Workshop's bench, a running job is jobItem (the good's item id) with jobHours left; the Iron Bars and Charcoal in contents are the forge's
+    // stock (a job takes its Bar and Charcoal out when it starts) and a finished good waits in contents until it is taken.
+    public int SmithyBars => Count(SmithyRules.BarId);
+    public int SmithyCharcoal => Count(SmithyRules.CharcoalId);
 
     public int Total
     {
@@ -244,7 +249,7 @@ public class WoodPileState
     public bool IsOpenWoodPile => IsWoodPile;
     public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
-    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || kind == PileKind.Smithy || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsKitchen => kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen;
     // A Countertop, Shelving, Grill or Slop Sink: stands in one of a finished Kitchen's four fixed slots (Setbacks.KitchenLayout).
     public bool IsKitchenAddon => WoodManager.IsKitchenAddon(kind);
@@ -284,6 +289,7 @@ public class WoodPileState
             case PileKind.KilnSite:
             case PileKind.CharcoalPitSite:
             case PileKind.BloomerySite:
+            case PileKind.SmithySite:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
             // The Workshop's bench takes Logs, Branches and Cordage up to WorkshopRules' caps (its finished piece is not something to put back).
             case PileKind.Workshop: return WorkshopRules.Accepts(itemId, Count(itemId));
@@ -296,6 +302,8 @@ public class WoodPileState
             // The Bloomery takes Ore and Charcoal separately and at any time, each up to its cap of 4, even while it smelts (the Iron Bars it makes are not something to put back).
             case PileKind.Bloomery:
                 return (itemId == BloomeryRules.OreId && BloomeryOre < BloomeryRules.OreCap) || (itemId == BloomeryRules.CharcoalId && BloomeryCharcoal < BloomeryRules.CharcoalCap);
+            // The Smithy's forge takes Iron Bars and Charcoal up to SmithyRules' caps (its finished goods are not something to put back).
+            case PileKind.Smithy: return SmithyRules.Accepts(itemId, Count(itemId));
             // The Hand Cart (Vehicles_and_Hauling.md, Phase 1): bulk building goods only, and held to CartRules.CapacityKg by weight in WoodPile
             // (this answers "is it the kind of thing the cart takes"; whether it still fits is the weight check).
             case PileKind.HandCart: return CartRules.Carries(itemId);
@@ -961,7 +969,8 @@ public class WoodManager : MonoBehaviour, ISaveable
                                      : IsPotter(pile.kind) ? RegrowRules.Blocker.Pottery
                                      : IsKiln(pile.kind) ? RegrowRules.Blocker.Kiln
                                      : IsCharcoalPit(pile.kind) ? RegrowRules.Blocker.Pit
-                                     : IsBloomery(pile.kind) ? RegrowRules.Blocker.Bloomery : RegrowRules.Blocker.Structure;
+                                     : IsBloomery(pile.kind) ? RegrowRules.Blocker.Bloomery
+                                     : IsSmithy(pile.kind) ? RegrowRules.Blocker.Smithy : RegrowRules.Blocker.Structure;
             if (RegrowRules.Blocks(kind, FlatDistance(pile.position, at), cabinFootprint, kitchen))
                 return true;
         }
@@ -1116,7 +1125,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -1174,6 +1183,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.CharcoalPit: return "Charcoal Pit";
             case PileKind.BloomerySite: return "Bloomery Site";
             case PileKind.Bloomery: return "Bloomery";
+            case PileKind.SmithySite: return "Smithy Site";
+            case PileKind.Smithy: return "Smithy";
             default: return "Wood Pile";
         }
     }
@@ -1225,6 +1236,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.CharcoalPit: return WellsAndOuthouses.CharcoalPitCost();
             // A Bloomery Site is free to mark out; PileKind.Bloomery holds its total and what Dismantle halves.
             case PileKind.Bloomery: return WellsAndOuthouses.BloomeryCost();
+            // A Smithy Site is free to mark out; PileKind.Smithy holds its total and what Dismantle halves.
+            case PileKind.Smithy: return WellsAndOuthouses.SmithyCost();
             // A Kitchen Site is free to mark out too; PileKind.Kitchen holds both stages' materials in total, what Dismantle halves line by line.
             case PileKind.Kitchen: return WellsAndOuthouses.KitchenCost();
             // The Kitchen add-ons are single-step builds (each under the 15 kg staged line); WellsAndOuthouses holds the numbers.
@@ -1409,7 +1422,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         // hollows (WellsAndOuthouses.CanPlace); the refusal names what it is too close to.
         // A Wood Shed Site keeps off floodplain and 3 m from the cabin (the same call).
 
-        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite || kind == PileKind.LeachHopperSite || kind == PileKind.HandCartSite || kind == PileKind.WorkshopSite || kind == PileKind.PotterSite || kind == PileKind.KilnSite || kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite) && WellsAndOuthouses.Instance != null &&
+        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite || kind == PileKind.LeachHopperSite || kind == PileKind.HandCartSite || kind == PileKind.WorkshopSite || kind == PileKind.PotterSite || kind == PileKind.KilnSite || kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite || kind == PileKind.SmithySite) && WellsAndOuthouses.Instance != null &&
             !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         // The Kiln's clearance holds both ways (Pottery P2): a Kiln or its site that stands already keeps everything built later (a Cabin, Workshop, Potter's Shed, Kitchen and the rest) its
@@ -1494,8 +1507,11 @@ public class WoodManager : MonoBehaviour, ISaveable
     // The Bloomery or its staged site (open air; the Kiln's clearances with its own reach: BloomeryRules).
     public static bool IsBloomery(PileKind kind) => kind == PileKind.Bloomery || kind == PileKind.BloomerySite;
 
+    // The Smithy or its staged site (a wide roofed shed like the Workshop, with 3 m of clear air from trees for the forge fire: SmithyRules).
+    public static bool IsSmithy(PileKind kind) => kind == PileKind.Smithy || kind == PileKind.SmithySite;
+
     // A wide roofed shed: the Workshop or the Potter's Shed.
-    public static bool IsWideShed(PileKind kind) => IsWorkshop(kind) || IsPotter(kind);
+    public static bool IsWideShed(PileKind kind) => IsWorkshop(kind) || IsPotter(kind) || IsSmithy(kind);
 
     // A Rain Barrel or its staged site: both stand at an eave and keep the barrel spacing from each other.
     public static bool IsRainBarrel(PileKind kind) => kind == PileKind.RainBarrel || kind == PileKind.RainBarrelSite;
@@ -1559,6 +1575,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.PitSitePlaced);
         if (kind == PileKind.BloomerySite && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.BloomerySitePlaced);
+        if (kind == PileKind.SmithySite && JournalManager.Instance != null)
+            JournalManager.Instance.NoteHappening(KnowHowRules.Happening.SmithySitePlaced);
         // A Wood-Fired Grill comes with its fire: a second furnished campfire in the firebox, unlit and out of fuel like the hearth.
         if (kind == PileKind.Grill && FireManager.Instance != null)
             FireManager.Instance.BuildFurnished(GrillFireSpot(pile), pile.yaw);

@@ -171,6 +171,10 @@ public static class MarketCatalog
         Row(PotteryRules.FiredPotId, MarketGroup.Crafted, PotteryRules.Recipes[2].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredCrockId, MarketGroup.Crafted, PotteryRules.Recipes[3].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredBrickId, MarketGroup.Crafted, PotteryRules.Recipes[4].firedCents, MarketKind.Bought),
+        // Metalworking M3: the three iron goods made at the Smithy, in the Crafted group (10% off per unit, floor 0.1; SmithyRules has the prices). Never in the store; the Iron Bar has no row.
+        Row(SmithyRules.Recipes[0].itemId, MarketGroup.Crafted, SmithyRules.Recipes[0].baseCents, MarketKind.Bought),
+        Row(SmithyRules.Recipes[1].itemId, MarketGroup.Crafted, SmithyRules.Recipes[1].baseCents, MarketKind.Bought),
+        Row(SmithyRules.Recipes[2].itemId, MarketGroup.Crafted, SmithyRules.Recipes[2].baseCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =
