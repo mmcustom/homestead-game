@@ -96,6 +96,9 @@ public class FishingRod : MonoBehaviour
     {
         get
         {
+            Transform anchor = PlayerHands.Instance != null ? PlayerHands.Instance.LineAnchor : null; // the rod in hand's Anchor_Line, when the hands show one (Hands M0c-1)
+            if (anchor != null)
+                return anchor.position;
             Transform cam = player.CameraTransform;
             return cam.position + cam.forward * 0.9f + cam.right * 0.35f + Vector3.up * 0.25f;
         }
@@ -140,6 +143,7 @@ public class FishingRod : MonoBehaviour
             line = bobber.GetComponentInChildren<LineRenderer>();
         }
         PlaySound(a => a.Splash, bobberRest);
+        ToolEvents.RaiseCast(cane ? CaneId : RodId); // the line went out (Hands M0c-1)
         StartWaiting();
     }
 
@@ -187,6 +191,7 @@ public class FishingRod : MonoBehaviour
         state = State.Bite;
         stateUntil = Time.time + (cane ? caneBiteWindow : biteWindow);
         PlaySound(a => a.FishBite, bobberRest);
+        ToolEvents.RaiseBite(cane ? CaneId : RodId); // a fish took it (Hands M0c-1)
     }
 
     void UpdateBite(bool pressed)
@@ -210,6 +215,7 @@ public class FishingRod : MonoBehaviour
             else
             {
                 ToolStatus.Flash("Missed the hookset — it spat the hook");
+                ToolEvents.RaiseFailed(cane ? CaneId : RodId);
                 StartWaiting();
             }
             return;
@@ -218,6 +224,7 @@ public class FishingRod : MonoBehaviour
         if (Time.time >= stateUntil)
         {
             ToolStatus.Flash("Too slow — it let go");
+            ToolEvents.RaiseFailed(cane ? CaneId : RodId);
             StartWaiting();
         }
     }
@@ -233,6 +240,7 @@ public class FishingRod : MonoBehaviour
         }
 
         SetReeling(held && !running);
+        ToolEvents.SetReeling(cane ? CaneId : RodId, held && !running); // ReelStart and ReelStop on change (Hands M0c-1)
         bool pastGrace = running && Time.time >= runUntil - runSeconds + runGrace;
         if (held && running)
         {
@@ -252,6 +260,7 @@ public class FishingRod : MonoBehaviour
         if (strain >= snapStrain)
         {
             ToolStatus.Flash("The line snapped — it got away");
+            ToolEvents.RaiseFailed(cane ? CaneId : RodId);
             EndCast();
             return;
         }
@@ -285,6 +294,7 @@ public class FishingRod : MonoBehaviour
             ToolStatus.Flash($"Caught a {name}!  (+{added})");
 
         RecordCatch(name);
+        ToolEvents.RaiseLanded(cane ? CaneId : RodId);
         EndCast();
     }
 
@@ -318,6 +328,9 @@ public class FishingRod : MonoBehaviour
     void EndCast()
     {
         SetReeling(false);
+        ToolEvents.SetReeling(null, false);
+        if (state != State.Idle)
+            ToolEvents.RaiseLineIn(cane ? CaneId : RodId); // the cast is over (Hands M0c-1)
         state = State.Idle;
         hooked = null;
         if (bobber != null)

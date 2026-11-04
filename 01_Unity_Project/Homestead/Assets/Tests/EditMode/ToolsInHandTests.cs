@@ -23,6 +23,7 @@ public class ToolsInHandTests
     static int ViewLayer => LayerMask.NameToLayer("Viewmodel");
 
     static readonly string[] EightIds = { "axe", "primitive_axe", "wood_saw", "hammer", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe" };
+    static readonly string[] FourIds = { "fishing_rod", "cane_pole", "torch", "lantern" };
     static readonly string[] TwoHandedIds = { "axe", "primitive_axe", "wood_saw", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe" };
 
     readonly List<GameObject> made = new List<GameObject>();
@@ -297,8 +298,8 @@ public class ToolsInHandTests
     [Test]
     public void TheEightToolsAreTheOnesM0bDraws()
     {
-        CollectionAssert.AreEquivalent(EightIds, ToolWork.ViewToolIds);
-        Assert.That(ToolWork.IsViewTool("torch"), Is.False);
+        CollectionAssert.AreEquivalent(EightIds.Concat(FourIds), ToolWork.ViewToolIds);
+        Assert.That(ToolWork.IsViewTool("bucket"), Is.False);
         Assert.That(ToolWork.IsViewTool(null), Is.False);
     }
 
@@ -404,8 +405,8 @@ public class ToolsInHandTests
     public void AToolOutsideTheEightGetsNoShape()
     {
         Transform parent = Make("parent").transform;
-        Assert.That(BuildPrimitive("torch", parent), Is.Null);
-        Assert.That(BuildPrimitive("fishing_rod", parent), Is.Null);
+        Assert.That(BuildPrimitive("bucket", parent), Is.Null);
+        Assert.That(BuildPrimitive("recurve_bow", parent), Is.Null);
     }
 
     // ---- The tool swap point in ArtSwap ----
@@ -414,10 +415,10 @@ public class ToolsInHandTests
     public void TheToolTableHasARowForEachOfTheEightAndNothingElse()
     {
         var specs = ((System.Collections.IEnumerable)Art.GetProperty("AllToolSpecs").GetValue(null)).Cast<object>().ToList();
-        Assert.That(specs.Count, Is.EqualTo(8));
+        Assert.That(specs.Count, Is.EqualTo(12));
         var ids = specs.Select(s => (string)s.GetType().GetField("id").GetValue(s)).ToList();
-        CollectionAssert.AreEquivalent(EightIds.Select(i => "tool_" + i), ids);
-        Assert.That(Art.GetMethod("ToolSpecFor").Invoke(null, new object[] { "torch" }), Is.Null);
+        CollectionAssert.AreEquivalent(EightIds.Concat(FourIds).Select(i => "tool_" + i), ids);
+        Assert.That(Art.GetMethod("ToolSpecFor").Invoke(null, new object[] { "bucket" }), Is.Null);
         Assert.That(Art.GetMethod("ToolSpecFor").Invoke(null, new object[] { "tool_axe" }), Is.Null, "keyed by the item id, not the prefab id");
     }
 
@@ -481,7 +482,7 @@ public class ToolsInHandTests
     {
         int calls = 0;
         Load(path => { calls++; return null; });
-        Assert.That((Transform)TryAttach(Make("parent").transform, "torch"), Is.Null);
+        Assert.That((Transform)TryAttach(Make("parent").transform, "bucket"), Is.Null);
         Assert.That(calls, Is.EqualTo(0));
     }
 
@@ -552,7 +553,7 @@ public class ToolsInHandTests
     {
         Load(path => null);
         H hands = NewHands();
-        foreach (string id in new[] { "torch", "fishing_rod", "bucket", "recurve_bow", "knife" })
+        foreach (string id in new[] { "bucket", "recurve_bow", "knife", "canteen", "spile" })
         {
             hands.Apply(id);
             Assert.That(hands.HeldRoot.name, Is.EqualTo("Held Placeholder"), id);
@@ -769,7 +770,7 @@ public class ToolsInHandTests
     [Test]
     public void NoOtherToolScriptRaisesToolEventsYet()
     {
-        foreach (string file in new[] { "Fishing/FishingRod.cs", "Wildlife/HuntingWeapon.cs", "Survival/PortableLight.cs", "Survival/BowDrill.cs", "Player/TrapSetter.cs", "Survival/WaterSource.cs", "Player/CartHandler.cs" })
+        foreach (string file in new[] { "Wildlife/HuntingWeapon.cs", "Survival/BowDrill.cs", "Player/TrapSetter.cs", "Survival/WaterSource.cs", "Player/CartHandler.cs" })
             StringAssert.DoesNotContain("ToolEvents", Source("Scripts/" + file), file);
     }
 
@@ -814,7 +815,7 @@ public class ToolsInHandTests
     {
         foreach (string id in CockedIds)
             Assert.That(ToolWork.CockKind(id, out _), Is.True, id);
-        foreach (string id in new[] { "wood_saw", "shovel", "iron_shovel", "torch", "fishing_rod", "bucket", "knife" })
+        foreach (string id in new[] { "wood_saw", "shovel", "iron_shovel", "bucket", "knife", "knife" })
             Assert.That(ToolWork.CockKind(id, out _), Is.False, id);
         Assert.That(ToolWork.CockKind(null, out _), Is.False);
         ToolWork.CockKind("stone_pick_axe", out WorkKind mine);
@@ -1001,7 +1002,7 @@ public class ToolsInHandTests
         float expected = Mathf.Abs(SwingRules.ChopCockPitch) * SwingRules.HandPitchShare;
         Assert.That(Quaternion.Angle(shovel, axe), Is.GreaterThan(expected - 3f).And.LessThan(expected + 6f), "the axe is cocked relative to the neutral hold the shovel has");
         Assert.That(Quaternion.Angle(shovel, saw), Is.LessThan(0.5f), "the saw and the shovel share the neutral hold");
-        Assert.That(Quaternion.Angle(shovel, Rotation("torch")), Is.LessThan(0.5f), "so does the generic placeholder");
+        Assert.That(Quaternion.Angle(shovel, Rotation("bucket")), Is.LessThan(0.5f), "so does the generic placeholder");
         foreach (string id in CockedIds)
             Assert.That(Quaternion.Angle(shovel, Rotation(id)), Is.GreaterThan(3f), id + " is held at a visibly different angle from the neutral hold");
     }

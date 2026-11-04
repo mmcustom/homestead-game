@@ -398,10 +398,17 @@ public static class ArtSwap
     //     side. The hands rig scales it toward the eye. Every renderer goes on the Viewmodel layer and stops casting shadows; every collider is removed.
     //   * Anchor_Grip_R (required): where the right hand holds it. Anchor_Grip_L (optional): where the left hand steadies a two-handed tool. Anchor_Tip (optional): the working point.
     //   * A missing anchor is made at the primitive's own grip (ToolViewPrimitives.LayoutFor), so the tool still sits in the hand.
+    //   * M0c-1 adds four rows: fishing_rod and cane_pole (Anchor_Grip_L for the left hand, Anchor_Line: where the fishing line starts; the world line is drawn from it while the rod is in hand) and torch and lantern
+    //     (one-handed; Anchor_Flame: where the flame sits, and the held point light is moved to it while the light burns). A light's State_Lit and State_Unlit children are shown to match
+    //     PortableLight's lit state (a missing one is simply never shown); the primitive flame and glow live under State_Lit. A ParticleSystem under Anchor_Flame is played while lit and stopped otherwise.
     public const string ToolPrefix = "tool_";
     public const string AnchorGripR = "Anchor_Grip_R";
     public const string AnchorGripL = "Anchor_Grip_L";
     public const string AnchorTip = "Anchor_Tip";
+    public const string AnchorLine = "Anchor_Line";   // the rods: where the fishing line starts
+    public const string AnchorFlame = "Anchor_Flame"; // the Torch and Lantern: where the flame and its light sit
+    public const string StateLit = "State_Lit";       // shown while the light burns (the primitive flame and glow are here)
+    public const string StateUnlit = "State_Unlit";   // shown while it does not
 
     public sealed class ToolSpec
     {
@@ -437,15 +444,26 @@ public static class ArtSwap
                 twoHanded = layout.twoHanded,
                 holdPitch = layout.holdPitch,
                 holdRoll = layout.holdRoll,
-                anchors = new[]
-                {
-                    A(AnchorGripR, true, 0f, 0f, 0f),
-                    A(AnchorGripL, false, layout.gripLeft.x, layout.gripLeft.y, layout.gripLeft.z),
-                    A(AnchorTip, false, layout.tip.x, layout.tip.y, layout.tip.z),
-                },
+                anchors = ToolAnchors(layout),
             };
         }
         return specs;
+    }
+
+    // The anchors a tool's row names: the grips and the tip for every tool, the line start on the rods and the flame on the lights.
+    static AnchorSpec[] ToolAnchors(ToolViewPrimitives.Layout layout)
+    {
+        var anchors = new List<AnchorSpec>
+        {
+            A(AnchorGripR, true, 0f, 0f, 0f),
+            A(AnchorGripL, false, layout.gripLeft.x, layout.gripLeft.y, layout.gripLeft.z),
+            A(AnchorTip, false, layout.tip.x, layout.tip.y, layout.tip.z),
+        };
+        if (layout.hasLine)
+            anchors.Add(A(AnchorLine, false, layout.line.x, layout.line.y, layout.line.z));
+        if (layout.hasFlame)
+            anchors.Add(A(AnchorFlame, false, layout.flame.x, layout.flame.y, layout.flame.z));
+        return anchors.ToArray();
     }
 
     public static IReadOnlyList<ToolSpec> AllToolSpecs => ToolSpecs;

@@ -148,6 +148,7 @@ public class PortableLight : MonoBehaviour, ISaveable
         if (litId == id)
         {
             litId = null;
+            ToolEvents.RaiseSnuffed(id); // the hands drop the light (Hands M0c-1)
             return;
         }
 
@@ -168,6 +169,7 @@ public class PortableLight : MonoBehaviour, ISaveable
         }
 
         litId = id;
+        ToolEvents.RaiseLit(id); // the hands lift it (Hands M0c-1)
     }
 
     void Burn(InventoryManager inventory)

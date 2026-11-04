@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
@@ -57,6 +58,11 @@ public class PlayerHands : MonoBehaviour
     Transform heldGripR;
     float heldPitch, heldRoll;
     readonly SwingState swing = new SwingState();
+    readonly ToolActionState action = new ToolActionState(); // the rods and lights in hand (M0c-1)
+    Transform lineAnchor, flameAnchor, stateLit, stateUnlit, flameShape;
+    Vector3 flameShapeScale;
+    bool heldIsPrimitive, lightMoved;
+    ParticleSystem[] flameParticles;
     InventoryManager inventory;
     int layer = -1;
     bool failed;
@@ -84,6 +90,14 @@ public class PlayerHands : MonoBehaviour
     public bool HoldSwing { get; set; }
     public Transform HeldRoot => heldRoot;
     public Transform LeftGrip => gripL;
+    public ToolActionState Action => action;
+    public Transform FlameAnchor => flameAnchor;
+
+    // Where a rod in hand starts its fishing line: its Anchor_Line while the hands are showing it, else null (FishingRod then draws the line from where it always did).
+    public Transform LineAnchor => lineAnchor != null && rig != null && rig.activeInHierarchy && ToolActionRules.IsRod(heldShown) ? lineAnchor : null;
+
+    // Whether the Torch or Lantern with this item id is burning. PortableLight answers it; a test replaces it.
+    public System.Func<string, bool> LitQuery = id => PortableLight.Instance != null && PortableLight.Instance.IsLit(id);
 
     void Awake()
     {
@@ -93,6 +107,9 @@ public class PlayerHands : MonoBehaviour
         weapon = GetComponent<HuntingWeapon>();
         ToolEvents.Swung += OnSwung;
         ToolEvents.Tired += OnTired;
+        ToolEvents.Cast += OnCast; ToolEvents.Bite += OnBite; ToolEvents.Landed += OnLanded; ToolEvents.Failed += OnFailed;
+        ToolEvents.ReelStart += OnReelStart; ToolEvents.ReelStop += OnReelStop; ToolEvents.LineIn += OnLineIn;
+        ToolEvents.Lit += OnLit; ToolEvents.Snuffed += OnSnuffed;
     }
 
     void OnDestroy()
@@ -103,6 +120,9 @@ public class PlayerHands : MonoBehaviour
             inventory.EquippedToolChanged -= OnEquippedChanged;
         ToolEvents.Swung -= OnSwung;
         ToolEvents.Tired -= OnTired;
+        ToolEvents.Cast -= OnCast; ToolEvents.Bite -= OnBite; ToolEvents.Landed -= OnLanded; ToolEvents.Failed -= OnFailed;
+        ToolEvents.ReelStart -= OnReelStart; ToolEvents.ReelStop -= OnReelStop; ToolEvents.LineIn -= OnLineIn;
+        ToolEvents.Lit -= OnLit; ToolEvents.Snuffed -= OnSnuffed;
     }
 
     // A blow landed with this tool (ToolEvents): the hands swing. Ignored when the hands are holding something else (mid-switch). A finishing flag that arrives with the swing it belongs to makes
@@ -116,6 +136,17 @@ public class PlayerHands : MonoBehaviour
         else
             swing.Start(kind, finishing);
     }
+
+    // The rods and lights (ToolEvents, M0c-1). Each is ignored when the hands are holding something else.
+    public void OnCast(string toolId) { if (toolId == raise.Shown) { action.SetFishing(true); action.Start(ToolAction.Cast); } }
+    public void OnBite(string toolId) { if (toolId == raise.Shown) action.Start(ToolAction.Bite); }
+    public void OnLanded(string toolId) { if (toolId == raise.Shown) action.Start(ToolAction.Catch); }
+    public void OnFailed(string toolId) { if (toolId == raise.Shown) action.Start(ToolAction.Miss); }
+    public void OnReelStart(string toolId) { if (toolId == raise.Shown) action.SetReeling(true); }
+    public void OnReelStop(string toolId) { if (toolId == raise.Shown) action.SetReeling(false); }
+    public void OnLineIn(string toolId) { if (toolId == raise.Shown) action.SetFishing(false); }
+    public void OnLit(string toolId) { if (toolId == raise.Shown) action.Start(ToolAction.Light); }
+    public void OnSnuffed(string toolId) { if (toolId == raise.Shown) action.Start(ToolAction.Snuff); }
 
     // A blow was refused for lack of stamina: the hands droop.
     public void OnTired(string toolId)
@@ -270,7 +301,11 @@ public class PlayerHands : MonoBehaviour
         gripL = null;
         heldTwoHanded = false;
         heldGripR = null;
+        lineAnchor = flameAnchor = stateLit = stateUnlit = flameShape = null;
+        flameParticles = null;
+        heldIsPrimitive = false;
         heldShown = toolId;
+        action.Configure(toolId);
         // The tool in hand decides the ready pose: the Axes, Pick Axes and Hammer are held cocked (drawn back), everything else neutral. This also drops any swing in progress.
         swing.Configure(ToolWork.CockKind(toolId, out WorkKind cockKind), cockKind);
         if (toolId == null || anchorR == null)
@@ -281,11 +316,27 @@ public class PlayerHands : MonoBehaviour
         if (spec != null)
         {
             Transform tool = ArtSwap.TryAttachTool(anchorR, toolId, layer);
+            heldIsPrimitive = tool == null;
             if (tool == null)
                 tool = ToolViewPrimitives.Build(toolId, anchorR, layer).transform;
             Transform gripR = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripR);
             gripL = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripL);
             ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorTip);
+            if (spec.Anchor(ArtSwap.AnchorLine) != null)
+                lineAnchor = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorLine);
+            if (spec.Anchor(ArtSwap.AnchorFlame) != null)
+            {
+                flameAnchor = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorFlame);
+                List<Transform> lit = ArtSwap.Named(tool, ArtSwap.StateLit), unlit = ArtSwap.Named(tool, ArtSwap.StateUnlit);
+                stateLit = lit.Count > 0 ? lit[0] : null;
+                stateUnlit = unlit.Count > 0 ? unlit[0] : null;
+                flameParticles = flameAnchor.GetComponentsInChildren<ParticleSystem>(true);
+                if (heldIsPrimitive && stateLit != null)
+                {
+                    flameShape = stateLit.Find("Flame");
+                    flameShapeScale = flameShape != null ? flameShape.localScale : Vector3.one;
+                }
+            }
             heldGripR = gripR; heldPitch = spec.holdPitch; heldRoll = spec.holdRoll;
             AlignToGrip(tool, gripR, heldPitch, heldRoll);
             held = tool.gameObject;
@@ -373,13 +424,69 @@ public class PlayerHands : MonoBehaviour
         float dt = Time.deltaTime;
         raise.Tick(dt, wanted);
         if (!HoldSwing)
+        {
             swing.Tick(dt);
+            action.Tick(dt);
+        }
         breathTime += dt;
 
         bool moving = body != null && new Vector2(body.velocity.x, body.velocity.z).sqrMagnitude > 0.09f && body.isGrounded;
         HandMotion motion = HandPoseRules.MotionFor(moving, player != null && player.IsSprinting, player != null && player.IsCrouching);
         stepPhase += HandPoseRules.StepRate(motion) * dt;
         Apply(raise.Shown, raise.Raise * HandPoseRules.ScopeLowering(scope), breathTime, stepPhase, motion);
+        UpdateLight(shown);
+    }
+
+    // Where PortableLight makes its point light, relative to the camera: low and right of the view. The light goes back here whenever the flame in hand is not carrying it.
+    public static readonly Vector3 HeldLightHome = new Vector3(0.45f, -0.3f, 0.35f);
+
+    // The light sits this far ahead of the flame along the view, in metres: right at the flame it would blow the hand holding it out to white.
+    public const float FlameLightAhead = 0.18f;
+
+    // The held light goes to the flame while a lit light is in hand and showing, and back home otherwise. Intensity, range and colour are PortableLight's and are not touched.
+    public static void PlaceHeldLight(Transform heldLight, Transform flame, bool onFlame)
+    {
+        if (heldLight == null)
+            return;
+        if (onFlame && flame != null)
+            heldLight.position = flame.position + (heldLight.parent != null ? heldLight.parent.forward * FlameLightAhead : Vector3.zero);
+        else
+            heldLight.localPosition = HeldLightHome;
+    }
+
+    // The lit or unlit state of a Torch or Lantern in hand: the matching State_ child, the flame's flicker, a prefab's particles, and the point light's place.
+    public void UpdateLight(bool handsShown)
+    {
+        bool isLight = ToolActionRules.IsLight(heldShown) && flameAnchor != null;
+        bool lit = isLight && LitQuery != null && LitQuery(heldShown);
+        if (stateLit != null)
+            stateLit.gameObject.SetActive(lit);
+        if (stateUnlit != null)
+            stateUnlit.gameObject.SetActive(isLight && !lit);
+        if (flameParticles != null)
+        {
+            foreach (ParticleSystem particles in flameParticles)
+            {
+                if (lit && !particles.isPlaying)
+                    particles.Play();
+                else if (!lit && particles.isPlaying)
+                    particles.Stop();
+            }
+        }
+        if (flameShape != null && lit)
+        {
+            // A cheap flicker: the primitive flame breathes in height and width, two sines out of step.
+            float t = Time.time;
+            float height = 1f + 0.18f * Mathf.Sin(t * 17f) + 0.10f * Mathf.Sin(t * 29f + 1f);
+            float width = 1f + 0.08f * Mathf.Sin(t * 23f + 2f);
+            flameShape.localScale = new Vector3(flameShapeScale.x * width, flameShapeScale.y * height, flameShapeScale.z * width);
+        }
+
+        Transform heldLight = player != null && player.CameraTransform != null ? player.CameraTransform.Find("Held Light") : null;
+        bool onFlame = handsShown && lit;
+        if (heldLight != null && (onFlame || lightMoved))
+            PlaceHeldLight(heldLight, flameAnchor, onFlame);
+        lightMoved = onFlame;
     }
 
     // Puts the hands where the rules say, for the tool shown (null = empty hands) and how far up it is. Public so a test can pose them without a player.
@@ -394,8 +501,11 @@ public class PlayerHands : MonoBehaviour
         HandPose right = HandPoseRules.Pose(HandSide.Right, rightHolds, raiseAmount, breath, steps, motion);
         if (rightHolds)
         {
-            // The ready pose (cocked or neutral) and a blow in progress: the hand turns about the elbow by only a share of the pitch (so the sleeve stays out of the view); the tool takes the rest about its grip.
+            // The ready pose (cocked or neutral), a blow in progress and, for a rod or a light, its own ready pose and the cast, bite, reel or flicker: the hand turns about the elbow by only a share of
+            // the pitch (so the sleeve stays out of the view); the tool takes the rest about its grip.
             HandPose offset = swing.Offset;
+            if (ToolActionRules.Handles(shownTool))
+                offset = SwingRules.Sum(offset, action.Offset(LitQuery != null && LitQuery(shownTool)));
             float toolPitch = offset.Pitch * (1f - SwingRules.HandPitchShare);
             offset.Pitch *= SwingRules.HandPitchShare;
             PlaceHandSwinging(handR, right, offset);

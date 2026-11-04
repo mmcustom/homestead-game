@@ -19,6 +19,7 @@ public static class ToolWork
     {
         "axe", "primitive_axe", "wood_saw", "hammer",
         "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe",
+        "fishing_rod", "cane_pole", "torch", "lantern",
     };
 
     public static bool IsViewTool(string toolId) => toolId != null && Array.IndexOf(ViewToolIds, toolId) >= 0;

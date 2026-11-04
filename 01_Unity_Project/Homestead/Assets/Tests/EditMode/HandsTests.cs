@@ -613,11 +613,11 @@ public class HandsTests
         H hands = NewHands(out Camera cam);
         hands.Build(cam);
 
-        hands.Apply("fishing_rod", 1f, 0f, 0f, HandMotion.Idle);
+        hands.Apply("recurve_bow", 1f, 0f, 0f, HandMotion.Idle);
         Assert.That(hands.LeftHand.gameObject.activeSelf, Is.True);
         Assert.That(hands.RightAnchor.Find("Held Placeholder"), Is.Not.Null, "the generic placeholder in the right hand (the rod is not one of the eight M0b tools)");
 
-        hands.Apply("torch", 1f, 0f, 0f, HandMotion.Idle);
+        hands.Apply("bucket", 1f, 0f, 0f, HandMotion.Idle);
         Assert.That(hands.LeftHand.gameObject.activeSelf, Is.False);
         Assert.That(hands.RightAnchor.childCount, Is.EqualTo(1), "the rod placeholder was replaced, not added to");
 
@@ -632,7 +632,7 @@ public class HandsTests
         Load(null, path => null);
         H hands = NewHands(out Camera cam);
         hands.Build(cam);
-        hands.Apply("fishing_rod", 1f, 0f, 0f, HandMotion.Idle);
+        hands.Apply("recurve_bow", 1f, 0f, 0f, HandMotion.Idle);
         Transform held = hands.RightAnchor.Find("Held Placeholder");
         Assert.That(held.gameObject.layer, Is.EqualTo(ViewLayer));
         Assert.That(held.GetComponent<Collider>(), Is.Null);
