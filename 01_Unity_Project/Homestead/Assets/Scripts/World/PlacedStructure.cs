@@ -32,6 +32,8 @@ public static class StructureVisuals
             case PileKind.Kiln: BuildKiln(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.CharcoalPitSite: BuildCharcoalPitSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.CharcoalPit: BuildCharcoalPit(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.BloomerySite: BuildBloomerySite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Bloomery: BuildBloomery(parent, state, pieces, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -374,6 +376,58 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.4f, 0f);
         boxSize = new Vector3(1.7f, 0.9f, 1.7f);
+    }
+
+    static readonly Color OreColor = new Color(0.45f, 0.24f, 0.16f);
+    static readonly Color IronBarColor = new Color(0.42f, 0.43f, 0.46f);
+
+    // The Bloomery's marked-out plot (about 1.6 m square: half = 0.8): the stakes, bare earth, the delivered Stone to one side and the Clay to the other.
+    static void BuildBloomerySite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 0.8f, out boxCenter, out boxSize);
+        int stone = Mathf.Min(state.Count(BloomeryRules.StoneId), BloomeryRules.SiteStone);
+        for (int i = 0; i < stone; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-1.4f + (i % 3) * 0.3f, 0.1f + (i / 3) * 0.2f, -0.5f + (i % 2) * 0.1f), new Vector3(0f, i * 23f, 0f), new Vector3(0.28f, 0.18f, 0.24f), null), SlabColor);
+        int clay = Mathf.Min(state.Count(BloomeryRules.ClayId), BloomeryRules.SiteClay);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(1.4f, 0.1f + (i / 2) * 0.16f, -0.5f + (i % 2) * 0.28f), Vector3.zero, new Vector3(0.26f, 0.2f, 0.26f), null), ClayColor);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(1.6f, 0.9f, 1.6f);
+    }
+
+    // The finished Bloomery (Metalworking M2): a stone-and-clay furnace stack about 1.2 m tall and 0.9 m across, tapering, on a flat stone footing, with a short chimney on top and a mouth at
+    // the front (+Z). Four footing stones are bedded round its foot, none in front of the mouth. Ore (rust lumps) lies to the left and Charcoal (black lumps) to the right when loaded; Iron Bars (grey) lie at
+    // the front when they wait; while it smelts the clay darkens and the mouth glows a dim ember (no light, no flicker). The smoke is KilnSmoke, a persistent child that Rebuild only
+    // switches on and off. No two faces share a plane: the mouth's front face stands at z 0.62, 17 cm clear of the stack's surface there (radius 0.45), and the chimney and the upper stack
+    // overlap the pieces below them instead of touching.
+    static void BuildBloomery(Transform parent, WoodPileState state, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BloomeryRules.Phase phase = WellsAndOuthouses.BloomeryPhaseOf(state);
+        bool smelting = phase == BloomeryRules.Phase.Smelting;
+
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.04f, 0f), Vector3.zero, new Vector3(1.4f, 0.04f, 1.4f), null), SlabColor);              // the footing: top at 0.08
+        Color lower = smelting ? Color.Lerp(ClayColor, SootColor, 0.5f) : ClayColor;
+        Color upper = smelting ? Color.Lerp(FiredClayColor, SootColor, 0.5f) : Color.Lerp(ClayColor, SlabColor, 0.35f);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.4f, 0f), Vector3.zero, new Vector3(0.9f, 0.32f, 0.9f), null), lower);                    // 0.08 to 0.72
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.9f, 0f), Vector3.zero, new Vector3(0.64f, 0.22f, 0.64f), null), upper);                 // 0.68 to 1.12, narrower
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 1.12f, 0f), Vector3.zero, new Vector3(0.3f, 0.1f, 0.3f), null), smelting ? SootColor : SlabColor); // the chimney, top at 1.22
+        foreach (float around in new[] { -1.5f, -0.9f, 0.9f, 1.5f }) // footing stones round the foot, none in front of the mouth
+        {
+            float angle = Mathf.PI / 2f + around;
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(Mathf.Cos(angle) * 0.5f, 0.16f, Mathf.Sin(angle) * 0.5f), new Vector3(0f, -angle * Mathf.Rad2Deg, 0f), new Vector3(0.22f, 0.2f, 0.22f), null), SlabColor);
+        }
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.28f, 0.5f), Vector3.zero, new Vector3(0.34f, 0.26f, 0.24f), null),
+               smelting ? Color.Lerp(SootColor, EmberColor, 0.55f) : SootColor);                                                                                              // the mouth
+
+        for (int i = 0; i < Mathf.Min(state.BloomeryOre, BloomeryRules.OreCap); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-0.85f + (i % 2) * 0.2f, 0.09f + (i / 2) * 0.14f, 0.1f + (i % 2) * 0.08f), Vector3.zero, new Vector3(0.22f, 0.16f, 0.2f), null), OreColor);
+        for (int i = 0; i < Mathf.Min(state.BloomeryCharcoal, BloomeryRules.CharcoalCap); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0.85f - (i % 2) * 0.2f, 0.09f + (i / 2) * 0.14f, 0.1f + (i % 2) * 0.08f), Vector3.zero, new Vector3(0.2f, 0.12f, 0.16f), null), CharcoalColor);
+        for (int i = 0; i < Mathf.Min(state.BloomeryBars, 4); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.3f + i * 0.2f, 0.06f, 0.95f), new Vector3(0f, 8f * i, 0f), new Vector3(0.14f, 0.07f, 0.4f), null), IronBarColor);
+
+        boxCenter = new Vector3(0f, 0.65f, 0f);
+        boxSize = new Vector3(1.2f, 1.4f, 1.2f);
     }
 
     // One small piece, by its dry id's shape (the same shapes as on the Potter's Shed's shelf).
@@ -721,6 +775,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     readonly List<GameObject> pieces = new List<GameObject>();
     KilnSmoke kilnSmoke; // a Kiln's smoke, kept across Rebuild so its particles are not restarted every game hour
     KilnSmoke pitSmoke;  // a Charcoal Pit's, the same smoke made smaller
+    KilnSmoke bloomerySmoke; // a Bloomery's, likewise
 
     public WoodPileState State => state;
 
@@ -769,6 +824,23 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             }
             pitSmoke.SetFiring(state.PitBurning);
         }
+        else if (state.kind == PileKind.Bloomery)
+        {
+            if (bloomerySmoke == null)
+            {
+                bloomerySmoke = KilnSmoke.Create(transform);
+                bloomerySmoke.gameObject.name = "Bloomery Smoke";
+                bloomerySmoke.height = BloomeryRules.SmokeHeight;
+                bloomerySmoke.spreadRadius = BloomeryRules.SmokeSpread;
+                bloomerySmoke.startSizeMin = BloomeryRules.SmokeSizeMin;
+                bloomerySmoke.startSizeMax = BloomeryRules.SmokeSizeMax;
+                bloomerySmoke.puffsPerSecond = BloomeryRules.SmokePuffsPerSecond;
+                bloomerySmoke.riseSpeed = BloomeryRules.SmokeRiseSpeed;
+                bloomerySmoke.maxPuffs = BloomeryRules.SmokeMaxPuffs;
+                bloomerySmoke.Apply();
+            }
+            bloomerySmoke.SetFiring(state.SmeltRunning);
+        }
         box.center = center;
         box.size = size;
         // The finished kitchen has no interaction box (it would be a solid block to walk into): its roof, posts and table are the colliders,
@@ -815,6 +887,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.PotterShed: return PotteryPrompt();
                 case PileKind.Kiln: return KilnPromptText();
                 case PileKind.CharcoalPit: return PitPromptText();
+                case PileKind.Bloomery: return BloomeryPromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -1673,6 +1746,121 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // --- The Bloomery (Metalworking M2) ---
+
+    BloomeryRules.Phase SmeltPhaseNow => WellsAndOuthouses.BloomeryPhaseOf(state);
+
+    string BloomeryPromptText() =>
+        BloomeryRules.Prompt(SmeltPhaseNow, state.BloomeryOre, state.BloomeryCharcoal, state.BloomeryBars, state.jobCount, state.jobHours);
+
+    BloomeryRules.LoadPlan BloomeryPlan(out int oreCarried, out int charcoalCarried)
+    {
+        oreCarried = Inventory.Player.Count(BloomeryRules.OreId);
+        charcoalCarried = Inventory.Player.Count(BloomeryRules.CharcoalId);
+        return BloomeryRules.PlanLoad(state.BloomeryOre, state.BloomeryCharcoal, oreCarried, charcoalCarried);
+    }
+
+    string BloomerySecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return BloomeryRules.DismantlePrompt(SmeltPhaseNow, state.jobHours);
+        BloomeryRules.LoadPlan plan = BloomeryPlan(out int oreCarried, out int charcoalCarried);
+        return BloomeryRules.LoadPrompt(plan, state.BloomeryOre, state.BloomeryCharcoal, oreCarried, charcoalCarried);
+    }
+
+    // E: collect any finished Bars first; otherwise start a smelt when it holds at least 2 Ore and 2 Charcoal, show the hours while it smelts, and say what is missing when it is not ready.
+    void BloomeryInteract()
+    {
+        switch (SmeltPhaseNow)
+        {
+            case BloomeryRules.Phase.Done:
+                BloomeryCollect();
+                return;
+            case BloomeryRules.Phase.Smelting:
+                ToolStatus.Flash(BloomeryPromptText(), 3f);
+                return;
+            case BloomeryRules.Phase.Ready:
+                BloomeryStart(out string started);
+                ToolStatus.Flash(started, 4f);
+                return;
+            default:
+                ToolStatus.Flash(BloomeryRules.NotReady(state.BloomeryOre, state.BloomeryCharcoal), 4f);
+                return;
+        }
+    }
+
+    // Starts a smelt: the Ore and Charcoal it uses are taken out of the stock, the Bars it will make are fixed (jobCount) and the 10 hours start. The marker is jobItem; jobHours is the
+    // hours left. What is left in contents is stock for the next smelt.
+    public bool BloomeryStart(out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.Bloomery || WoodManager.Instance == null || !BloomeryRules.CanStart(SmeltPhaseNow))
+            return false;
+        int bars = BloomeryRules.BarsFor(state.BloomeryOre, state.BloomeryCharcoal);
+        state.Take(BloomeryRules.OreId, BloomeryRules.OreUsed(bars));
+        state.Take(BloomeryRules.CharcoalId, BloomeryRules.CharcoalUsed(bars));
+        state.jobItem = BloomeryRules.SmeltMarker;
+        state.jobCount = bars;
+        state.jobHours = BloomeryRules.SmeltHours;
+        WoodManager.Instance.NotifyChanged(state);
+        message = BloomeryRules.Started(bars, state.BloomeryOre, state.BloomeryCharcoal);
+        return true;
+    }
+
+    // The Iron Bars go to the pack, as many as it holds; the rest stay in the furnace.
+    void BloomeryCollect()
+    {
+        int waiting = state.BloomeryBars;
+        ItemDefinition item = ItemDatabase.Get(BloomeryRules.BarId);
+        int fits = item != null ? Mathf.Min(waiting, Inventory.Player.SpaceFor(item)) : 0;
+        int added = fits > 0 ? Inventory.AddToPlayer(BloomeryRules.BarId, fits) : 0;
+        if (added > 0)
+        {
+            state.Take(BloomeryRules.BarId, added);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+        ToolStatus.Flash(BloomeryRules.Took(added, waiting - added), 4f);
+    }
+
+    // R: with the Hammer it takes the bloomery down; without, it loads Ore and Charcoal from the pack, at any time.
+    void BloomerySecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        BloomeryRules.LoadPlan plan = BloomeryPlan(out int oreCarried, out int charcoalCarried);
+        if (!plan.Any)
+        {
+            ToolStatus.Flash(BloomeryRules.LoadRefusal(state.BloomeryOre, state.BloomeryCharcoal, oreCarried, charcoalCarried), 4f);
+            return;
+        }
+        BloomeryLoadFromPack(out string message);
+        ToolStatus.Flash(message, 4f);
+    }
+
+    // Puts the Ore and the Charcoal carried into the furnace, each up to 4. Returns whether anything moved.
+    public bool BloomeryLoadFromPack(out string message)
+    {
+        message = BloomeryRules.LoadRefusal(0, 0, 0, 0);
+        if (state == null || state.kind != PileKind.Bloomery || Inventory == null || WoodManager.Instance == null)
+            return false;
+        BloomeryRules.LoadPlan plan = BloomeryPlan(out int oreCarried, out int charcoalCarried);
+        if (!plan.Any)
+            return false;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        int ore = plan.ore > 0 ? Inventory.Player.RemoveBatches(BloomeryRules.OreId, plan.ore, (day, count) => state.Add(BloomeryRules.OreId, count, 0)) : 0;
+        int charcoal = plan.charcoal > 0 ? Inventory.Player.RemoveBatches(BloomeryRules.CharcoalId, plan.charcoal, (day, count) => state.Add(BloomeryRules.CharcoalId, count, 0)) : 0;
+        if (ore + charcoal <= 0)
+            return false;
+        WoodManager.Instance.NotifyChanged(state);
+        var moved = new BloomeryRules.LoadPlan { ore = ore, charcoal = charcoal };
+        message = BloomeryRules.Loaded(moved, state.BloomeryOre, state.BloomeryCharcoal, oreCarried, charcoalCarried);
+        return true;
+    }
+
     // --- The Charcoal Pit (Metalworking M1) ---
 
     CharcoalRules.Phase PitPhaseNow => WellsAndOuthouses.PitPhaseOf(state);
@@ -1836,6 +2024,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return KilnSecondaryPrompt();
             if (state.kind == PileKind.CharcoalPit)
                 return PitSecondaryPrompt();
+            if (state.kind == PileKind.Bloomery)
+                return BloomerySecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -1882,6 +2072,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.PotterShed: PotteryInteract(); break;
             case PileKind.Kiln: KilnInteract(); break;
             case PileKind.CharcoalPit: PitInteract(); break;
+            case PileKind.Bloomery: BloomeryInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -2054,6 +2245,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             PitSecondary();
         }
+        else if (state.kind == PileKind.Bloomery)
+        {
+            BloomerySecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -2171,6 +2366,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash(CharcoalRules.DismantlePrompt(PitPhaseNow, state.jobHours), 4f);
             return;
         }
+        // A Bloomery is not taken down while it smelts (the Ore and Charcoal are already in the fire).
+        if (state.kind == PileKind.Bloomery && !BloomeryRules.CanDismantle(SmeltPhaseNow))
+        {
+            ToolStatus.Flash(BloomeryRules.DismantlePrompt(SmeltPhaseNow, state.jobHours), 4f);
+            return;
+        }
         var refund = new StructureRefund(state.position, transform);
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
@@ -2202,6 +2403,13 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             refund.Return(CharcoalRules.LogsId, state.Count(CharcoalRules.LogsId));
             refund.Return(CharcoalRules.CharcoalId, state.Count(CharcoalRules.CharcoalId));
+        }
+        // A Bloomery gives back the Ore and Charcoal stocked and any Iron Bars waiting whole, on top of half the Stone and Clay.
+        if (state.kind == PileKind.Bloomery)
+        {
+            refund.Return(BloomeryRules.OreId, state.Count(BloomeryRules.OreId));
+            refund.Return(BloomeryRules.CharcoalId, state.Count(BloomeryRules.CharcoalId));
+            refund.Return(BloomeryRules.BarId, state.Count(BloomeryRules.BarId));
         }
         WoodManager.Instance.RemovePile(state);
         ToolStatus.Flash(refund.Describe(name), 5f);

@@ -189,6 +189,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.PotterSite:
             case PileKind.KilnSite:
             case PileKind.CharcoalPitSite:
+            case PileKind.BloomerySite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -213,6 +214,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.PotterSite: return PileKind.PotterShed;
             case PileKind.KilnSite: return PileKind.Kiln;
             case PileKind.CharcoalPitSite: return PileKind.CharcoalPit;
+            case PileKind.BloomerySite: return PileKind.Bloomery;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -245,6 +247,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.PotterSite: return PotterCost();
             case PileKind.KilnSite: return KilnCost();
             case PileKind.CharcoalPitSite: return CharcoalPitCost();
+            case PileKind.BloomerySite: return BloomeryCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -284,6 +287,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
         if (site == PileKind.CharcoalPitSite)
             return new[] { new[] { CharcoalRules.ClayId, CharcoalRules.TallGrassId } }; // the Clay and the Tall Grass in any order
+        if (site == PileKind.BloomerySite)
+            return new[] { new[] { BloomeryRules.StoneId, BloomeryRules.ClayId } }; // the Stone and the Clay in any order
         if (site == PileKind.LeachHopperSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.TallGrassId } };
         if (site == PileKind.HandCartSite)
@@ -429,6 +434,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.PotterSite: return PotteryRules.BuildBlows;
             case PileKind.KilnSite: return PotteryRules.KilnBuildBlows;
             case PileKind.CharcoalPitSite: return CharcoalRules.BuildBlows;
+            case PileKind.BloomerySite: return BloomeryRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -468,6 +474,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return PotteryRules.KilnBuiltMessage;
         if (site == PileKind.CharcoalPitSite)
             return CharcoalRules.BuiltMessage;
+        if (site == PileKind.BloomerySite)
+            return BloomeryRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -584,6 +592,13 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         new WoodStack { itemId = CharcoalRules.ClayId, count = CharcoalRules.SiteClay },
         new WoodStack { itemId = CharcoalRules.TallGrassId, count = CharcoalRules.SiteTallGrass },
+    };
+
+    // A Bloomery (Metalworking M2): 8 Stone and 6 Clay, about 61 kg, a staged site the Hand Cart carries. BloomeryRules has the numbers.
+    public static WoodStack[] BloomeryCost() => new[]
+    {
+        new WoodStack { itemId = BloomeryRules.StoneId, count = BloomeryRules.SiteStone },
+        new WoodStack { itemId = BloomeryRules.ClayId, count = BloomeryRules.SiteClay },
     };
 
     public static WoodStack[] CountertopCost()
@@ -798,6 +813,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.KilnSite: return PotteryRules.KilnRadiusMetres;
             case PileKind.CharcoalPit:
             case PileKind.CharcoalPitSite: return CharcoalRules.PitRadiusMetres;
+            case PileKind.Bloomery:
+            case PileKind.BloomerySite: return BloomeryRules.RadiusMetres;
             case PileKind.WoodShed:
             case PileKind.WoodShedSite:
             case PileKind.Tent:
@@ -821,6 +838,8 @@ public class WellsAndOuthouses : MonoBehaviour
                     kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = PotteryRules.KilnRadiusMetres });
                 else if (WoodManager.IsCharcoalPit(pile.kind)) // a Charcoal Pit keeps later buildings the same 3 m clear, from its own smaller edge
                     kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = CharcoalRules.PitRadiusMetres });
+                else if (WoodManager.IsBloomery(pile.kind)) // a Bloomery keeps later buildings the same 3 m clear, from its own edge
+                    kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = BloomeryRules.RadiusMetres });
         return Setbacks.CanPlaceBesideKiln(point, ReachOf(kind), kilns, Rules, out reason);
     }
 
@@ -940,6 +959,22 @@ public class WellsAndOuthouses : MonoBehaviour
             pitRules.kilnFromStructure = CharcoalRules.ClearanceMetres;
             pitRules.kilnFromTree = CharcoalRules.ClearanceMetres;
             return Setbacks.CanPlaceKiln(point, KilnNeighbours(ignore), treeNearPit, pitRules, out reason);
+        }
+
+        // A Bloomery is open air too (Metalworking M2): dry ground, not under a roof, its stack's edge 3 m clear of every other structure and every tree (the Kiln's rule, the bloomery's own radius).
+        if (kind == PileKind.BloomerySite || kind == PileKind.Bloomery)
+        {
+            if (OverheadCover.Roofed(point))
+            {
+                reason = "A bloomery needs open sky: not under a roof.";
+                return false;
+            }
+            bool treeNearBloomery = WoodManager.Instance != null && WoodManager.Instance.FindTree(point, BloomeryRules.TreeReachMetres) >= 0;
+            SetbackRules bloomeryRules = rules;
+            bloomeryRules.kilnRadius = BloomeryRules.RadiusMetres;
+            bloomeryRules.kilnFromStructure = BloomeryRules.ClearanceMetres;
+            bloomeryRules.kilnFromTree = BloomeryRules.ClearanceMetres;
+            return Setbacks.CanPlaceKiln(point, KilnNeighbours(ignore), treeNearBloomery, bloomeryRules, out reason);
         }
 
         // A Covered Kitchen keeps its roof edge clear of every other structure and every tree (a fire under a roof).
@@ -1281,6 +1316,40 @@ public class WellsAndOuthouses : MonoBehaviour
         return done;
     }
 
+    // --- The Bloomery (Metalworking M2) ---
+
+    // A smelt has run its hours: the Iron Bars it was started to make are in the furnace, waiting to be collected. The Ore and Charcoal it used were taken out when it started.
+    public static void FinishSmelt(WoodPileState furnace)
+    {
+        if (furnace == null || !furnace.SmeltRunning)
+            return;
+        furnace.Add(BloomeryRules.BarId, Mathf.Max(0, furnace.jobCount), 0);
+        furnace.jobItem = "";
+        furnace.jobHours = 0f;
+        furnace.jobCount = 0;
+    }
+
+    public static BloomeryRules.Phase BloomeryPhaseOf(WoodPileState furnace) =>
+        BloomeryRules.PhaseOf(furnace.SmeltRunning, furnace.BloomeryBars, furnace.BloomeryOre, furnace.BloomeryCharcoal);
+
+    // Testing only (TimeDebugControls, Ctrl+period): every smelt is done now. Returns how many bloomeries changed.
+    public int DebugFinishSmelts()
+    {
+        WoodManager wood = WoodManager.Instance;
+        int done = 0;
+        if (wood == null)
+            return 0;
+        foreach (WoodPileState furnace in wood.Piles)
+        {
+            if (furnace.kind != PileKind.Bloomery || !furnace.SmeltRunning)
+                continue;
+            FinishSmelt(furnace);
+            wood.NotifyChanged(furnace);
+            done++;
+        }
+        return done;
+    }
+
     // Stacks of one piece with the same ready hour become one.
     static void MergeShelf(WoodPileState shed)
     {
@@ -1387,6 +1456,17 @@ public class WellsAndOuthouses : MonoBehaviour
             if (CharcoalRules.IsDone(pit.jobHours))
                 FinishBurn(pit);
             wood.NotifyChanged(pit);
+        }
+
+        // A Bloomery's smelt runs one game hour at a time too (Metalworking M2): sleeping, skipping days and being away all count; at the end the Iron Bars are in.
+        foreach (WoodPileState furnace in wood.Piles)
+        {
+            if (furnace.kind != PileKind.Bloomery || !furnace.SmeltRunning)
+                continue;
+            furnace.jobHours = BloomeryRules.AfterHour(furnace.jobHours);
+            if (BloomeryRules.IsDone(furnace.jobHours))
+                FinishSmelt(furnace);
+            wood.NotifyChanged(furnace);
         }
 
         // A Kiln's firing runs one game hour at a time too (sleeping, skipping days and being away all count); at the end the pieces are fired and the Ash is in.

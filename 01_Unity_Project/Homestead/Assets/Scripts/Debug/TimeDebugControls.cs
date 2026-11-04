@@ -45,7 +45,9 @@ using UnityEngine.InputSystem;
 //   '  stand a finished Kiln 4 m ahead, loaded with 8 dry pieces and 10 Firewood, ready to light;  Shift+'  give a Kiln site kit (a Hammer, 6 Stone, 6 Clay, 10 Firewood, 3 dry Cups, 2 dry Bowls)
 //   ,  give the Charcoal Pit site's materials (a Hammer, 4 Clay, 6 Tall Grass) and stand a Wood Pile with 6 Logs (48 kg, more than the pack holds) 3 m ahead;  Shift+,  stand a finished Charcoal
 //      Pit 4 m ahead loaded with 6 Logs, ready to light;  Ctrl+,  finish every running charcoal burn now (the Charcoal is in the pit)
-//   =  give 10 Iron Ore and 10 Charcoal (40 kg; what does not fit is left out and the message says so)
+//   =  give 10 Iron Ore and 10 Charcoal (40 kg; what does not fit is left out and the message says so);  Shift+=  give 4 Iron Bars (8 kg)
+//   .  give the Bloomery site's small materials (a Hammer, 6 Clay) and stand a Rock Pile with its 8 Stone (40 kg) 3 m ahead: the whole kit is about 61 kg and the pack holds 45;
+//      Shift+.  stand a finished Bloomery 4 m ahead loaded with 4 Ore and 4 Charcoal, ready to start;  Ctrl+.  finish every running smelt now (the Bars are in the furnace)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -326,6 +328,57 @@ public class TimeDebugControls : MonoBehaviour
             WoodManager.Instance.NotifyChanged(logsPile);
             Show(pitMissed == 0 ? $"Charcoal Pit kit given: a Hammer, {CharcoalRules.SiteClay} Clay and {CharcoalRules.SiteTallGrass} Tall Grass, and a Wood Pile with {CharcoalRules.LogsCap} Logs 3 m ahead"
                                 : $"Charcoal Pit kit given ({pitMissed} items didn't fit), and a Wood Pile with {CharcoalRules.LogsCap} Logs 3 m ahead", time);
+            return;
+        }
+
+        // Metalworking M2. . gives the Bloomery site's Clay and a Hammer and stands a Rock Pile with its 8 Stone 3 m ahead (61 kg would not fit the 45 kg pack); Shift+. stands a finished
+        // Bloomery 4 m ahead with 4 Ore and 4 Charcoal in it; Ctrl+. finishes every running smelt now.
+        if (keyboard.periodKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
+        {
+            if (ctrl)
+            {
+                int smeltsDone = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishSmelts() : 0;
+                Show(smeltsDone > 0 ? $"Smelt finished in {smeltsDone} bloomery(ies): the Iron Bars are ready" : "No Bloomery is smelting", time);
+                return;
+            }
+
+            Transform smeltBody = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 smeltFlat = Vector3.ProjectOnPlane(smeltBody.forward, Vector3.up).normalized;
+            Terrain smeltTerrain = Terrain.activeTerrain;
+            Vector3 SmeltAhead(float metres)
+            {
+                Vector3 at = smeltBody.position + smeltFlat * metres;
+                if (smeltTerrain != null)
+                    at.y = smeltTerrain.SampleHeight(at) + smeltTerrain.transform.position.y;
+                return at;
+            }
+
+            if (keyboard.shiftKey.isPressed)
+            {
+                WoodPileState furnace = WoodManager.Instance.DebugPlace(PileKind.Bloomery, SmeltAhead(4f), smeltBody.eulerAngles.y + 180f);
+                furnace.Add(BloomeryRules.OreId, BloomeryRules.OreCap);
+                furnace.Add(BloomeryRules.CharcoalId, BloomeryRules.CharcoalCap);
+                WoodManager.Instance.NotifyChanged(furnace);
+                Show($"Bloomery placed ahead with {BloomeryRules.OreCap} Ore and {BloomeryRules.CharcoalCap} Charcoal in it, ready to start (E)", time);
+                return;
+            }
+
+            InventoryManager smeltInventory = InventoryManager.Instance;
+            int smeltMissed = 0;
+            foreach ((string id, int count) in new (string, int)[] { ("hammer", 1), (BloomeryRules.ClayId, BloomeryRules.SiteClay) })
+                smeltMissed += count - smeltInventory.AddToPlayer(id, count);
+            WoodPileState rocks = WoodManager.Instance.DebugPlace(PileKind.RockStorage, SmeltAhead(3f), smeltBody.eulerAngles.y);
+            rocks.Add(BloomeryRules.StoneId, BloomeryRules.SiteStone);
+            WoodManager.Instance.NotifyChanged(rocks);
+            Show(smeltMissed == 0 ? $"Bloomery kit given: a Hammer and {BloomeryRules.SiteClay} Clay, and a Rock Pile with {BloomeryRules.SiteStone} Stone 3 m ahead"
+                                  : $"Bloomery kit given ({smeltMissed} items didn't fit), and a Rock Pile with {BloomeryRules.SiteStone} Stone 3 m ahead", time);
+            return;
+        }
+
+        if (keyboard.equalsKey.wasPressedThisFrame && keyboard.shiftKey.isPressed && InventoryManager.Instance != null)
+        {
+            int barsMissed = 4 - InventoryManager.Instance.AddToPlayer(MetalRules.IronBarId, 4);
+            Show(barsMissed == 0 ? "Given 4 Iron Bars" : $"Given what fits of 4 Iron Bars ({barsMissed} didn't fit)", time);
             return;
         }
 

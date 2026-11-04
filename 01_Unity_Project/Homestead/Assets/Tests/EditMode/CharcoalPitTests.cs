@@ -187,12 +187,13 @@ public class CharcoalPitTests
     public void TheTwoPitKindsAreThirtyNineAndFortyAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(41), "39 kinds before, plus the Pit's two");
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(43), "39 kinds before the Pit, plus the Pit's two and the Bloomery's two (41, 42)");
         Assert.That((int)Enum.Parse(kind, "Kiln"), Is.EqualTo(38), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "CharcoalPitSite"), Is.EqualTo(39));
         Assert.That((int)Enum.Parse(kind, "CharcoalPit"), Is.EqualTo(40));
         string[] names = Enum.GetNames(kind);
-        Assert.That(names.Any(n => n.Contains("Bloomery") || n.Contains("Smithy") || n.Contains("Forge")), Is.False, "41 to 44 stay reserved and are not added in M1");
+        Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42), "the Bloomery came next (M2)");
+        Assert.That(names.Any(n => n.Contains("Smithy") || n.Contains("Forge") || n.Contains("Anvil")), Is.False, "43 and 44 stay reserved for the Smithy");
     }
 
     // --- The staged site and the finished pit ---
@@ -490,7 +491,7 @@ public class CharcoalPitTests
         Assert.That(wells, Does.Contain("case PileKind.CharcoalPitSite: return CharcoalRules.PitRadiusMetres;"), "other structures keep clear of its reach too");
         Assert.That(wells, Does.Contain("WoodManager.IsCharcoalPit(pile.kind)"), "a pit is among the structures later buildings keep 3 m from");
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("kind == PileKind.KilnSite || kind == PileKind.CharcoalPitSite) && WellsAndOuthouses.Instance != null"), "the Build tab's placement check asks CanPlace");
+        Assert.That(wood, Does.Contain("kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite) && WellsAndOuthouses.Instance != null"), "the Build tab's placement check asks CanPlace");
     }
 
     [Test]
@@ -610,7 +611,7 @@ public class CharcoalPitTests
     [Test]
     public void TheCharcoalAndOreEntriesUnlockOnTheirTriggers()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(9));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(10));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Charcoal, out KnowHowRules.Entry charcoal), Is.True);
         Assert.That(charcoal.title, Is.EqualTo("Charcoal: Burning Logs Slowly"));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.IronOre, out KnowHowRules.Entry ore), Is.True);
@@ -634,7 +635,7 @@ public class CharcoalPitTests
         Assert.That(KnowHowRules.Backfill(id => id == "iron_ore", false, false, false), Is.EqualTo(new[] { "ironore" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false, pitPlaced: true), Is.EqualTo(new[] { "charcoal" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false), Is.Empty, "nothing earned, nothing added");
-        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit)"));
+        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery)"));
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("KnowHowRules.Happening.PitSitePlaced"));
     }
 
@@ -654,7 +655,8 @@ public class CharcoalPitTests
         KnowHowRules.TryGet(KnowHowRules.IronOre, out KnowHowRules.Entry ore);
         Assert.That(ore.body, Does.Contain("$4 each (3 kg)"));
         Assert.That(ore.body, Does.Contain("for only $1"));
-        Assert.That(ore.body, Does.Contain("not in the game yet"));
+        Assert.That(ore.body, Does.Contain("the Bloomery (see \"Smelting Iron in the Bloomery\")"), "the Ore entry points to the next step");
+        Assert.That(charcoal.body, Does.Contain("Smelting Iron in the Bloomery"), "and so does the Charcoal entry");
 
         foreach (string id in new[] { "iron_ore", "charcoal" })
         {
@@ -662,7 +664,7 @@ public class CharcoalPitTests
             Assert.That(tip, Is.Not.Empty, id);
             Assert.That(tip.Length, Is.LessThanOrEqualTo(80), id + " must fit in two lines of the row's info text");
         }
-        Assert.That(KnowHowRules.ItemTip("iron_ore"), Does.Contain("$1"));
+        Assert.That(KnowHowRules.ItemTip("iron_ore"), Does.Contain("$1").And.Contain("Bloomery"));
         Assert.That(KnowHowRules.ItemTip("charcoal"), Does.Contain("Charcoal Pit"));
 
         string craft = SourceText("Scripts/UI/CraftingScreen.cs");

@@ -313,7 +313,7 @@ public class KilnTests
         Assert.That((int)Kind("PotterShed"), Is.EqualTo(36));
         Assert.That((int)Kind("KilnSite"), Is.EqualTo(37));
         Assert.That((int)Kind("Kiln"), Is.EqualTo(38));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(41));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(43));
     }
 
     [Test]

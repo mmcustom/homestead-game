@@ -81,7 +81,7 @@ Sell the Potash at the Trading Post (about $16 each).
 
 Trigger: first Charcoal held, or a Charcoal Pit site first placed.
 
-Charcoal is Logs burned slowly under earth. It burns far hotter than Firewood and is the fuel iron smelting needs. You make it in a Charcoal Pit.
+Charcoal is Logs burned slowly under earth. It burns far hotter than Firewood and is the fuel iron smelting needs in a Bloomery (see "Smelting Iron in the Bloomery"). You make it in a Charcoal Pit.
 
 1. Open Build, then Other, and place a Charcoal Pit Site on open dry ground, 3 m clear of other buildings and trees, and not under a roof.
 2. Deliver 4 Clay and 6 Tall Grass with R over as many trips as you like. Then equip the Hammer and hold click on the site to build the pit.
@@ -99,4 +99,21 @@ Trigger: first Iron Ore held.
 
 There is no iron to dig on your land yet, so iron ore is bought. The Trading Post sells Iron Ore for $4 each (3 kg). It buys it back for only $1, so buy only what you will use.
 
-Smelting iron needs Charcoal as well (see "Charcoal: Burning Logs Slowly") and a furnace, the Bloomery, which is not in the game yet.
+Smelting iron needs Charcoal as well (see "Charcoal: Burning Logs Slowly") and a furnace, the Bloomery (see "Smelting Iron in the Bloomery").
+
+---
+
+## 10. Smelting Iron in the Bloomery
+
+Trigger: first Bloomery site placed, or first Iron Bar held.
+
+Iron ore is smelted in a Bloomery, a small furnace of Stone and Clay that burns Charcoal.
+
+1. Buy Iron Ore at the Trading Post and make Charcoal in a Charcoal Pit (see those two entries).
+2. Open Build, then Other, and place a Bloomery Site on open dry ground, 3 m clear of other buildings and trees, and not under a roof.
+3. Deliver 8 Stone and 6 Clay with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build the bloomery.
+4. Put the Hammer away. Press R at the bloomery to load the Ore and Charcoal you carry, up to 4 of each. You can load one without the other and top up either later.
+5. Press E to start a smelt once it holds 2 Ore and 2 Charcoal. Each 2 Ore and 2 Charcoal make 1 Iron Bar, up to 2 Bars at a time, and the smelt takes 10 game hours, even while you sleep or are away. Ore and Charcoal you add while it smelts wait for the next smelt.
+6. Press E again to collect the Iron Bars.
+
+Nobody buys Iron Bars; they are for the iron goods and tools that are not in the game yet. With the Hammer equipped, R takes the bloomery down, but not while it smelts; you get back half the Stone and Clay and all the Ore, Charcoal and Bars inside.
