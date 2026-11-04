@@ -1,7 +1,7 @@
 # Homestead
-## Hands and Held Tools v0.3
+## Hands and Held Tools v0.4
 
-Status: planned 2026-11-04 from Claude Code's read-only plan; phases M0a (73ee84d) and M0b (175a8c7) BUILT, M0c and M0d not built yet. Mike's wish: draw the player's hands holding and using tools on screen, so the permanent on-screen equipped-tool text can go. Rough primitive shapes for the Alpha; real art later, so every visual has one swap point (standing rule in Art_Readiness_and_Placeholders.md). Phase "Hands and tools M0" in the art phases. Depends on A1 (ArtSwap, ef52c25).
+Status: planned 2026-11-04 from Claude Code's read-only plan; phases M0a (73ee84d), M0b (175a8c7) and M0c-1 (0d6cdd3) BUILT, M0c-2 and M0d not built yet. Mike's wish: draw the player's hands holding and using tools on screen, so the permanent on-screen equipped-tool text can go. Rough primitive shapes for the Alpha; real art later, so every visual has one swap point (standing rule in Art_Readiness_and_Placeholders.md). Phase "Hands and tools M0" in the art phases. Depends on A1 (ArtSwap, ef52c25).
 
 ---
 
@@ -115,3 +115,22 @@ Not covered yet: the Fishing Rod, Cane Pole, bows, Rifle, Torch, Lantern, Bow Dr
 Save and gameplay: none changed. Files: 14 paths (8 new: SwingRules.cs, ToolEvents.cs, ToolViewPrimitives.cs, ToolsInHandTests.cs plus metas; 6 modified: AxeTool.cs, PlayerHands.cs, ArtSwap.cs, ArtSwapMenu.cs, HandPoseRules.cs, HandsTests.cs), 1887 insertions and 12 deletions. Edit-mode suite 1735 of 1735. SavesBackup49 made.
 
 Next: M0c (Fishing Rod and Cane Pole with cast, wait, bite and reel; Torch and Lantern with flame at Anchor_Flame; Bow and Rifle with draw and scope; Bow Drill; Bucket and Canteen; traps; Knife; generic shape for the rest; pushing pose on the Hand Cart; split c1 fishing and light, c2 weapons and the rest), then M0d (remove the idle equipped line). Idea logged 2026-11-05: melee (fists on an empty-handed click; Knife slash and stab for defense), a read-only plan request first; it uses the M0b swing poses and ToolEvents.
+
+
+# BUILT: Hands and tools M0c-1, Fishing Rod, Cane Pole, Torch and Lantern in hand (2026-11-05, playtest 1 to 35 passed with Mike's feel answers, committed 0d6cdd3)
+
+Four more tools are drawn in the hands as primitives: Fishing Rod, Cane Pole, Torch, Lantern. Suite 1770 of 1770 (1735 plus 35 new in RodsAndLightsInHandTests), Console 0 errors and 0 warnings. No HDRP, ProjectSettings.asset or HUD text change; fishing and light behaviour are unchanged.
+
+- Poses: new pure ToolActionRules and ToolActionState (Scripts/Economy) drive the hand poses, like SwingRules does for swings. Cast 0.6 s (pull back, then whip forward), bite dip 0.35 s, catch hook-set 0.6 s, miss or line snap 0.45 s, light-up 0.45 s, snuff 0.4 s. While reeling the right hand cranks at 2.2 turns per second, eased in over 0.15 s. The Lantern ready pose is raised 0.10 m. The Torch flame flickers.
+- ToolEvents gained Cast, Bite, Landed, Failed, ReelStart and ReelStop (SetReeling), LineIn, Lit and Snuffed. Hook lines are single statements: 13 in FishingRod.cs (cast, bite, landed, three failed, two reel, one line-in, plus the RodTip edit) and 2 in PortableLight.cs (Lit, Snuffed). No behaviour change.
+- Swap points (standing rule): fishing_rod, cane_pole, torch and lantern use ArtSwap tool_<itemid>. Anchors: Anchor_Grip_R (required), Anchor_Grip_L (two-handed), Anchor_Tip, Anchor_Line (rods, where the line leaves the tip), Anchor_Flame (Torch, Lantern), and State_Lit and State_Unlit children. Missing anchors fall back to the primitive coordinates. The primitive version stays the default. ArtSwap ToolSpecs now has 12 rows.
+- Held Light: while lit and the hands are shown, the Held Light point light moves to the flame anchor with a 0.18 m offset ahead of the flame (it blew the hand out white without the offset); it returns to its old home (0.45, -0.3, 0.35) when unlit, when the hands are hidden or when the tool changes. Light strength and reach are unchanged.
+- FishingRod.RodTip uses the rod's Anchor_Line when the hands show one (visual only; the line start moves, fishing logic does not).
+- Editor menu: Homestead > Art > Create/Remove Test Rod Prefab and Create/Remove Test Torch Prefab, for trying a prefab in hand (Play Mode stopped); the playtest confirmed nothing is left under Assets/Resources/Art.
+- Some M0a and M0b tests used Torch and Fishing Rod as examples of a generic placeholder tool; they now use Bucket, Recurve Bow and Knife. The ToolEvents-mention test now allows FishingRod and PortableLight.
+
+Mike's feel answers: poses feel right, crank speed good, flame light position ok, Lantern position good, nothing wrong at wide aspect.
+
+Not verified by Claude Code (Mike covered most in the playtest): shader stripping of the HDRP/Unlit flame in a player build (a bright lit fallback material exists), TAA at slow movement.
+
+Next: M0c-2 (Bow, Recurve Bow and Rifle with draw and scope; Bow Drill; Bucket and Canteen; Spile; traps; Knife shape; generic shapes for the rest; pushing pose on the Hand Cart; hands staying up in placement mode, with the cart and after the creek knock-down), then M0d (remove the idle equipped line, short fade-in tool name), then melee (see Melee_Fists_and_Knife.md).
