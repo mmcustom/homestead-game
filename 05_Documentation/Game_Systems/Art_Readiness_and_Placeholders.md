@@ -1,7 +1,7 @@
 # Homestead
-## Art Readiness and Placeholder List v0.2
+## Art Readiness and Placeholder List v0.3
 
-Status: started 2026-11-04 (Mike's decision); v0.2 adds Claude Code's read-only inventory, the swap-point plan and the phases. Rough shapes are fine for the Alpha. Better art for everything is wanted eventually, so the code must make replacing placeholders cheap. This doc holds the standing rule, the conventions, the placeholder list, the plan and the style questions.
+Status: started 2026-11-04 (Mike's decision); v0.2 added Claude Code's read-only inventory, the swap-point plan and the phases; v0.3 records phase A1 as BUILT (ef52c25). Rough shapes are fine for the Alpha. Better art for everything is wanted eventually, so the code must make replacing placeholders cheap. This doc holds the standing rule, the conventions, the placeholder list, the plan and the style questions.
 
 ---
 
@@ -53,14 +53,14 @@ Known breaks of the conventions (to be tidied only when the anchors replace them
 - With a prefab, Bind instantiates once and Rebuild only toggles named children (cheaper than today's destroy-and-rebuild). Build must tolerate a null pieces list because the ghost calls it that way.
 - No gameplay or save change; the prefab holds no saved data. Smallest version: ArtSwap (about 150 lines) plus about 40 lines in StructureVisuals.Build and Rebuild, Kiln only, about 15 to 20 tests.
 
-Worked example, Kiln (Resources/Art/structure_kiln.prefab): Body always on; Anchor_Smoke 1.0 m above origin; Anchor_Mouth 0.95 m forward and 0.45 m up; Anchor_Stock at x -1.45 for firewood; On_Firing glow; State_Empty / Loaded / Firing / Done dome variants chosen by KilnPhaseOf(state); no Solid parts (the Kiln's box is the collider).
+Worked example, Kiln (Resources/Art/structure_kiln.prefab): Body always on; Anchor_Smoke 1.1 m above origin (matches KilnSmoke.height); Anchor_Mouth 0.95 m forward and 0.45 m up; Anchor_Stock at x -1.45 for firewood; On_Firing glow; State_Empty / Loaded / Firing / Done dome variants chosen by KilnPhaseOf(state); no Solid parts (the Kiln's box is the collider).
 
 ---
 
 # Phases
 
 - A0: docs only (this doc, inventory, corrected conventions). Done when committed.
-- A1: ArtSwap, spec table, Kiln pilot, ghost handling. Playtest: drop a cube prefab at Resources/Art/structure_kiln.prefab, see it appear and react to firing, remove it and see today's Kiln.
+- A1 (BUILT, ef52c25): ArtSwap, spec table, Kiln pilot, ghost handling. Playtest: drop a cube prefab at Resources/Art/structure_kiln.prefab, see it appear and react to firing, remove it and see today's Kiln.
 - Hands and tools M0, right after A1: tool_<id> and Anchor_Grip_R/L through the same ArtSwap (depends on A1 only).
 - A2: the other 22 PlacedStructure kinds (anchor spec and state mapping per kind), plus the editor tool "Homestead/Art/Placeholder List" (reads the spec table, shows id, expected prefab path, exists or not, required and optional anchors, size, state names; exports Markdown; warns on bounds mismatch).
 - A3: WoodPile family (Wood Pile, Rock Pile, barrels, boxes, rack, shed, shelving, cart). Count-dependent contents are the hard part.
@@ -91,7 +91,7 @@ Columns: what it is | id or PileKind | drawn in | looks now | size (interaction 
 | Hand Cart Site | HandCartSite | BuildHandCartSite | plot marker | not recorded | none | none | Low |
 | Workshop Site / Workshop | WorkshopSite, Workshop | BuildWorkshopSite, BuildWorkshop | thatch open shed, posts, back wall, bench (~8 pieces + 3 Solid) | site 2.8x0.9x2.4; bench 2.0x1.1x0.7 | Solid roof/posts/wall; bench aim box | work piece, product on bench | Medium |
 | Potter's Shed Site / Shed | PotterSite, PotterShed | BuildPotterSite, BuildPotterShed | roofed shed with shelf (13 + 3 Solid) | site 2.4x0.9x2.0; box 2.2x1.4x0.7 | Solid roof/posts; shelf slots | dry/fired pieces | Medium |
-| Kiln Site / Kiln | KilnSite, Kiln | BuildKilnSite, BuildKiln | stone pad, clay dome 2.0x1.7, 5 stones, vent at y 1.0, mouth cube at z 0.95 | 2.2x1.5x2.2 | vent (KilnSmoke.height), mouth (z 0.7 to 1.25), firewood x -1.45 | dome colour, mouth ember, firewood, loaded/fired pieces, ash heap; KilnSmoke | Medium (A1 pilot) |
+| Kiln Site / Kiln | KilnSite, Kiln | BuildKilnSite, BuildKiln | stone pad, clay dome 2.0x1.7, 5 stones, vent at y 1.0, mouth cube at z 0.95 | 2.2x1.5x2.2 | vent (KilnSmoke.height), mouth (z 0.7 to 1.25), firewood x -1.45 | dome colour, mouth ember, firewood, loaded/fired pieces, ash heap; KilnSmoke | Medium (A1 pilot, swap point BUILT: Resources/Art/structure_kiln.prefab) |
 | Charcoal Pit Site / Pit | CharcoalPitSite, CharcoalPit | BuildCharcoalPitSite, BuildCharcoalPit | earth mound (6 pieces) | 1.7x0.9x1.7 | smoke point (CharcoalRules.SmokeHeight) | burning, charcoal heap; smaller KilnSmoke | Low |
 | Bloomery Site / Bloomery | BloomerySite, Bloomery | BuildBloomerySite, BuildBloomery | tapering clay-and-stone stack 1.2 m tall, chimney, mouth, 4 footing stones | 1.2x1.4x1.2 | smoke (BloomeryRules.SmokeHeight), mouth | clay darkens, mouth glows while smelting, ore/charcoal/bars shown; KilnSmoke | Low |
 | Smithy Site / Smithy | SmithySite, Smithy | BuildSmithySite, BuildSmithy | dark sooty thatched shed ~3x2.4, hearth with chimney, anvil on stump (15 + 3 Solid) | box 2.4x1.1x1.3; shed 3.0x2.4x2.2 | chimney (SmithyRules.ChimneyX/Z, smoke height 3.0), hearth mouth, anvil top | ember glow, hot piece, finished item on anvil, Bars/Charcoal outside; KilnSmoke at "Chimney" | Medium |
@@ -180,3 +180,33 @@ New placeholders from here on are appended to the tables above in the same docs 
 # Hands and tools (planned, right after A1)
 
 Mike wants first-person hands holding and using tools so the equipped-tool text can go. First version is primitive hands and tools behind the swap point: tool_<id> prefabs with Anchor_Grip_R and Anchor_Grip_L; item_<id> prefabs reused in hands later. A short fade-in tool name on switching stays, and the teaching prompts stay; only the permanent equipped line goes. Swing animation ties to the existing swing counts. See Current_Task_List.md.
+
+
+---
+
+# BUILT: Art readiness A1, ArtSwap and the Kiln pilot (2026-11-04, playtest 1 to 18 passed, committed ef52c25)
+
+The one swap point for structure visuals is the first line of StructureVisuals.Build (Scripts/World/PlacedStructure.cs), which calls ArtSwap.TryBuild (Scripts/World/ArtSwap.cs). A prefab at Resources/Art/<id>.prefab replaces the primitive version when it exists; with no prefab the primitives are drawn exactly as before. The old dispatcher moved unchanged into StructureVisuals.BuildPrimitive (internal); no builder body was edited. The header comment in ArtSwap.cs is the instruction sheet for a prefab author.
+
+How a prefab is used (Kiln, id structure_kiln):
+
+- Instantiated once in Bind as a child named structure_kiln and kept across Rebuild; each Rebuild only switches named children and redraws the contents. The instance root is reset to position zero and no rotation (scale kept), so Anchor_* children must be unrotated and unscaled.
+- Body always on. State_Empty, State_Loaded, State_Firing, State_Done follow KilnPhaseOf (Loading and Ready both show State_Loaded). On_Firing shows only while firing.
+- Anchors: Anchor_Smoke (1.1 m above origin; KilnSmoke is created there with height 0, or, if the prefab has its own particle system under the anchor, that one is played and stopped), Anchor_Mouth (loaded and fired pieces and Ash, kept as primitives), Anchor_Stock (firewood primitives, left of the Kiln at x -1.45). A missing anchor is created as an empty child at today's position.
+- Colliders: every collider in the prefab is removed; children named Solid_* get a box fitted to their mesh bounds (the Kiln has none today); the one BoxCollider still comes from the builder, with today's box. Footprints, setbacks and reach stay in the rules classes.
+- The placement ghost goes through the same Build; the existing ghost code puts the translucent green or red material on every renderer on the instance.
+- Dynamic contents are copied from the primitive builder: a scratch object draws the primitive Kiln, the 9 fixed shapes are discarded and the contents (Firewood first, then mouth pieces) are moved to the anchors. A test pins the 9-shape and ordering assumption; if the Kiln builder changes, that test says so.
+
+Adding the next kind: one Spec row in ArtSwap.Specs (id, required and optional anchors, state names, expected size, staticPieces and a contentSplit if the builder draws changing contents), plus the kind's drivers in Rebuild. Test seam: ArtSwap.Loader (defaults to Resources.Load), ResetForTests() and ResetCache().
+
+Playtest helpers: editor menu Homestead/Art/Create Test Kiln Prefab (slab body, four coloured State blocks, an orange On_Firing block, a marker cube at each anchor) and Remove Test Kiln Prefab. Create refuses to overwrite an existing prefab; Remove only deletes a prefab that has the TestKiln_Marker child. Never commit Assets/Resources/Art.
+
+Spec values: Kiln expectedSize is 2.4 x 1.1 x 2.4 (pad width and vent height); the interaction box (2.2 x 1.5 x 2.2) is stored separately.
+
+Not covered yet: a prefab with a rotated or scaled Anchor_*; a prefab's own particle system was only tested through isPlaying and isEmitting in edit mode; sites (staged plots) have no prefab by decision.
+
+Save and gameplay: no change; the prefab holds no saved data. SaveVersion and LedgerSaveData stay at 1. Files: 7 paths (PlacedStructure.cs modified; ArtSwap.cs, ArtSwapMenu.cs, ArtSwapTests.cs new, with metas), 1057 insertions and 2 deletions. Edit-mode suite 1609 of 1609 (27 new tests).
+
+Swap points so far (for the standing rule): FireManager.campfirePrefab, WildlifeManager species prefabs, trap and bobber prefabs (existing), and ArtSwap structure_<pilekind> (Kiln only). Everything else in the placeholder list still has no swap point; phases A2 to A8 add them.
+
+Next: hands and tools (tool_<id>, Anchor_Grip_R/L through ArtSwap), then A2 (the other structure kinds and the editor placeholder list).
