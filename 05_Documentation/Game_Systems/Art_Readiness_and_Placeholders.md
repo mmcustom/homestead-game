@@ -1,7 +1,7 @@
 # Homestead
-## Art Readiness and Placeholder List v0.4
+## Art Readiness and Placeholder List v0.5
 
-Status: started 2026-11-04 (Mike's decision); v0.2 added Claude Code's read-only inventory, the swap-point plan and the phases; v0.3 recorded phase A1 as BUILT (ef52c25); v0.4 adds the hands swap point (Hands and tools M0a, 73ee84d). Rough shapes are fine for the Alpha. Better art for everything is wanted eventually, so the code must make replacing placeholders cheap. This doc holds the standing rule, the conventions, the placeholder list, the plan and the style questions.
+Status: started 2026-11-04 (Mike's decision); v0.2 added Claude Code's read-only inventory, the swap-point plan and the phases; v0.3 recorded phase A1 as BUILT (ef52c25); v0.4 added the hands swap point (Hands and tools M0a, 73ee84d); v0.5 adds the tool swap points (Hands and tools M0b, 175a8c7). Rough shapes are fine for the Alpha. Better art for everything is wanted eventually, so the code must make replacing placeholders cheap. This doc holds the standing rule, the conventions, the placeholder list, the plan and the style questions.
 
 ---
 
@@ -145,7 +145,7 @@ Columns: what it is | id or PileKind | drawn in | looks now | size (interaction 
 | Weather | Art/Weather/*.mat, Precipitation, Lightning | particle materials with small PNGs | Medium |
 | Kiln / Pit / Bloomery / Smithy smoke | World/KilnSmoke.cs, Resources/KilnSmoke.mat | particles built in code at runtime | Medium |
 | Player | Prefabs/Player.prefab | CharacterController capsule 1.8 m, radius 0.35, eye 1.65; body mesh not checked; first-person hands BUILT (M0a, 73ee84d): swap point Resources/Art/hands_player.prefab via ArtSwap.TryAttachHands, anchors Anchor_Hand_R and Anchor_Hand_L | High (hands: real art) |
-| Held tools | AxeTool.cs | not drawn at all; equipped tool is logic plus HUD text, for every tool (including the new iron Shovel and Pick Axe); since M0a the hands hold a generic placeholder shape, real tool shapes (tool_<id> swap points) come in M0b | High |
+| Held tools | AxeTool.cs | not drawn at all; equipped tool is logic plus HUD text, for every tool (including the new iron Shovel and Pick Axe); since M0a the hands hold a generic placeholder shape; M0b (175a8c7) draws eight tools as primitives behind swap points tool_<itemid> (axe, primitive_axe, wood_saw, hammer, shovel, iron_shovel, stone_pick_axe, iron_pick_axe; Anchor_Grip_R, Anchor_Grip_L, Anchor_Tip); the other tools keep the generic placeholder until M0c | High |
 | UI icons | UI/MapIcons.cs | map markers built in code; items have no icon field (ItemDefinition); Assets/UI is empty | Medium |
 
 New placeholders from here on are appended to the tables above in the same docs commit as the build that adds them, with the swap point named.
@@ -207,6 +207,6 @@ Not covered yet: a prefab with a rotated or scaled Anchor_*; a prefab's own part
 
 Save and gameplay: no change; the prefab holds no saved data. SaveVersion and LedgerSaveData stay at 1. Files: 7 paths (PlacedStructure.cs modified; ArtSwap.cs, ArtSwapMenu.cs, ArtSwapTests.cs new, with metas), 1057 insertions and 2 deletions. Edit-mode suite 1609 of 1609 (27 new tests).
 
-Swap points so far (for the standing rule): FireManager.campfirePrefab, WildlifeManager species prefabs, trap and bobber prefabs (existing), and ArtSwap structure_<pilekind> (Kiln only), and ArtSwap hands_player (first-person hands, M0a, 73ee84d). Everything else in the placeholder list still has no swap point; phases A2 to A8 add them.
+Swap points so far (for the standing rule): FireManager.campfirePrefab, WildlifeManager species prefabs, trap and bobber prefabs (existing), and ArtSwap structure_<pilekind> (Kiln only), ArtSwap hands_player (first-person hands, M0a, 73ee84d), and ArtSwap tool_<itemid> (eight tools in hand, M0b, 175a8c7). Everything else in the placeholder list still has no swap point; phases A2 to A8 add them.
 
 Next: hands and tools (tool_<id>, Anchor_Grip_R/L through ArtSwap), then A2 (the other structure kinds and the editor placeholder list).

@@ -1,7 +1,7 @@
 # Homestead
-## Hands and Held Tools v0.2
+## Hands and Held Tools v0.3
 
-Status: planned 2026-11-04 from Claude Code's read-only plan; phase M0a BUILT (73ee84d), M0b to M0d not built yet. Mike's wish: draw the player's hands holding and using tools on screen, so the permanent on-screen equipped-tool text can go. Rough primitive shapes for the Alpha; real art later, so every visual has one swap point (standing rule in Art_Readiness_and_Placeholders.md). Phase "Hands and tools M0" in the art phases. Depends on A1 (ArtSwap, ef52c25).
+Status: planned 2026-11-04 from Claude Code's read-only plan; phases M0a (73ee84d) and M0b (175a8c7) BUILT, M0c and M0d not built yet. Mike's wish: draw the player's hands holding and using tools on screen, so the permanent on-screen equipped-tool text can go. Rough primitive shapes for the Alpha; real art later, so every visual has one swap point (standing rule in Art_Readiness_and_Placeholders.md). Phase "Hands and tools M0" in the art phases. Depends on A1 (ArtSwap, ef52c25).
 
 ---
 
@@ -90,3 +90,28 @@ Not covered yet: the hands stay up in placement mode, while pushing the Hand Car
 Save and gameplay: none changed. Files: 14 paths (8 new, 6 modified), 1674 insertions and 6 deletions. Edit-mode suite 1671 of 1671 (62 new tests in all).
 
 Next: M0b, tools drawn in hand with swing poses (Axe, Saw, Hammer, both Shovels, both Pick Axes), ToolEvents hooks (one line in AxeTool.Swing), tool_<itemid> swap points with Anchor_Grip_R/L and Anchor_Tip, ToolViewPrimitives; then M0c (Rod, weapons, light, carried), M0d (remove the idle equipped line).
+
+
+---
+
+# BUILT: Hands and tools M0b, tools in hand with swing poses (2026-11-05, playtest passed incl. the pull-back re-test P1 to P8, committed 175a8c7)
+
+Eight tools are drawn in the hands as primitives: Axe, Primitive Axe, Saw, Hammer, Shovel, Iron Shovel, Stone Pick Axe, Iron Pick Axe. Every other tool keeps the generic M0a placeholder until M0c. The crosshair text line is unchanged (M0d).
+
+Shapes (ToolViewPrimitives): one shape builder with a head colour: stone grey for the stone tools, dark steel for the iron ones and for the Axe and Saw, wood for handles; the Hammer is a wooden mallet; matt parts (smoothness 0.12, a flat blade facing the sun otherwise blazed white). Tools are rolled 24 to 55 degrees about the handle so heads and blades show three-quarter, not edge-on. The right hand holds the tool at Anchor_Grip_R; the left hand goes to Anchor_Grip_L on two-handed tools (moved nearer the right hand on the Axes and Pick Axes so the left sleeve stays low); the Hammer keeps the left hand hidden.
+
+Swap point: Resources/Art/tool_<itemid>.prefab through ArtSwap.TryAttachTool. A ToolSpecs table keyed by item id sits next to the hands table and apart from the structure table. Ids: tool_axe, tool_primitive_axe, tool_wood_saw, tool_hammer, tool_shovel, tool_iron_shovel, tool_stone_pick_axe, tool_iron_pick_axe; stone and iron are separate ids with no fallback. Anchors: Anchor_Grip_R (required), Anchor_Grip_L (two-handed tools only), Anchor_Tip (working point); a missing one is made at the primitive's own grip. Tool space for a prefab author: the origin where the right hand grips, +Z along the handle toward the working end, -Y the cutting side; authored at normal size (the hands rig scales 0.5 toward the eye). Viewmodel layer, colliders removed, no shadows. PlayerHands.ShowHeld is the one place that decides: prefab first, then the primitive for the eight tools, then the generic placeholder. Menu Homestead/Art/Create Test Axe Prefab and Remove Test Axe Prefab (orange handle, cyan and magenta double heads, marker cubes; never commit Assets/Resources/Art).
+
+Swings (SwingRules, pure; HandPoseRules unchanged except small additions): the blow, its sound, its count and its stamina cost happen at the instant of the click, nothing about gameplay timing changed. The picture shows the strike landing ContactSeconds = 0.15 s later (the one number to change a feel), a DwellSeconds = 0.05 hold, then follow-through; the cycle ends exactly at SwingSeconds = 0.9 s so a held click chains. The hand and tool turn about an elbow ElbowBack = 0.20 m behind the wrist (HandPitchShare 0.35: the hand turns 35% of each pitch change, the tool tilts about its grip for 65%), so the sleeve never sweeps across the screen. Strikes: chop and split 24 degrees and 0.12 m forward; mine 18 and 0.14; dig 16 plus a lean; build (hammer tap) 13; saw a push of 0.11 m and a pull of 0.07 m, no arc. The finishing blow of a job is 1.35 times bigger (FinishingScale); "too tired to swing" is a half raise that droops with no strike (TiredSeconds 0.5, matching the game's retry).
+
+Pull-back (Mike's playtest feel feedback, decision: visual only, no delay): the Axe, Primitive Axe, Hammer, Stone Pick Axe and Iron Pick Axe rest COCKED (tool drawn back and up behind the hand), so even the first blow after a pause strikes from a pulled-back hand. Each swing ends LOADED, a little farther back than cocked, so a held click shows a pull-back before every blow; with no new blow the hands settle from loaded to cocked over SettleSeconds = 0.25. Constants (pitch / back): chop cock -14 degrees / -0.04, load -24 / -0.07; mine -12 / -0.03 and -21 / -0.06; build -10 / -0.02 and -16 / -0.04; CockUp 0.015, LoadUp 0.03, CockYaw 4, LoadYaw 6 (the head turns away from the crosshair). The Saw and both Shovels are not cocked (neutral hold). Mike: "the drawback looks good for now."
+
+Hooks (ToolEvents, static, Scripts/Player): Swung (tool, kind, finishing), Tired, WorkingOn(Split), JobFinished. AxeTool got 11 single-statement hook lines (11 insertions, no behaviour change): one where a blow lands, one for the stamina refusal, one before the blow at a wood pile (so a split is told from a chop), and one at each of eight job-finishing points (fell a tree, split, stump, stone, Clay or Sand, hammer build, Well shaft, Outhouse pit). A finishing blow raises Swung a second time in the same frame with the flag set; the hands treat that as the same swing made bigger. No other tool script mentions ToolEvents (a test pins it).
+
+Diagnostics: PlayerHands.HoldSwing and SwingState.Seek let a screenshot look at one moment of a swing.
+
+Not covered yet: the Fishing Rod, Cane Pole, bows, Rifle, Torch, Lantern, Bow Drill, traps, Bucket, Canteen, Knife and the rest (M0c); the hands staying up in placement mode, while pushing the Hand Cart and after the creek knock-down (M0c); ultrawide, night and TAA with tools were checked on the hands in M0a only.
+
+Save and gameplay: none changed. Files: 14 paths (8 new: SwingRules.cs, ToolEvents.cs, ToolViewPrimitives.cs, ToolsInHandTests.cs plus metas; 6 modified: AxeTool.cs, PlayerHands.cs, ArtSwap.cs, ArtSwapMenu.cs, HandPoseRules.cs, HandsTests.cs), 1887 insertions and 12 deletions. Edit-mode suite 1735 of 1735. SavesBackup49 made.
+
+Next: M0c (Fishing Rod and Cane Pole with cast, wait, bite and reel; Torch and Lantern with flame at Anchor_Flame; Bow and Rifle with draw and scope; Bow Drill; Bucket and Canteen; traps; Knife; generic shape for the rest; pushing pose on the Hand Cart; split c1 fishing and light, c2 weapons and the rest), then M0d (remove the idle equipped line). Idea logged 2026-11-05: melee (fists on an empty-handed click; Knife slash and stab for defense), a read-only plan request first; it uses the M0b swing poses and ToolEvents.
