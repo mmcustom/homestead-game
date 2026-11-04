@@ -1,0 +1,348 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+// THE SWAP POINT for structure visuals (Art readiness A1, Mike's standing rule 2026-11-04). A prefab at Resources/Art/<id>.prefab replaces the primitive version of a structure;
+// with no prefab there nothing changes: StructureVisuals.Build draws the same primitives as before. The one place the swap happens is the first line of StructureVisuals.Build,
+// which calls ArtSwap.TryBuild; everything about the swap lives here.
+//
+// What a prefab author does (no code needed):
+//   * Name the prefab structure_<pilekind> (structure_kiln). Pivot at the centre of the footprint on the ground, 1 unit = 1 m, the open front is +Z.
+//   * Put the parts that always show under any children you like; a child named "Body" is kept on.
+//   * Add the anchors named in the table below (empty children; keep them unrotated and unscaled). A missing anchor is made at today's rule position.
+//   * Add State_* children (one is shown at a time) and On_* children (shown while the thing is happening). A missing one is simply never shown.
+//   * Name a child Solid_<anything> to make it solid (a box collider fitted to its mesh). Every other collider in the prefab is removed: the interaction box and the footprint come from
+//     the builder and the rules classes, never from the art.
+//   * A particle system under Anchor_Smoke is switched on and off instead of the built-in smoke.
+// Things that change at run time (the Firewood, the dry and fired pieces, the Ash) stay plain primitives, parented to the anchors named in Spec.contentAnchors.
+//
+// The prefab is instantiated once, as a child named after its id, and kept across PlacedStructure.Rebuild; each Rebuild only switches the named children and rebuilds the content
+// primitives. The placement ghost goes through the same Build, so it shows the prefab too (PlacementGhost gives every renderer its green or red material).
+// To add the next kind: one more Spec in Specs below, plus a Spec.staticPieces count and a contentSplit if the primitive builder draws changing contents.
+public static class ArtSwap
+{
+    public const string Folder = "Art";
+    public const string BodyName = "Body";
+    public const string SolidPrefix = "Solid_";
+
+    public const string AnchorSmoke = "Anchor_Smoke";
+    public const string AnchorMouth = "Anchor_Mouth";
+    public const string AnchorStock = "Anchor_Stock";
+
+    // KilnSmoke.height's default: the vent is at 1.0 and the smoke starts a hand above it. A test pins it against the component.
+    public const float KilnSmokeHeight = 1.1f;
+
+    public sealed class AnchorSpec
+    {
+        public string name;
+        public bool required;
+        public Vector3 fallback; // where the code puts it when the prefab has none, in the structure's local space (today's rule coordinates)
+    }
+
+    // One row per visual kind. Everything the code needs to know about a prefab for that kind.
+    public sealed class Spec
+    {
+        public string id;                 // structure_<pilekind>: the prefab is Resources/Art/<id>.prefab
+        public PileKind kind;
+        public AnchorSpec[] anchors;
+        public string[] states;           // State_* names, one shown at a time (chosen by stateOf)
+        public string[] flags;            // On_* names, each shown while flagsOf says so
+        public Vector3 expectedSize;      // the art's width, height and depth in metres (the editor list warns when a prefab's bounds differ; nothing is resized)
+        public Vector3 boxCenter;         // the interaction box, today's values from the builder (a test pins that they agree)
+        public Vector3 boxSize;
+        public int staticPieces;          // how many primitives the builder draws before the changing contents
+        public string[] contentAnchors;   // where the changing contents are parented, in the order the builder draws them
+        public Func<WoodPileState, int[]> contentSplit; // how many contents go to each anchor but the last, which takes the rest
+        public Func<WoodPileState, string> stateOf;
+        public Func<WoodPileState, string[]> flagsOf;
+        public Func<WoodPileState, bool> smokeOn;
+
+        public AnchorSpec Anchor(string anchorName)
+        {
+            foreach (AnchorSpec a in anchors)
+                if (a.name == anchorName)
+                    return a;
+            return null;
+        }
+    }
+
+    static AnchorSpec A(string name, bool required, float x, float y, float z) => new AnchorSpec { name = name, required = required, fallback = new Vector3(x, y, z) };
+
+    static readonly string[] NoFlags = new string[0];
+
+    // The spec table. Add the next kind here.
+    static readonly Spec[] Specs =
+    {
+        new Spec
+        {
+            id = "structure_kiln",
+            kind = PileKind.Kiln,
+            anchors = new[]
+            {
+                A(AnchorSmoke, true, 0f, KilnSmokeHeight, 0f),  // KilnSmoke sits here (a prefab particle system under it is used instead)
+                A(AnchorMouth, true, 0f, 0.45f, 0.95f),         // the loaded and the fired pieces, and the Ash, are set out here
+                A(AnchorStock, false, -1.45f, 0f, 0f),          // the Firewood stack
+            },
+            states = new[] { "State_Empty", "State_Loaded", "State_Firing", "State_Done" },
+            flags = new[] { "On_Firing" },
+            expectedSize = new Vector3(2.4f, 1.1f, 2.4f),       // the pad is 2.4 across; the vent tops out at 1.1
+            boxCenter = new Vector3(0f, 0.75f, 0f),
+            boxSize = new Vector3(2.2f, 1.5f, 2.2f),
+            staticPieces = 9,                                   // pad, dome, five ring stones, vent, mouth
+            contentAnchors = new[] { AnchorStock, AnchorMouth },
+            contentSplit = s => new[] { KilnFirewoodShown(s), int.MaxValue },
+            stateOf = KilnStateOf,
+            flagsOf = s => WellsAndOuthouses.KilnPhaseOf(s) == PotteryRules.KilnPhase.Firing ? new[] { "On_Firing" } : NoFlags,
+            smokeOn = s => WellsAndOuthouses.KilnPhaseOf(s) == PotteryRules.KilnPhase.Firing,
+        },
+    };
+
+    // The Firewood pieces the primitive Kiln draws: only while it is neither firing nor done.
+    static int KilnFirewoodShown(WoodPileState s)
+    {
+        PotteryRules.KilnPhase phase = WellsAndOuthouses.KilnPhaseOf(s);
+        if (phase == PotteryRules.KilnPhase.Firing || phase == PotteryRules.KilnPhase.Done)
+            return 0;
+        return Mathf.Min(s.Count(PotteryRules.FirewoodId), PotteryRules.KilnFirewood);
+    }
+
+    static string KilnStateOf(WoodPileState s)
+    {
+        switch (WellsAndOuthouses.KilnPhaseOf(s))
+        {
+            case PotteryRules.KilnPhase.Firing: return "State_Firing";
+            case PotteryRules.KilnPhase.Done: return "State_Done";
+            case PotteryRules.KilnPhase.Loading:
+            case PotteryRules.KilnPhase.Ready: return "State_Loaded";
+            default: return "State_Empty";
+        }
+    }
+
+    public static IReadOnlyList<Spec> AllSpecs => Specs;
+
+    // The spec for a kind, or null: most kinds have no spec yet and always draw their primitives.
+    public static Spec SpecFor(PileKind kind)
+    {
+        foreach (Spec spec in Specs)
+            if (spec.kind == kind)
+                return spec;
+        return null;
+    }
+
+    public static Spec SpecFor(string id)
+    {
+        foreach (Spec spec in Specs)
+            if (spec.id == id)
+                return spec;
+        return null;
+    }
+
+    public static string StructureId(PileKind kind) => "structure_" + kind.ToString().ToLowerInvariant();
+
+    // --- Finding the prefab ---
+
+    // The one place a prefab is loaded from. A test replaces it to supply a prefab without a real asset in Resources.
+    public static Func<string, GameObject> Loader = path => Resources.Load<GameObject>(path);
+
+    static readonly Dictionary<string, GameObject> Cache = new Dictionary<string, GameObject>();
+
+    // The prefab for an id, or null. Both answers are remembered, so a missing prefab costs one lookup for the whole run.
+    public static GameObject Resolve(string id)
+    {
+        if (string.IsNullOrEmpty(id))
+            return null;
+        if (Cache.TryGetValue(id, out GameObject found))
+            return found;
+        GameObject prefab = Loader != null ? Loader(Folder + "/" + id) : null;
+        Cache[id] = prefab;
+        return prefab;
+    }
+
+    public static void ResetCache() => Cache.Clear();
+
+    // Back to the real Resources loader with an empty cache (tests call this when they finish).
+    public static void ResetForTests()
+    {
+        Loader = path => Resources.Load<GameObject>(path);
+        Cache.Clear();
+    }
+
+#if UNITY_EDITOR
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ClearOnEnterPlayMode() => Cache.Clear(); // with domain reload off, a prefab added or removed in Edit Mode is seen on the next Play
+#endif
+
+    // --- Building ---
+
+    // The swap point's work. Returns false (and touches nothing) when the kind has no spec or no prefab exists: the caller then draws the primitives. Otherwise the prefab instance is
+    // under parent (made the first time, found after that), its State_* and On_* children are set for the state, the changing contents are rebuilt as primitives at the anchors (and
+    // added to pieces, which may be null as it is for the placement ghost), and the interaction box is reported.
+    public static bool TryBuild(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        boxCenter = Vector3.zero;
+        boxSize = Vector3.zero;
+        Spec spec = SpecFor(state.kind);
+        if (spec == null)
+            return false;
+        Transform art = Attach(parent, spec);
+        if (art == null)
+            return false;
+
+        ApplyState(art, spec, state);
+        BuildContents(art, spec, state, bark, pieces);
+        boxCenter = spec.boxCenter;
+        boxSize = spec.boxSize;
+        return true;
+    }
+
+    // The instance under parent, made if it is not there yet; null when there is no prefab. Every collider in it is removed, then Solid_* children get a box fitted to their mesh.
+    public static Transform Attach(Transform parent, Spec spec)
+    {
+        Transform existing = parent.Find(spec.id);
+        if (existing != null)
+            return existing;
+        GameObject prefab = Resolve(spec.id);
+        if (prefab == null)
+            return null;
+
+        GameObject instance = UnityEngine.Object.Instantiate(prefab, parent, false);
+        instance.name = spec.id;
+        instance.SetActive(true);
+        instance.transform.localPosition = Vector3.zero;
+        instance.transform.localRotation = Quaternion.identity;
+
+        foreach (Collider collider in instance.GetComponentsInChildren<Collider>(true))
+            UnityEngine.Object.DestroyImmediate(collider);
+        foreach (Transform t in instance.GetComponentsInChildren<Transform>(true))
+            if (t != instance.transform && t.name.StartsWith(SolidPrefix))
+                AddSolidCollider(t.gameObject);
+        return instance.transform;
+    }
+
+    static void AddSolidCollider(GameObject solid)
+    {
+        BoxCollider box = solid.AddComponent<BoxCollider>();
+        MeshFilter filter = solid.GetComponent<MeshFilter>();
+        if (filter != null && filter.sharedMesh != null)
+        {
+            box.center = filter.sharedMesh.bounds.center;
+            box.size = filter.sharedMesh.bounds.size;
+        }
+    }
+
+    // Every transform called name below root (not root itself).
+    public static List<Transform> Named(Transform root, string name)
+    {
+        var found = new List<Transform>();
+        foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            if (t != root && t.name == name)
+                found.Add(t);
+        return found;
+    }
+
+    // The anchor called name: the prefab's own, or an empty child made at the rule position so the code always has somewhere to attach.
+    public static Transform AnchorOf(Transform art, Spec spec, string name)
+    {
+        List<Transform> own = Named(art, name);
+        if (own.Count > 0)
+            return own[0];
+        var made = new GameObject(name);
+        made.transform.SetParent(art, false);
+        AnchorSpec anchor = spec.Anchor(name);
+        made.transform.localPosition = anchor != null ? anchor.fallback : Vector3.zero;
+        return made.transform;
+    }
+
+    // Body stays on; exactly one of the spec's State_* children is shown; each On_* child follows its flag. Names the prefab does not have are skipped.
+    public static void ApplyState(Transform art, Spec spec, WoodPileState state)
+    {
+        foreach (Transform body in Named(art, BodyName))
+            body.gameObject.SetActive(true);
+
+        string shown = spec.stateOf != null ? spec.stateOf(state) : null;
+        foreach (string stateName in spec.states)
+            foreach (Transform t in Named(art, stateName))
+                t.gameObject.SetActive(stateName == shown);
+
+        string[] on = spec.flagsOf != null ? spec.flagsOf(state) : NoFlags;
+        foreach (string flag in spec.flags)
+            foreach (Transform t in Named(art, flag))
+                t.gameObject.SetActive(Array.IndexOf(on, flag) >= 0);
+    }
+
+    // Draws the primitive version once into a scratch object, throws away the fixed shapes (the prefab is those) and moves the changing contents to their anchors at the same
+    // spots they have today: a content piece sits at (its old position - the anchor's rule position) under the anchor, so with an anchor at its rule position nothing moves.
+    static void BuildContents(Transform art, Spec spec, WoodPileState state, Material bark, List<GameObject> pieces)
+    {
+        if (spec.contentAnchors == null || spec.contentAnchors.Length == 0)
+            return;
+        var scratch = new GameObject("Art Scratch");
+        var made = new List<GameObject>();
+        StructureVisuals.BuildPrimitive(scratch.transform, state, bark, made, out _, out _);
+
+        int[] split = spec.contentSplit != null ? spec.contentSplit(state) : new int[spec.contentAnchors.Length];
+        int slot = 0, used = 0;
+        for (int i = 0; i < made.Count; i++)
+        {
+            GameObject piece = made[i];
+            if (i < spec.staticPieces)
+            {
+                UnityEngine.Object.DestroyImmediate(piece);
+                continue;
+            }
+            while (slot < spec.contentAnchors.Length - 1 && used >= split[slot])
+            {
+                slot++;
+                used = 0;
+            }
+            used++;
+
+            string anchorName = spec.contentAnchors[slot];
+            Transform anchor = AnchorOf(art, spec, anchorName);
+            Vector3 rule = spec.Anchor(anchorName).fallback;
+            Vector3 local = piece.transform.localPosition - rule;
+            piece.transform.SetParent(anchor, false);
+            piece.transform.localPosition = local;
+            pieces?.Add(piece);
+        }
+        UnityEngine.Object.DestroyImmediate(scratch);
+    }
+
+    // The smoke of a structure with a prefab: a particle system the prefab put under Anchor_Smoke is played and stopped; with none, a KilnSmoke is made once at the anchor (height 0,
+    // so it sits exactly on it) and switched. Returns false when the structure has no prefab instance, so PlacedStructure.Rebuild keeps its own smoke.
+    public static bool DriveSmoke(Transform structure, WoodPileState state, ref KilnSmoke smoke)
+    {
+        Spec spec = SpecFor(state.kind);
+        if (spec == null || spec.smokeOn == null)
+            return false;
+        Transform art = structure.Find(spec.id);
+        if (art == null)
+            return false;
+
+        Transform anchor = AnchorOf(art, spec, AnchorSmoke);
+        bool on = spec.smokeOn(state);
+
+        bool ownSystem = false;
+        foreach (ParticleSystem system in anchor.GetComponentsInChildren<ParticleSystem>(true))
+        {
+            if (system.GetComponentInParent<KilnSmoke>() != null)
+                continue; // ours, not the prefab's
+            ownSystem = true;
+            if (on && !system.isPlaying)
+                system.Play(true);
+            else if (!on && system.isPlaying)
+                system.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        }
+        if (ownSystem)
+            return true;
+
+        if (smoke == null)
+        {
+            smoke = KilnSmoke.Create(anchor);
+            smoke.height = 0f;
+            smoke.Apply();
+        }
+        smoke.SetFiring(on);
+        return true;
+    }
+}

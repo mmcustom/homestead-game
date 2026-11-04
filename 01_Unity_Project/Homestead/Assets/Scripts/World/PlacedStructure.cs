@@ -9,8 +9,17 @@ public static class StructureVisuals
     static readonly Color WaterColor = new Color(0.12f, 0.2f, 0.26f);
     static readonly Color SoilColor = new Color(0.2f, 0.14f, 0.09f);
 
-    // Builds the pieces under parent (appending each to pieces) and reports the interaction box to use.
+    // Builds the pieces under parent (appending each to pieces, which may be null) and reports the interaction box to use.
+    // THE SWAP POINT: when Resources/Art/<id>.prefab exists for this kind (ArtSwap), the prefab is shown instead and the primitives below are not drawn.
     public static void Build(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        if (ArtSwap.TryBuild(parent, state, bark, pieces, out boxCenter, out boxSize))
+            return;
+        BuildPrimitive(parent, state, bark, pieces, out boxCenter, out boxSize);
+    }
+
+    // The primitive version of every kind: the default, and what the changing contents of a prefab structure are copied from (ArtSwap).
+    internal static void BuildPrimitive(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
     {
         var random = new System.Random(state.id * 7919);
         switch (state.kind)
@@ -918,7 +927,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return;
 
         StructureVisuals.Build(transform, state, bark, pieces, out Vector3 center, out Vector3 size);
-        if (state.kind == PileKind.Kiln)
+        if (state.kind == PileKind.Kiln && ArtSwap.DriveSmoke(transform, state, ref kilnSmoke))
+        {
+            // A prefab Kiln: its Anchor_Smoke carries the smoke (ArtSwap), so nothing here.
+        }
+        else if (state.kind == PileKind.Kiln)
         {
             if (kilnSmoke == null)
                 kilnSmoke = KilnSmoke.Create(transform);
