@@ -158,3 +158,26 @@ Dev keys: comma gives a Hammer, 4 Clay and 6 Tall Grass and stands a Wood Pile w
 Files: 32 paths (13 modified code and data including MarketData.asset, 8 modified tests, 10 new: MetalRules.cs, CharcoalRules.cs, CharcoalPitTests.cs, iron_ore.asset, charcoal.asset plus metas, and the docs file Journal_KnowHow_Text.md), 1558 insertions and 43 deletions. Edit-mode suite 1484 of 1484 (36 new tests).
 
 Next: M2, the Bloomery and the Iron Bar (8 Stone + 6 Clay, 36 blows, about 61 kg, open air; up to 4 Ore + 4 Charcoal; 10 game hours; 2 Iron Bars; PileKinds BloomerySite 41 and Bloomery 42).
+
+
+## BUILT: Metal M2, the Bloomery and the Iron Bar (2026-11-04, playtest 1 to 24 passed, committed cc9a8a9)
+
+Second phase of the iron chain. Not built yet: the Smithy and goods (M3), the iron tools (M4), building uses (M5).
+
+Iron Bar: 2 kg, a Material asset in Resources/Items/Materials, no market row and no Ledger line, so nothing sells it (the Trading Post sell list shows only items the store buys; a forced sale is refused; throwing one away is the ordinary inventory Drop). Market rows stay at 89 and the stocked count at 22. MetalRules gained the bar columns on the iron row (bar id iron_bar, name, 2 kg, 2 Ore and 2 Charcoal per Bar); BloomeryRules holds every Bloomery number.
+
+Bloomery: new PileKinds BloomerySite 41 and Bloomery 42 (43 kinds in total; 43 and 44 stay reserved for the Smithy). Staged site: 8 Stone and 6 Clay in any order (61 kg, so several trips; a Hand Cart carries Stone and Clay), 36 Hammer blows, no Shovel stage. Placement: open air (not under a roof), radius 0.7 m, 3 m clear of every structure and tree from its edge, keeps later buildings 3 m clear, a parked Hand Cart is exempt, no tree sprouts within 1.2 m, the mouse wheel turns the site (Setbacks.cs needed no change; M1's per-structure reach covers it).
+
+Use (prompt-only, loaded like the Hopper): R (Hammer away) loads Ore and Charcoal from the pack at any time, each up to 4, even while it smelts or Bars wait; E collects Bars first, otherwise with at least 2 Ore and 2 Charcoal starts a smelt of min(Ore/2, Charcoal/2) Bars, up to 2; a smelt takes 10 game hours counted one hour at a time (sleeping, being away and skipping days count; rain does not stop it); leftover stock stays and anything added during a smelt waits for the next one; E collects as much as the pack holds. Prompts name the next step and what is short, for example "Start the smelt  (4 Ore + 4 Charcoal -> 2 Iron Bars in 10 h)", "Bloomery  (3 Ore - needs 2 more Charcoal)", "Load Ore and Charcoal  (you're not carrying any)", "Can't load  (it already holds 4 Ore and 4 Charcoal)". Batch table: 2 and 2 give 1 Bar; 3 Ore gives 1 Bar and leaves 1 Ore; 4 and 4 give 2 Bars. The Hammer with R dismantles it (half the Stone and Clay back, 4 and 3; stocked Ore, Charcoal and Bars whole), refused while it smelts.
+
+Look: a clay-and-stone stack about 1.2 m tall and 0.9 m across in two tapering stages on a flat stone footing, with a short chimney, four footing stones and a front mouth; Ore (rust), Charcoal (black) and Bars (grey) lie beside it when present; while smelting the stack darkens and the mouth glows a dim ember (no light, no flicker); KilnSmoke is reused at the chimney; the mouth's front face stands 17 cm clear of the stack (no z-fighting; tests pin the numbers).
+
+Save: no new field. Ore and Charcoal are ordinary stacks in contents; a smelt takes the Ore and Charcoal it uses out of contents when it starts, so contents is always stock for the next smelt; finished Bars are a third stack; a smelt is jobItem iron_smelt, jobCount (the Bars it will make, fixed at start) and jobHours (hours left). The pile stays at 17 fields; the Hopper's fields and the Pit's charcoal_burn marker are untouched. Kinds 41 and 42 appear only in new saves. SaveVersion and LedgerSaveData.CurrentVersion stay at 1.
+
+Teaching: Know-how entry "Smelting Iron in the Bloomery" (unlocks on placing a Bloomery site or holding an Iron Bar); the Ore and Charcoal entries now point to it; the Bar's item help says it is not sold anywhere; Build-tab help for the site and the finished Bloomery. Code text and Journal_KnowHow_Text.md updated together (a test compares them).
+
+Dev keys: period gives a Hammer and 6 Clay and stands a Rock Pile with 8 Stone 3 m ahead (the whole kit is 62 kg against the 45 kg pack, so store the Clay first, then carry the Stone in one trip); Shift+period stands a finished Bloomery 4 m ahead loaded with 4 Ore and 4 Charcoal; Ctrl+period finishes every running smelt; Shift+equals gives 4 Iron Bars; equals still gives 10 Iron Ore and 10 Charcoal.
+
+Files: 24 paths (10 modified code, 7 modified tests, 6 new: BloomeryRules.cs, BloomeryTests.cs, iron_bar.asset plus metas, and the docs file Journal_KnowHow_Text.md), 1571 insertions and 47 deletions. Edit-mode suite 1517 of 1517 (33 new tests).
+
+Next: M3, the Smithy (PileKinds SmithySite 43 and Smithy 44), its screen and the first goods.
