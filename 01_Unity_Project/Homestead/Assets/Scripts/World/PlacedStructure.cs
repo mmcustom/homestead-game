@@ -30,6 +30,8 @@ public static class StructureVisuals
             case PileKind.PotterShed: BuildPotterShed(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.KilnSite: BuildKilnSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.Kiln: BuildKiln(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.CharcoalPitSite: BuildCharcoalPitSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.CharcoalPit: BuildCharcoalPit(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -320,6 +322,58 @@ public static class StructureVisuals
 
         boxCenter = new Vector3(0f, 0.75f, 0f);
         boxSize = new Vector3(2.2f, 1.5f, 2.2f);
+    }
+
+    static readonly Color EarthColor = new Color(0.34f, 0.25f, 0.16f);
+    static readonly Color CharcoalColor = new Color(0.1f, 0.1f, 0.11f);
+
+    // The Charcoal Pit's marked-out plot (about 1.8 m square: half = 0.9): the stakes, bare earth, the delivered Clay to one side and the Tall Grass to the other.
+    static void BuildCharcoalPitSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 0.9f, out boxCenter, out boxSize);
+        int clay = Mathf.Min(state.Count(CharcoalRules.ClayId), CharcoalRules.SiteClay);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(1.3f, 0.1f + (i / 2) * 0.16f, -0.4f + (i % 2) * 0.28f), Vector3.zero, new Vector3(0.26f, 0.2f, 0.26f), null), ClayColor);
+        // The plot already shows the first three Tall Grass as thatch lumps (BuildOuthouseSite); the rest lie as bundles beside them.
+        int grass = Mathf.Min(state.Count(CharcoalRules.TallGrassId), CharcoalRules.SiteTallGrass);
+        for (int i = 3; i < grass; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-1.3f + ((i - 3) % 3) * 0.12f, 0.06f, -0.3f + ((i - 3) % 3) * 0.05f),
+                         new Vector3(90f, 0f, 20f * ((i - 3) % 3)), new Vector3(0.06f, 0.35f, 0.06f), null), ThatchColor);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(1.8f, 0.9f, 1.8f);
+    }
+
+    // The finished Charcoal Pit (Metalworking M1): a low clay-coloured earth mound about 1.5 m across and 0.8 m high on a ring of trodden earth, with a small vent on top and a little
+    // draught hole at the front (+Z). Logs lie beside it when it is loaded; it darkens and the hole glows dimly (no light, no flicker) while it burns; the Charcoal waiting lies in a
+    // small heap at the front. The shapes are plain pieces coloured here; the smoke is KilnSmoke, a persistent child that Rebuild only switches on and off. No two faces share a plane:
+    // the draught hole's front face stands at z 0.82, 8 cm clear of the mound's surface there (about 0.74), so nothing z-fights as the view moves.
+    static void BuildCharcoalPit(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        CharcoalRules.Phase phase = WellsAndOuthouses.PitPhaseOf(state);
+        bool burning = phase == CharcoalRules.Phase.Burning, done = phase == CharcoalRules.Phase.Done;
+
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.03f, 0f), Vector3.zero, new Vector3(1.9f, 0.03f, 1.9f), null), EarthColor);
+        Color mound = burning ? Color.Lerp(ClayColor, SootColor, 0.55f) : done ? Color.Lerp(ClayColor, AshColor, 0.25f) : ClayColor;
+        Tinted(Piece(parent, pieces, PrimitiveType.Sphere, Vector3.zero, Vector3.zero, new Vector3(1.5f, 1.6f, 1.5f), null), mound);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.8f, 0f), Vector3.zero, new Vector3(0.16f, 0.07f, 0.16f), null), burning ? SootColor : SlabColor); // the vent
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.14f, 0.72f), Vector3.zero, new Vector3(0.24f, 0.2f, 0.2f), null),
+               burning ? Color.Lerp(SootColor, EmberColor, 0.55f) : SootColor); // the draught hole: a dim ember while it burns
+
+        if (!burning && !done)
+        {
+            int logs = Mathf.Min(state.PitLogs, CharcoalRules.LogsCap);
+            for (int i = 0; i < logs; i++)
+                Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-1.45f + (i % 3) * 0.3f, 0.14f + (i / 3) * 0.26f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.14f, 0.5f, 0.14f), bark);
+        }
+        if (done)
+        {
+            int heap = Mathf.Min(state.PitCharcoal, 6);
+            for (int i = 0; i < heap; i++)
+                Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0.55f + (i % 3) * 0.2f, 0.07f + (i / 3) * 0.1f, 0.95f), Vector3.zero, new Vector3(0.2f, 0.12f, 0.16f), null), CharcoalColor);
+        }
+
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(1.7f, 0.9f, 1.7f);
     }
 
     // One small piece, by its dry id's shape (the same shapes as on the Potter's Shed's shelf).
@@ -666,6 +720,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     BoxCollider box;
     readonly List<GameObject> pieces = new List<GameObject>();
     KilnSmoke kilnSmoke; // a Kiln's smoke, kept across Rebuild so its particles are not restarted every game hour
+    KilnSmoke pitSmoke;  // a Charcoal Pit's, the same smoke made smaller
 
     public WoodPileState State => state;
 
@@ -696,6 +751,23 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             if (kilnSmoke == null)
                 kilnSmoke = KilnSmoke.Create(transform);
             kilnSmoke.SetFiring(WellsAndOuthouses.KilnPhaseOf(state) == PotteryRules.KilnPhase.Firing);
+        }
+        else if (state.kind == PileKind.CharcoalPit)
+        {
+            if (pitSmoke == null)
+            {
+                pitSmoke = KilnSmoke.Create(transform);
+                pitSmoke.gameObject.name = "Pit Smoke";
+                pitSmoke.height = CharcoalRules.SmokeHeight;
+                pitSmoke.spreadRadius = CharcoalRules.SmokeSpread;
+                pitSmoke.startSizeMin = CharcoalRules.SmokeSizeMin;
+                pitSmoke.startSizeMax = CharcoalRules.SmokeSizeMax;
+                pitSmoke.puffsPerSecond = CharcoalRules.SmokePuffsPerSecond;
+                pitSmoke.riseSpeed = CharcoalRules.SmokeRiseSpeed;
+                pitSmoke.maxPuffs = CharcoalRules.SmokeMaxPuffs;
+                pitSmoke.Apply();
+            }
+            pitSmoke.SetFiring(state.PitBurning);
         }
         box.center = center;
         box.size = size;
@@ -742,6 +814,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Workshop: return WorkshopPrompt();
                 case PileKind.PotterShed: return PotteryPrompt();
                 case PileKind.Kiln: return KilnPromptText();
+                case PileKind.CharcoalPit: return PitPromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -1600,6 +1673,122 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // --- The Charcoal Pit (Metalworking M1) ---
+
+    CharcoalRules.Phase PitPhaseNow => WellsAndOuthouses.PitPhaseOf(state);
+
+    // The Charcoal a lit pit would make now, the burn will make, or is waiting: whichever the phase is about.
+    int PitCharcoalShown(CharcoalRules.Phase phase) =>
+        phase == CharcoalRules.Phase.Ready ? CharcoalRules.Yield(state.PitLogs) : phase == CharcoalRules.Phase.Burning ? state.jobCount : state.PitCharcoal;
+
+    string PitPromptText()
+    {
+        CharcoalRules.Phase phase = PitPhaseNow;
+        return CharcoalRules.Prompt(phase, state.PitLogs, PitCharcoalShown(phase), state.jobHours);
+    }
+
+    string PitSecondaryPrompt()
+    {
+        CharcoalRules.Phase phase = PitPhaseNow;
+        if (WoodManager.HammerEquipped)
+            return CharcoalRules.DismantlePrompt(phase, state.jobHours);
+        int carried = Inventory.Player.Count(CharcoalRules.LogsId);
+        CharcoalRules.Gate gate = CharcoalRules.LoadGate(phase, state.PitLogs, carried);
+        return CharcoalRules.LoadPrompt(gate, CharcoalRules.LoadAmount(state.PitLogs, carried));
+    }
+
+    // E: light it when it is ready, say what is missing when it is not, show the hours while it burns, and collect the Charcoal.
+    void PitInteract()
+    {
+        CharcoalRules.Phase phase = PitPhaseNow;
+        switch (phase)
+        {
+            case CharcoalRules.Phase.Burning:
+                ToolStatus.Flash(PitPromptText(), 3f);
+                return;
+            case CharcoalRules.Phase.Done:
+                PitCollect();
+                return;
+            case CharcoalRules.Phase.Ready:
+                PitLight(out string started);
+                ToolStatus.Flash(started, 4f);
+                return;
+            default:
+                ToolStatus.Flash(CharcoalRules.NotReady(state.PitLogs), 4f);
+                return;
+        }
+    }
+
+    // Lights the pit: the Logs loaded are used up, the Charcoal they will make is fixed (jobCount) and the 24 hours start. The burn marker is jobItem; jobHours is the hours left.
+    public bool PitLight(out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.CharcoalPit || WoodManager.Instance == null || !CharcoalRules.CanLight(PitPhaseNow))
+            return false;
+        int logs = state.PitLogs;
+        int charcoal = CharcoalRules.Yield(logs);
+        state.Take(CharcoalRules.LogsId, logs);
+        state.jobItem = CharcoalRules.BurnMarker;
+        state.jobCount = charcoal;
+        state.jobHours = CharcoalRules.BurnHours;
+        WoodManager.Instance.NotifyChanged(state);
+        message = CharcoalRules.Started(logs, charcoal);
+        return true;
+    }
+
+    // The Charcoal goes to the pack, as much as it holds; the rest stays in the pit.
+    void PitCollect()
+    {
+        int waiting = state.PitCharcoal;
+        ItemDefinition item = ItemDatabase.Get(CharcoalRules.CharcoalId);
+        int fits = item != null ? Mathf.Min(waiting, Inventory.Player.SpaceFor(item)) : 0;
+        int added = fits > 0 ? Inventory.AddToPlayer(CharcoalRules.CharcoalId, fits) : 0;
+        if (added > 0)
+        {
+            state.Take(CharcoalRules.CharcoalId, added);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+        ToolStatus.Flash(CharcoalRules.Took(added, waiting - added), 4f);
+    }
+
+    // R: with the Hammer it takes the pit down; without, it loads the Logs from the pack.
+    void PitSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        int carried = Inventory.Player.Count(CharcoalRules.LogsId);
+        CharcoalRules.Gate gate = CharcoalRules.LoadGate(PitPhaseNow, state.PitLogs, carried);
+        if (gate != CharcoalRules.Gate.Ok)
+        {
+            ToolStatus.Flash(CharcoalRules.LoadRefusal(gate), 4f);
+            return;
+        }
+        PitLoadFromPack(out string message);
+        ToolStatus.Flash(message, 4f);
+    }
+
+    // Puts the Logs carried into the pit, up to its six. Returns whether anything moved.
+    public bool PitLoadFromPack(out string message)
+    {
+        message = CharcoalRules.LoadRefusal(CharcoalRules.Gate.NothingCarried);
+        if (state == null || state.kind != PileKind.CharcoalPit || Inventory == null || WoodManager.Instance == null || !state.PitOpen)
+            return false;
+        int amount = CharcoalRules.LoadAmount(state.PitLogs, Inventory.Player.Count(CharcoalRules.LogsId));
+        if (amount <= 0)
+            return false;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        int removed = Inventory.Player.RemoveBatches(CharcoalRules.LogsId, amount, (day, count) => state.Add(CharcoalRules.LogsId, count, 0));
+        if (removed <= 0)
+            return false;
+        WoodManager.Instance.NotifyChanged(state);
+        message = CharcoalRules.Loaded(removed, state.PitLogs);
+        return true;
+    }
+
     string WellPrompt()
     {
         WellsAndOuthouses w = Rules;
@@ -1645,6 +1834,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return PotterySecondaryPrompt();
             if (state.kind == PileKind.Kiln)
                 return KilnSecondaryPrompt();
+            if (state.kind == PileKind.CharcoalPit)
+                return PitSecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -1690,6 +1881,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Workshop: WorkshopInteract(); break;
             case PileKind.PotterShed: PotteryInteract(); break;
             case PileKind.Kiln: KilnInteract(); break;
+            case PileKind.CharcoalPit: PitInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -1858,6 +2050,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             KilnSecondary();
         }
+        else if (state.kind == PileKind.CharcoalPit)
+        {
+            PitSecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -1969,6 +2165,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash(PotteryRules.KilnDismantlePrompt(KilnPhaseNow, state.jobHours), 4f);
             return;
         }
+        // A Charcoal Pit is not taken down while it burns (the Logs are already in the fire).
+        if (state.kind == PileKind.CharcoalPit && !CharcoalRules.CanDismantle(PitPhaseNow))
+        {
+            ToolStatus.Flash(CharcoalRules.DismantlePrompt(PitPhaseNow, state.jobHours), 4f);
+            return;
+        }
         var refund = new StructureRefund(state.position, transform);
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
@@ -1994,6 +2196,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 refund.Return(stockId, state.Count(stockId));
             foreach (PotteryRules.Recipe piece in PotteryRules.Recipes)
                 refund.Return(piece.itemId, state.Count(piece.itemId));
+        }
+        // A Charcoal Pit gives back the Logs loaded and the Charcoal waiting whole, on top of half the Clay and Tall Grass.
+        if (state.kind == PileKind.CharcoalPit)
+        {
+            refund.Return(CharcoalRules.LogsId, state.Count(CharcoalRules.LogsId));
+            refund.Return(CharcoalRules.CharcoalId, state.Count(CharcoalRules.CharcoalId));
         }
         WoodManager.Instance.RemovePile(state);
         ToolStatus.Flash(refund.Describe(name), 5f);

@@ -491,7 +491,7 @@ public class PotteryTests
         Assert.That((int)Kind("WorkshopSite"), Is.EqualTo(33));
         Assert.That((int)Kind("Workshop"), Is.EqualTo(34));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(39));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(41));
     }
 
     [Test]

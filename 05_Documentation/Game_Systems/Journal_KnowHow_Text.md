@@ -74,3 +74,29 @@ Potash sells for far more than the Ash it comes from: about $5 of Potash per Ash
 3. Boil. Buy a Potash Kettle at the Trading Post ($25). Set up a tripod over a lit fire and hold E at it to hang the Kettle. Open Inventory (I) and press Boil on the Lye row: 3 Lye and 2 Firewood make 1 Potash in 18 seconds. The Firewood is used up and leaves no Ash.
 
 Sell the Potash at the Trading Post (about $16 each).
+
+---
+
+## 8. Charcoal: Burning Logs Slowly
+
+Trigger: first Charcoal held, or a Charcoal Pit site first placed.
+
+Charcoal is Logs burned slowly under earth. It burns far hotter than Firewood and is the fuel iron smelting needs. You make it in a Charcoal Pit.
+
+1. Open Build, then Other, and place a Charcoal Pit Site on open dry ground, 3 m clear of other buildings and trees, and not under a roof.
+2. Deliver 4 Clay and 6 Tall Grass with R over as many trips as you like. Then equip the Hammer and hold click on the site to build the pit.
+3. Put the Hammer away. Press R at the pit to load the Logs you carry (up to 6 in all; a Log weighs 8 kg, so a full pit may take two loads).
+4. Press E to light it once it holds 3 Logs. It burns for 24 game hours, even while you sleep or are away, and the Logs are used up. 3 or 4 Logs make 2 Charcoal, 5 make 3 and 6 make 4.
+5. Press E again to collect the Charcoal.
+
+Charcoal sells at the Trading Post for about $1. With the Hammer equipped, R takes the pit down, but not while it burns; you get back half the Clay and Tall Grass and all the Logs and Charcoal inside.
+
+---
+
+## 9. Iron Ore at the Trading Post
+
+Trigger: first Iron Ore held.
+
+There is no iron to dig on your land yet, so iron ore is bought. The Trading Post sells Iron Ore for $4 each (3 kg). It buys it back for only $1, so buy only what you will use.
+
+Smelting iron needs Charcoal as well (see "Charcoal: Burning Logs Slowly") and a furnace, the Bloomery, which is not in the game yet.

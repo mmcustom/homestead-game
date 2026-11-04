@@ -188,6 +188,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WorkshopSite:
             case PileKind.PotterSite:
             case PileKind.KilnSite:
+            case PileKind.CharcoalPitSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -211,6 +212,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WorkshopSite: return PileKind.Workshop;
             case PileKind.PotterSite: return PileKind.PotterShed;
             case PileKind.KilnSite: return PileKind.Kiln;
+            case PileKind.CharcoalPitSite: return PileKind.CharcoalPit;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -242,6 +244,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WorkshopSite: return WorkshopCost();
             case PileKind.PotterSite: return PotterCost();
             case PileKind.KilnSite: return KilnCost();
+            case PileKind.CharcoalPitSite: return CharcoalPitCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -279,6 +282,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { WoodManager.StoneId }, new[] { WoodManager.ClayId } }; // the Stone first, then the Clay, as for the Kitchen's hearth
         if (site == PileKind.KitchenRoofSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.BranchesId, WoodManager.TallGrassId } };
+        if (site == PileKind.CharcoalPitSite)
+            return new[] { new[] { CharcoalRules.ClayId, CharcoalRules.TallGrassId } }; // the Clay and the Tall Grass in any order
         if (site == PileKind.LeachHopperSite)
             return new[] { new[] { WoodManager.LogsId, WoodManager.TallGrassId } };
         if (site == PileKind.HandCartSite)
@@ -423,6 +428,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.WorkshopSite: return WorkshopRules.BuildBlows;
             case PileKind.PotterSite: return PotteryRules.BuildBlows;
             case PileKind.KilnSite: return PotteryRules.KilnBuildBlows;
+            case PileKind.CharcoalPitSite: return CharcoalRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -460,6 +466,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return PotteryRules.BuiltMessage;
         if (site == PileKind.KilnSite)
             return PotteryRules.KilnBuiltMessage;
+        if (site == PileKind.CharcoalPitSite)
+            return CharcoalRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -569,6 +577,13 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         new WoodStack { itemId = WoodManager.StoneId, count = PotteryRules.KilnStone },
         new WoodStack { itemId = WoodManager.ClayId, count = PotteryRules.KilnClay },
+    };
+
+    // A Charcoal Pit (Metalworking M1): 4 Clay and 6 Tall Grass, a staged site. CharcoalRules has the numbers.
+    public static WoodStack[] CharcoalPitCost() => new[]
+    {
+        new WoodStack { itemId = CharcoalRules.ClayId, count = CharcoalRules.SiteClay },
+        new WoodStack { itemId = CharcoalRules.TallGrassId, count = CharcoalRules.SiteTallGrass },
     };
 
     public static WoodStack[] CountertopCost()
@@ -781,6 +796,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.PotterSite: return PotteryRules.KitchenRadiusMetres;   // the shed's half-diagonal (2.4 m by 2.0 m)
             case PileKind.Kiln:
             case PileKind.KilnSite: return PotteryRules.KilnRadiusMetres;
+            case PileKind.CharcoalPit:
+            case PileKind.CharcoalPitSite: return CharcoalRules.PitRadiusMetres;
             case PileKind.WoodShed:
             case PileKind.WoodShedSite:
             case PileKind.Tent:
@@ -802,6 +819,8 @@ public class WellsAndOuthouses : MonoBehaviour
             foreach (WoodPileState pile in wood.Piles)
                 if (WoodManager.IsKiln(pile.kind))
                     kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = PotteryRules.KilnRadiusMetres });
+                else if (WoodManager.IsCharcoalPit(pile.kind)) // a Charcoal Pit keeps later buildings the same 3 m clear, from its own smaller edge
+                    kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = CharcoalRules.PitRadiusMetres });
         return Setbacks.CanPlaceBesideKiln(point, ReachOf(kind), kilns, Rules, out reason);
     }
 
@@ -905,6 +924,22 @@ public class WellsAndOuthouses : MonoBehaviour
             }
             bool treeNear = WoodManager.Instance != null && WoodManager.Instance.FindTree(point, PotteryRules.KilnTreeReachMetres) >= 0;
             return Setbacks.CanPlaceKiln(point, KilnNeighbours(ignore), treeNear, rules, out reason);
+        }
+
+        // A Charcoal Pit is open air too (Metalworking M1): dry ground, not under a roof, its mound's edge 3 m clear of every other structure and every tree (the Kiln's rule, the pit's own radius).
+        if (kind == PileKind.CharcoalPitSite || kind == PileKind.CharcoalPit)
+        {
+            if (OverheadCover.Roofed(point))
+            {
+                reason = "A charcoal pit needs open sky: not under a roof.";
+                return false;
+            }
+            bool treeNearPit = WoodManager.Instance != null && WoodManager.Instance.FindTree(point, CharcoalRules.TreeReachMetres) >= 0;
+            SetbackRules pitRules = rules;
+            pitRules.kilnRadius = CharcoalRules.PitRadiusMetres;
+            pitRules.kilnFromStructure = CharcoalRules.ClearanceMetres;
+            pitRules.kilnFromTree = CharcoalRules.ClearanceMetres;
+            return Setbacks.CanPlaceKiln(point, KilnNeighbours(ignore), treeNearPit, pitRules, out reason);
         }
 
         // A Covered Kitchen keeps its roof edge clear of every other structure and every tree (a fire under a roof).
@@ -1212,6 +1247,40 @@ public class WellsAndOuthouses : MonoBehaviour
         return done;
     }
 
+    // --- The Charcoal Pit (Metalworking M1) ---
+
+    // A burn has run its hours: the Charcoal it was lit to make is in the pit, waiting to be collected. The Logs were used up when it was lit.
+    public static void FinishBurn(WoodPileState pit)
+    {
+        if (pit == null || !pit.PitBurning)
+            return;
+        pit.Add(CharcoalRules.CharcoalId, Mathf.Max(0, pit.jobCount), 0);
+        pit.jobItem = "";
+        pit.jobHours = 0f;
+        pit.jobCount = 0;
+    }
+
+    public static CharcoalRules.Phase PitPhaseOf(WoodPileState pit) =>
+        CharcoalRules.PhaseOf(pit.PitBurning, pit.PitCharcoal, pit.PitLogs);
+
+    // Testing only (TimeDebugControls, Ctrl+comma): every burn is done now. Returns how many pits changed.
+    public int DebugFinishBurns()
+    {
+        WoodManager wood = WoodManager.Instance;
+        int done = 0;
+        if (wood == null)
+            return 0;
+        foreach (WoodPileState pit in wood.Piles)
+        {
+            if (pit.kind != PileKind.CharcoalPit || !pit.PitBurning)
+                continue;
+            FinishBurn(pit);
+            wood.NotifyChanged(pit);
+            done++;
+        }
+        return done;
+    }
+
     // Stacks of one piece with the same ready hour become one.
     static void MergeShelf(WoodPileState shed)
     {
@@ -1307,6 +1376,17 @@ public class WellsAndOuthouses : MonoBehaviour
             if (PotteryRules.IsDone(shed.jobHours))
                 FinishPotteryJob(shed, PotteryRules.AbsoluteHour(Today, hour));
             wood.NotifyChanged(shed);
+        }
+
+        // A Charcoal Pit's burn runs one game hour at a time too (Metalworking M1): sleeping, skipping days and being away all count; at the end the Charcoal is in.
+        foreach (WoodPileState pit in wood.Piles)
+        {
+            if (pit.kind != PileKind.CharcoalPit || !pit.PitBurning)
+                continue;
+            pit.jobHours = CharcoalRules.AfterHour(pit.jobHours);
+            if (CharcoalRules.IsDone(pit.jobHours))
+                FinishBurn(pit);
+            wood.NotifyChanged(pit);
         }
 
         // A Kiln's firing runs one game hour at a time too (sleeping, skipping days and being away all count); at the end the pieces are fired and the Ash is in.

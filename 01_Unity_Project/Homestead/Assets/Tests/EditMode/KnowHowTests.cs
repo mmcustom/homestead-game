@@ -17,11 +17,11 @@ public class KnowHowTests
     // --- The entries ---
 
     [Test]
-    public void ThereAreSevenEntriesWithUniqueIdsTitlesAndBodies()
+    public void ThereAreNineEntriesWithUniqueIdsTitlesAndBodies()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(7));
-        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(7));
-        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(7));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(9));
+        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(9));
+        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(9));
         foreach (KnowHowRules.Entry e in KnowHowRules.Entries)
         {
             Assert.That(e.title, Is.Not.Empty);
@@ -39,11 +39,12 @@ public class KnowHowTests
         Assert.That(KnowHowRules.Entries.Select(e => e.title), Is.EqualTo(new[]
         {
             "Ash: Collect and Sell", "Kindling Bundles", "The Tripod and Boiling Water", "Tapping Maples", "Sap to Syrup",
-            "Using the Leach Hopper", "From Ash to Potash",
+            "Using the Leach Hopper", "From Ash to Potash", "Charcoal: Burning Logs Slowly", "Iron Ore at the Trading Post",
         }));
         Assert.That(KnowHowRules.Entries.Select(e => e.id), Is.EqualTo(new[]
         {
             KnowHowRules.Ash, KnowHowRules.Kindling, KnowHowRules.Tripod, KnowHowRules.Tapping, KnowHowRules.Syrup, KnowHowRules.Hopper, KnowHowRules.Potash,
+            KnowHowRules.Charcoal, KnowHowRules.IronOre,
         }));
     }
 
@@ -102,14 +103,14 @@ public class KnowHowTests
     public void EveryTriggerNamesARealEntry()
     {
         var ids = new List<string>();
-        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle" })
+        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle", "charcoal", "iron_ore" })
             ids.AddRange(KnowHowRules.ForItem(itemId));
         foreach (KnowHowRules.Happening h in Enum.GetValues(typeof(KnowHowRules.Happening)))
             ids.AddRange(KnowHowRules.ForHappening(h));
         Assert.That(ids, Is.Not.Empty);
         foreach (string id in ids)
             Assert.That(KnowHowRules.TryGet(id, out _), Is.True, id);
-        Assert.That(ids.Distinct().Count(), Is.EqualTo(7), "and every entry has a way to unlock");
+        Assert.That(ids.Distinct().Count(), Is.EqualTo(9), "and every entry has a way to unlock");
     }
 
     [Test]

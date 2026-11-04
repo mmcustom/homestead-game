@@ -329,11 +329,11 @@ public class PotashTests
     }
 
     [Test]
-    public void TheStockedShelfIsTwentyOneItemsTotallingThreeHundredTenDollars()
+    public void TheStockedShelfIsTwentyTwoItemsTotallingThreeHundredFourteenDollars()
     {
-        Assert.That(Table.Stock.Count, Is.EqualTo(21));
-        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(31000L));
-        Assert.That(Table.Stock.Count(r => Table.SellBaseCents(r.itemId) > 0), Is.EqualTo(18));
+        Assert.That(Table.Stock.Count, Is.EqualTo(22), "21 and Iron Ore (Metalworking M1)");
+        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(31400L));
+        Assert.That(Table.Stock.Count(r => Table.SellBaseCents(r.itemId) > 0), Is.EqualTo(19));
     }
 
     [Test]

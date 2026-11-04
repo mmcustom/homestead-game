@@ -139,6 +139,12 @@ MonoBehaviour:
     baseCents: 3000
     kind: 0
     seasonalBuy: 0
+  - itemId: iron_ore
+    group: 7
+    pool: iron_ore
+    baseCents: 400
+    kind: 0
+    seasonalBuy: 0
   - itemId: deer_hide
     group: 3
     pool: deer_hide
@@ -376,6 +382,12 @@ MonoBehaviour:
   - itemId: stone
     group: 0
     pool: stone
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+  - itemId: charcoal
+    group: 0
+    pool: charcoal
     baseCents: 100
     kind: 1
     seasonalBuy: 0

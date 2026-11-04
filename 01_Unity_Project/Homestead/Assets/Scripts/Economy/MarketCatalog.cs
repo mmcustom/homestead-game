@@ -96,6 +96,8 @@ public static class MarketCatalog
         Row(TripodRules.KettleId, MarketGroup.Stocked, PotashRules.KettleBaseCents, MarketKind.Stocked),
         // Wood Saw (Mike, 2026-10-31): a bought time-saver, 1.5x the Axe; AxeRules has the felling numbers.
         Row(AxeRules.SawId, MarketGroup.Stocked, AxeRules.SawBaseCents, MarketKind.Stocked),
+        // Metalworking M1: Iron Ore, bought at the Trading Post ($4, a stocked item so it goes back for $1; MetalRules has the numbers). No limit per visit.
+        Row(MetalRules.IronOreId, MarketGroup.Stocked, MetalRules.IronOreBaseCents, MarketKind.Stocked),
         Row("deer_hide", MarketGroup.Hides, 800, MarketKind.Bought),
         Row("deer_antlers", MarketGroup.Hides, 600, MarketKind.Bought),
         Row("small_furs", MarketGroup.Hides, 300, MarketKind.Bought),
@@ -136,6 +138,8 @@ public static class MarketCatalog
         Row("firewood", MarketGroup.WoodStone, 100, MarketKind.Bought),
         Row("logs", MarketGroup.WoodStone, 300, MarketKind.Bought),
         Row("stone", MarketGroup.WoodStone, 100, MarketKind.Bought),
+        // Metalworking M1: Charcoal from the Charcoal Pit sells for $1 in the wood-and-stone group (the store never sells it, so there is no buy loop).
+        Row(MetalRules.CharcoalId, MarketGroup.WoodStone, MetalRules.CharcoalBaseCents, MarketKind.Bought),
         Row("stone_pick_axe", MarketGroup.Crafted, 400, MarketKind.Bought),
         Row("shovel", MarketGroup.Crafted, 400, MarketKind.Bought),
         Row("primitive_axe", MarketGroup.Crafted, 400, MarketKind.Bought),

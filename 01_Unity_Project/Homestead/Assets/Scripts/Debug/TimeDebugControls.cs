@@ -43,6 +43,9 @@ using UnityEngine.InputSystem;
 //   ;  give the Potter's Shed site's materials (a Hammer, a Shovel, 8 Branches, 8 Tall Grass, 2 Cordage, 12 Clay, 6 Sand) and stand a Wood Pile with its 3 Logs 3 m ahead;  Shift+;  stand a
 //      finished Potter's Shed 4 m ahead, stocked, with 2 wet Bowls and 3 dry Cups on the shelf;  Ctrl+;  finish every shaping job and dry every piece now, and every firing
 //   '  stand a finished Kiln 4 m ahead, loaded with 8 dry pieces and 10 Firewood, ready to light;  Shift+'  give a Kiln site kit (a Hammer, 6 Stone, 6 Clay, 10 Firewood, 3 dry Cups, 2 dry Bowls)
+//   ,  give the Charcoal Pit site's materials (a Hammer, 4 Clay, 6 Tall Grass) and stand a Wood Pile with 6 Logs (48 kg, more than the pack holds) 3 m ahead;  Shift+,  stand a finished Charcoal
+//      Pit 4 m ahead loaded with 6 Logs, ready to light;  Ctrl+,  finish every running charcoal burn now (the Charcoal is in the pit)
+//   =  give 10 Iron Ore and 10 Charcoal (40 kg; what does not fit is left out and the message says so)
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -280,6 +283,59 @@ public class TimeDebugControls : MonoBehaviour
             WoodManager.Instance.NotifyChanged(potLogs);
             Show(potMissed == 0 ? $"Pottery kit given: a Hammer, a Shovel, {PotteryRules.SiteBranches} Branches, {PotteryRules.SiteTallGrass} Tall Grass, {PotteryRules.SiteCordage} Cordage, 12 Clay, 6 Sand; a Wood Pile with {PotteryRules.SiteLogs} Logs is ahead"
                                   : $"Pottery kit given ({potMissed} items didn't fit); a Wood Pile with {PotteryRules.SiteLogs} Logs is ahead", time);
+            return;
+        }
+
+        // Metalworking M1. , gives the Charcoal Pit site's small materials and stands a Wood Pile with its 6 Logs 3 m ahead (6 Logs are 48 kg; the pack holds 45); Shift+, stands a
+        // finished Pit 4 m ahead loaded with 6 Logs; Ctrl+, finishes every running burn now. = gives 10 Iron Ore and 10 Charcoal.
+        if (keyboard.commaKey.wasPressedThisFrame && WoodManager.Instance != null && InventoryManager.Instance != null)
+        {
+            if (ctrl)
+            {
+                int pitsDone = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.DebugFinishBurns() : 0;
+                Show(pitsDone > 0 ? $"Charcoal burn finished in {pitsDone} pit(s): the Charcoal is ready" : "No Charcoal Pit is burning", time);
+                return;
+            }
+
+            Transform pitBody = Camera.main != null ? Camera.main.transform : transform;
+            Vector3 pitFlat = Vector3.ProjectOnPlane(pitBody.forward, Vector3.up).normalized;
+            Terrain pitTerrain = Terrain.activeTerrain;
+            Vector3 PitAhead(float metres)
+            {
+                Vector3 at = pitBody.position + pitFlat * metres;
+                if (pitTerrain != null)
+                    at.y = pitTerrain.SampleHeight(at) + pitTerrain.transform.position.y;
+                return at;
+            }
+
+            if (keyboard.shiftKey.isPressed)
+            {
+                WoodPileState pit = WoodManager.Instance.DebugPlace(PileKind.CharcoalPit, PitAhead(4f), pitBody.eulerAngles.y + 180f);
+                pit.Add(CharcoalRules.LogsId, CharcoalRules.LogsCap);
+                WoodManager.Instance.NotifyChanged(pit);
+                Show($"Charcoal Pit placed ahead with {CharcoalRules.LogsCap} Logs in it, ready to light (E)", time);
+                return;
+            }
+
+            InventoryManager pitInventory = InventoryManager.Instance;
+            int pitMissed = 0;
+            foreach ((string id, int count) in new (string, int)[] { ("hammer", 1), (CharcoalRules.ClayId, CharcoalRules.SiteClay), (CharcoalRules.TallGrassId, CharcoalRules.SiteTallGrass) })
+                pitMissed += count - pitInventory.AddToPlayer(id, count);
+            WoodPileState logsPile = WoodManager.Instance.DebugPlace(PileKind.WoodStorage, PitAhead(3f), pitBody.eulerAngles.y);
+            logsPile.Add(CharcoalRules.LogsId, CharcoalRules.LogsCap);
+            WoodManager.Instance.NotifyChanged(logsPile);
+            Show(pitMissed == 0 ? $"Charcoal Pit kit given: a Hammer, {CharcoalRules.SiteClay} Clay and {CharcoalRules.SiteTallGrass} Tall Grass, and a Wood Pile with {CharcoalRules.LogsCap} Logs 3 m ahead"
+                                : $"Charcoal Pit kit given ({pitMissed} items didn't fit), and a Wood Pile with {CharcoalRules.LogsCap} Logs 3 m ahead", time);
+            return;
+        }
+
+        if (keyboard.equalsKey.wasPressedThisFrame && InventoryManager.Instance != null)
+        {
+            InventoryManager oreInventory = InventoryManager.Instance;
+            int oreMissed = 10 - oreInventory.AddToPlayer(MetalRules.IronOreId, 10);
+            int charcoalMissed = 10 - oreInventory.AddToPlayer(MetalRules.CharcoalId, 10);
+            Show(oreMissed + charcoalMissed == 0 ? "Given 10 Iron Ore and 10 Charcoal"
+                                                 : $"Given what fits of 10 Iron Ore and 10 Charcoal ({oreMissed} Ore and {charcoalMissed} Charcoal didn't fit)", time);
             return;
         }
 

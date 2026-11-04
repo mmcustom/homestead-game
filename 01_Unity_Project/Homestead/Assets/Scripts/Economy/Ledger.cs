@@ -100,6 +100,7 @@ public static class LedgerCategories
         { "lamp_oil", LedgerCategory.BuyCookingWaterFire }, { TripodRules.KettleId, LedgerCategory.BuyCookingWaterFire },
         { "lumber", LedgerCategory.BuyBuildingMaterials }, { "cordage", LedgerCategory.BuyBuildingMaterials },
         { "weather_station", LedgerCategory.BuyOtherGoods },
+        { MetalRules.IronOreId, LedgerCategory.BuyOtherGoods }, // Metalworking M1: listed on purpose (the default category), as every stocked item must be
     };
 
     // The expense category for buying a stocked item; anything unlisted (a future stock item) is "other goods".

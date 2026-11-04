@@ -200,7 +200,7 @@ public class CartTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("HandCart"), Is.EqualTo(32));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(39), "nothing was inserted in the middle (the Workshop kinds, 33 and 34, came after the cart; the Potter kinds, 35 and 36, after them)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(41), "nothing was inserted in the middle (the Workshop kinds, 33 and 34, came after the cart; the Potter kinds, 35 and 36, after them)");
     }
 
     [Test]
@@ -662,6 +662,6 @@ public class CartTests
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("HandCart"), Is.EqualTo(32));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(39), "no kind was added for the cart handle or the held cart (33 through the cart, plus the two Workshop kinds and the two Potter kinds)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(41), "no kind was added for the cart handle or the held cart (33 through the cart, plus the two Workshop kinds and the two Potter kinds)");
     }
 }

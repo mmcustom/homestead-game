@@ -194,7 +194,9 @@ public static class Setbacks
     {
         foreach (SiteInfo kiln in kilns)
         {
-            if (Flat(point, kiln.position) < rules.kilnRadius + reach + rules.kilnFromStructure)
+            // A kiln-like fire structure with its own reach (the Charcoal Pit) says so in SiteInfo.radius; a Kiln that does not falls back to the rules' kilnRadius.
+            float kilnReach = kiln.radius > 0f ? kiln.radius : rules.kilnRadius;
+            if (Flat(point, kiln.position) < kilnReach + reach + rules.kilnFromStructure)
             {
                 reason = TooClose($"the {kiln.name}", rules.kilnFromStructure);
                 return false;
