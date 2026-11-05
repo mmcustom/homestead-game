@@ -347,8 +347,8 @@ public static class ArtSwap
         foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
         {
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            // M0c-2 fix 2: nothing in the viewmodel RECEIVES the world's shadows either. A shelter's slats, a fence or a branch threw their soft, dotted shadow stripes across the sleeve and the tool in hand,
-            // which looked like the world showing through them. The hands are still lit by the sun and the sky, just never shadowed by the world.
+            // M0c-2 fix 2: nothing in the viewmodel receives the world's shadows. NOTE: HDRP ignores this flag (turning it on or off changed nothing in a real cabin), so it is only a statement of intent.
+            // The see-through sleeve was really the world's ambient occlusion texture: ViewmodelPass hands the hands a white one while it draws them.
             r.receiveShadows = false;
             // The pass is culled with the main camera's frustum, which the rifle scope narrows; bounds this large keep the hands from being culled away then.
             r.localBounds = new Bounds(Vector3.zero, Vector3.one * ViewBoundsSize);

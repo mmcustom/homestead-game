@@ -17,6 +17,12 @@ public class ViewmodelPass : CustomPass
 
     RTHandle depth;
 
+    // The hands are lit in forward by HDRP's Lit shader, which multiplies in the screen-space ambient occlusion texture at each pixel it draws. That texture is computed from the WORLD's depth, so
+    // the creases between a cabin's logs (or the slats of a shelter) darkened the sleeves at the same screen spots and the wall seemed to show through them. Found by turning each screen-space
+    // effect off in a real cabin: only SSAO made the stripes go. The hands are not part of the world's depth, so while they are drawn this texture is a white one (no occlusion). The world's own
+    // occlusion is untouched, and HDRP binds the real texture again at the start of the next frame.
+    public const string AmbientOcclusionTexture = "_AmbientOcclusionTexture";
+
     protected override void Setup(ScriptableRenderContext renderContext, CommandBuffer cmd)
     {
         depth = RTHandles.Alloc(Vector2.one, TextureXR.slices, DepthBits.Depth32, dimension: TextureXR.dimension, useDynamicScale: true, name: "Viewmodel Depth");
@@ -38,6 +44,7 @@ public class ViewmodelPass : CustomPass
             return;
 
         draws++;
+        ctx.cmd.SetGlobalTexture(AmbientOcclusionTexture, TextureXR.GetWhiteTexture());
         // HDRP's Lit forward pass tests depth as Equal for opaque objects (it expects a depth prepass to have run, material value _ZTestDepthEqualForOpaque), and this pass clears its own
         // depth first, so nothing would ever pass. LessEqual with depth write on makes the hands draw (and sort among themselves) as ordinary opaque objects.
         var depthOverride = new RenderStateBlock(RenderStateMask.Depth) { depthState = new DepthState(true, CompareFunction.LessEqual) };
