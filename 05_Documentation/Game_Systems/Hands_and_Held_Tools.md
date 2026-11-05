@@ -1,7 +1,7 @@
 # Homestead
-## Hands and Held Tools v0.5
+## Hands and Held Tools v0.6
 
-Status: planned 2026-11-04 from Claude Code's read-only plan; phases M0a (73ee84d), M0b (175a8c7), M0c-1 (0d6cdd3) and M0c-2 (c97f731) BUILT, M0d not built yet. Mike's wish: draw the player's hands holding and using tools on screen, so the permanent on-screen equipped-tool text can go. Rough primitive shapes for the Alpha; real art later, so every visual has one swap point (standing rule in Art_Readiness_and_Placeholders.md). Phase "Hands and tools M0" in the art phases. Depends on A1 (ArtSwap, ef52c25).
+Status: planned 2026-11-04 from Claude Code's read-only plan; phases M0a (73ee84d), M0b (175a8c7), M0c-1 (0d6cdd3) and M0c-2 (c97f731) and M0d (e13ebe4) BUILT; the see-through sleeve bug in some interiors is open (see the end of this file). Mike's wish: draw the player's hands holding and using tools on screen, so the permanent on-screen equipped-tool text can go. Rough primitive shapes for the Alpha; real art later, so every visual has one swap point (standing rule in Art_Readiness_and_Placeholders.md). Phase "Hands and tools M0" in the art phases. Depends on A1 (ArtSwap, ef52c25).
 
 ---
 
@@ -156,3 +156,24 @@ Known weak spots: the bows read from behind as a straight staff with a grip wrap
 Process notes: Claude Code missed the SavesBeforeM0c2 copy at the start of the first build (made it at the end; hash-identical to SavesBackup50), and left the editor on the World scene with a custom Game view size once; from round 2 it restores Bootstrap and Full HD at the end of every build.
 
 Next: M0d (remove the idle equipped-tool line at the crosshair, short fade-in tool name on switching, keep the teaching prompts), then the melee phases (see Melee_Fists_and_Knife.md).
+
+# BUILT: Hands and tools M0d, the equipped-tool line becomes a fade-in name (2026-11-05, playtest passed except the see-through arms, committed e13ebe4)
+
+The permanent idle equipped-tool line at the crosshair is gone. The hands draw every tool now, so the same text fades in for 2.5 seconds when a tool is picked up and then disappears. Suite 1836 of 1836 (1824 plus 12 new in EquipNameFadeTests), Console 0 errors and 0 warnings, no HDRP asset or ProjectSettings.asset change, no gameplay change, no new swap point (UI text only).
+
+- New pure class EquipNameFade (Scripts/Economy): FadeInSeconds 0.25, HoldSeconds 1.75, FadeOutSeconds 0.5, TotalSeconds 2.5. A new tool restarts it, and so does a changed count on the same tool (Arrows for the bows, Rounds for the Rifle, the number of that trap in the pack). Switching mid-fade restarts it with the new tool's text. Empty hands show nothing. It shows nothing while a prompt is up.
+- ToolStatus gained ReportIdle (same as Report but marked idle), LineIsIdle, ReportCount and Count. Each tool script's idle line now calls ReportIdle with the same wording (AxeTool, FishingRod, TapManager, TrapSetter, BowDrill, PortableLight, HuntingWeapon); three ReportCount lines (two in HuntingWeapon, one in TrapSetter). Every old idle string is pinned word for word by a test.
+- ToolHud draws a separate fade-in label at size 28 (the old status line was 22), in the same place, font, colour and shadow as the old line. Prompts, bars and every other HUD text keep their old size and wording.
+- Tools that never had an idle line (Bucket, Sap Bucket, Canteen, Pouch, Knife, Saw, Flint and Steel, pots, Tarp, Cart items) now show their display name for 2.5 s on equip (M0d decision 6).
+- Torch and Lantern: their whole status line (lit or unlit, hours left, click to light or snuff) became the fade-in on equip; lighting or snuffing does not restart it. Mike did not object in the playtest.
+- Kept as in-use prompts, unchanged: drawing and full-draw lines with their bars, the Rifle's bolt line and scope Rounds, the Rod's cast, waiting, bite and reeling lines and refusals, chop, split, mine, build, dig (including "too deep"), Spile, Bow Drill, water Fill and the Cart's pushing line.
+
+Mike's answers: text timing (2.5 s) and size (28) are good; name-only text is fine.
+
+Not verified by Claude Code (Mike checked in play): a real cast and bite on water, Torch or Lantern in use, Spile on a tree, trap setting, Bow Drill and Hammer prompts.
+
+# OPEN: see-through sleeves in some interiors (found 2026-11-05, Mike's playtest of M0d)
+
+Inside the Small Cabin with the Rifle at 06:05, both sleeves show diagonal lighter stripes and the cabin wall shows through. The M0c-2 round 2 fix (receiveShadows false on the viewmodel renderers in ArtSwap.SetViewLayer, which cured the dotted stripes Claude Code saw with a stand-in slat fence) did not cure it in the real cabin. Suspicion, untested: HDRP does not honour the renderer Receive Shadows flag, so the hands are still shadowed by the sun through the cabin and other lights. A fix must be proven in the real cabin with the real lights. Any HDRP asset or ProjectSettings.asset change needs Mike's OK first.
+
+Next: fix the see-through sleeves (own commit), then the melee phases (Melee_Fists_and_Knife.md): M0e-1 fists, M0e-2 Knife (alternate slash and stab), M0e-3 reactions, teaching and a Know-how entry.
