@@ -197,6 +197,7 @@ public class TrapSetter : MonoBehaviour
         string name = TrapManager.NameOf(type);
         if (AudioManager.Instance != null)
             AudioManager.Instance.SilenceNextRemoval(); // the trap-set sound below replaces the item-drop sound
+        ToolEvents.RaisePlaced(); // the hands set it down (Hands M0c-2)
         if (!traps.Place(type, point, yaw))
             return false;
 

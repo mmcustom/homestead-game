@@ -121,6 +121,7 @@ public class WaterSource : MonoBehaviour, IInteractable
         {
             string itemId = WaterQualities.ItemId(QualityAt(player.transform.position));
             InventoryManager.Instance.AddToPlayer(itemId, fill);
+            ToolEvents.RaiseFilled(); // the hands dip the vessel (Hands M0c-2)
             return;
         }
 
@@ -128,6 +129,7 @@ public class WaterSource : MonoBehaviour, IInteractable
         {
             SurvivalManager survival = SurvivalManager.Instance;
             survival.Drink(hydrationPerDrink);
+            ToolEvents.RaiseDrank(); // the hands lift it (Hands M0c-2)
             if (AudioManager.Instance != null)
                 AudioManager.Instance.Play(SoundCue.Drink);
 

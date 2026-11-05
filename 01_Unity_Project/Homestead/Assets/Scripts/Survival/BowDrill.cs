@@ -122,6 +122,7 @@ public class BowDrill : MonoBehaviour
         if (!attack.IsPressed())
         {
             needRelease = false;
+            ToolEvents.SetWorking(null, false);
             progress = 0f;
             ToolStatus.Report($"Bow Drill — hold click to drill  ({chance:P0} chance to catch)");
             return;
@@ -138,11 +139,13 @@ public class BowDrill : MonoBehaviour
         }
 
         progress += Time.deltaTime / Mathf.Max(0.1f, settings.drillSeconds);
+        ToolEvents.SetWorking(ItemId, true); // the hands saw (Hands M0c-2)
         ToolStatus.Report($"Drilling…  ({chance:P0} chance to catch)", Mathf.Clamp01(progress));
         if (progress >= 1f)
         {
             progress = 0f;
             needRelease = true;
+            ToolEvents.SetWorking(null, false);
             Attempt(settings, fire, chance);
         }
     }
@@ -150,6 +153,7 @@ public class BowDrill : MonoBehaviour
     void Cancel()
     {
         targetId = -1;
+        ToolEvents.SetWorking(null, false);
         progress = 0f;
         needRelease = false;
     }

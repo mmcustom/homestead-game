@@ -24,6 +24,40 @@ public static class ToolEvents
     public static event Action<string> Lit;       // a Torch or Lantern was lit
     public static event Action<string> Snuffed;   // and put out by a click (a burn-out is not an event: the lit state is read from PortableLight)
 
+    // M0c-2: the bows and rifle (HuntingWeapon), the Bow Drill, the Bucket and Canteen (WaterSource), the Spile (TapManager) and the traps (TrapSetter).
+    public static event Action<string, float> Draw;   // a bow is drawn to this fraction (raised every frame it is drawing, and 0 when it lets down or shoots)
+    public static event Action<string> Shot;          // a bow let go, or the rifle fired
+    public static event Action<string, bool> Working; // the Bow Drill is sawing (true) or has stopped (false)
+    public static event Action Filled;                // a Bucket or Canteen was filled at the water
+    public static event Action Drank;                 // a drink from the water
+    public static event Action Tapped;                // the Spile pushed into a tree
+    public static event Action Placed;                // a trap set down
+
+    public static void RaiseDraw(string toolId, float fraction) => Draw?.Invoke(toolId, fraction);
+    public static void RaiseShot(string toolId) => Shot?.Invoke(toolId);
+    public static void RaiseFilled() => Filled?.Invoke();
+    public static void RaiseDrank() => Drank?.Invoke();
+    public static void RaiseTapped() => Tapped?.Invoke();
+    public static void RaisePlaced() => Placed?.Invoke();
+
+    static string workingTool;
+
+    // The Bow Drill: called each frame it could be sawing, raises Working only when it changes. A null tool with on = false stops whatever is working.
+    public static void SetWorking(string toolId, bool on)
+    {
+        if (on && workingTool == null && !string.IsNullOrEmpty(toolId))
+        {
+            workingTool = toolId;
+            Working?.Invoke(toolId, true);
+        }
+        else if (!on && workingTool != null)
+        {
+            string was = workingTool;
+            workingTool = null;
+            Working?.Invoke(was, false);
+        }
+    }
+
     static string reelingTool;
 
     public static void RaiseCast(string toolId) => Cast?.Invoke(toolId);
@@ -95,5 +129,6 @@ public static class ToolEvents
         splitHint = false;
         hintFrame = -1;
         reelingTool = null;
+        workingTool = null;
     }
 }

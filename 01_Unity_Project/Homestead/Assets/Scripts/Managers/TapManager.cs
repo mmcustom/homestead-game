@@ -270,7 +270,10 @@ public class TapManager : MonoBehaviour, ISaveable
         if (spile && attack != null && attack.WasPressedThisFrame())
         {
             if (lookIndex >= 0)
+            {
+                ToolEvents.RaiseTapped(); // the hands drive the Spile (Hands M0c-2)
                 TryPlace(wood, inventory, lookIndex);
+            }
             else
                 ToolStatus.Flash("Look at a Sugar Maple within reach to tap it.");
         }

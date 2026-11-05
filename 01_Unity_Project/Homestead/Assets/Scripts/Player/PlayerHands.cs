@@ -55,13 +55,22 @@ public class PlayerHands : MonoBehaviour
     string heldShown;
     Transform heldRoot, gripL;   // the tool in hand (the prefab or the primitive, or the generic placeholder), and where the left hand steadies it
     bool heldTwoHanded;
-    Transform heldGripR;
+    Transform heldGripR;    // where the hand that carries the tool holds it: Anchor_Grip_R, or on a bow Anchor_Grip_L (the left hand's handle)
+    Transform nockAnchor;   // a bow's Anchor_Nock, where the right hand goes
+    Transform[] stringHalves;
+    bool bowStance, hanging;
+    float shownFor;         // seconds the tool in hand has been shown (the settle of a hanging item)
     float heldPitch, heldRoll;
     readonly SwingState swing = new SwingState();
     readonly ToolActionState action = new ToolActionState(); // the rods and lights in hand (M0c-1)
     Transform lineAnchor, flameAnchor, stateLit, stateUnlit, flameShape;
     Vector3 flameShapeScale;
     bool heldIsPrimitive, lightMoved;
+    bool pushing;
+    public bool ForcePushing { get; set; } // a diagnostic: show the push pose without a Hand Cart
+    public HandMotion? ForceMotion { get; set; } // a diagnostic: hold the hands at one motion and one step phase (ForceStepPhase) so a screenshot can look at mid-stride
+    public float ForceStepPhase { get; set; }
+    public bool Pushing { get => pushing; set => pushing = value; } // the Hand Cart is being pushed: both hands take the push pose
     ParticleSystem[] flameParticles;
     InventoryManager inventory;
     int layer = -1;
@@ -110,6 +119,8 @@ public class PlayerHands : MonoBehaviour
         ToolEvents.Cast += OnCast; ToolEvents.Bite += OnBite; ToolEvents.Landed += OnLanded; ToolEvents.Failed += OnFailed;
         ToolEvents.ReelStart += OnReelStart; ToolEvents.ReelStop += OnReelStop; ToolEvents.LineIn += OnLineIn;
         ToolEvents.Lit += OnLit; ToolEvents.Snuffed += OnSnuffed;
+        ToolEvents.Draw += OnDraw; ToolEvents.Shot += OnShot; ToolEvents.Working += OnWorking;
+        ToolEvents.Filled += OnFilled; ToolEvents.Drank += OnDrank; ToolEvents.Tapped += OnTapped; ToolEvents.Placed += OnPlaced;
     }
 
     void OnDestroy()
@@ -123,6 +134,8 @@ public class PlayerHands : MonoBehaviour
         ToolEvents.Cast -= OnCast; ToolEvents.Bite -= OnBite; ToolEvents.Landed -= OnLanded; ToolEvents.Failed -= OnFailed;
         ToolEvents.ReelStart -= OnReelStart; ToolEvents.ReelStop -= OnReelStop; ToolEvents.LineIn -= OnLineIn;
         ToolEvents.Lit -= OnLit; ToolEvents.Snuffed -= OnSnuffed;
+        ToolEvents.Draw -= OnDraw; ToolEvents.Shot -= OnShot; ToolEvents.Working -= OnWorking;
+        ToolEvents.Filled -= OnFilled; ToolEvents.Drank -= OnDrank; ToolEvents.Tapped -= OnTapped; ToolEvents.Placed -= OnPlaced;
     }
 
     // A blow landed with this tool (ToolEvents): the hands swing. Ignored when the hands are holding something else (mid-switch). A finishing flag that arrives with the swing it belongs to makes
@@ -147,6 +160,26 @@ public class PlayerHands : MonoBehaviour
     public void OnLineIn(string toolId) { if (toolId == raise.Shown) action.SetFishing(false); }
     public void OnLit(string toolId) { if (toolId == raise.Shown) action.Start(ToolAction.Light); }
     public void OnSnuffed(string toolId) { if (toolId == raise.Shown) action.Start(ToolAction.Snuff); }
+
+    // M0c-2 (ToolEvents): the bows and rifle, the Bow Drill, a vessel at the water, the Spile and the traps.
+    public void OnDraw(string toolId, float fraction) { if (toolId == raise.Shown) action.SetDraw(fraction); }
+    public void OnShot(string toolId)
+    {
+        if (toolId != raise.Shown)
+            return;
+        if (ToolActionRules.IsBow(toolId))
+        {
+            action.SetDraw(0f);
+            action.Start(ToolAction.Release);
+        }
+        else
+            action.Start(ToolAction.Shot);
+    }
+    public void OnWorking(string toolId, bool on) { if (toolId == raise.Shown) action.SetWorking(on); }
+    public void OnFilled() { if (ToolActionRules.IsContainer(raise.Shown)) action.Start(ToolAction.Dip); }
+    public void OnDrank() { if (ToolActionRules.IsContainer(raise.Shown)) action.Start(ToolAction.Drink); }
+    public void OnTapped() { if (ToolActionRules.IsSpile(raise.Shown)) action.Start(ToolAction.Tap); }
+    public void OnPlaced() { if (ToolActionRules.IsTrap(raise.Shown)) action.Start(ToolAction.PlaceDown); }
 
     // A blow was refused for lack of stamina: the hands droop.
     public void OnTired(string toolId)
@@ -302,23 +335,30 @@ public class PlayerHands : MonoBehaviour
         heldTwoHanded = false;
         heldGripR = null;
         lineAnchor = flameAnchor = stateLit = stateUnlit = flameShape = null;
+        nockAnchor = null;
+        stringHalves = null;
+        bowStance = ToolActionRules.IsBow(toolId);
+        hanging = ToolActionRules.IsHanging(toolId);
+        shownFor = 0f;
         flameParticles = null;
         heldIsPrimitive = false;
         heldShown = toolId;
         action.Configure(toolId);
         // The tool in hand decides the ready pose: the Axes, Pick Axes and Hammer are held cocked (drawn back), everything else neutral. This also drops any swing in progress.
         swing.Configure(ToolWork.CockKind(toolId, out WorkKind cockKind), cockKind);
-        if (toolId == null || anchorR == null)
+        if (toolId == null || anchorR == null || anchorL == null)
             return;
 
         // THE swap point for tools: the prefab if there is one, else the primitive shape, for the eight tools M0b draws.
         ArtSwap.ToolSpec spec = ArtSwap.ToolSpecFor(toolId);
         if (spec != null)
         {
-            Transform tool = ArtSwap.TryAttachTool(anchorR, toolId, layer);
+            // A bow is the left hand's: it hangs off the left palm and stays put; every other tool is the right hand's.
+            Transform parent = bowStance ? anchorL : anchorR;
+            Transform tool = ArtSwap.TryAttachTool(parent, toolId, layer);
             heldIsPrimitive = tool == null;
             if (tool == null)
-                tool = ToolViewPrimitives.Build(toolId, anchorR, layer).transform;
+                tool = ToolViewPrimitives.Build(toolId, parent, layer).transform;
             Transform gripR = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripR);
             gripL = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripL);
             ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorTip);
@@ -337,11 +377,17 @@ public class PlayerHands : MonoBehaviour
                     flameShapeScale = flameShape != null ? flameShape.localScale : Vector3.one;
                 }
             }
-            heldGripR = gripR; heldPitch = spec.holdPitch; heldRoll = spec.holdRoll;
-            AlignToGrip(tool, gripR, heldPitch, heldRoll);
+            if (bowStance)
+            {
+                nockAnchor = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorNock);
+                if (heldIsPrimitive)
+                    stringHalves = new[] { tool.Find(ToolViewPrimitives.StringUpper), tool.Find(ToolViewPrimitives.StringLower) };
+            }
+            heldGripR = bowStance ? gripL : gripR; heldPitch = spec.holdPitch; heldRoll = spec.holdRoll;
+            AlignToGrip(tool, heldGripR, heldPitch, heldRoll);
             held = tool.gameObject;
             heldRoot = tool;
-            heldTwoHanded = spec.twoHanded;
+            heldTwoHanded = spec.twoHanded && !bowStance; // a bow's left hand holds the bow itself, it does not follow a second grip
             return;
         }
 
@@ -366,6 +412,37 @@ public class PlayerHands : MonoBehaviour
         Quaternion rotation = Quaternion.Euler(holdPitch, 0f, holdRoll) * Quaternion.Inverse(gripRotation);
         tool.localRotation = rotation;
         tool.localPosition = -(rotation * gripPosition);
+    }
+
+    // A hanging item (a bucket, pot, trap, canteen, pouch): its grip sits on the palm and the body hangs straight down in the view whatever the hand does (the rig's own orientation, not the hand's), then
+    // swings by pitch (forward and back) and roll (side to side) degrees about the grip.
+    void AlignHanging(Transform tool, Transform grip, Transform palm, float pitch, float roll, float yaw = 0f)
+    {
+        Quaternion gripRotation = Quaternion.Inverse(tool.rotation) * grip.rotation;
+        tool.rotation = rig.transform.rotation * Quaternion.Euler(pitch, yaw, roll) * Quaternion.Inverse(gripRotation);
+        tool.position += palm.position - grip.position;
+    }
+
+    // The primitive bow's string: two halves from the limb tips to wherever the right hand is holding it, so the string draws back with the hand. A prefab's string is the prefab's own.
+    void UpdateString()
+    {
+        if (stringHalves == null || stringHalves[0] == null || stringHalves[1] == null || heldRoot == null)
+            return;
+        Vector3 limbTip = ToolViewPrimitives.BowTip(heldShown == "recurve_bow");
+        Vector3 hand = anchorR.position;
+        for (int i = 0; i < 2; i++)
+        {
+            Vector3 tip = heldRoot.TransformPoint(new Vector3(0f, i == 0 ? limbTip.y : -limbTip.y, limbTip.z));
+            Transform segment = stringHalves[i];
+            Vector3 along = hand - tip;
+            float length = along.magnitude;
+            if (length < 1e-5f)
+                continue;
+            segment.position = (tip + hand) * 0.5f;
+            segment.rotation = Quaternion.FromToRotation(Vector3.up, along / length);
+            float scale = segment.parent.lossyScale.y;
+            segment.localScale = new Vector3(segment.localScale.x, length * 0.5f / scale, segment.localScale.z);
+        }
     }
 
     // The left hand goes to the tool's left grip: its palm anchor on the grip. It keeps its own pose angles, so its arm still comes in from the lower left corner instead of lying along the handle.
@@ -422,17 +499,27 @@ public class PlayerHands : MonoBehaviour
         }
 
         float dt = Time.deltaTime;
-        raise.Tick(dt, wanted);
+        // No tool can be used while pushing the Hand Cart (both hands on its handles) or knocked down by the creek: the hands drop what they hold (the cart pose is a fixed two-handed push).
+        pushing = ForcePushing || CartHandler.Pushing;
+        string effective = HandPoseRules.EffectiveTool(wanted, pushing, CreekCrossing.InputLocked);
+        raise.Tick(dt, effective);
+        action.SetAim(scope);
         if (!HoldSwing)
         {
             swing.Tick(dt);
             action.Tick(dt);
         }
         breathTime += dt;
+        shownFor += dt;
 
         bool moving = body != null && new Vector2(body.velocity.x, body.velocity.z).sqrMagnitude > 0.09f && body.isGrounded;
         HandMotion motion = HandPoseRules.MotionFor(moving, player != null && player.IsSprinting, player != null && player.IsCrouching);
         stepPhase += HandPoseRules.StepRate(motion) * dt;
+        if (ForceMotion.HasValue)
+        {
+            motion = ForceMotion.Value;
+            stepPhase = ForceStepPhase;
+        }
         Apply(raise.Shown, raise.Raise * HandPoseRules.ScopeLowering(scope), breathTime, stepPhase, motion);
         UpdateLight(shown);
     }
@@ -498,7 +585,13 @@ public class PlayerHands : MonoBehaviour
 
         bool rightHolds = shownTool != null;
         bool leftShown = HeldTools.LeftHandShown(shownTool);
-        HandPose right = HandPoseRules.Pose(HandSide.Right, rightHolds, raiseAmount, breath, steps, motion);
+        bool push = pushing && shownTool == null; // both hands on the cart handles
+        if (bowStance && shownTool != null && heldRoot != null)
+        {
+            ApplyBow(raiseAmount, breath, steps, motion);
+            return;
+        }
+        HandPose right = push ? HandPoseRules.PushPose(HandSide.Right, raiseAmount, breath, steps, motion) : HandPoseRules.Pose(HandSide.Right, rightHolds, raiseAmount, breath, steps, motion);
         if (rightHolds)
         {
             // The ready pose (cocked or neutral), a blow in progress and, for a rod or a light, its own ready pose and the cast, bite, reel or flicker: the hand turns about the elbow by only a share of
@@ -510,15 +603,45 @@ public class PlayerHands : MonoBehaviour
             offset.Pitch *= SwingRules.HandPitchShare;
             PlaceHandSwinging(handR, right, offset);
             if (heldRoot != null && heldGripR != null)
-                AlignToGrip(heldRoot, heldGripR, heldPitch + toolPitch, heldRoll);
+            {
+                if (hanging)
+                {
+                    // Gravity: the body hangs straight down; the step swings it a little and a fresh equip settles it. The action's own pitch (the dip, the drink, the set-down) still tips it.
+                    HandPose sway = ToolActionRules.HangSway(steps, HandPoseRules.StepAmount(motion));
+                    float settle = ToolActionRules.HangSettle(shownFor - HandPoseRules.RaiseSeconds);
+                    AlignHanging(heldRoot, heldGripR, anchorR, toolPitch + sway.Pitch + settle, sway.Roll);
+                }
+                else
+                    AlignToGrip(heldRoot, heldGripR, heldPitch + toolPitch, heldRoll);
+            }
         }
         else
             PlaceHand(handR, right);
-        PlaceHand(handL, HandPoseRules.Pose(HandSide.Left, HeldTools.LeftHandHolds(shownTool), raiseAmount, breath, steps, motion));
+        PlaceHand(handL, push ? HandPoseRules.PushPose(HandSide.Left, raiseAmount, breath, steps, motion) : HandPoseRules.Pose(HandSide.Left, HeldTools.LeftHandHolds(shownTool), raiseAmount, breath, steps, motion));
         handR.gameObject.SetActive(true);
         handL.gameObject.SetActive(leftShown);
         if (leftShown && heldTwoHanded && gripL != null && heldRoot != null)
             PlaceLeftOnGrip(); // on a two-handed tool the left hand follows the tool's left grip
+    }
+
+    // A bow in hand (M0c-2 fix): the LEFT hand holds the bow and it does not move with the draw or the release. The RIGHT hand goes to the nock on the string, pulls back toward the face as the draw
+    // builds, trembles faintly at full draw, and springs forward on the release. Hands, ready pose, equip, sway and hiding are the usual ones.
+    void ApplyBow(float raiseAmount, float breath, float steps, HandMotion motion)
+    {
+        HandPose left = ToolActionRules.Sum(HandPoseRules.Pose(HandSide.Left, true, raiseAmount, breath, steps, motion), action.BowHandOffset());
+        PlaceHand(handL, left);
+        AlignHanging(heldRoot, heldGripR, anchorL, ToolActionRules.BowPitch, ToolActionRules.BowRoll, ToolActionRules.BowYaw); // upright in the view whatever angle the left forearm comes in at
+
+        HandPose right = HandPoseRules.Pose(HandSide.Right, true, raiseAmount, breath, steps, motion);
+        HandPose pull = action.Offset(false);
+        right.Pitch += pull.Pitch; right.Yaw += pull.Yaw; right.Roll += pull.Roll;
+        PlaceHand(handR, right);
+        if (nockAnchor != null)
+            handR.position += nockAnchor.position - anchorR.position; // the palm on the string's middle
+        handR.localPosition += new Vector3(pull.X * WidthScale, pull.Y, pull.Z);
+        handR.gameObject.SetActive(true);
+        handL.gameObject.SetActive(true);
+        UpdateString();
     }
 
     // The swing: the hand turns by the offset's angles about the elbow (SwingRules.ElbowBack behind the wrist), so the forearm stays near where it was and the hand arcs. The offset's own X, Y, Z

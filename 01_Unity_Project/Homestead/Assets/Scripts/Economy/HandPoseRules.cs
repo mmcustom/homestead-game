@@ -31,6 +31,13 @@ public static class HandPoseRules
     const float HeldRightX = 0.24f, HeldRightY = -0.20f, HeldRightZ = 0.50f, HeldRightPitch = -12f, HeldRightYaw = 6f, HeldRightRoll = 4f;
     const float HeldLeftX = 0.10f, HeldLeftY = -0.16f, HeldLeftZ = 0.56f, HeldLeftPitch = -32f, HeldLeftYaw = 45f, HeldLeftRoll = -10f;
 
+    // How far up the screen a hand's wrist is, measured from the bottom edge of the view at the wrist's own depth (metres, 16:9, 60 degree field of view). It is the visible length of the arm: the
+    // sleeve is a fixed length and comes in from the bottom of the screen, so a wrist further above the edge shows more of it. The Axe at ready is 0.09, the Rods about 0.10, the Lantern (the highest
+    // pose M0c-1 shipped and Mike passed) 0.21. Nothing may show more arm than the Lantern did: MaxRise.
+    public const float MaxRise = 0.22f;
+    public static float Rise(float wristY, float wristZ) => wristY + 0.5774f * wristZ;
+    public static float Rise(HandPose wrist) => Rise(wrist.Y, wrist.Z);
+
     // Breathing: a slow rise and fall that never stops.
     const float BreathSeconds = 4.5f, BreathRise = 0.004f, BreathTilt = 0.6f;
 
@@ -89,9 +96,24 @@ public static class HandPoseRules
 
     // The pose of one hand. holding: this hand is on a tool (right hand always; the left only on a two-handed tool), otherwise it is relaxed at rest.
     // raise: 0 = at the bottom of the screen, 1 = in place (HandRaise). breathTime: seconds, always running. stepPhase: whole steps taken so far, only moving while the player moves.
-    public static HandPose Pose(HandSide side, bool holding, float raise, float breathTime, float stepPhase, HandMotion motion)
+    public static HandPose Pose(HandSide side, bool holding, float raise, float breathTime, float stepPhase, HandMotion motion) =>
+        Compose(Target(side, holding), side, raise, breathTime, stepPhase, motion);
+
+    // Both hands on the Hand Cart's handles while pushing it: a fixed forward two-handed pose, with the same breathing, step sway and raise as any other.
+    public static HandPose PushPose(HandSide side, float raise, float breathTime, float stepPhase, HandMotion motion) =>
+        Compose(PushTarget(side), side, raise, breathTime, stepPhase, motion);
+
+    public static HandPose PushTarget(HandSide side)
     {
-        HandPose pose = Target(side, holding);
+        float m = side == HandSide.Right ? 1f : -1f;
+        return new HandPose { X = 0.17f * m, Y = -0.13f, Z = 0.56f, Pitch = -6f, Yaw = -5f * m, Roll = 5f * m };
+    }
+
+    // What the hands do while the world is live but no tool can be used: a Hand Cart being pushed, or a creek knock-down. Both drop whatever is in hand.
+    public static string EffectiveTool(string wanted, bool pushingCart, bool knockedDown) => pushingCart || knockedDown ? null : wanted;
+
+    static HandPose Compose(HandPose pose, HandSide side, float raise, float breathTime, float stepPhase, HandMotion motion)
+    {
 
         // Breathing, a little out of step between the hands.
         float breath = (float)Math.Sin(2.0 * Math.PI * (breathTime / BreathSeconds + (side == HandSide.Right ? 0.0 : 0.13)));

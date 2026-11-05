@@ -347,6 +347,9 @@ public static class ArtSwap
         foreach (Renderer r in root.GetComponentsInChildren<Renderer>(true))
         {
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            // M0c-2 fix 2: nothing in the viewmodel RECEIVES the world's shadows either. A shelter's slats, a fence or a branch threw their soft, dotted shadow stripes across the sleeve and the tool in hand,
+            // which looked like the world showing through them. The hands are still lit by the sun and the sky, just never shadowed by the world.
+            r.receiveShadows = false;
             // The pass is culled with the main camera's frustum, which the rifle scope narrows; bounds this large keep the hands from being culled away then.
             r.localBounds = new Bounds(Vector3.zero, Vector3.one * ViewBoundsSize);
         }
@@ -398,6 +401,15 @@ public static class ArtSwap
     //     side. The hands rig scales it toward the eye. Every renderer goes on the Viewmodel layer and stops casting shadows; every collider is removed.
     //   * Anchor_Grip_R (required): where the right hand holds it. Anchor_Grip_L (optional): where the left hand steadies a two-handed tool. Anchor_Tip (optional): the working point.
     //   * A missing anchor is made at the primitive's own grip (ToolViewPrimitives.LayoutFor), so the tool still sits in the hand.
+    //   * M0c-2 adds eighteen more rows, so every tool the hands can hold has one: primitive_bow and recurve_bow (Anchor_Nock: where an arrow sits on the string), bolt_action_rifle (Anchor_Muzzle),
+    //     bow_drill, bucket, sap_bucket, canteen, spile, box_trap, fish_trap, rabbit_snare, knife, flint_and_steel, pouch, clay_pot, cooking_pot, potash_kettle and tarp. Only the grips and the tip
+    //     are needed for those; Anchor_Muzzle is not attached to yet, it is named so a muzzle flash has a place (Anchor_Nock is now where the bows' right hand goes, see below).
+    //   * M0c-2 fix, the BOWS (primitive_bow, recurve_bow) are held by the LEFT hand and drawn by the right: the bow sits at Anchor_Grip_L (REQUIRED: the handle, where the left hand holds it, and the bow
+    //     never moves during a draw), and the right hand goes to Anchor_Nock (the string's middle: it rests there and is pulled back toward the face as the draw builds). Anchor_Grip_R is no longer used
+    //     for the bows. A missing Anchor_Grip_L or Anchor_Nock still falls back to the primitive's coordinates. The primitive string follows the hand (String Upper, String Lower); a prefab's own string
+    //     is left to the prefab.
+    //   * M0c-2 fix, everything CARRIED BY A HANDLE, BAIL, STRAP OR CORD (bucket, sap_bucket, canteen, cooking_pot, potash_kettle, pouch, fish_trap, box_trap) hangs straight down in the view from
+    //     Anchor_Grip_R: author it with the grip at the top (the bail, the handle, the cord) and the body below it along -Y. The code keeps it hanging by gravity whatever the hand does and swings it a little.
     //   * M0c-1 adds four rows: fishing_rod and cane_pole (Anchor_Grip_L for the left hand, Anchor_Line: where the fishing line starts; the world line is drawn from it while the rod is in hand) and torch and lantern
     //     (one-handed; Anchor_Flame: where the flame sits, and the held point light is moved to it while the light burns). A light's State_Lit and State_Unlit children are shown to match
     //     PortableLight's lit state (a missing one is simply never shown); the primitive flame and glow live under State_Lit. A ParticleSystem under Anchor_Flame is played while lit and stopped otherwise.
@@ -407,6 +419,8 @@ public static class ArtSwap
     public const string AnchorTip = "Anchor_Tip";
     public const string AnchorLine = "Anchor_Line";   // the rods: where the fishing line starts
     public const string AnchorFlame = "Anchor_Flame"; // the Torch and Lantern: where the flame and its light sit
+    public const string AnchorNock = "Anchor_Nock";   // the bows: where an arrow is nocked on the string
+    public const string AnchorMuzzle = "Anchor_Muzzle"; // the rifle: the end of the barrel
     public const string StateLit = "State_Lit";       // shown while the light burns (the primitive flame and glow are here)
     public const string StateUnlit = "State_Unlit";   // shown while it does not
 
@@ -455,14 +469,18 @@ public static class ArtSwap
     {
         var anchors = new List<AnchorSpec>
         {
-            A(AnchorGripR, true, 0f, 0f, 0f),
-            A(AnchorGripL, false, layout.gripLeft.x, layout.gripLeft.y, layout.gripLeft.z),
+            A(AnchorGripR, !layout.hasNock, 0f, 0f, 0f),   // the right hand's grip, required on every tool but the bows
+            A(AnchorGripL, layout.hasNock, layout.gripLeft.x, layout.gripLeft.y, layout.gripLeft.z), // the left hand: optional steadying on a two-handed tool, required on the bows (the handle)
             A(AnchorTip, false, layout.tip.x, layout.tip.y, layout.tip.z),
         };
         if (layout.hasLine)
             anchors.Add(A(AnchorLine, false, layout.line.x, layout.line.y, layout.line.z));
         if (layout.hasFlame)
             anchors.Add(A(AnchorFlame, false, layout.flame.x, layout.flame.y, layout.flame.z));
+        if (layout.hasNock)
+            anchors.Add(A(AnchorNock, false, layout.nock.x, layout.nock.y, layout.nock.z));
+        if (layout.hasMuzzle)
+            anchors.Add(A(AnchorMuzzle, false, layout.muzzle.x, layout.muzzle.y, layout.muzzle.z));
         return anchors.ToArray();
     }
 

@@ -166,6 +166,7 @@ public class HuntingWeapon : MonoBehaviour
         if (attack.IsPressed())
         {
             draw = Mathf.Min(1f, draw + Time.deltaTime / DrawSeconds(primitive));
+            ToolEvents.RaiseDraw(primitive ? PrimitiveBowId : BowId, draw); // the hands pull back (Hands M0c-2)
             ToolStatus.Report(draw >= 1f ? $"Full draw — release to shoot   Arrows: {arrows}" : $"Drawing…   Arrows: {arrows}", draw);
             return;
         }
@@ -174,6 +175,7 @@ public class HuntingWeapon : MonoBehaviour
         {
             float power = draw;
             draw = 0f;
+            ToolEvents.RaiseDraw(primitive ? PrimitiveBowId : BowId, 0f);
             if (power < 0.3f)
             {
                 ToolStatus.Flash("Let down — not drawn far enough to shoot");
@@ -185,6 +187,7 @@ public class HuntingWeapon : MonoBehaviour
             float spread = BowSpread(primitive, power); // as the reticle showed
             PlaySound(a => a.BowRelease, player.transform.position);
             Vector3 kill = primitive ? new Vector3(primitiveKillClose, primitiveKillEdge, primitiveKillFar) : RecurveKill;
+            ToolEvents.RaiseShot(primitive ? PrimitiveBowId : BowId); // the release snap (Hands M0c-2)
             Fire(spread, effectiveRange, Mathf.Lerp(maxRange * 0.5f, maxRange, power), arrow: true, kill);
             return;
         }
@@ -215,6 +218,7 @@ public class HuntingWeapon : MonoBehaviour
         inventory.RemoveFromPlayer(RoundId, 1);
         readyAt = Time.time + boltSeconds;
         PlaySound(a => a.Gunshot, player.transform.position);
+        ToolEvents.RaiseShot(RifleId); // the kick and the bolt (Hands M0c-2)
         Fire(RifleSpread, rifleEffectiveRange, rifleMaxRange, arrow: false, RifleKill);
 
         // Hunting_System.md: loud, may disperse nearby wildlife.

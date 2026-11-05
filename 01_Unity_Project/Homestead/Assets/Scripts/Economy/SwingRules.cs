@@ -20,6 +20,8 @@ public static class ToolWork
         "axe", "primitive_axe", "wood_saw", "hammer",
         "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe",
         "fishing_rod", "cane_pole", "torch", "lantern",
+        "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile",
+        "box_trap", "fish_trap", "rabbit_snare", "knife", "flint_and_steel", "pouch", "clay_pot", "cooking_pot", "potash_kettle", "tarp",
     };
 
     public static bool IsViewTool(string toolId) => toolId != null && Array.IndexOf(ViewToolIds, toolId) >= 0;
