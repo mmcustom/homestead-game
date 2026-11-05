@@ -26,6 +26,12 @@ public class ToolHud : MonoBehaviour
     [Tooltip("Smallest gap between the spread reticle's ticks and the centre (canvas pixels).")]
     [SerializeField, Min(0f)] float minSpreadRadius = 7f;
 
+    // Hands M0d: the equipped tool's name and hint, shown for about 2.5 s after a tool is picked up (EquipNameFade) instead of all the time. Same place, font and colour as the status line, but size 28 (the
+    // status line is 22), so it is easier to read. Its text is what the idle line always said. Not a visual: no swap point.
+    const int EquipFontSize = 28;
+    readonly EquipNameFade equipFade = new EquipNameFade();
+    Text equipLabel;
+
     RectTransform spreadRoot, scopeRoot, bannerRoot;
     Text bannerLabel;
     Text statementLabel; // "statement ready" until the player opens it (LedgerManager.Unread)
@@ -44,6 +50,9 @@ public class ToolHud : MonoBehaviour
         crosshair.enabled = playing && ToolStatus.Crosshair && reticle == ReticleKind.None;
 
         string line = playing ? ToolStatus.Line : null;
+        UpdateEquipName(playing, line);
+        if (ToolStatus.LineIsIdle)
+            line = null; // an idle line only shows through the fade-in label, never here
         statusLabel.enabled = !string.IsNullOrEmpty(line);
         if (statusLabel.enabled)
         {
@@ -70,6 +79,40 @@ public class ToolHud : MonoBehaviour
         statementLabel.enabled = playing && LedgerManager.Instance != null && LedgerManager.Instance.Unread;
 
         UpdateSights(reticle);
+    }
+
+    // The fade-in tool name: only while the world is live (so a menu does not use up its time), and only when nothing else owns the place.
+    void UpdateEquipName(bool playing, string line)
+    {
+        if (equipLabel == null)
+            BuildEquipLabel();
+        ItemDefinition tool = playing && InventoryManager.Instance != null ? InventoryManager.Instance.EquippedTool : null;
+        if (playing)
+            equipFade.Tick(Time.unscaledDeltaTime, tool != null ? tool.Id : null, ToolStatus.Count);
+        string shown = playing ? equipFade.Pick(line, ToolStatus.LineIsIdle, tool != null ? tool.DisplayName : null) : null;
+        equipLabel.enabled = shown != null;
+        if (shown == null)
+            return;
+        equipLabel.text = shown;
+        Color color = statusLabel.color;
+        color.a = equipFade.Alpha;
+        equipLabel.color = color;
+    }
+
+    void BuildEquipLabel()
+    {
+        equipLabel = UiKit.Text(statusLabel.transform.parent, "Equipped Name", "", EquipFontSize, statusLabel.color, TextAnchor.MiddleCenter);
+        RectTransform rect = equipLabel.rectTransform, status = statusLabel.rectTransform;
+        rect.anchorMin = status.anchorMin;
+        rect.anchorMax = status.anchorMax;
+        rect.pivot = status.pivot;
+        rect.anchoredPosition = status.anchoredPosition;
+        rect.sizeDelta = new Vector2(Mathf.Max(1500f, status.sizeDelta.x), 44f);
+        equipLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
+        equipLabel.font = statusLabel.font;
+        equipLabel.fontStyle = statusLabel.fontStyle;
+        equipLabel.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.8f);
+        equipLabel.enabled = false;
     }
 
     void UpdateSights(ReticleKind reticle)

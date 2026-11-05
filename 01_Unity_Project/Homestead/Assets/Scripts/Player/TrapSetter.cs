@@ -75,10 +75,11 @@ public class TrapSetter : MonoBehaviour
         }
 
         string name = TrapManager.NameOf(type);
+        ToolStatus.ReportCount(InventoryManager.Instance.Player.Count(TrapManager.ItemFor(type)));
         if (!player.AimRaycast(previewAimRange, out RaycastHit hit))
         {
             ghost.SetVisible(false);
-            ToolStatus.Report(type == TrapType.FishTrap ? $"{name} — aim at water close by" : $"{name} — aim at the ground close by", -1f, false);
+            ToolStatus.ReportIdle(type == TrapType.FishTrap ? $"{name} — aim at water close by" : $"{name} — aim at the ground close by", false);
             return;
         }
 

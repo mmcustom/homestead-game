@@ -31,6 +31,7 @@ public static class ToolStatus
     // multiLine: every line is drawn (the Well Site preview's several lines). The HUD label is one line high and cuts off the rest by default.
     public static void Report(string hudLine, float barProgress = -1f, bool showCrosshair = true, bool multiLine = false)
     {
+        idleLine = false;
         line = hudLine;
         progress = barProgress;
         crosshair = showCrosshair;
@@ -40,6 +41,28 @@ public static class ToolStatus
 
     static bool lines;
     public static bool MultiLine => Current && lines;
+
+    // Hands M0d: the equipped tool's IDLE line, what it used to show all the time while it was only being held (its name, a short hint, a count). It is reported like any line, but ToolHud shows it only
+    // for a moment after the tool is picked up (EquipNameFade) instead of permanently. Prompts for something you aim at or are doing keep using Report and stay as they were.
+    static bool idleLine;
+    public static void ReportIdle(string hudLine, bool showCrosshair = true)
+    {
+        Report(hudLine, -1f, showCrosshair);
+        idleLine = true;
+    }
+
+    public static bool LineIsIdle => Current && idleLine;
+
+    // A count the equipped tool shows (arrows, rounds, traps in the pack): reported every frame it is held, so a change (an arrow shot or picked up, a trap set) shows the name again.
+    static int count = -1;
+    static int countFrame = -10;
+    public static void ReportCount(int itemCount)
+    {
+        count = itemCount;
+        countFrame = Time.frameCount;
+    }
+
+    public static int Count => Time.frameCount - countFrame <= 1 ? count : -1;
 
     // A weapon's sight picture this frame. spread: the shot's spread cone in degrees (drawn as the reticle's size).
     // scope: 0-1 how far the rifle's scope is raised.

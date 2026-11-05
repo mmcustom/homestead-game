@@ -218,7 +218,7 @@ public class AxeTool : MonoBehaviour
         else if (tree >= 0)
             WorkTree(wood, tree, point);
         else
-            ToolStatus.Report($"{InventoryManager.Instance.EquippedTool.DisplayName} — hold click on a tree trunk to chop it down, or on a wood pile to split Firewood");
+            ToolStatus.ReportIdle($"{InventoryManager.Instance.EquippedTool.DisplayName} — hold click on a tree trunk to chop it down, or on a wood pile to split Firewood");
     }
 
     // The Pick Axe on the rock outcrop, or the Shovel on a stump or a creek/pond bank.
@@ -277,8 +277,10 @@ public class AxeTool : MonoBehaviour
 
         if (target == null && !bank)
         {
-            ToolStatus.Report(pick ? $"{InventoryManager.Instance.EquippedTool.DisplayName} — hold click on the rock outcrop on South Ridge to mine Stone"
-                                   : dig == PotteryRules.Dig.TooDeep ? PotteryRules.DigText(dig) : PotteryRules.ShovelIdleText);
+            if (!pick && dig == PotteryRules.Dig.TooDeep)
+                ToolStatus.Report(PotteryRules.DigText(dig)); // a prompt about what is under you, not an idle line
+            else
+                ToolStatus.ReportIdle(pick ? $"{InventoryManager.Instance.EquippedTool.DisplayName} — hold click on the rock outcrop on South Ridge to mine Stone" : PotteryRules.ShovelIdleText);
             return;
         }
 
@@ -319,7 +321,7 @@ public class AxeTool : MonoBehaviour
         }
         if (state == null)
         {
-            ToolStatus.Report("Hammer - stock a building site with its materials, then hold click on it to build it");
+            ToolStatus.ReportIdle("Hammer - stock a building site with its materials, then hold click on it to build it");
             return;
         }
 

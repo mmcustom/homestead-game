@@ -264,7 +264,7 @@ public class TapManager : MonoBehaviour, ISaveable
         }
         else if (spile)
         {
-            ToolStatus.Report("Spile  ·  click on a Sugar Maple to tap it");
+            ToolStatus.ReportIdle("Spile  ·  click on a Sugar Maple to tap it");
         }
 
         if (spile && attack != null && attack.WasPressedThisFrame())

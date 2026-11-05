@@ -94,7 +94,7 @@ public class BowDrill : MonoBehaviour
         if (fire == null)
         {
             Cancel();
-            ToolStatus.Report("Bow Drill — face a built Campfire with fuel in it and hold click to start a fire");
+            ToolStatus.ReportIdle("Bow Drill — face a built Campfire with fuel in it and hold click to start a fire");
             return;
         }
         if (fire.lit)

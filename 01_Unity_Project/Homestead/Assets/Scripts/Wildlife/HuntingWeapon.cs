@@ -155,11 +155,12 @@ public class HuntingWeapon : MonoBehaviour
         string name = primitive ? "Primitive Bow" : "Recurve Bow";
         float effectiveRange = EffectiveRange(primitive), maxRange = MaxRange(primitive);
         int arrows = inventory.Player.Count(ArrowId);
+        ToolStatus.ReportCount(arrows);
         ReportSight(ReticleKind.Spread, BowSpread(primitive, draw), effectiveRange, maxRange);
         if (arrows <= 0)
         {
             draw = 0f;
-            ToolStatus.Report($"{name} — no arrows", -1f);
+            ToolStatus.ReportIdle($"{name} — no arrows");
             return;
         }
 
@@ -192,12 +193,13 @@ public class HuntingWeapon : MonoBehaviour
             return;
         }
 
-        ToolStatus.Report($"{name} — hold to draw, release to shoot   Arrows: {arrows}");
+        ToolStatus.ReportIdle($"{name} — hold to draw, release to shoot   Arrows: {arrows}");
     }
 
     void UpdateRifle(InventoryManager inventory)
     {
         int rounds = inventory.Player.Count(RoundId);
+        ToolStatus.ReportCount(rounds);
         ReportSight(scope > 0.5f ? ReticleKind.Scope : ReticleKind.Spread, RifleSpread, rifleEffectiveRange, rifleMaxRange);
         if (Time.time < readyAt)
         {
@@ -206,11 +208,14 @@ public class HuntingWeapon : MonoBehaviour
         }
         if (rounds <= 0)
         {
-            ToolStatus.Report("Rifle — no ammunition");
+            ToolStatus.ReportIdle("Rifle — no ammunition");
             return;
         }
 
-        ToolStatus.Report(scope > 0.5f ? $"Rounds: {rounds}" : $"Bolt-Action Rifle — right-click to aim, click to fire   Rounds: {rounds}");
+        if (scope > 0.5f)
+            ToolStatus.Report($"Rounds: {rounds}"); // aiming down the scope: an in-use line, it stays
+        else
+            ToolStatus.ReportIdle($"Bolt-Action Rifle — right-click to aim, click to fire   Rounds: {rounds}");
         if (!attack.WasPressedThisFrame())
             return;
 

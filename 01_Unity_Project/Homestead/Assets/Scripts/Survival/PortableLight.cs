@@ -220,7 +220,7 @@ public class PortableLight : MonoBehaviour, ISaveable
                  : lanternFuelHours > 0f ? $"Lantern — {lanternFuelHours:0.0} h of oil. Click to light it."
                  : "Lantern — out of oil. Refill it with Lamp Oil from the Inventory (I).";
         }
-        ToolStatus.Report(line);
+        ToolStatus.ReportIdle(line);
     }
 
     // --- The light itself ---

@@ -115,7 +115,7 @@ public class FishingRod : MonoBehaviour
 
         if (source == null)
         {
-            ToolStatus.Report($"{rodName} — aim at water within {range:0} m and click to cast");
+            ToolStatus.ReportIdle($"{rodName} — aim at water within {range:0} m and click to cast");
             return;
         }
         if (kind == FishWater.None)
