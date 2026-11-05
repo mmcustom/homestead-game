@@ -1,5 +1,5 @@
 # Homestead
-## Art Readiness and Placeholder List v0.6
+## Art Readiness and Placeholder List v0.7
 
 Status: started 2026-11-04 (Mike's decision); v0.2 added Claude Code's read-only inventory, the swap-point plan and the phases; v0.3 recorded phase A1 as BUILT (ef52c25); v0.4 added the hands swap point (Hands and tools M0a, 73ee84d); v0.5 adds the tool swap points (Hands and tools M0b, 175a8c7). Rough shapes are fine for the Alpha. Better art for everything is wanted eventually, so the code must make replacing placeholders cheap. This doc holds the standing rule, the conventions, the placeholder list, the plan and the style questions.
 
@@ -145,7 +145,7 @@ Columns: what it is | id or PileKind | drawn in | looks now | size (interaction 
 | Weather | Art/Weather/*.mat, Precipitation, Lightning | particle materials with small PNGs | Medium |
 | Kiln / Pit / Bloomery / Smithy smoke | World/KilnSmoke.cs, Resources/KilnSmoke.mat | particles built in code at runtime | Medium |
 | Player | Prefabs/Player.prefab | CharacterController capsule 1.8 m, radius 0.35, eye 1.65; body mesh not checked; first-person hands BUILT (M0a, 73ee84d): swap point Resources/Art/hands_player.prefab via ArtSwap.TryAttachHands, anchors Anchor_Hand_R and Anchor_Hand_L | High (hands: real art) |
-| Held tools | AxeTool.cs | not drawn at all; equipped tool is logic plus HUD text, for every tool (including the new iron Shovel and Pick Axe); since M0a the hands hold a generic placeholder shape; M0b (175a8c7) draws eight tools as primitives behind swap points tool_<itemid> (axe, primitive_axe, wood_saw, hammer, shovel, iron_shovel, stone_pick_axe, iron_pick_axe; Anchor_Grip_R, Anchor_Grip_L, Anchor_Tip); M0c-1 (0d6cdd3) adds four more behind the same tool_<itemid> swap point (fishing_rod, cane_pole, torch, lantern; extra anchors Anchor_Line on the rods, Anchor_Flame and State_Lit/State_Unlit on Torch and Lantern); the other tools keep the generic placeholder until M0c-2 | High |
+| Held tools | AxeTool.cs | not drawn at all; equipped tool is logic plus HUD text, for every tool (including the new iron Shovel and Pick Axe); since M0a the hands hold a generic placeholder shape; M0b (175a8c7) draws eight tools as primitives behind swap points tool_<itemid> (axe, primitive_axe, wood_saw, hammer, shovel, iron_shovel, stone_pick_axe, iron_pick_axe; Anchor_Grip_R, Anchor_Grip_L, Anchor_Tip); M0c-1 (0d6cdd3) adds four more behind the same tool_<itemid> swap point (fishing_rod, cane_pole, torch, lantern; extra anchors Anchor_Line on the rods, Anchor_Flame and State_Lit/State_Unlit on Torch and Lantern); M0c-2 (c97f731) gives the rest a primitive shape behind the same swap point (30 ToolSpecs rows in all; see the Update line at the end of this file); only an unshaped item id still shows the generic placeholder | High |
 | UI icons | UI/MapIcons.cs | map markers built in code; items have no icon field (ItemDefinition); Assets/UI is empty | Medium |
 
 New placeholders from here on are appended to the tables above in the same docs commit as the build that adds them, with the swap point named.
@@ -213,3 +213,5 @@ Next: hands and tools (tool_<id>, Anchor_Grip_R/L through ArtSwap), then A2 (the
 
 
 Update 2026-11-05: M0c-1 (0d6cdd3) added four tool swap points behind ArtSwap tool_<itemid>: fishing_rod, cane_pole (anchors Anchor_Grip_R, Anchor_Grip_L, Anchor_Tip, Anchor_Line) and torch, lantern (anchors Anchor_Grip_R, Anchor_Grip_L, Anchor_Flame, children State_Lit and State_Unlit). Twelve tool swap points now exist. Remaining tools keep the generic placeholder until M0c-2.
+
+Update 2026-11-05 (M0c-2, c97f731): ArtSwap ToolSpecs now has 30 tool_<itemid> swap points. New in M0c-2: primitive_bow and recurve_bow (Anchor_Grip_L required, Anchor_Nock, Anchor_Tip), bolt_action_rifle (Anchor_Grip_R, Anchor_Grip_L, Anchor_Muzzle), bow_drill, bucket, sap_bucket, canteen, spile, box_trap, fish_trap, rabbit_snare, knife, flint_and_steel, pouch, clay_pot, cooking_pot, potash_kettle, tarp (Anchor_Grip_R, Anchor_Tip; hanging items author the grip at the top with the body below along -Y). All 18 are primitives behind the same swap point, and the primitive stays the default. Viewmodel renderers never receive world shadows. Only the Sleeping Bag, Tent and Weather Station (carried-only) have no tool row.
