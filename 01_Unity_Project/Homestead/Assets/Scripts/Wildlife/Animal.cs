@@ -288,6 +288,15 @@ public class Animal : MonoBehaviour
         return willDie ? $"Wounding hit — the {DisplayName.ToLower()} ran" : $"Wounding hit — the {DisplayName.ToLower()} got away";
     }
 
+    // Hands M0e-2: a Knife blow finishes the animal through the same kill path as a clean shot (Die(false): a Carcass, a full harvest). KnifeRules decides which animals it is used on; a dead one is
+    // left alone.
+    public void Slay()
+    {
+        if (state == State.Dead)
+            return;
+        Die(false);
+    }
+
     void Die(bool reducedHarvest)
     {
         state = State.Dead;

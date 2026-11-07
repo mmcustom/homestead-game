@@ -37,6 +37,10 @@ public static class ToolEvents
     public static event Action<bool, bool> Punched;
     public static void RaisePunch(bool rightHand, bool tired) => Punched?.Invoke(rightHand, tired);
 
+    // M0e-2: a Knife blow. Raised by MeleeAttack only: whether it was a stab (false = a slash) and whether it was refused for lack of stamina (the hand droops instead of striking).
+    public static event Action<bool, bool> Knifed;
+    public static void RaiseKnife(bool stab, bool tired) => Knifed?.Invoke(stab, tired);
+
     public static void RaiseDraw(string toolId, float fraction) => Draw?.Invoke(toolId, fraction);
     public static void RaiseShot(string toolId) => Shot?.Invoke(toolId);
     public static void RaiseFilled() => Filled?.Invoke();

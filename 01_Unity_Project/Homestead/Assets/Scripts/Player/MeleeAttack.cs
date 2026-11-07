@@ -11,6 +11,9 @@ using UnityEngine.InputSystem;
 // FISTS NEVER KILL. A punch only stuns a small animal for a moment and startles it, or just startles a bigger one (PunchRules.ForAnimal), whether it was wounded already or not. The noise carries
 // PunchRules.AlertRadius (8 m): everything that close bolts, which on its own means a punch rarely finds anything to hit (see the report). A trapped animal is only a string in TrapManager, not a live
 // Animal, so a punch at a trap hits nothing and only makes the noise.
+//
+// M0e-2: the same click, with the KNIFE equipped, slashes then stabs (KnifeRules: alternating, the first after a 1.5 s pause a slash; 3 stamina, 1.5 m / 1.6 m reach, noise 6 m). A knife kills small
+// game (Rabbit, Squirrel, Turkey, Duck) through Animal.Slay and only startles a Deer; a trapped animal is not hittable here either (see above). Same CanUseTools gate; PlacementMode stays ahead of it.
 public class MeleeAttack : MonoBehaviour
 {
     PlayerController player;
@@ -36,10 +39,32 @@ public class MeleeAttack : MonoBehaviour
         }
     }
 
+    // M0e-2: the Knife is the equipped tool.
+    static bool KnifeEquipped
+    {
+        get
+        {
+            InventoryManager inventory = InventoryManager.Instance;
+            return inventory != null && inventory.EquippedTool != null && KnifeRules.IsKnife(inventory.EquippedTool.Id);
+        }
+    }
+
+    // M0e-2: the Knife's own click state. Slash and stab alternate; a pause of KnifeRules.PauseResetSeconds with no blow starts over with a slash. A refusal for tiredness is not a blow.
+    float nextKnife;
+    float lastKnifeTime;
+    bool hasLastKnife, lastWasStab;
+
+    public bool NextIsStab => KnifeRules.NextIsStab(hasLastKnife, lastWasStab, Time.time - lastKnifeTime);
+
     void Update()
     {
         if (attack == null || player == null)
             return;
+        if (KnifeEquipped)
+        {
+            UpdateKnife();
+            return;
+        }
         if (!PunchRules.ShouldPunch(player.CanUseTools, HandsEmpty, attack.IsPressed(), Time.time >= nextPunch))
             return;
 
@@ -56,6 +81,60 @@ public class MeleeAttack : MonoBehaviour
         ToolEvents.RaisePunch(right, false);
         Strike(player);
     }
+
+    // The Knife with its click held: a slash or a stab, one per cycle. PlacementMode and the rest are covered by CanUseTools, as for the fists. The blow, its sound, its stamina and its hit test all
+    // happen here, at the click; PlayerHands draws the blade landing a moment later (ToolEvents.Knifed).
+    void UpdateKnife()
+    {
+        if (!KnifeRules.ShouldAttack(player.CanUseTools, true, attack.IsPressed(), Time.time >= nextKnife))
+            return;
+
+        bool stab = NextIsStab;
+        if (!player.TrySpendStamina(KnifeRules.StaminaCost(stab)))
+        {
+            nextKnife = Time.time + KnifeRules.TiredSeconds; // too tired: no blow, the hand droops, and no free blows
+            ToolEvents.RaiseKnife(stab, true);
+            return;
+        }
+
+        hasLastKnife = true;
+        lastWasStab = stab;
+        lastKnifeTime = Time.time;
+        nextKnife = Time.time + KnifeRules.CycleSeconds(stab);
+        ToolEvents.RaiseKnife(stab, false);
+        KnifeStrike(player, stab);
+    }
+
+    // The Knife's blow, at the click: the sound, the noise, then whatever the aim raycast finds within reach (1.5 m slash, 1.6 m stab).
+    public static void KnifeStrike(PlayerController player, bool stab)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.ItemDrop); // the closest existing sound; no audio file added
+        Vector3 from = player.transform.position;
+        Animal target = TargetAnimalWithin(player, KnifeRules.ReachMetres(stab));
+        if (target != null)
+            HitWithKnife(target, from);
+        if (WildlifeManager.Instance != null)
+            WildlifeManager.Instance.Alert(from, KnifeRules.AlertRadius);
+    }
+
+    // What the blade does: nothing to the dead, a kill to small game (alive or wounded), a startle to a Deer. Never a wound.
+    public static void HitWithKnife(Animal animal, Vector3 from)
+    {
+        switch (KnifeRules.ForAnimal(animal.IsDead, KnifeRules.IsSmallGame(animal.SpeciesId)))
+        {
+            case KnifeRules.Outcome.Kill:
+                animal.Slay();
+                break;
+            case KnifeRules.Outcome.StartleOnly:
+                animal.Startle(from);
+                break;
+        }
+    }
+
+    // The animal the aim raycast reaches first within this many metres; the first collider in the way stops it.
+    public static Animal TargetAnimalWithin(PlayerController player, float reach) =>
+        player != null && player.AimRaycast(reach, out RaycastHit hit) ? hit.collider.GetComponentInParent<Animal>() : null;
 
     // The blow itself, at the click: the sound, the noise, then whatever the aim raycast finds within reach.
     public static void Strike(PlayerController player)

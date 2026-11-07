@@ -65,6 +65,8 @@ public class PlayerHands : MonoBehaviour
     readonly SwingState swing = new SwingState();
     readonly PunchState punch = new PunchState(); // the two fists, one state each (Hands M0e-1); the tool swing above is for the right hand's tools only
     public PunchState Punch => punch;
+    readonly KnifeState knife = new KnifeState(); // the Knife's slash and stab, right hand only (Hands M0e-2)
+    public KnifeState Knife => knife;
     readonly ToolActionState action = new ToolActionState(); // the rods and lights in hand (M0c-1)
     Transform lineAnchor, flameAnchor, stateLit, stateUnlit, flameShape;
     Vector3 flameShapeScale;
@@ -120,6 +122,7 @@ public class PlayerHands : MonoBehaviour
         ToolEvents.Swung += OnSwung;
         ToolEvents.Tired += OnTired;
         ToolEvents.Punched += OnPunched;
+        ToolEvents.Knifed += OnKnifed;
         ToolEvents.Cast += OnCast; ToolEvents.Bite += OnBite; ToolEvents.Landed += OnLanded; ToolEvents.Failed += OnFailed;
         ToolEvents.ReelStart += OnReelStart; ToolEvents.ReelStop += OnReelStop; ToolEvents.LineIn += OnLineIn;
         ToolEvents.Lit += OnLit; ToolEvents.Snuffed += OnSnuffed;
@@ -136,6 +139,7 @@ public class PlayerHands : MonoBehaviour
         ToolEvents.Swung -= OnSwung;
         ToolEvents.Tired -= OnTired;
         ToolEvents.Punched -= OnPunched;
+        ToolEvents.Knifed -= OnKnifed;
         ToolEvents.Cast -= OnCast; ToolEvents.Bite -= OnBite; ToolEvents.Landed -= OnLanded; ToolEvents.Failed -= OnFailed;
         ToolEvents.ReelStart -= OnReelStart; ToolEvents.ReelStop -= OnReelStop; ToolEvents.LineIn -= OnLineIn;
         ToolEvents.Lit -= OnLit; ToolEvents.Snuffed -= OnSnuffed;
@@ -195,6 +199,17 @@ public class PlayerHands : MonoBehaviour
             punch.StartTired(rightHand);
         else
             punch.Start(rightHand);
+    }
+
+    // A Knife blow (ToolEvents, M0e-2): the right hand slashes or stabs, or droops when too tired. Ignored unless the Knife is what the hands are showing.
+    public void OnKnifed(bool stab, bool tired)
+    {
+        if (!KnifeRules.IsKnife(raise.Shown))
+            return;
+        if (tired)
+            knife.StartTired();
+        else
+            knife.Start(stab);
     }
 
     // A blow was refused for lack of stamina: the hands droop.
@@ -383,6 +398,7 @@ public class PlayerHands : MonoBehaviour
         // The tool in hand decides the ready pose: the Axes, Pick Axes and Hammer are held cocked (drawn back), everything else neutral. This also drops any swing in progress.
         swing.Configure(ToolWork.CockKind(toolId, out WorkKind cockKind), cockKind);
         punch.Stop(); // a fist never carries over into a tool
+        knife.Configure(KnifeRules.IsKnife(toolId)); // the Knife is held cocked; anything else is not
         SelectPose(toolId != null);
         if (toolId == null || anchorR == null || anchorL == null)
             return;
@@ -547,6 +563,7 @@ public class PlayerHands : MonoBehaviour
             swing.Tick(dt);
             action.Tick(dt);
             punch.Tick(dt);
+            knife.Tick(dt);
         }
         breathTime += dt;
         shownFor += dt;
@@ -638,6 +655,8 @@ public class PlayerHands : MonoBehaviour
             HandPose offset = swing.Offset;
             if (ToolActionRules.Handles(shownTool))
                 offset = SwingRules.Sum(offset, action.Offset(LitQuery != null && LitQuery(shownTool)));
+            else if (KnifeRules.IsKnife(shownTool))
+                offset = knife.Offset; // the cocked ready pose, and the slash or stab in progress
             float toolPitch = offset.Pitch * (1f - SwingRules.HandPitchShare);
             offset.Pitch *= SwingRules.HandPitchShare;
             PlaceHandSwinging(handR, right, offset);

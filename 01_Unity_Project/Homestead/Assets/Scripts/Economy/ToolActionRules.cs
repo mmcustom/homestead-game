@@ -35,7 +35,7 @@ public static class ToolActionRules
     public static readonly string[] HangingIds = { "bucket", "sap_bucket", "canteen", "cooking_pot", "potash_kettle", "pouch", "fish_trap", "box_trap" };
     public static bool IsHanging(string toolId) => toolId != null && Array.IndexOf(HangingIds, toolId) >= 0;
 
-    // The tools whose pose this class drives (everything else keeps the plain neutral hold: the Knife, the Clay Pot, the tarp, Flint and Steel).
+    // The tools whose pose this class drives (everything else keeps the plain neutral hold: the Clay Pot, the tarp, Flint and Steel; the Knife has its own KnifeState in PlayerHands).
     public static bool Handles(string toolId) => IsRod(toolId) || IsLight(toolId) || IsBow(toolId) || IsRifle(toolId) || IsDrill(toolId) || IsContainer(toolId) || IsSpile(toolId) || IsTrap(toolId) || IsHanging(toolId);
 
     static HandPose P(float x, float y, float z, float pitch, float yaw = 0f, float roll = 0f) =>
