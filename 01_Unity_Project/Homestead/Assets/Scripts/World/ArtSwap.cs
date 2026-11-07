@@ -315,18 +315,24 @@ public static class ArtSwap
 
     // The hands prefab instance under parent (made the first time, found after that), or null when there is no prefab: PlayerHands then builds its primitives. Colliders are removed, every
     // renderer goes on the given layer and stops casting shadows.
-    public static Transform TryAttachHands(Transform parent, int layer)
+    public static Transform TryAttachHands(Transform parent, int layer) => AttachHandsPrefab(parent, layer, HandsId);
+
+    // Hands v3: the second pose of the same swap point, Resources/Art/hands_player_grip.prefab (fingers wrapped round a handle). Same names and anchors as hands_player; PlayerHands shows it
+    // whenever a tool is in hand and the thumb-up hands_player otherwise. Null when there is no such prefab, and then hands_player is shown for both.
+    public const string HandsGripId = "hands_player_grip";
+    public static Transform TryAttachHandsGrip(Transform parent, int layer) => AttachHandsPrefab(parent, layer, HandsGripId);
+
+    static Transform AttachHandsPrefab(Transform parent, int layer, string id)
     {
-        ViewSpec spec = ViewSpecFor(HandsId);
-        Transform existing = parent.Find(spec.id);
+        Transform existing = parent.Find(id);
         if (existing != null)
             return existing;
-        GameObject prefab = Resolve(spec.id);
+        GameObject prefab = Resolve(id);
         if (prefab == null)
             return null;
 
         GameObject instance = UnityEngine.Object.Instantiate(prefab, parent, false);
-        instance.name = spec.id;
+        instance.name = id;
         instance.SetActive(true);
         instance.transform.localPosition = Vector3.zero;
         instance.transform.localRotation = Quaternion.identity;

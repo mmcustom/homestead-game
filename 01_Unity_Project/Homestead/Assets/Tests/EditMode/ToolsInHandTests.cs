@@ -804,7 +804,7 @@ public class ToolsInHandTests
         StringAssert.Contains("Homestead/Art/Remove Test Axe Prefab", menu);
         StringAssert.Contains("TestAxe_Marker", menu);
         StringAssert.Contains("Anchor", menu);
-        Assert.That(File.Exists(Path.Combine(Application.dataPath, "Resources/Art/tool_axe.prefab")), Is.False, "the test prefab is never left behind");
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
     }
 
     // ---- The pull-back: cocked ready pose, loaded pose, settle (visual only, no delay) ----

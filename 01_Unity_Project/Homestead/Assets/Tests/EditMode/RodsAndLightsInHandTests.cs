@@ -659,8 +659,7 @@ public class RodsAndLightsInHandTests
         StringAssert.Contains("TestTorch_Marker", menu);
         foreach (string anchor in new[] { "AnchorLine", "AnchorFlame", "AnchorGripL", "StateLit", "StateUnlit" })
             StringAssert.Contains("ArtSwap." + anchor, menu);
-        Assert.That(File.Exists(Path.Combine(Application.dataPath, "Resources/Art/tool_fishing_rod.prefab")), Is.False);
-        Assert.That(File.Exists(Path.Combine(Application.dataPath, "Resources/Art/tool_torch.prefab")), Is.False);
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
     }
 
     [Test]

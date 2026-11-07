@@ -57,7 +57,7 @@ public static class ToolActionRules
             case TorchId: return P(0f, 0.02f, 0.02f, -8f);
             case LanternId: return P(0f, 0.10f, 0.03f, -6f);
             case "primitive_bow": case "recurve_bow": return P(0f, 0f, 0f, -4f, -30f);   // the STRING hand (right): the bow itself is the left hand's (BowHandReady), the right hand rests on the nock
-            case "bolt_action_rifle": return P(0f, 0.03f, 0.02f, -10f);                 // across the body, the muzzle up
+            case "bolt_action_rifle": return P(-0.07f, 0.05f, 0.02f, 0f);              // Hands v3 fix: no pitch (it was -10, which with the hold pitch pointed the muzzle at the sky); the barrel's own aim is RiflePitch/RifleYaw below
             case "bow_drill": return P(0f, 0.01f, 0.02f, -6f);
             // The carry pose of everything that hangs (M0c-2 fix): the hand is out, forward and up, so the body hangs below it in plain view instead of behind the sleeve or off the bottom of the screen.
             // The taller the hanging body, the higher the hand. No pitch: the forearm keeps its natural angle and the tool hangs by gravity (PlayerHands.AlignHanging).
@@ -174,6 +174,10 @@ public static class ToolActionRules
     public static HandPose BowHandReady() => P(-0.28f, 0.04f, 0.02f, 0f, -15f, 0f); // round 4: a little higher, so the whole (shorter) bow is on screen; the wrist's Rise is 0.215, under MaxRise
 
     // How the bow itself stands in the view, whatever angle the left forearm comes in at: seen from its side (turned 75 degrees, so the limbs curve up and down in the view and the string faces right, toward the string hand), the top leaning a little toward the middle.
+    // The rifle in the ready pose (Hands v3 fix): the barrel runs along the camera's view direction, not along the hand, turned RifleYaw degrees inward (left, toward the crosshair; the stock is low on
+    // the right) and level (RiflePitch 0). PlayerHands aligns it to the rig, as it does a hanging item, so the forearm angle no longer tips the muzzle up. The shot's kick and the scope lift
+    // (ToolActionRules.Offset) are added to this pitch.
+    public const float RiflePitch = 0f, RifleYaw = -2.5f, RifleRoll = 0f;
     public const float BowPitch = 0f, BowYaw = -20f, BowRoll = 0f; // no roll: the bow stands straight up and down
 
     // A hanging item's swing as the player walks (degrees): small, in step with the stride, bigger in a sprint (amount is HandPoseRules.StepAmount: 0 standing, 1 walking, 1.7 sprinting). Pitch is a

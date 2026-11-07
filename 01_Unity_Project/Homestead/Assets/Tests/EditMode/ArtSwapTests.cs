@@ -555,7 +555,7 @@ public class ArtSwapTests
         Assert.That(menu.Contains("\"Assets/Resources/Art\"") && menu.Contains("\"/structure_kiln.prefab\""), Is.True, "Resources/Art/structure_kiln.prefab");
         Assert.That(menu.Contains("is not the generated test prefab"), Is.True, "Remove leaves a real prefab alone");
         Assert.That(menu.Contains("already exists"), Is.True, "Create never overwrites");
-        Assert.That(Directory.Exists(Path.Combine(Application.dataPath, "Resources", "Art")), Is.False, "no test prefab is left in the project");
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
     }
 
     [Test]

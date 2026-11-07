@@ -10,7 +10,7 @@ public enum GameTier { Small, Medium, Large }
 // Waterfowl sit on the pond and fly off; rabbits hop.
 public class Animal : MonoBehaviour
 {
-    enum State { Idle, Walk, Flee, Dead }
+    enum State { Idle, Walk, Flee, Dead, Stunned }
 
     [SerializeField] string speciesId = "deer";
     [SerializeField] GameTier tier = GameTier.Large;
@@ -76,7 +76,7 @@ public class Animal : MonoBehaviour
         if (Time.time >= nextSense)
         {
             nextSense = Time.time + 0.25f;
-            if (state != State.Flee)
+            if (state != State.Flee && state != State.Stunned)
                 Sense();
         }
 
@@ -93,6 +93,13 @@ public class Animal : MonoBehaviour
                 break;
             case State.Flee:
                 UpdateFlee();
+                break;
+            case State.Stunned:
+                if (Time.time >= stateUntil)
+                {
+                    state = State.Idle;
+                    Startle(fleeFrom); // the moment is over: it runs as it normally would
+                }
                 break;
         }
     }
@@ -136,9 +143,22 @@ public class Animal : MonoBehaviour
         if (state == State.Dead)
             return;
         fleeFrom = from;
+        if (state == State.Stunned && Time.time < stateUntil)
+            return; // stopped in its tracks: it runs from here when the moment is over
         if (state != State.Flee)
             runLeft = Random.Range(35f, 70f);
         state = State.Flee;
+    }
+
+    // Hands M0e-1: a fist hit stops a small animal for a moment (it neither senses nor moves), then it flees from where the blow came as it normally would. Never harms it: nothing here touches
+    // wounded or dies, and a dead animal is left alone.
+    public void Stun(float seconds, Vector3 from)
+    {
+        if (state == State.Dead)
+            return;
+        fleeFrom = from;
+        state = State.Stunned;
+        stateUntil = Time.time + Mathf.Max(0f, seconds);
     }
 
     // --- Movement ---

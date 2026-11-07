@@ -867,7 +867,6 @@ public class HandsTests
     [Test]
     public void NoHandsTestPrefabIsLeftInResources()
     {
-        Assert.That(File.Exists(Path.Combine(Application.dataPath, "Resources/Art/hands_player.prefab")), Is.False);
-        Assert.That(Directory.Exists(Path.Combine(Application.dataPath, "Resources/Art/_TestHandsMaterials")), Is.False);
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
     }
 }

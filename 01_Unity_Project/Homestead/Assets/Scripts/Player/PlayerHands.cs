@@ -50,7 +50,8 @@ public class PlayerHands : MonoBehaviour
     CustomPassVolume passVolume;
     ViewmodelPass pass;
     GameObject rig;
-    Transform art, handR, handL, anchorR, anchorL;
+    Transform art, handR, handL, anchorR, anchorL;   // art = the hands tree being shown: artIdle (thumb up, empty hands) or artGrip (fingers wrapped, a tool in hand)
+    Transform artIdle, artGrip;
     GameObject held;
     string heldShown;
     Transform heldRoot, gripL;   // the tool in hand (the prefab or the primitive, or the generic placeholder), and where the left hand steadies it
@@ -62,6 +63,8 @@ public class PlayerHands : MonoBehaviour
     float shownFor;         // seconds the tool in hand has been shown (the settle of a hanging item)
     float heldPitch, heldRoll;
     readonly SwingState swing = new SwingState();
+    readonly PunchState punch = new PunchState(); // the two fists, one state each (Hands M0e-1); the tool swing above is for the right hand's tools only
+    public PunchState Punch => punch;
     readonly ToolActionState action = new ToolActionState(); // the rods and lights in hand (M0c-1)
     Transform lineAnchor, flameAnchor, stateLit, stateUnlit, flameShape;
     Vector3 flameShapeScale;
@@ -116,6 +119,7 @@ public class PlayerHands : MonoBehaviour
         weapon = GetComponent<HuntingWeapon>();
         ToolEvents.Swung += OnSwung;
         ToolEvents.Tired += OnTired;
+        ToolEvents.Punched += OnPunched;
         ToolEvents.Cast += OnCast; ToolEvents.Bite += OnBite; ToolEvents.Landed += OnLanded; ToolEvents.Failed += OnFailed;
         ToolEvents.ReelStart += OnReelStart; ToolEvents.ReelStop += OnReelStop; ToolEvents.LineIn += OnLineIn;
         ToolEvents.Lit += OnLit; ToolEvents.Snuffed += OnSnuffed;
@@ -131,6 +135,7 @@ public class PlayerHands : MonoBehaviour
             inventory.EquippedToolChanged -= OnEquippedChanged;
         ToolEvents.Swung -= OnSwung;
         ToolEvents.Tired -= OnTired;
+        ToolEvents.Punched -= OnPunched;
         ToolEvents.Cast -= OnCast; ToolEvents.Bite -= OnBite; ToolEvents.Landed -= OnLanded; ToolEvents.Failed -= OnFailed;
         ToolEvents.ReelStart -= OnReelStart; ToolEvents.ReelStop -= OnReelStop; ToolEvents.LineIn -= OnLineIn;
         ToolEvents.Lit -= OnLit; ToolEvents.Snuffed -= OnSnuffed;
@@ -180,6 +185,17 @@ public class PlayerHands : MonoBehaviour
     public void OnDrank() { if (ToolActionRules.IsContainer(raise.Shown)) action.Start(ToolAction.Drink); }
     public void OnTapped() { if (ToolActionRules.IsSpile(raise.Shown)) action.Start(ToolAction.Tap); }
     public void OnPlaced() { if (ToolActionRules.IsTrap(raise.Shown)) action.Start(ToolAction.PlaceDown); }
+
+    // A fist (ToolEvents, M0e-1): the hand throws a punch, or droops when too tired. Only with empty hands showing; with a tool in hand the tool owns the hands.
+    public void OnPunched(bool rightHand, bool tired)
+    {
+        if (raise.Shown != null)
+            return;
+        if (tired)
+            punch.StartTired(rightHand);
+        else
+            punch.Start(rightHand);
+    }
 
     // A blow was refused for lack of stamina: the hands droop.
     public void OnTired(string toolId)
@@ -245,13 +261,33 @@ public class PlayerHands : MonoBehaviour
         rig.transform.localScale = Vector3.one * viewScale; // a prefab is authored at normal size; this brings it in to the eye (see viewScale)
 
         Transform prefab = ArtSwap.TryAttachHands(rig.transform, layer);
-        art = prefab != null ? prefab : BuildPrimitiveHands(rig.transform);
+        art = artIdle = prefab != null ? prefab : BuildPrimitiveHands(rig.transform);
+        // Hands v3: a second pose with the fingers wrapped round a handle, shown whenever a tool is in hand. Only next to a real hands_player prefab; the primitives have one pose.
+        artGrip = prefab != null ? ArtSwap.TryAttachHandsGrip(rig.transform, layer) : null;
+        if (artGrip != null)
+            artGrip.gameObject.SetActive(false);
+        BindHands();
+        Apply(null, 1f, 0f, 0f, HandMotion.Idle);
+    }
 
+    void BindHands()
+    {
         handR = ArtSwap.HandRoot(art, HandSide.Right);
         handL = ArtSwap.HandRoot(art, HandSide.Left);
         anchorR = ArtSwap.HandAnchor(art, HandSide.Right);
         anchorL = ArtSwap.HandAnchor(art, HandSide.Left);
-        Apply(null, 1f, 0f, 0f, HandMotion.Idle);
+    }
+
+    // Shows the gripping hands (a tool is in hand) or the thumb-up hands (empty hands). A no-op without a hands_player_grip prefab. Runs from ShowHeld before the tool is attached, so the tool
+    // is always parented under the anchor of the pose being shown.
+    void SelectPose(bool gripping)
+    {
+        if (artGrip == null || artIdle == null || (art == artGrip) == gripping)
+            return;
+        art = gripping ? artGrip : artIdle;
+        artIdle.gameObject.SetActive(!gripping);
+        artGrip.gameObject.SetActive(gripping);
+        BindHands();
     }
 
     // --- The primitive hands (the default) ---
@@ -346,6 +382,8 @@ public class PlayerHands : MonoBehaviour
         action.Configure(toolId);
         // The tool in hand decides the ready pose: the Axes, Pick Axes and Hammer are held cocked (drawn back), everything else neutral. This also drops any swing in progress.
         swing.Configure(ToolWork.CockKind(toolId, out WorkKind cockKind), cockKind);
+        punch.Stop(); // a fist never carries over into a tool
+        SelectPose(toolId != null);
         if (toolId == null || anchorR == null || anchorL == null)
             return;
 
@@ -508,6 +546,7 @@ public class PlayerHands : MonoBehaviour
         {
             swing.Tick(dt);
             action.Tick(dt);
+            punch.Tick(dt);
         }
         breathTime += dt;
         shownFor += dt;
@@ -611,13 +650,21 @@ public class PlayerHands : MonoBehaviour
                     float settle = ToolActionRules.HangSettle(shownFor - HandPoseRules.RaiseSeconds);
                     AlignHanging(heldRoot, heldGripR, anchorR, toolPitch + sway.Pitch + settle, sway.Roll);
                 }
+                else if (ToolActionRules.IsRifle(shownTool))
+                    AlignHanging(heldRoot, heldGripR, anchorR, ToolActionRules.RiflePitch + toolPitch, ToolActionRules.RifleRoll, ToolActionRules.RifleYaw); // barrel along the view, not the hand
                 else
                     AlignToGrip(heldRoot, heldGripR, heldPitch + toolPitch, heldRoll);
             }
         }
-        else
+        else if (push)
             PlaceHand(handR, right);
-        PlaceHand(handL, push ? HandPoseRules.PushPose(HandSide.Left, raiseAmount, breath, steps, motion) : HandPoseRules.Pose(HandSide.Left, HeldTools.LeftHandHolds(shownTool), raiseAmount, breath, steps, motion));
+        else
+            PlaceHandSwinging(handR, right, punch.Offset(true)); // empty hands: the right fist (nothing at rest)
+        HandPose leftPose = push ? HandPoseRules.PushPose(HandSide.Left, raiseAmount, breath, steps, motion) : HandPoseRules.Pose(HandSide.Left, HeldTools.LeftHandHolds(shownTool), raiseAmount, breath, steps, motion);
+        if (shownTool == null && !push)
+            PlaceHandSwinging(handL, leftPose, punch.Offset(false)); // and the left fist
+        else
+            PlaceHand(handL, leftPose);
         handR.gameObject.SetActive(true);
         handL.gameObject.SetActive(leftShown);
         if (leftShown && heldTwoHanded && gripL != null && heldRoot != null)

@@ -84,7 +84,7 @@ public class ViewmodelAmbientOcclusionTests
     {
         foreach (string file in new[] { "HDRP Balanced.asset", "HDRP High Fidelity.asset", "HDRP Performant.asset" })
             StringAssert.Contains("supportedLitShaderMode: 2", File.ReadAllText(Path.Combine(Application.dataPath, "Settings", file)), file);
-        Assert.That(Directory.Exists(Path.Combine(Application.dataPath, "Resources/Art")), Is.False);
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
         string pass = Source("Scripts/Player/ViewmodelPass.cs");
         StringAssert.DoesNotContain("FrameSettings", pass);
         StringAssert.DoesNotContain("VolumeProfile", pass);

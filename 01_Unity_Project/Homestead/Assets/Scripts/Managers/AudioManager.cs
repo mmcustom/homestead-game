@@ -310,9 +310,31 @@ public class AudioManager : MonoBehaviour
         Instance = null;
     }
 
+    bool brokenAwakeLogged;
+
+    // False for a duplicate AudioManager (a second Bootstrap load: its Awake destroys it, but Destroy waits until the end of
+    // the frame, so its Update can still run once) and for a manager whose Awake threw before creating the music sources.
+    // Either way there is nothing to update; the second case is logged once because it is a real fault.
+    bool Ready()
+    {
+        if (Instance != this)
+            return false;
+        if (musicSources[0] != null && musicSources[musicSources.Length - 1] != null)
+            return true;
+        if (!brokenAwakeLogged)
+        {
+            brokenAwakeLogged = true;
+            Debug.LogError("[AudioManager] The music sources were never created, so Awake did not finish: look for an earlier exception from AudioManager.Awake in the Console. Audio is off until it is fixed.", this);
+        }
+        return false;
+    }
+
     // Unscaled time so music keeps fading while the game is paused (timeScale 0).
     void Update()
     {
+        if (!Ready())
+            return;
+
         UpdateTrims();
 
         // Mixer parameters can only be set at runtime, so apply saved volumes on the first frame.
@@ -332,6 +354,9 @@ public class AudioManager : MonoBehaviour
     // the bigger moment wins rather than both sounding at once.
     void LateUpdate()
     {
+        if (!Ready())
+            return;
+
         if (pendingMilestone)
             Play(SoundCue.Milestone);
         else if (pendingDiscoveryChime)

@@ -231,6 +231,6 @@ public class EquipNameFadeTests
         StringAssert.Contains("float drawSeconds = 0.8f", weapon);
         StringAssert.Contains("float primitiveDrawSeconds = 1.1f", weapon);
         StringAssert.Contains("float boltSeconds = 1.3f", weapon);
-        Assert.That(Directory.Exists(Path.Combine(Application.dataPath, "Resources/Art")), Is.False);
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
     }
 }

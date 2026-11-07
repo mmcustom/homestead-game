@@ -33,6 +33,10 @@ public static class ToolEvents
     public static event Action Tapped;                // the Spile pushed into a tree
     public static event Action Placed;                // a trap set down
 
+    // M0e-1: a fist. Raised by MeleeAttack only: which hand (true = right) and whether it was refused for lack of stamina (the hands droop instead of punching).
+    public static event Action<bool, bool> Punched;
+    public static void RaisePunch(bool rightHand, bool tired) => Punched?.Invoke(rightHand, tired);
+
     public static void RaiseDraw(string toolId, float fraction) => Draw?.Invoke(toolId, fraction);
     public static void RaiseShot(string toolId) => Shot?.Invoke(toolId);
     public static void RaiseFilled() => Filled?.Invoke();

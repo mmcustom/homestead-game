@@ -542,7 +542,7 @@ public class RestOfToolsInHandTests
         StringAssert.DoesNotContain("SaveVersion", all);
         StringAssert.DoesNotContain("LedgerSaveData", all);
         StringAssert.DoesNotContain("ToolStatus", all);
-        Assert.That(Directory.Exists(Path.Combine(Application.dataPath, "Resources/Art")), Is.False, "no test prefab is left behind");
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
     }
 
     // ---- M0c-2 fix: the bows are drawn by the right hand only, and everything that hangs hangs straight down ----
@@ -676,7 +676,7 @@ public class RestOfToolsInHandTests
     public void TheBowDrillAndTheRifleAreExactlyAsTheyWere()
     {
         Assert.That(ToolActionRules.Ready("bow_drill"), Is.EqualTo(new HandPose { X = 0f, Y = 0.01f, Z = 0.02f, Pitch = -6f }));
-        Assert.That(ToolActionRules.Ready("bolt_action_rifle"), Is.EqualTo(new HandPose { X = 0f, Y = 0.03f, Z = 0.02f, Pitch = -10f }));
+        Assert.That(ToolActionRules.Ready("bolt_action_rifle"), Is.EqualTo(new HandPose { X = -0.07f, Y = 0.05f, Z = 0.02f, Pitch = 0f }), "Hands v3 fix: the ready pose has no pitch, so the muzzle is not tipped up; the hand is 7 cm further in and 2 cm higher so the muzzle nears the middle");
         Assert.That(ToolActionRules.AimOffset(0.5f), Is.EqualTo(new HandPose { X = -0.05f, Y = 0.04f, Z = 0.03f, Pitch = -8f }));
         Assert.That(ToolActionRules.DrillStroke, Is.EqualTo(0.05f));
         Assert.That(ToolActionRules.DrillStrokesPerSecond, Is.EqualTo(3f));
@@ -699,6 +699,21 @@ public class RestOfToolsInHandTests
         }
         object rifle = Primitives.GetMethod("LayoutFor").Invoke(null, new object[] { "bolt_action_rifle" });
         Assert.That((float)rifle.GetType().GetField("holdPitch").GetValue(rifle), Is.EqualTo(-20f), "the rifle's hold is unchanged");
+    }
+
+    // Hands v3 fix (Mike's playtest): the rifle's barrel pointed at the sky. In the ready pose it runs along the view direction, turned a little inward (left) toward the crosshair, and level.
+    [Test]
+    public void TheRifleBarrelRunsAlongTheViewTurnedSlightlyInwardAndNotUp()
+    {
+        Load(path => null);
+        H hands = NewHands();
+        hands.Apply("bolt_action_rifle");
+        Vector3 barrel = hands.Rig.transform.InverseTransformDirection(hands.HeldRoot.forward);
+        Assert.That(Mathf.Abs(barrel.y), Is.LessThan(0.02f), "level: not pointing up");
+        Assert.That(barrel.x, Is.LessThan(0f), "inward, toward the crosshair");
+        Assert.That(Vector3.Angle(barrel, Vector3.forward), Is.InRange(2f, 3f), "about 2 to 3 degrees off the view direction");
+        Assert.That(ToolActionRules.RifleYaw, Is.InRange(-3f, -2f));
+        Assert.That(ToolActionRules.RiflePitch, Is.EqualTo(0f));
     }
 
     [Test]
@@ -844,7 +859,7 @@ public class RestOfToolsInHandTests
         string weapon = Source("Scripts/Wildlife/HuntingWeapon.cs");
         StringAssert.Contains("float drawSeconds = 0.8f", weapon);
         StringAssert.Contains("float primitiveDrawSeconds = 1.1f", weapon);
-        Assert.That(Directory.Exists(Path.Combine(Application.dataPath, "Resources/Art")), Is.False, "no test prefab is left behind");
+        Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
     }
 
     // ---- M0c-2 fix, round 2: arm reach, the bows' look and crosshair, the sleeve's shadows ----
