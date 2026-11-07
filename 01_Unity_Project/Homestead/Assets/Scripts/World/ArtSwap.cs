@@ -475,7 +475,7 @@ public static class ArtSwap
     {
         var anchors = new List<AnchorSpec>
         {
-            A(AnchorGripR, !layout.hasNock, 0f, 0f, 0f),   // the right hand's grip, required on every tool but the bows
+            A(AnchorGripR, !layout.hasNock, layout.gripRight.x, layout.gripRight.y, layout.gripRight.z),   // the right hand's grip, required on every tool but the bows
             A(AnchorGripL, layout.hasNock, layout.gripLeft.x, layout.gripLeft.y, layout.gripLeft.z), // the left hand: optional steadying on a two-handed tool, required on the bows (the handle)
             A(AnchorTip, false, layout.tip.x, layout.tip.y, layout.tip.z),
         };

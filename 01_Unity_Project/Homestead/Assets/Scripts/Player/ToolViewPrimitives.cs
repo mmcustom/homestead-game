@@ -41,12 +41,17 @@ public static class ToolViewPrimitives
 
     public const string StringUpper = "String Upper", StringLower = "String Lower"; // the primitive bow's string halves
 
+    // The rifle's seat (Hands v3 fix, round 2). Its origin is where the receiver is; the right hand holds the wrist of the stock RifleGripBack behind it (Anchor_Grip_R). The placeholder stock behind
+    // the receiver is RifleStockLength long (it was 0.34 and level, 0.29 behind the old grip) and bent down RifleStockDrop degrees, so the butt end falls below the bottom of the view.
+    public const float RifleGripBack = -0.09f, RifleStockLength = 0.20f, RifleStockDrop = 42f;
+
     // Where each tool is held and worked, in the tool's own space. The same numbers are the fallbacks for a prefab's missing anchors (ArtSwap.ToolSpecs reads them).
     public struct Layout
     {
         public bool twoHanded;
         public float holdPitch;   // degrees the tool leans up from the hand's forward
         public float holdRoll;    // degrees it is turned about its own handle, so a head or blade is seen three-quarter and not edge-on
+        public Vector3 gripRight; // where the right hand holds it, in the tool's own space (zero for every tool but the rifle: its hand holds the wrist of the stock, behind the receiver)
         public Vector3 gripLeft;  // where the left hand steadies it (two-handed tools)
         public Vector3 tip;       // the working point
         public bool hasLine; public Vector3 line;    // Anchor_Line: where the fishing line starts (the rods)
@@ -75,7 +80,7 @@ public static class ToolViewPrimitives
             // The rifle runs along Z. Everything that hangs (a bucket, a pot, a trap, the pouch) has holdPitch 0: it hangs straight down from the grip.
             case "primitive_bow": return new Layout { twoHanded = true, holdPitch = 0f, gripLeft = Vector3.zero, tip = BowTip(false), hasNock = true, nock = new Vector3(0f, BowNockY, BowTip(false).z) };
             case "recurve_bow": return new Layout { twoHanded = true, holdPitch = 0f, gripLeft = Vector3.zero, tip = BowTip(true), hasNock = true, nock = new Vector3(0f, BowNockY, BowTip(true).z) };
-            case "bolt_action_rifle": return new Layout { twoHanded = true, holdPitch = -20f, gripLeft = new Vector3(0f, -0.02f, 0.40f), tip = new Vector3(0f, 0.01f, 0.78f), hasMuzzle = true, muzzle = new Vector3(0f, 0.01f, 0.79f) };
+            case "bolt_action_rifle": return new Layout { twoHanded = true, holdPitch = -20f, gripRight = new Vector3(0f, 0f, RifleGripBack), gripLeft = new Vector3(0f, -0.02f, 0.40f), tip = new Vector3(0f, 0.01f, 0.78f), hasMuzzle = true, muzzle = new Vector3(0f, 0.01f, 0.79f) };
             case "bow_drill": return new Layout { twoHanded = false, holdPitch = -14f, tip = new Vector3(0f, 0f, 0.32f) };
             case "bucket": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.22f, 0f) };
             case "sap_bucket": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.16f, 0f) };
@@ -232,7 +237,13 @@ public static class ToolViewPrimitives
                 break;
             }
             case "bolt_action_rifle":
-                Part(root.transform, PrimitiveType.Cube, "Stock", new Vector3(0f, -0.02f, -0.12f), new Vector3(0.045f, 0.09f, 0.34f), Wood);
+                {
+                    // Round 2 (Mike): the butt is held out of sight against the right shoulder. A level stock behind a hand that is in view stays in view until it runs off the bottom of the screen, so
+                    // the placeholder's stock is short and drops RifleStockDrop degrees from the receiver: its butt end then lies below the viewmodel camera's lower view plane (tested).
+                    Quaternion drop = Quaternion.Euler(-RifleStockDrop, 0f, 0f);
+                    Vector3 front = new Vector3(0f, -0.02f, 0.04f); // the stock's front end, inside the receiver
+                    Part(root.transform, PrimitiveType.Cube, "Stock", front + drop * new Vector3(0f, 0f, -RifleStockLength * 0.5f), new Vector3(0.045f, 0.09f, RifleStockLength), Wood, drop.eulerAngles);
+                }
                 Part(root.transform, PrimitiveType.Cube, "Fore-end", new Vector3(0f, -0.015f, 0.30f), new Vector3(0.04f, 0.05f, 0.34f), Wood);
                 Part(root.transform, PrimitiveType.Cylinder, "Barrel", new Vector3(0f, 0.012f, 0.50f), new Vector3(0.022f, 0.30f, 0.022f), Steel, new Vector3(90f, 0f, 0f));
                 Part(root.transform, PrimitiveType.Cube, "Receiver", new Vector3(0f, 0.02f, 0.04f), new Vector3(0.04f, 0.05f, 0.14f), Steel);
@@ -315,7 +326,7 @@ public static class ToolViewPrimitives
         }
 
         // The anchors the code attaches to (and a prefab would carry): the right grip at the origin, the left grip on two-handed tools, and the working tip.
-        Anchor(root.transform, ArtSwap.AnchorGripR, Vector3.zero);
+        Anchor(root.transform, ArtSwap.AnchorGripR, layout.gripRight);
         if (layout.twoHanded)
             Anchor(root.transform, ArtSwap.AnchorGripL, layout.gripLeft);
         Anchor(root.transform, ArtSwap.AnchorTip, layout.tip);

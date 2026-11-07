@@ -57,7 +57,7 @@ public static class ToolActionRules
             case TorchId: return P(0f, 0.02f, 0.02f, -8f);
             case LanternId: return P(0f, 0.10f, 0.03f, -6f);
             case "primitive_bow": case "recurve_bow": return P(0f, 0f, 0f, -4f, -30f);   // the STRING hand (right): the bow itself is the left hand's (BowHandReady), the right hand rests on the nock
-            case "bolt_action_rifle": return P(-0.07f, 0.05f, 0.02f, 0f);              // Hands v3 fix: no pitch (it was -10, which with the hold pitch pointed the muzzle at the sky); the barrel's own aim is RiflePitch/RifleYaw below
+            case "bolt_action_rifle": return P(-0.07f, 0.035f, -0.10f, 0f);          // Hands v3 fix, round 2: no pitch (the barrel's aim is RiflePitch/RifleYaw below); the hand sits 10 cm back of the neutral hold and 3.5 cm up so the rifle is seated against the shoulder (see RifleStock* in ToolViewPrimitives)
             case "bow_drill": return P(0f, 0.01f, 0.02f, -6f);
             // The carry pose of everything that hangs (M0c-2 fix): the hand is out, forward and up, so the body hangs below it in plain view instead of behind the sleeve or off the bottom of the screen.
             // The taller the hanging body, the higher the hand. No pitch: the forearm keeps its natural angle and the tool hangs by gravity (PlayerHands.AlignHanging).

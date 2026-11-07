@@ -77,6 +77,7 @@ public class RestOfToolsInHandTests
         public Transform LeftGrip => Get<Transform>("LeftGrip");
         public ToolActionState Action => Get<ToolActionState>("Action");
         public HandRaise Raise => Get<HandRaise>("Raise");
+        public Camera ViewCamera => Get<Camera>("ViewCamera");
     }
 
     H NewHands()
@@ -676,7 +677,7 @@ public class RestOfToolsInHandTests
     public void TheBowDrillAndTheRifleAreExactlyAsTheyWere()
     {
         Assert.That(ToolActionRules.Ready("bow_drill"), Is.EqualTo(new HandPose { X = 0f, Y = 0.01f, Z = 0.02f, Pitch = -6f }));
-        Assert.That(ToolActionRules.Ready("bolt_action_rifle"), Is.EqualTo(new HandPose { X = -0.07f, Y = 0.05f, Z = 0.02f, Pitch = 0f }), "Hands v3 fix: the ready pose has no pitch, so the muzzle is not tipped up; the hand is 7 cm further in and 2 cm higher so the muzzle nears the middle");
+        Assert.That(ToolActionRules.Ready("bolt_action_rifle"), Is.EqualTo(new HandPose { X = -0.07f, Y = 0.035f, Z = -0.10f, Pitch = 0f }), "Hands v3 fix, round 2: no pitch, the muzzle is not tipped up; the hand is 7 cm in, 3.5 cm up and 10 cm back of the neutral hold, so the rifle is seated against the shoulder");
         Assert.That(ToolActionRules.AimOffset(0.5f), Is.EqualTo(new HandPose { X = -0.05f, Y = 0.04f, Z = 0.03f, Pitch = -8f }));
         Assert.That(ToolActionRules.DrillStroke, Is.EqualTo(0.05f));
         Assert.That(ToolActionRules.DrillStrokesPerSecond, Is.EqualTo(3f));
@@ -715,6 +716,50 @@ public class RestOfToolsInHandTests
         Assert.That(ToolActionRules.RifleYaw, Is.InRange(-3f, -2f));
         Assert.That(ToolActionRules.RiflePitch, Is.EqualTo(0f));
     }
+
+    // Hands v3 fix, round 2 (Mike): "the butt of the rifle should be on the inside of the right arm and the stock held out of sight against the right shoulder". The rule: every corner of the butt end of the
+    // primitive stock is outside the viewmodel camera's view, either behind its near plane or below its lower view plane (the vertical field of view does not change with the window's aspect, so a narrower
+    // window cannot bring it back); the barrel still runs along the view; and the right hand is still on the stock's wrist, with the left hand on the forend.
+    [Test]
+    public void TheRifleButtEndIsOutOfSightBelowTheViewOrBehindTheCameraAndTheBarrelStillRunsAlongTheView()
+    {
+        Load(path => null);
+        H hands = NewHands();
+        hands.Raise.Snap("bolt_action_rifle");
+        hands.Apply("bolt_action_rifle");
+        Transform rig = hands.Rig.transform, stock = hands.HeldRoot.Find("Stock");
+        Assert.That(stock, Is.Not.Null);
+        float tan = Mathf.Tan(hands.ViewCamera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+        float near = hands.ViewCamera.nearClipPlane / rig.lossyScale.z; // the near plane in the rig's own units
+        int hidden = 0;
+        foreach (float sx in new[] { -0.5f, 0.5f })
+            foreach (float sy in new[] { -0.5f, 0.5f })
+            {
+                Vector3 corner = rig.InverseTransformPoint(stock.TransformPoint(new Vector3(sx, sy, -0.5f))); // the butt end is the stock's back face
+                bool outOfView = corner.z <= near || corner.y < -corner.z * tan;
+                Assert.That(outOfView, Is.True, "butt corner " + corner.ToString("F3") + " is in view");
+                hidden++;
+            }
+        Assert.That(hidden, Is.EqualTo(4));
+        Assert.That(ToolViewPrimitives_Float("RifleStockDrop"), Is.GreaterThan(30f), "the stock is bent down toward the shoulder");
+        Assert.That(ToolViewPrimitives_Float("RifleStockLength"), Is.LessThan(0.34f), "and shorter than the old level one");
+
+        // the barrel is as before: along the view, turned 2.5 degrees inward, level
+        Vector3 barrel = rig.InverseTransformDirection(hands.HeldRoot.forward);
+        Assert.That(Mathf.Abs(barrel.y), Is.LessThan(0.02f), "level");
+        Assert.That(Vector3.Angle(barrel, Vector3.forward), Is.InRange(2f, 3f));
+        // the muzzle stays near the middle of the view: right of centre and below the eye line by only a few degrees
+        Vector3 muzzle = rig.InverseTransformPoint(hands.HeldRoot.Find("Anchor_Muzzle").position);
+        Assert.That(muzzle.z, Is.GreaterThan(1f), "the barrel still reaches well out in front");
+        Assert.That(Mathf.Atan2(-muzzle.y, muzzle.z) * Mathf.Rad2Deg, Is.InRange(0f, 12f), "the muzzle is a few degrees below the crosshair, not off the bottom");
+        Assert.That(Mathf.Atan2(muzzle.x, muzzle.z) * Mathf.Rad2Deg, Is.InRange(-2f, 12f), "and a few degrees to its right at most");
+        // the hands are still on it
+        Assert.That(Vector3.Distance(hands.HeldRoot.Find("Anchor_Grip_R").position, hands.RightAnchor.position), Is.LessThan(1e-4f), "the right hand holds the stock's wrist");
+        Assert.That(Vector3.Distance(hands.LeftGrip.position, hands.LeftAnchor.position), Is.LessThan(1e-3f), "and the left hand is on the forend");
+        Assert.That(hands.HeldRoot.Find("Anchor_Grip_R").localPosition.z, Is.LessThan(0f), "the right grip is behind the receiver");
+    }
+
+    static float ToolViewPrimitives_Float(string constant) => (float)Primitives.GetField(constant).GetValue(null);
 
     [Test]
     public void TheHangingListIsTheCarriedItemsAndNotTheLanternOrTheSnareOrThePot()
