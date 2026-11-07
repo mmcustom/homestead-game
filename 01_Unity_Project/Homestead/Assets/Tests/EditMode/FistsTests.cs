@@ -219,13 +219,15 @@ public class FistsTests
         return player;
     }
 
-    Component NewAnimal(string name, Vector3 at, string tier = "Small")
+    Component NewAnimal(string name, Vector3 at, string tier = "Small", string species = null)
     {
         GameObject go = Make(name);
         go.transform.position = at;
         go.AddComponent<SphereCollider>().radius = 0.3f;
         Component animal = go.AddComponent(AnimalType);
         AnimalType.GetField("tier", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(animal, Enum.Parse(Find("GameTier"), tier));
+        // M0e-3: what a fist does depends on the species id (the Knife's small-game list), not the tier; a Small test animal is a rabbit, a bigger one a deer
+        AnimalType.GetField("speciesId", BindingFlags.NonPublic | BindingFlags.Instance).SetValue(animal, species ?? (tier == "Small" ? "rabbit" : "deer"));
         return animal;
     }
 
@@ -493,8 +495,12 @@ public class FistsTests
     public void NoHudTextWasAddedAndNoNewSwapPointOrSaveFieldAppeared()
     {
         string all = Source("Scripts/Economy/PunchRules.cs") + Source("Scripts/Player/MeleeAttack.cs");
-        StringAssert.DoesNotContain("ToolStatus", all, "no HUD line, prompt, flash or banner from a fist");
+        // M0e-3 added the aimed-target prompt (one ToolStatus.Report line, MeleeRules text); a fist still has no flash, banner or permanent line
+        StringAssert.DoesNotContain("ToolStatus", Source("Scripts/Economy/PunchRules.cs"), "no HUD text from the pure fist rules");
+        Assert.That(Count(Source("Scripts/Player/MeleeAttack.cs"), @"ToolStatus\.Report\(text\);"), Is.EqualTo(1), "the aimed-target prompt is the only HUD line (ToolStatus.Report)");
         StringAssert.DoesNotContain("Flash(", all);
+        StringAssert.DoesNotContain("Banner(", all);
+        StringAssert.DoesNotContain("ReportIdle", all);
         StringAssert.DoesNotContain("SaveVersion", all);
         StringAssert.DoesNotContain("LedgerSaveData", all);
         var specs = ((System.Collections.IEnumerable)Art.GetProperty("AllToolSpecs").GetValue(null)).Cast<object>().ToList();

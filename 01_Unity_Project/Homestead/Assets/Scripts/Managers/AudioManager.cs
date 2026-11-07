@@ -528,6 +528,19 @@ public class AudioManager : MonoBehaviour
         addFrame = Time.frameCount;
     }
 
+    [Tooltip("Hands M0e-3: how long a Knife hit's thud plays, in seconds. It is the first impact of the Bow's arrow-strike recording (from its Start Time, at its volume), cut short; no audio file of its own.")]
+    [SerializeField, Min(0.05f)] float meleeHitSeconds = 0.35f;
+
+    // A Knife blow landing on an animal: the first impact of the arrow-strike recording (the Bow Release sound), cut short and faded out. Nothing if that recording is missing (the placeholder
+    // twang is not a thud), so a build without audio stays silent; the blow's own cue (ItemDrop at the click) still plays.
+    public void PlayMeleeHit(Vector3 at)
+    {
+        if (bowRelease == null || bowRelease.clip == null)
+            return;
+        var thud = new Sound { clip = bowRelease.clip, volume = bowRelease.volume, startTime = bowRelease.startTime, maxDuration = meleeHitSeconds, fadeOut = 0.12f, pitch = 1f };
+        PlayOn(NextSfxSource(), thud, at);
+    }
+
     // One axe blow at a point in the world: a different single chop from the recording each time.
     public void PlayChop(Vector3 at) => PlaySlice(chop, chopTimes, at);
 

@@ -670,7 +670,7 @@ public class BloomeryTests
     [Test]
     public void TheSmeltingEntryUnlocksOnAPlacedSiteOrAnIronBar()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(11));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(12)); // 11 chains + the Melee entry (Hands M0e-3)
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smelting, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("Smelting Iron in the Bloomery"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }), "holding an Iron Bar opens both the smelting and the Smithy entries");

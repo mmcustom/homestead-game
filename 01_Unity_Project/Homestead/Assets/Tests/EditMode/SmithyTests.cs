@@ -903,7 +903,7 @@ public class SmithyTests
     [Test]
     public void TheSmithyEntryUnlocksOnAPlacedSiteOrAnIronBarAndTheBloomeryAndBarHelpPointToIt()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(11));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(12)); // 11 chains + the Melee entry (Hands M0e-3)
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }));

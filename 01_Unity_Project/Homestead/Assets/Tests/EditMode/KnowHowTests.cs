@@ -17,11 +17,11 @@ public class KnowHowTests
     // --- The entries ---
 
     [Test]
-    public void ThereAreElevenEntriesWithUniqueIdsTitlesAndBodies()
+    public void ThereAreTwelveEntriesWithUniqueIdsTitlesAndBodies()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(11));
-        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(11));
-        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(11));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(12)); // the eleven chains plus Hands M0e-3's "Fighting with your hands and a Knife"
+        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(12));
+        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(12));
         foreach (KnowHowRules.Entry e in KnowHowRules.Entries)
         {
             Assert.That(e.title, Is.Not.Empty);
@@ -40,12 +40,12 @@ public class KnowHowTests
         {
             "Ash: Collect and Sell", "Kindling Bundles", "The Tripod and Boiling Water", "Tapping Maples", "Sap to Syrup",
             "Using the Leach Hopper", "From Ash to Potash", "Charcoal: Burning Logs Slowly", "Iron Ore at the Trading Post",
-            "Smelting Iron in the Bloomery", "The Smithy: Forging Iron Goods",
+            "Smelting Iron in the Bloomery", "The Smithy: Forging Iron Goods", "Fighting with your hands and a Knife",
         }));
         Assert.That(KnowHowRules.Entries.Select(e => e.id), Is.EqualTo(new[]
         {
             KnowHowRules.Ash, KnowHowRules.Kindling, KnowHowRules.Tripod, KnowHowRules.Tapping, KnowHowRules.Syrup, KnowHowRules.Hopper, KnowHowRules.Potash,
-            KnowHowRules.Charcoal, KnowHowRules.IronOre, KnowHowRules.Smelting, KnowHowRules.Smithy,
+            KnowHowRules.Charcoal, KnowHowRules.IronOre, KnowHowRules.Smelting, KnowHowRules.Smithy, KnowHowRules.Melee,
         }));
     }
 
@@ -104,14 +104,14 @@ public class KnowHowTests
     public void EveryTriggerNamesARealEntry()
     {
         var ids = new List<string>();
-        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle", "charcoal", "iron_ore", "iron_bar" })
+        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle", "charcoal", "iron_ore", "iron_bar", "knife" })
             ids.AddRange(KnowHowRules.ForItem(itemId));
         foreach (KnowHowRules.Happening h in Enum.GetValues(typeof(KnowHowRules.Happening)))
             ids.AddRange(KnowHowRules.ForHappening(h));
         Assert.That(ids, Is.Not.Empty);
         foreach (string id in ids)
             Assert.That(KnowHowRules.TryGet(id, out _), Is.True, id);
-        Assert.That(ids.Distinct().Count(), Is.EqualTo(11), "and every entry has a way to unlock");
+        Assert.That(ids.Distinct().Count(), Is.EqualTo(12), "and every entry has a way to unlock");
     }
 
     [Test]
@@ -166,12 +166,12 @@ public class KnowHowTests
             string[] ids = kit.Cast<object>().Select(k => (string)k.GetType().GetField("Item1").GetValue(k)).ToArray();
             Assert.That(ids, Does.Contain("tripod"), name);
             Assert.That(ids, Does.Contain("cooking_pot"), name);
-            Assert.That(KnowHowRules.Backfill(id => ids.Contains(id), false, false, false), Is.EqualTo(new[] { "tripod" }), name + ": the Tripod only; a Pot carried opens nothing");
+            Assert.That(KnowHowRules.Backfill(id => ids.Contains(id), false, false, false), Is.EqualTo(new[] { "tripod", "melee" }), name + ": the Tripod, and the Knife in every starting kit opens the Melee entry (Hands M0e-3); a Pot carried opens nothing");
         }
 
         var pioneer = (Array)Find("DifficultyManager").GetMethod("Kit").Invoke(null, new[] { Enum.Parse(tier, "Pioneer") });
         string[] pioneerIds = pioneer.Cast<object>().Select(k => (string)k.GetType().GetField("Item1").GetValue(k)).ToArray();
-        Assert.That(KnowHowRules.Backfill(id => pioneerIds.Contains(id), false, false, false), Is.Empty, "a Pioneer starts with none");
+        Assert.That(KnowHowRules.Backfill(id => pioneerIds.Contains(id), false, false, false), Is.EqualTo(new[] { "melee" }), "a Pioneer starts with the Knife only, so only the Melee entry (Hands M0e-3)");
     }
 
     [Test]

@@ -60,8 +60,12 @@ public static class PunchRules
     // "Too tired to punch": the same half raise and droop as a tired tool, no strike. Zero at both ends.
     public static HandPose TiredOffset(float t) => SwingRules.TiredOffset(t);
 
+    // The species a fist stuns: the one small-game list the Knife shares (MeleeRules.SmallGameIds: rabbit, squirrel, turkey, waterfowl; M0e-3 - by species id, because the Turkey and the Duck
+    // are tier Medium in the prefabs).
+    public static bool IsSmallGame(string speciesId) => MeleeRules.IsSmallGame(speciesId);
+
     // What a fist does to an animal in reach (MeleeAttack applies it). Never harm. A dead animal or a Carcass: nothing. A small live one (Rabbit, Squirrel, Turkey, Duck): stunned for a moment
-    // and startled. A medium or large one (Deer): startled and gone. A wounded one gets exactly the same, with no extra damage.
+    // and startled. A Deer: startled and gone. A wounded one gets exactly the same, with no extra damage.
     public enum Outcome { Nothing, StunAndStartle, StartleOnly }
 
     public static Outcome ForAnimal(bool dead, bool small)

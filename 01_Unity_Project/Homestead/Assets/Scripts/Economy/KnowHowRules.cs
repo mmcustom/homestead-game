@@ -20,6 +20,7 @@ public static class KnowHowRules
     public const string IronOre = "ironore";
     public const string Smelting = "smelting";
     public const string Smithy = "smithy";
+    public const string Melee = "melee"; // Hands M0e-3: fists and the Knife. Only the id is saved, in the journal's existing know-how list (no new save field).
 
     public readonly struct Entry
     {
@@ -47,6 +48,7 @@ public static class KnowHowRules
         new Entry(IronOre, "Iron Ore at the Trading Post", "There is no iron to dig on your land yet, so iron ore is bought. The Trading Post sells Iron Ore for $4 each (3 kg). It buys it back for only $1, so buy only what you will use.\n\nSmelting iron needs Charcoal as well (see \"Charcoal: Burning Logs Slowly\") and a furnace, the Bloomery (see \"Smelting Iron in the Bloomery\")."),
         new Entry(Smelting, "Smelting Iron in the Bloomery", "Iron ore is smelted in a Bloomery, a small furnace of Stone and Clay that burns Charcoal.\n\n1. Buy Iron Ore at the Trading Post and make Charcoal in a Charcoal Pit (see those two entries).\n2. Open Build, then Other, and place a Bloomery Site on open dry ground, 3 m clear of other buildings and trees, and not under a roof.\n3. Deliver 8 Stone and 6 Clay with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build the bloomery.\n4. Put the Hammer away. Press R at the bloomery to load the Ore and Charcoal you carry, up to 4 of each. You can load one without the other and top up either later.\n5. Press E to start a smelt once it holds 2 Ore and 2 Charcoal. Each 2 Ore and 2 Charcoal make 1 Iron Bar, up to 2 Bars at a time, and the smelt takes 10 game hours, even while you sleep or are away. Ore and Charcoal you add while it smelts wait for the next smelt.\n6. Press E again to collect the Iron Bars.\n\nNobody buys Iron Bars; forge them into iron goods at a Smithy (see \"The Smithy: Forging Iron Goods\"). With the Hammer equipped, R takes the bloomery down, but not while it smelts; you get back half the Stone and Clay and all the Ore, Charcoal and Bars inside."),
         new Entry(Smithy, "The Smithy: Forging Iron Goods", "A Smithy turns Iron Bars and Charcoal into iron goods that sell at the Trading Post, and into an iron Shovel and Pick Axe for your own use. Its forge and anvil stand under a roof.\n\n1. Make Iron Bars first (see \"Smelting Iron in the Bloomery\").\n2. Open Build, then Other, and place a Smithy Site on dry ground, 3 m clear of other buildings and, for the forge fire, 3 m clear of trees. Turn it with the mouse wheel so the open front faces where you want to work.\n3. Deliver 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build it.\n4. Put the Hammer away. Press R at the Smithy to store the Iron Bars, Charcoal, Sticks and Cordage you carry (it holds 8 Iron Bars, 8 Charcoal, 6 Sticks and 4 Cordage).\n5. Press E to open the Smithy screen and choose what to forge. Door Hinges take 3 game hours; a Hook Set and a Box of Nails take 2. Each uses 1 Iron Bar and 1 Charcoal. An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each. A job runs even while you sleep or are away.\n6. Press E at the Smithy to collect the finished item. One job runs at a time, and the next cannot start until the item is collected.\n\nDoor Hinges sell for about $26, a Hook Set for about $18 and a Box of Nails for about $16, and each price drops a little with every one you sell, then recovers over the next days. The iron Shovel and Pick Axe cannot be sold. They work like the stone ones but need a quarter fewer blows for everything: a Stone from the outcrop, a stump, Clay and Sand, a Well shaft and a new Outhouse pit. The stone tools stay as they are. With the Hammer equipped, R takes the Smithy down, but not while something is being forged; you get back half the materials and all the Bars, Charcoal, Sticks, Cordage and finished items inside."),
+        new Entry(Melee, "Fighting with your hands and a Knife", "Click with empty hands to punch. Fists only stun and startle: a small animal (a Rabbit, Squirrel, Turkey or Duck) stops for about a second and then bolts, a Deer just bolts, and nothing is ever hurt.\n\nEquip a Knife and click to slash, then click again to stab. The clicks alternate on their own, and the first click after a short pause is always a slash. Both reach about 1.5 m. A Knife kills small game (a Rabbit, Squirrel, Turkey or Duck) in one solid hit and leaves a Carcass to field dress, but a Deer is only startled, never hurt.\n\nA punch costs 2 Stamina and a slash or stab 3. Every blow makes noise: animals within 8 m of a punch and 6 m of a Knife blow bolt, so you will rarely catch one that has already noticed you. A blow cannot reach through a wall. A trapped animal cannot be struck; take it out of the trap with a Knife in your pack (it does not have to be equipped)."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -66,7 +68,7 @@ public static class KnowHowRules
     // --- Triggers ---
 
     // Things that happen in the world, besides an item entering the pack.
-    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced }
+    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched }
 
     // Entries a first-held item unlocks (none for most items). Ash opens both "Ash" and "From Ash to Potash".
     public static string[] ForItem(string itemId)
@@ -84,6 +86,7 @@ public static class KnowHowRules
             case MetalRules.CharcoalId: return new[] { Charcoal };
             case MetalRules.IronOreId: return new[] { IronOre };
             case MetalRules.IronBarId: return new[] { Smelting, Smithy };
+            case KnifeRules.ToolId: return new[] { Melee };
             default: return Array.Empty<string>();
         }
     }
@@ -97,6 +100,7 @@ public static class KnowHowRules
             case Happening.PitSitePlaced: return new[] { Charcoal };
             case Happening.BloomerySitePlaced: return new[] { Smelting };
             case Happening.SmithySitePlaced: return new[] { Smithy };
+            case Happening.Punched: return new[] { Melee };
             default: return Array.Empty<string>();
         }
     }
@@ -120,7 +124,7 @@ public static class KnowHowRules
     static readonly string[] TriggerItems =
     {
         AshRules.ItemId, AshRules.KindlingItemId, TripodRules.TripodId, MapleRules.SpileId, MapleRules.SapBucketId,
-        MapleRules.SapId, PotashRules.LyeId, TripodRules.KettleId, MetalRules.CharcoalId, MetalRules.IronOreId, MetalRules.IronBarId,
+        MapleRules.SapId, PotashRules.LyeId, TripodRules.KettleId, MetalRules.CharcoalId, MetalRules.IronOreId, MetalRules.IronBarId, KnifeRules.ToolId,
     };
 
     // The entries a loaded game has already earned: what the pack holds, and what it has built (a hopper site, a tripod, a tap). An old save

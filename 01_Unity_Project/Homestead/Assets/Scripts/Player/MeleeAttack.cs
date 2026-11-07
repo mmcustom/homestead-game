@@ -56,10 +56,25 @@ public class MeleeAttack : MonoBehaviour
 
     public bool NextIsStab => KnifeRules.NextIsStab(hasLastKnife, lastWasStab, Time.time - lastKnifeTime);
 
+    // M0e-3: the aimed-target prompt. While you aim at a LIVE animal within the reach of what is in your hands (the same raycast as the blow: the first collider stops it, so never through a wall), the
+    // HUD says what a click will do. Reported through ToolStatus.Report like every other aimed prompt; the text is MeleeRules.PromptFor. The Knife shows the NEXT blow (NextIsStab), not both. A dead
+    // animal or a Carcass gets no melee prompt, so its own field-dress or harvest prompt (the interaction prompt) is untouched.
+    void UpdatePrompt()
+    {
+        MeleeRules.Mode mode = MeleeRules.ModeFor(HandsEmpty, KnifeEquipped);
+        bool canUse = player.CanUseTools;
+        bool stab = NextIsStab;
+        Animal target = canUse && mode != MeleeRules.Mode.None ? TargetAnimalWithin(player, MeleeRules.ReachFor(mode, stab)) : null;
+        string text = MeleeRules.PromptFor(canUse, mode, stab, target != null, target != null && target.IsDead, target != null ? target.DisplayName : null);
+        if (text != null)
+            ToolStatus.Report(text);
+    }
+
     void Update()
     {
         if (attack == null || player == null)
             return;
+        UpdatePrompt();
         if (KnifeEquipped)
         {
             UpdateKnife();
@@ -79,6 +94,8 @@ public class MeleeAttack : MonoBehaviour
         nextRight = PunchRules.NextIsRight(nextRight);
         nextPunch = Time.time + PunchRules.CycleSeconds;
         ToolEvents.RaisePunch(right, false);
+        if (JournalManager.Instance != null)
+            JournalManager.Instance.NoteHappening(KnowHowRules.Happening.Punched); // the first punch opens the Know-how entry (once; later calls add nothing)
         Strike(player);
     }
 
@@ -121,7 +138,10 @@ public class MeleeAttack : MonoBehaviour
     // What the blade does: nothing to the dead, a kill to small game (alive or wounded), a startle to a Deer. Never a wound.
     public static void HitWithKnife(Animal animal, Vector3 from)
     {
-        switch (KnifeRules.ForAnimal(animal.IsDead, KnifeRules.IsSmallGame(animal.SpeciesId)))
+        KnifeRules.Outcome outcome = KnifeRules.ForAnimal(animal.IsDead, KnifeRules.IsSmallGame(animal.SpeciesId));
+        if (outcome != KnifeRules.Outcome.Nothing && AudioManager.Instance != null)
+            AudioManager.Instance.PlayMeleeHit(animal.transform.position); // M0e-3: a second cue on a hit; the blow itself keeps its click-time cue
+        switch (outcome)
         {
             case KnifeRules.Outcome.Kill:
                 animal.Slay();
@@ -156,7 +176,7 @@ public class MeleeAttack : MonoBehaviour
     // What the fist does: nothing to the dead, a stun and a startle to a small live animal, a startle to a bigger one. Never a kill, never a wound.
     public static void Hit(Animal animal, Vector3 from)
     {
-        switch (PunchRules.ForAnimal(animal.IsDead, animal.Tier == GameTier.Small))
+        switch (PunchRules.ForAnimal(animal.IsDead, PunchRules.IsSmallGame(animal.SpeciesId))) // M0e-3: by species id (rabbit, squirrel, turkey, waterfowl), the list the Knife shares
         {
             case PunchRules.Outcome.StunAndStartle:
                 animal.Stun(PunchRules.StunSeconds, from);

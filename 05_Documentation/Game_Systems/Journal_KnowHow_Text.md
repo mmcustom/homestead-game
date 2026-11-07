@@ -134,3 +134,15 @@ A Smithy turns Iron Bars and Charcoal into iron goods that sell at the Trading P
 6. Press E at the Smithy to collect the finished item. One job runs at a time, and the next cannot start until the item is collected.
 
 Door Hinges sell for about $26, a Hook Set for about $18 and a Box of Nails for about $16, and each price drops a little with every one you sell, then recovers over the next days. The iron Shovel and Pick Axe cannot be sold. They work like the stone ones but need a quarter fewer blows for everything: a Stone from the outcrop, a stump, Clay and Sand, a Well shaft and a new Outhouse pit. The stone tools stay as they are. With the Hammer equipped, R takes the Smithy down, but not while something is being forged; you get back half the materials and all the Bars, Charcoal, Sticks, Cordage and finished items inside.
+
+---
+
+## 12. Fighting with your hands and a Knife
+
+Trigger: first punch thrown, or first Knife held.
+
+Click with empty hands to punch. Fists only stun and startle: a small animal (a Rabbit, Squirrel, Turkey or Duck) stops for about a second and then bolts, a Deer just bolts, and nothing is ever hurt.
+
+Equip a Knife and click to slash, then click again to stab. The clicks alternate on their own, and the first click after a short pause is always a slash. Both reach about 1.5 m. A Knife kills small game (a Rabbit, Squirrel, Turkey or Duck) in one solid hit and leaves a Carcass to field dress, but a Deer is only startled, never hurt.
+
+A punch costs 2 Stamina and a slash or stab 3. Every blow makes noise: animals within 8 m of a punch and 6 m of a Knife blow bolt, so you will rarely catch one that has already noticed you. A blow cannot reach through a wall. A trapped animal cannot be struck; take it out of the trap with a Knife in your pack (it does not have to be equipped).

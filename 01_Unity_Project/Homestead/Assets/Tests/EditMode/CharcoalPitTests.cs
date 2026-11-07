@@ -612,7 +612,7 @@ public class CharcoalPitTests
     [Test]
     public void TheCharcoalAndOreEntriesUnlockOnTheirTriggers()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(11));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(12)); // 11 chains + the Melee entry (Hands M0e-3)
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Charcoal, out KnowHowRules.Entry charcoal), Is.True);
         Assert.That(charcoal.title, Is.EqualTo("Charcoal: Burning Logs Slowly"));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.IronOre, out KnowHowRules.Entry ore), Is.True);

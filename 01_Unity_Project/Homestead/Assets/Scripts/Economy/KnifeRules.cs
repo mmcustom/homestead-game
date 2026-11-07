@@ -100,11 +100,8 @@ public static class KnifeRules
         return smallGame ? Outcome.Kill : Outcome.StartleOnly;
     }
 
-    // The species the Knife kills. Keyed by species id, not by Animal's GameTier, because the Turkey and the Duck are tier Medium in the prefabs (their shots need a vitals hit) but Mike counts
-    // them as small game a Knife can finish. The Deer is not in the list.
-    public static readonly string[] SmallGameIds = { "rabbit", "squirrel", "turkey", "waterfowl" };
-
-    public static bool IsSmallGame(string speciesId) => speciesId != null && Array.IndexOf(SmallGameIds, speciesId) >= 0;
+    // The species the Knife kills: the one list the fists share (MeleeRules.SmallGameIds: rabbit, squirrel, turkey, waterfowl). The Deer is not in it.
+    public static bool IsSmallGame(string speciesId) => MeleeRules.IsSmallGame(speciesId);
 }
 
 // The right hand's knife offset over time: the ready pose (cocked), the blow in progress, and the settle after it. PlayerHands starts it from ToolEvents.Knifed and ticks it every frame. A new blow
