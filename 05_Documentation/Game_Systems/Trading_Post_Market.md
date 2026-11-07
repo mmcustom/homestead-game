@@ -1,6 +1,8 @@
 # Homestead
 ## Trading Post Market v0.1
 
+UPDATE 2026-11-07: BUILT, and the status line below is out of date. The Trading Post market was committed and pushed 2026-10-21 (0f8e336) and has grown with each production chain since (Maple, Potash, Pottery, handmade furniture and iron goods market data, Lumber, the Wood Saw and Iron Ore listings). See Current_Task_List.md for the build history.
+
 Status: Design Draft (PROPOSED), written 2026-10-20. Nothing is built.
 
 # Purpose

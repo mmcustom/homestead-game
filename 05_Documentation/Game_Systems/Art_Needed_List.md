@@ -1,5 +1,7 @@
 # Homestead
-## Art Needed List v0.2
+## Art Needed List v0.3
+
+UPDATE 2026-11-07 (v0.3): audited against the current build. Waves 1 to 6 below are unchanged; four new waves (7 to 10), the missing item groups for Wave 4 and a status tracker are in the "Audit and tracker, 2026-11-07" section at the end of this document.
 
 Status: written 2026-11-05 (Mike asked for a proper art list after collecting reference images in the Art folder). Built from Art_Readiness_and_Placeholders.md (every placeholder and swap point in the code) and Mike's 37 reference images. Docs only, no code. v0.2: Mike DECIDED the art style on 2026-11-05: realistic (see "Style choice" below), chosen knowing it is more work. The supplier rules and budgets below were updated to match.
 
@@ -307,3 +309,128 @@ Realistic plan for art: Blender (Claude can model, UV, bake and export), ComfyUI
 - Idle pose is now thumb-up (mesh rolled -90 degrees about Y in Blender). Always verify orientation in Unity and fix in the prefab wrapper (Model_R/Model_L).
 - Known improvements for later: real hair cards on the back of the hand and forearm, HDRP Subsurface Scattering skin material with a diffusion profile, separate cuff geometry on the sleeve (sleeve is 800 tris per arm so the silhouette is slightly faceted), palm creases.
 - Blender GPU bake gives black images for DIFFUSE/AO here; bake on CPU.
+
+
+
+---
+
+# Audit and tracker, 2026-11-07 (v0.3)
+
+How this audit was done: Waves 1 to 6 were read against the current build (the Scripts/UI folder, the scenes, the particle and sky code, the Resources folders, Phase 2 item data and the task log up to 2026-11-07). The existing rows hold up: every structure, tool, animal and world group that exists in the game has a row. What was missing is everything that is not a 3D world object (screens and UI, screen effects, the sky, branding), several item groups, and art for systems that are designed but not built yet. Those are added below as Waves 7 to 10 and Wave 4 additions. Nothing in the project's code or art folders changed; this is a list.
+
+Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Marketing are all empty (0 files). There is no logo, no app icon, no title or splash art and no concept art anywhere in the project. The only art on disk is the root Art folder (Blender_Work, References, Reference_Photos and two ComfyUI output folders) and Assets/Resources/Art (the hands).
+
+## Status tracker (summary)
+
+| Wave | What | Rows | Done | Partly | Not started |
+|---|---|---|---|---|---|
+| 1 | First-person hands | 1 (2 prefabs) | 1 (idle and tool-grip, Hands v3) | polish backlog below | 0 |
+| 1 | The 30 tools | 30 | 0 | 1 (tool_axe is a test blockout, not shipped art) | 29 |
+| 2 | Shelter and main structures | 15 | 0 | 1 (structure_kiln has the swap point built, no art) | 14 |
+| 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 0 | 0 | 12 |
+| 4 | World items, icons, stump, carcass | 9 groups | 0 | 0 | 9 |
+| 5 | Animals and traps | 8 | 0 | 0 | 8 |
+| 6 | Trees, terrain, water, weather, effects | 11 groups | 0 | 0 | 11 |
+| 7 | UI and screens (new) | see below | 0 | 0 | all |
+| 8 | Screen effects, particles, sky (new) | see below | 0 | 0 | all |
+| 9 | Art for designed-but-not-built systems (new) | see below | 0 | 0 | all |
+| 10 | Branding, store and marketing (new) | see below | 0 | 0 | all |
+
+Plain reading: in-game art so far is the hands and nothing else. The tool, structure and world art waves are all still primitive shapes. The swap-point system (ArtSwap) exists so each piece can arrive one at a time.
+
+## Hands polish backlog (Wave 1 follow-up, from Hands v3)
+
+Lighter and warmer skin tone (the hands read dark in overcast light), nail texture (nails are a flat pink material), deep palm creases, real hair cards on the back of the hand and forearm, a Subsurface Scattering skin material (blocked today: the viewmodel pass draws after HDRP's SSS pass, so SSS renders black), a separate cuff on the sleeve (the sleeve silhouette is slightly faceted), and tool-specific grip variants (the grip hand is one shape for every tool). Photo references for this: Art\References\Hand_Photos (6 photos, 3 added 2026-11-07).
+
+## Wave 4 additions: item groups the first list left out
+
+Each needs an item_<id> prefab for the dropped object and, later, an icon. Sizes are rough and marked to confirm.
+
+| Group | Examples | Notes | Priority |
+|---|---|---|---|
+| Handmade furniture goods | Rough Stool, End Table, Chair, Table | Workshop output; also sold at the Trading Post. 0.4 to 1.4 m. | Medium |
+| Maple goods | Sap (in a bucket), Maple Syrup, Maple Sugar items | Syrup is a bottle or jar; the sap bucket is already in Wave 1. | Medium |
+| Ash, potash and lye goods | Ash, Kindling Bundle, Lye, Potash | Ash and Kindling Bundle are small and carried constantly. | Medium |
+| Lumber | Boards, planks, split rails (as sold at the Trading Post) | Stacked-looking, 0.2 to 2.4 m. | Medium |
+| Crafted parts | Cordage, Arrows, Wooden Wheels, Door Hinges, Hook Set, Box of Nails | Small; Nails and Hinges are Smithy goods. | Low |
+| Carried-only gear | Sleeping Bag, Tent (rolled), Weather Station, Lamp Oil | These have no tool row on purpose; the dropped and carried look still needs art. | Low |
+| Ammunition and hunting kit | Rifle rounds, field-dressed meat, Furs and Hides | Pair with the Carcass row. | Low |
+| Forage items | Berries, nuts, fruit, mushrooms, edible plants | One shape and one material per species; see Plants/*.md for the species. | Low |
+| Hand cart load | The cart's carried contents | Contents stay code-drawn primitives; no art needed beyond the cart. | none |
+
+## Wave 7: UI and screens (new)
+
+The game has about 30 UI scripts and no UI art at all: Assets/UI is empty, there is no item icon field, and every screen is built from code with UiKit. For a realistic-style game the UI should get a single theme so it stops looking like a debug overlay. Mike has trouble reading small on-screen text (2026-11-04), so legibility is the first rule for every item below.
+
+| Group | What | Notes | Priority |
+|---|---|---|---|
+| UI theme and kit | Panel, button, tab, slider, bar, scroll, checkbox, tooltip and toast styles; the colour palette; the border and paper or wood look | One kit that UiKit applies everywhere. Decide the look once. | High |
+| Fonts | One body font and one display font, with a licence that allows a sold game | Large and readable; check the licence before adding. | High |
+| HUD | Survival bars (Health, Stamina, Body temperature, Hydration, Hunger, Load), compass strip, minimap frame and north marker, crosshair, the interaction prompt line, the tool status line, the equipped-tool name fade, the weather HUD line, discovery toasts and screen banners | These are on screen all day. Crosshair and the status line matter most. | High |
+| Item icons | One 128 x 128 icon per item (already a Wave 4 row) | Render from the item prefab when possible so the style matches. | Medium |
+| Menus and screens | Main Menu, Pause Menu, New Game (difficulty and land picker, Land Purchase panel), Save and Load slot panel, Loss screen ("Mother Nature beat you" banner and restart or load choice) | The Loss screen needs its own art. | Medium |
+| Management screens | Inventory, Crafting and Build, Storage Transfer, Trading Post, Workshop, Smithy, Potter's screen, Finances and Statement, Journal (Know-how and discovery pages), Weather screen, Quantity Stepper | Share the UI kit; Journal and Finances can have paper or ledger styling. | Medium |
+| Map art | World Map, Minimap terrain colours and map icons (64 x 64) | MapIcons.cs exists; the map icons row in Wave 4 covers the sprites. | Low |
+| Scenes | Bootstrap, Loading, MainMenu and World scenes: the Loading screen and Main Menu background art | Needs a title picture (see Wave 10). | Medium |
+
+## Wave 8: screen effects, particles and sky (new)
+
+Wave 6 lists rain, snow, lightning, smoke and fire sprites. These are the effects and sky items it did not cover. Code exists today only for campfire flame, kiln smoke and precipitation particles; the sky comes from DayNightCycle with no sky asset.
+
+| Group | What | Notes | Priority |
+|---|---|---|---|
+| Sky | Sun, moon, stars, cloud layers, a sky material or HDRI that works with DayNightCycle and the weather states (Clear, Overcast, Rain, Snow, Thunderstorm, Cold Front, Heat Wave) | It sets the mood of every screen. Confirm how the sky is drawn today before ordering. | High |
+| Weather screen effects | Fog or mist for cold fronts, heat haze for heat waves, rain on the camera optional | Fog and heat haze can be post-process, not sprites. | Medium |
+| Body-state overlays | Shiver and cold vignette, overheating haze, the Player Collapse fade to black and "wake weakened" look, low-stamina and tired visual | Mostly post-process and screen-space textures. | Medium |
+| Water effects | Splash and ripple sprites for wading, fish jumps and the bobber, creek flood foam and flow, pond shore edge | Pair with the Wave 6 water surface. | Medium |
+| Action particles | Wood chips and dust from the Axe, stone chips from the Pick Axe, dirt from the Shovel, sparks at the Smithy, hammer hit flash, steam from boiling sap and the Potash Kettle, bellows or kiln glow | Small sprite sheets; audio already exists for several of these. | Medium |
+| Footsteps and ground | Footprints in snow and mud, leaf litter and snow cover (the terrain layers are painted by code today) | Low until terrain art lands. | Low |
+| Breath and body | Cold breath puffs, sweat | Optional polish. | Low |
+| Fire and ash | Ash and ember sprites in the campfire, kitchen hearth, Bloomery and Smithy; the Ash pile left after a fire | Pair with effect_campfire. | Low |
+
+## Wave 9: art for designed-but-not-built systems (new, placeholder list for later)
+
+None of these exist in the game yet, so nothing needs to be made now. They are listed so the total scope is visible and so each is designed with a swap point from the start (the standing art rule). Source docs are named in each row.
+
+| Group | What | Source doc | Notes |
+|---|---|---|---|
+| Livestock | Chickens, goats, rabbits (and later sheep, pigs, cattle, horses) | Livestock_System.md, Livestock/*.md | Coop, Rabbit Hutch, Goat Shelter, feeders and troughs, hay and straw. |
+| Stage 2 buildings | Root Cellar, Smokehouse, Storage Shed, Greenhouse or cold frame, Hand-Pump Well, composting bins | Structures_Roadmap.md, Building_Housing_System.md | Need spoilage and gardening first. |
+| Stage 3 and 4 buildings | Large Cabin, Cottage, Barn, Orchard trees, Windmill, Farmhouse, Equipment buildings, Well House | Building_Housing_System.md | Housing tiers. |
+| Power | Solar panels, battery bank, wiring, lights and the Flashlight item | Power_System.md | Waits on the system. |
+| Farming and gardens | Garden beds, crops and their growth stages, tools such as a hoe, a scythe, hay | Structures_Roadmap.md | Not designed yet. |
+| Vehicles | UTV and trailer (the hand cart is already in Wave 3) | Vehicles_and_Hauling.md | Last in the build order. |
+| Tanning | Tanning rack and tools (references saved: tanning rack.png, tanning tools.png) | none yet | Not in code. |
+| Fences, paths and markers | Fence posts and rails, gates, property boundary markers, the dirt track already visible in the world | none yet | Confirm what the land purchase needs to show. |
+| Predators and more wildlife | Fox, Coyote, Bobcat | Wildlife_System.md, Feature_Backlog.md | Deferred. |
+| More hunting and trapping gear | Crossbow, shotgun, compound bow, muzzleloader, cage and deadfall traps, ground blinds and tree stands | Hunting_System.md, Trapping_System.md | Deferred. |
+| Regions | Per-region terrain, plants, trees and wildlife looks | Regions_System.md | Parked until after the money phases. |
+| Digging and mining | Dug terrain, ore deposits, mine or pit features | Mike's idea 2026-11-04 | Only where realistic; ore is bought otherwise. |
+
+## Wave 10: branding, store and marketing art (new)
+
+Nothing exists. The 07_Marketing and 03_Concept_Art folders are empty. This wave is only needed when the game is shown to others, but the logo and icon are cheap to decide early, and the title picture is what the Main Menu and Loading screen need.
+
+| Item | What | Notes |
+|---|---|---|
+| Game logo | "Homestead" wordmark, plus the motto "Survive. Prepare. Build. Prosper." as an optional lockup | One logo used everywhere. Original work only (no stock or look-alike marks). |
+| App icon | Windows executable icon in the standard sizes (16 to 256 px) | Made from the logo. |
+| Title and Loading art | A key painting or a rendered view of the finished homestead for the Main Menu and the Loading scene | Can be a render from the game once real art exists. |
+| Store page art | Capsule and header images, a short and a long description, screenshots (needs a screenshot-friendly lit scene) | Sizes depend on the store chosen. |
+| Trailer | A capture-based trailer | Needs real art in the world first. |
+| Press kit | Logo files, screenshots, fact sheet | Later. |
+
+## Audio note
+
+Audio is a separate list (Audio_System.md): the 22 original files plus thunder are sourced and wired. Known audio gaps: the Knife has no sound of its own (the blow borrows the item-drop cue, a hit plays the first 0.35 s of the Bow Release recording), and the fists have only their original punch sound.
+
+## Suggested order from here
+
+1. Wave 7 UI theme, fonts and the HUD (small to make, on screen constantly, and it removes the debug look immediately).
+2. Wave 1 tools, in the order they are used most (axe, knife, torch, bucket, hammer, shovel, bow and rifle), then the rifle seat fix.
+3. Wave 2 structures: Small Cabin first, then tent and shelters, Well, Outhouse, Workshop.
+4. Wave 8 sky, because it changes every screenshot.
+5. Wave 6 trees, terrain and water, in step with the structures so the style holds together.
+6. Wave 4 items and icons, then Wave 5 animals.
+7. Wave 10 logo and icon any time, since they are small; the rest when the game is shown to others.
+8. Wave 9 only as each system is built.

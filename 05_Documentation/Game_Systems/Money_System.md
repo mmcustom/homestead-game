@@ -1,6 +1,8 @@
 # Homestead
 ## Money System v0.1
 
+UPDATE 2026-11-07: this draft is largely BUILT and the status line below is out of date. Money in cents (b6f548a), land loan Phase A (b03ebc3), Money Phase B (0f6b002), Phase C (08964d8), Phase D1 tier levers and income measuring (3f8d123), locked parcels (ad2c226), debug cash keys and the ledger item export (09b3221) are built, playtested and pushed. Phase D2 (the income measuring sessions across Settler, Pioneer and Homesteader) is the open gate; the Skills and Progression doc waits on it. Build history is in Current_Task_List.md.
+
 Status: Design Draft (nothing built). Written 2026-10-20 from Mike's vision decisions of the same day. Every rule marked DECIDED is Mike's. Everything marked PROPOSED is Claude's first pass and is not yet confirmed. No numbers here are final except the ones Mike set.
 
 Related: `00_Project_Management\GDD\Homestead_GDD_v2.0.md` (Land Purchase and Debt section), the Homestead Vision and Design Pillars doc, `Economy_System.md`, `Difficulty_System.md`, `Season_System.md`, `Structures_Roadmap.md` (step 1b).

@@ -1,6 +1,8 @@
 # Homestead
 ## Vehicles and Hauling v0.1
 
+UPDATE 2026-11-07: the Hand Cart is BUILT: phase 2, pushing (8d69a5c), Wooden Wheels (302445c) and the Wood Saw (6362e2c), with a push pose in the hands. The UTV and any other vehicle are NOT built. The status line below is the original.
+
 Status: Design Draft (PROPOSED), written 2026-10-30. Nothing is built, and nothing here is decided except the answers listed below. Every number is a first pass for Mike to cut down.
 
 # Why this exists

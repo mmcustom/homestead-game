@@ -1,6 +1,8 @@
 # Homestead
 ## Early Income Design v0.1
 
+UPDATE 2026-11-07: parts of this design are BUILT: the ledger item export (09b3221), Ash, Kindling Bundle, craft amounts and Campfire removal (e0e36b9), Maple sugaring (A to D), the Tripod and Potash chain (ba684e0, 001753b, 8c4c277), the Know-how teaching pass (b552bef), Pottery and the Workshop furniture. The Winter Maple run was measured (income 251.19 dollars, about 8.97 per game day); the Money Phase D2 measuring sessions remain open. The status line below is the original.
+
 Status: Design Draft (PROPOSED), written 2026-10-25. Docs only. Nothing is built and nothing here is decided. Every number is a first pass for Mike to cut down. This draft supersedes the 2026-10-20 decision in Trading_Post_Market.md that "no new sellable goods are needed for Phase A", because the Spring Year 1 measurement contradicts it.
 
 # Why this exists

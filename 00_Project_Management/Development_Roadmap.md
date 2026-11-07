@@ -1,7 +1,7 @@
 # Homestead
 ## Development Roadmap
 
-Status: Active — refreshed 2026-10-19 (see the 2026-10-19 status update at the bottom, which supersedes older "not built" lists above)
+Status: Active — refreshed 2026-11-07 (see the 2026-11-07 status update at the bottom, which supersedes the older "not built", "Next step" and "Still designed, not built" lists above where they differ)
 
 ---
 
@@ -17,7 +17,7 @@ This roadmap covers design documentation and, as of this refresh, a summary of w
 
 Alpha 0.1 implemented and PLAYTHROUGH PASSED (2026-10-11). Every one of the GDD's 16 Alpha 0.1 Required Systems has a design doc and has been built and tested in Unity. The GDD's Development Rule asked for the core survival loop to be proven fun by actually playing it before anything beyond Alpha 0.1 is designed or built. The full Winter Preparation run (Spring through 14+ Winter days, 25 of 25 checks passed, "playtest was fun") met that gate on 2026-10-11, so post-Alpha 0.1 design is now open at Mike's choice.
 
-**The next step is picking the first post-Alpha 0.1 item** (see "Next step" below). Unrequested new design should still wait for Mike's pick.
+**Update 2026-11-07:** post-Alpha 0.1 work is well under way: the money and loan spine, the Trading Post market, the production chains (maple, potash, pottery, workshop furniture, metal), the hand cart, first-person hands and melee are all built, playtested and pushed. The latest picture is the 2026-11-07 status update at the bottom of this document. **The next step is Mike's pick** (candidates listed there); unrequested new design should still wait for it.
 
 ---
 
@@ -199,3 +199,55 @@ Early Homestead, Established Homestead, and Modern Homestead (per the GDD's Prog
 
 
 **Update 2026-10-19 (later):** Placement Preview phase 6 (traps) is built, playtested (44/44, plus a 5/5 re-check of right-click-puts-the-trap-away) and pushed as 9b42d4c, so Placement Preview phases 1-6 are all done. Rabbit Snare, Box Trap and Fish Trap show a live ghost as soon as they are equipped, one click sets the trap, and a right click puts it away. The "Next step" line above is superseded: Mike picks the next item from the "still designed, not built" list (placement gaps remain: Campfire on roof or rock, no spacing ring, lake wording, no gamepad).
+
+
+
+---
+
+# Status Update — 2026-11-07 (supersedes the "Designed but Not Built", "Next step" and "Still designed, not built" lists above where they differ)
+
+**Everything below is built, Play Mode tested by Mike, committed and pushed. master matches origin/master (f293dc0 at the time of writing). Full EditMode suite: 1,900 of 1,900.** Build history, commit hashes and checklists are in Current_Task_List.md and 06_AI_Collaboration. Several design docs still carry their original "Design Draft (nothing built)" status line; those were given a dated UPDATE line on 2026-11-07 (Money_System, Trading_Post_Market, Mining_Metalworking_System, Workshop_and_Handmade_Goods, Vehicles_and_Hauling, Early_Income_Design, Hands_and_Held_Tools, Melee_Fists_and_Knife).
+
+## Built since the 2026-10-19 update
+
+- **Structures, Slice 1:** Well (with the water table and depth work), Outhouse (a staged site), Wood Shed, Covered Outdoor Kitchen and the kitchen add-ons; heavy builds are staged sites.
+- **Money and debt:** money in cents, land loan Phase A, Money Phases B, C and D1 (tier levers, income measuring), locked parcels, debug cash keys, the ledger and item-level export. **Money Phase D2 (income measuring sessions across Settler, Pioneer and Homesteader) is still the open gate.** A Winter Maple run was measured (about 8.97 dollars per game day); a Winter Pioneer run was partly done.
+- **Trading Post market:** built 2026-10-21 and extended by each production chain; Quantity Controls parts 1 and 2.
+- **Production chains:** Ash and Kindling Bundle; Maple sugaring (A to D: taps, boiling, syrup, finding the trees); Tripod and Cooking Pot redesign; Potash and Lye with the Leach Hopper; Pottery (Potter's Shed, Kiln, Sand and Clay, creek banks); Metal M1 to M4 (Charcoal Pit, Iron Ore at the Trading Post, Bloomery, Smithy, iron Shovel and Pick Axe); Workshop (bench, Workshop screen, Stool, End Table, Chair, Table).
+- **Hauling and wood:** Hand Cart phases 1 and 2, Wooden Wheels, Wood Saw, tree regrowth.
+- **Teaching:** the Know-how journal (a teaching pass plus entries per chain, including Melee).
+- **Presentation and art plumbing:** the art swap-point system (Art A1: Resources/Art/<id>.prefab through ArtSwap); first-person hands and every tool in hand (Hands M0a to M0d, including bows, rifle, rods, lights, hanging items, cart pose, sleeve fix, equipped-tool name fade); realistic one-piece photo-skinned hands with a tool-grip pose (Hands v3).
+- **Melee:** Fists, Knife (alternating slash and stab) and prompts, the shared small-game list, and the Know-how entry (M0e-1 to M0e-3); rifle held pose (placeholder model).
+- **Save slots:** 10 manual slots, autosave slot and atomic whole-slot writes (steps 1 and 2).
+
+## Designed, not built
+
+Livestock (feed quantities never set), farming, gardening and greenhouses, spoilage plus smoking and drying (items record the day they were acquired and nothing ages them), Root Cellar and Smokehouse, winter water pressure and surface freezing (Rain Barrel freezing waits on it), Power_System, solar and the Flashlight, Large Cabin and higher housing tiers, Barn and Orchard, Regions (3 to 5 regions, a new seeded map each game), Vehicles beyond the hand cart (UTV last), Skills and Progression (waits on Money Phase D2), digging into the land and mining ore from it, predators, additional hunting weapons, Lumber Mill and wood species tiers, more Workshop pieces such as beds, and everything else cataloged in Feature_Backlog.md.
+
+## Art status
+
+Style decision: realistic (PBR), 2026-11-05. Art_Needed_List.md holds the list in six waves. **Wave 1 is partly done:** the hands (idle and tool-grip) are real art; the 30 tools are still primitive placeholders (a textured tool_axe was a test import only). Waves 2 to 6 (structures, storage and workshop furniture, world items, icons and UI, animals and traps, trees, terrain, water, weather and effects) are all primitive shapes. Art tools on Mike's PC: Blender 5.2.2 with the Blender MCP, ComfyUI, and reference folders under Art\References (outside git). This is the largest remaining body of work by volume. Audio: the 22 original files plus thunder are sourced; the Knife has no sound of its own.
+
+## Known gaps and loose ends
+
+- Money Phase D2 measuring sessions (Settler 5 acres, Pioneer 5 acres, Homesteader 5 acres, optional Settler 10 acres) are open.
+- The performance review of the roughly 13,000 placed ground objects in World.unity (each with its own collider) has not been done.
+- Real mouse and keyboard input was long untested through the tooling (Unity ignores simulated input when unfocused); Mike's own playtests cover it.
+- Humidity versus difficulty hot-weather rebalance, wind chill, and the unplayed edge cases listed in the 2026-10-17 and 2026-10-19 updates remain open.
+- The rifle model is a placeholder with an unfinished shoulder seat (Art_Needed_List.md row tool_bolt_action_rifle).
+- A packaged build and how the game would be shared have not been scoped.
+- The "PlayerLoop internal function has been called recursively" console message was traced on 2026-11-07 to the Unity MCP package's synchronous screenshot call (editor only, cannot affect a built game). No game change.
+- Never committed on purpose: Homestead.slnx, Captures/, the top-level Art/ and Blender/ folders, Claude outputs/, 08_Backups/ (including Saves). A push uploads Resources/Art as Git LFS objects (done 2026-11-07, 30 MB).
+
+## Next step (Mike to pick)
+
+Candidates, not confirmed and not in priority order:
+
+1. Finish Money Phase D2 (the income measuring sessions), which unlocks the Skills and Progression decision.
+2. The art waves: structures first, or a real rifle and tool models, or further hands polish (lighter skin, nail textures, palm creases, tool-specific grips).
+3. Spoilage plus smoking and drying, with the Root Cellar and Smokehouse and winter water pressure and freezing.
+4. Livestock (set feed quantities, then chickens, rabbits and goats), the Stage 2 food-security goal.
+5. Farming, gardens and greenhouses.
+6. Large Cabin and the housing tiers, or Power_System and the Flashlight.
+7. Regions, or digging and mining.
+8. A performance pass over the world scene, and scoping a packaged build.

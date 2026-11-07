@@ -1,6 +1,8 @@
 # Homestead
 ## Melee: Fists and Knife v0.1 (plan)
 
+UPDATE 2026-11-07: ALL THREE PHASES BUILT, playtested and pushed: M0e-1 Fists (dc19c67, 29 of 29), M0e-2 Knife (1a25173, 40 of 40) and M0e-3 (e915355, 28 of 28). As built: the Knife alternates slash and stab on each click (no Sprint), a pause of 1.5 s starts over with a slash; Turkey and Duck are tier Medium in the prefabs, so melee uses one species-id small-game list (Rabbit, Squirrel, Turkey, Duck) shared by the fists (stun about 1 s, never kill) and the Knife (kills); a Deer is only startled; noise 8 m for fists and 6 m for the Knife; trapped animals cannot be struck; the aimed prompts read "<Species>: click to punch", "click to slash" or "click to stab" (the next blow); the Know-how entry "Fighting with your hands and a Knife" unlocks at the start of every new game because the starting kit has a Knife (Mike's decision). Dropped from the plan: "hold Sprint to stab" and the small chance to wound a larger animal. The Knife has no sound of its own (the blow borrows the item-drop cue; a hit plays the first 0.35 s of the Bow Release recording). The status line below is the original.
+
 Status: planned 2026-11-05 from Claude Code's read-only plan (nothing built yet). Mike's idea: left click with nothing in your hands attacks with fists; with a Knife it slashes and stabs, for defense. Working name: Hands M0e. Builds on Hands M0a (hands), M0b (tools in hand, swing poses, ToolEvents, cocked and loaded pull-back; see Hands_and_Held_Tools.md). Standing rule: every visual has one swap point for a prefab (Art_Readiness_and_Placeholders.md).
 
 ---

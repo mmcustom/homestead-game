@@ -1,6 +1,8 @@
 # Homestead
 ## Mining & Metalworking System v1.0
 
+UPDATE 2026-11-07: the first slice is BUILT as Metal M1 to M4 (e4e806f, cc9a8a9, 9354b31, 948abad): Charcoal Pit, Iron Ore bought at the Trading Post, the Bloomery (Iron Bars), and the Smithy (Door Hinges, Hook Set, Box of Nails, plus an iron Shovel and iron Pick Axe that need a quarter fewer blows). Digging or mining ore from the land, steel and the wider material tiers in this doc are NOT built; ore is bought at the Trading Post when there is nothing to mine on the property (Mike, 2026-11-04). The status line below is the original.
+
 Status: Design Draft — brand-new system, first pass, not yet reviewed against Unity feasibility. Written 2026-09-26 to answer the Iron/Steel material gap flagged across Wood_Gathering_System.md, Stone_Gathering_System.md, and Difficulty_System.md's tool-tiering requests, per Mike's ask to "research the metallurgy and mining as well as smelting and blacksmithing with a forge and workbench and anvil to keep this answer accurate."
 
 ---

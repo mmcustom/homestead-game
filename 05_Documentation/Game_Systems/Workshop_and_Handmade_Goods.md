@@ -1,6 +1,8 @@
 # Homestead
 ## Workshop and Handmade Goods v0.1
 
+UPDATE 2026-11-07: the first slice is BUILT: the Workshop shed with a woodworking bench (a1, 7262c74: Rough Stool), the Workshop screen with End Table, Chair and Table (a2-1, deb8658), and the pack line, stock button and keyboard (a2-2, 6871540). The remaining items in this list (such as beds) are not built, and the Pioneer re-measure with all four pieces is still open. The status line below is the original.
+
 Status: Design Draft (PROPOSED), research and first-pass list written 2026-10-24. Nothing is built, and nothing here is decided. Every number is a first pass for Mike to cut down.
 
 # Why this exists

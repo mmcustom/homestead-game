@@ -1,6 +1,8 @@
 # Homestead
 ## Hands and Held Tools v0.7
 
+UPDATE 2026-11-07: also BUILT since the status line below: Fists M0e-1 together with Hands v3 (dc19c67: realistic one-piece photo-skinned idle hands and a tool-grip hand, with the pose swap), Knife M0e-2 (1a25173), M0e-3 prompts, shared small-game list and Know-how entry (e915355), and the rifle held pose (6c18701, placeholder rifle model). See Melee_Fists_and_Knife.md and Art_Needed_List.md.
+
 Status: planned 2026-11-04 from Claude Code's read-only plan; phases M0a (73ee84d), M0b (175a8c7), M0c-1 (0d6cdd3) and M0c-2 (c97f731) M0d (e13ebe4) and the see-through sleeve fix (6718c37) BUILT. Mike's wish: draw the player's hands holding and using tools on screen, so the permanent on-screen equipped-tool text can go. Rough primitive shapes for the Alpha; real art later, so every visual has one swap point (standing rule in Art_Readiness_and_Placeholders.md). Phase "Hands and tools M0" in the art phases. Depends on A1 (ArtSwap, ef52c25).
 
 ---
