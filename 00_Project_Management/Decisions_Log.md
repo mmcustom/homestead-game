@@ -148,3 +148,84 @@ Result: Mike played the full Winter Preparation run (new Pioneer game, Spring th
 
 **2026-10-23 — Starting weapon fixed by difficulty; savings go to the debt on a loss (Mike)**
 Weapon choice removed from New Game: Pioneer (hardest) starts with the Recurve Bow and 20 arrows, Settler and Homesteader start with the Bolt-Action Rifle and 10 rounds. On a loss, all cash goes against everything owed on the loan (open payments and late fees first, then interest, then principal) before the loss screen totals what is still owed; shown as cash you had, taken for the debt, land loan still owed; display only, nothing saved. See Money_System.md and Difficulty_System.md.
+
+---
+
+# Back-fill, 2026-10-24 to 2026-11-08
+
+Written by Claude on 2026-11-08 from `06_AI_Collaboration/Current_Task_List.md`, which is the primary record (it holds the full wording, commit hashes and playtest results). Entries are in date order. Anything marked "proposed" was a recommendation Mike accepted as proposed unless noted.
+
+**2026-10-24 - Skills and Progression drafted and parked (Mike)**
+`Skills_and_Progression.md` v0.1 was drafted (four v1 skills: Felling, Digging, Mining, Hauling; three tiers; time saved, not cash). Mike: "yes, defer that decision". Whether to lift the post-Alpha deferral for gathering and carry skills waits until after Money Phase D2 sets the tier numbers. Nothing to build.
+
+**2026-10-24 - Income measuring: lighter first round (Mike)**
+A full year per tier is about 56 real hours, too much for a first pass. First round: finish Spring of year 1 on Settler and Pioneer (5 acres), then send the numbers. Homesteader and Settler 10-acre wait. Mike's observation: too few ways to earn when only furs and hides sell, so the next step is building income sources (Ash first, then the wood and fiber workshop), then measuring again. No F12 and no cash keys during measuring runs.
+
+**2026-10-25 - Early income targets and market rules (Mike, answers to Early_Income_Design questions)**
+Target: every 28-day month covers its own payment (about $20 a game day). Firewood burning leaves Ash (1 per 3); station-made goods sit in a milder "Handmade wares" market group (about 6% price drop, floor 0.25) while instant recipes keep 10% and floor 0.1; no "what sells well today" hint line; a sell-surplus button with a player-set keep amount per item (saved with the game); logs get their own market group. Bigger parcels are a later-game goal, not an early-income target. Correction recorded: the $112,000 loan ($1,070.33 a payment) is the Settler 10-acre loan, not a Homesteader loan.
+
+**2026-10-25 - Locked parcels (Mike)**
+New Game shows the 10-acre and 40-acre cards locked with the reason "Needs more income than the early game offers. Unlocks later."; only 5 acres is selectable. Built and pushed (ad2c226).
+
+**2026-10-25 - Ash details, crafting amount, Campfire removal (Mike)**
+Sticks leave 1 Ash per 12; Ash is collected with a separate key (works while the fire is lit or out); Logs and Branches also leave Ash by burn hours (Branches 1 per 6, Logs about 1.7 each); Ash held in a dismantled hearth or grill is returned. Crafting gets an amount stepper per recipe (default 1, Shift-click for max). A plain Campfire can be removed: unspent fuel and held Ash come back in full, plus half the build materials rounded down.
+
+**2026-10-25 - Pioneer measuring run next; trap counters undecided (Mike)**
+Pioneer 5 acres, full Spring Y1 with Ash and kindling in the game, 2 to 3 real hours. The item-level ledger export Part 1 was approved; Part 2 (trap counters) stays undecided.
+
+**2026-10-26 - Maple first, sizing (Mike)**
+Maple before Potash. About 1 in 10 large hardwoods are tappable (about 290 trees, not 1 in 3). Felling a tapped tree is allowed and refunds the Spile and Bucket.
+
+**2026-10-27 - Maple finding aids (Mike)**
+After difficulty finding trees: a floating marker over each tappable Maple while a Spile is equipped (from the start, not always-on, not discovery-only), then expanded to markers on the player's own tapped trees visible from a distance. Built (Maple C and D).
+
+**2026-10-27 - Potash and Lye (Mike)**
+Potash sells for $16. Lye is sellable at a low price, so per Ash the order is raw Ash < Lye < Potash. The Leach Hopper works passively over one game day.
+
+**2026-10-27 - Tripod replaces the carried Cooking Pot (Mike)**
+The Tripod is an add-on to an existing Campfire (one per fire; dismantling returns the Tripod and the Pot). The Potash Kettle becomes a second vessel hanging on the same Tripod (still $25, buy-only). Boiling water and sap move onto the Tripod.
+
+**2026-10-27 - Teaching the player (Mike)**
+The Potash B playtest passed 28 of 28, but only because Mike had the checklist; nothing in the game taught the chain. Decision: teach with both in-the-moment hints (item help text and prompts that name the next step) and a Journal Know-how section. Built as the Know-how journal.
+
+**2026-10-31 - Hand Cart, wood, regrowth, Workshop (Mike, plan decisions accepted as recommended)**
+Hand Cart phase 2 (pushing) decisions D1 to D12 accepted. One Log makes 2 Wooden Wheels. Tree regrowth D1 to D11: a felled tree sprouts after 14 days and grows linearly to full size over 112 days, no season gating, Logs proportional to size, shrubs regrow, the stump stays until growth 0.5 (a Shovel can clear it earlier), the Pick Axe stays rock-only, windthrow only at growth 0.75 or more. Workshop W1(a) decisions D1 to D12 accepted, plus clearance against a parked cart and a Workshop radius for tree sprouts.
+
+**2026-11-02 - Workshop prices fine; cart does not feed the bench (Mike)**
+Workshop prices stay as designed for now (no price cut, no Pioneer re-measure at that time). The cart does not feed the bench automatically; materials are a manual transfer by R or the Workshop screen. Workshop a3 dropped.
+
+**2026-11-02 - Pottery (Mike)**
+A Potter's Shed (shape and dry on its own shelf) plus a separate Kiln (fire a batch with Firewood), hand-built first, Kick Wheel later as an upgrade of the same shed. Drying takes 1 to 3 game days with no random cracking; a piece cannot be fired until dry. The Clay Cooking Pot works as a Cooking Pot on the Tripod. Sand and Clay come from the creek banks (painted terrain layers).
+
+**2026-11-04 - Digging idea and metalwork (Mike)**
+Idea logged: dig into the ground and mine ores, only where realistic (not planned). Decision: ores can be bought at the Trading Post, so the metal chain does not depend on terrain digging; real digging stays a separate later feature. Metal plan: all 8 recommendations accepted (one roofed Smithy; iron Pick Axe and Shovel take 25 percent fewer blows; Charcoal is the only fuel; 10-hour smelt; first goods Hinges, Hooks and Nails plus iron tools; no bloom step; no per-visit ore limit; Charcoal sellable at $1). A later phase M5 would add building uses for iron. After playing M4, Mike confirmed 25 percent feels right: iron tool factor 0.75 stays.
+
+**2026-11-04 - Art swap-point rules (Mike)**
+All 10 art-readiness decisions accepted: art loads from `Resources/Art/<id>.prefab` with ids `structure_`, `item_`, `tool_`, `effect_`; named children carry state; dynamic contents stay primitives at anchors; finished structures only; Kiln is the pilot; art numbers stay in rules until anchors replace them. Spec: `Art_Readiness_and_Placeholders.md`.
+
+**2026-11-04 - Hands and tools in hand (Mike)**
+All 8 decisions accepted: a custom Viewmodel layer with its own FOV and depth clear, pure pose math, swap points `hands_player` and `tool_<itemid>`, no wind-up at first. Follow-up 2026-11-05: swinging tools get a visual-only pull-back with no gameplay delay (the blow, sound, count and stamina still happen at the click). Spec: `Hands_and_Held_Tools.md`.
+
+**2026-11-05 - Art style decided: realistic PBR (Mike)**
+After reviewing the reference folder (reference only, nothing usable as game art), the style is realistic with physically based materials. The full list is `Art_Needed_List.md`.
+
+**2026-11-05 - Melee (Mike)**
+The Knife alternates slash and stab on each click (no extra key). Fists never kill (stun and startle only); only the Knife, traps, bows and the rifle kill. Small game only; animals cannot hurt the player. Build order: rest of the tools in hand (M0c), remove the equipped-tool line (M0d), then melee (M0e). Spec: `Melee_Fists_and_Knife.md`.
+
+**2026-11-06 - Hands v3 approved (Mike)**
+After rejecting tube fingers, Mike approved a one-piece hand rebuild ("if this is the best we can do, then they're fine"), later reshaped from photos of his own hand with a photo-based skin texture. Hands are the only real art in the game so far.
+
+**2026-11-07 - Melee Know-how and rifle pose (Mike)**
+The Melee Know-how entry unlocks at the start of every new game (the starting Knife counts). The rifle held pose is accepted as a placeholder; the stock and shoulder seat are revisited when a real rifle model replaces the blocky one.
+
+**2026-11-07 - PlayerLoop message closed**
+The "PlayerLoop internal function has been called recursively" console message was traced to the Unity MCP package's synchronous screenshot call (editor only, cannot affect a built game). No game change.
+
+**2026-11-07 - Finish Money Phase D2 by re-measuring Pioneer first (Mike)**
+The last full-year Pioneer run (2026-10-28 to 10-29) predates the Workshop, pottery and metal. A new Pioneer 5-acre run is being played (`Pioneer_Remeasure_Checklist.md`); then Claude proposes the D2 tier numbers and Mike decides.
+
+**2026-11-08 - Documentation brought up to date for a possible second developer (Mike)**
+`Project_Overview_for_Developers.md`, `AI_Project_Brief.md` v2.0, `Unity_Architecture.md` v2.0 written; GDD v2.1 proposed (see `GDD/GDD_v2.1_Proposed_Changes.md`).
+
+**2026-11-08 - GDD v2.1 applied (Mike)**
+Mike approved the proposed GDD changes: the Alpha 0.1 scope lock and Development Rule are retired and replaced by roadmap-driven scope (farming, large livestock, powered vehicles, solar arrays and automation stay deferred until Mike chooses them); milestones live in the roadmap only; the vision is unchanged but now states the move past the primitive level to modern systems. The GDD file keeps its name (Homestead_GDD_v2.0.md) with a v2.1 revision note. Details: GDD/GDD_v2.1_Proposed_Changes.md.

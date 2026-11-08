@@ -15,7 +15,7 @@ Orientation for whichever AI or developer picks up this project, so a new sessio
 
 Homestead is a realistic first-person homesteading life simulator with a tycoon spine, built in Unity 6 HDRP (6000.3.24f1), modeled in Blender, tracked in Git. It is not a survival game or a farming sim: the player buys raw land with a loan, survives and develops it from primitive to modern, pays off the debt, and profits from the land. Three missed loan payments open at once ends the game.
 
-Full vision and pillars: `00_Project_Management/GDD/Homestead_GDD_v2.0.md` (a v2.1 update is pending Mike's approval; where the GDD and the roadmap disagree, the roadmap and the system docs are more current).
+Full vision and pillars: `00_Project_Management/GDD/Homestead_GDD_v2.0.md` (updated to v2.1 on 2026-11-08; see `GDD/GDD_v2.1_Proposed_Changes.md` for what changed; where the GDD and the roadmap disagree, the roadmap and the system docs are more current).
 
 Current status: pre-release, solo project with AI assistants. The core loop was proven fun on 2026-10-11 and the game has been extended heavily since (money and debt, production chains, structures, hauling, hands and melee). Not packaged. The picture of what is built and what is next is the 2026-11-07 status section at the end of `00_Project_Management/Development_Roadmap.md`.
 
@@ -69,6 +69,6 @@ GitHub Copilot was the original implementation partner and was replaced by Claud
 
 - Do not redesign what is already decided. Identify gaps and inconsistencies; ask Mike before changing a rule, a price or a difficulty number.
 - Check the system doc, `Decisions_Log.md`, `Development_Roadmap.md` and the task log before asking Mike to repeat himself.
-- Scope is set by Mike through the roadmap's next-step choices, not by the old Alpha 0.1 list. Do not start a big system (farming, livestock, power, vehicles beyond the hand cart) unless Mike has chosen it.
+- Scope is set by Mike through the roadmap's next-step choices; the GDD's Alpha 0.1 lock was retired on 2026-11-08. Do not start a big system (farming, livestock, power, vehicles beyond the hand cart) unless Mike has chosen it.
 - Commit code and docs separately. Never commit `Captures/`, `Art/`, `Blender/`, `Claude outputs/`, `08_Backups/` or the generated `Homestead.slnx`.
 - Docs are Markdown with LF line endings; put a dated UPDATE line above any stale Status line instead of silently rewriting.

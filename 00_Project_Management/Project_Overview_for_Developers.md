@@ -16,7 +16,7 @@ The player buys an undeveloped parcel near Bethel, Ohio with borrowed money, wit
 
 Motto: *Survive. Prepare. Build. Prosper.*
 
-Design pillars: Water First; Knowledge Is Power (journal, discovery, map); Self-Sufficiency Before Profit; Preparation Beats Panic; Money Shapes Every Decision; Modern Tools Are Earned; Everything Connects. Full text: `GDD/Homestead_GDD_v2.0.md` (note: the GDD is being updated, see section 11).
+Design pillars: Water First; Knowledge Is Power (journal, discovery, map); Self-Sufficiency Before Profit; Preparation Beats Panic; Money Shapes Every Decision; Modern Tools Are Earned; Everything Connects. Full text: `GDD/Homestead_GDD_v2.0.md` (the filename stays; it was revised to v2.1 on 2026-11-08 and the revision note says so).
 
 Key numbers: a game day is 30 real minutes; a season is 28 days; a year is 112 days. The first loan payment is due on day 112, then every 28 days. Loan: 8% a year fixed, 180 payments. Parcels: 5 acres ($60,000), 10 acres ($140,000), 40 acres ($450,000).
 
@@ -231,8 +231,8 @@ Where to read first: this file, then the GDD, `Development_Roadmap.md` (the 2026
 
 ## 11. Known documentation gaps (being fixed)
 
-- The GDD (v2.0, last edited 2026-10-20) still reads as pre-production and carries the old Alpha scope lock; it is being updated to v2.1.
-- The Decisions Log stops at 2026-10-23; decisions since then are being back-filled from the task log.
+- The GDD was brought up to v2.1 on 2026-11-08 (status, 30-minute day, tiers, production chains, art direction; the old Alpha 0.1 scope lock was retired). Awaiting Mike's read-through.
+- The Decisions Log was back-filled on 2026-11-08 (entries from 10-24 onward, marked as back-fill). The task log remains the full record.
 - The AI Project Brief and Unity Architecture docs predate the current build and were rewritten on 2026-11-08 (this file's sections 5 and 6 are the source for the architecture doc).
 
 ## 12. Open items and next steps
