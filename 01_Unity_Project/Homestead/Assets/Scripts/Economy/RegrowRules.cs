@@ -14,7 +14,8 @@ public static class RegrowRules
     public const int ShrubPrototype = 2;
 
     public const int SproutDays = 14;
-    public const int FullDays = 112;
+    // One game year (4 seasons of 28 days today): the calendar's, not a number of its own.
+    public static int FullDays => CalendarRules.Current.DaysPerYear;
     public const int StepDays = 7;
     public const int LastGrowingStage = 14;
     public const int FullStage = LastGrowingStage + 1;

@@ -75,6 +75,10 @@ public struct RunSummary
         return copy;
     }
 
+    // The same with the game's calendar working out the whole seasons behind the player.
+    public static RunSummary Build(int totalDays, long incomeCents, long expensesCents, long balanceCents, IEnumerable<int> missedDueDays, long cashCents) =>
+        Build(totalDays, CalendarRules.Current.DaysPerSeason, incomeCents, expensesCents, balanceCents, missedDueDays, cashCents);
+
     public static RunSummary Build(int totalDays, int daysPerSeason, long incomeCents, long expensesCents, long balanceCents,
                                    IEnumerable<int> missedDueDays, long cashCents)
     {

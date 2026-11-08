@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // Testing only: hotkeys to move the calendar forward, for reaching a season's content without hours of play
-// (Season_System.md: 30-minute days, 28-day seasons). The whole file is compiled out of release builds, and it creates
+// (Season_System.md: 30-minute days; the season length is the calendar's, GameCalendar). The whole file is compiled out of release builds, and it creates
 // itself at startup, so nothing is added to any scene. Works only while playing (not paused, not in menus).
 //
 //   F3  toggle a live body readout (core temperature and its change per game hour, air, humidity, sun and sweat watts)

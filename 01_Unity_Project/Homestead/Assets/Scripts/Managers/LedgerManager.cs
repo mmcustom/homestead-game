@@ -147,20 +147,19 @@ public class LedgerManager : MonoBehaviour, ISaveable
         if (money != null && money.Lost)
             return; // a lost game closes and starts nothing, so its day of loss leaves the books as they stand
 
-        int seasonLength = time.DaysPerSeason;
-        int today = LedgerState.SeasonOf(time.TotalDays, seasonLength);
+        int today = LedgerState.PeriodOf(time.TotalDays);
 
         if (!state.Started)
         {
             if (pendingNew)
             {
-                state.Begin(pendingSavingsCents, today, NowMinutes(time), seasonLength);
+                state.Begin(pendingSavingsCents, today, NowMinutes(time));
                 state.Record(LedgerCategory.DownPayment, pendingDownCents);
                 pendingNew = false;
             }
             else
             {
-                state.Begin(post.Cents, today, NowMinutes(time), seasonLength);
+                state.Begin(post.Cents, today, NowMinutes(time));
             }
             Changed?.Invoke();
             return;

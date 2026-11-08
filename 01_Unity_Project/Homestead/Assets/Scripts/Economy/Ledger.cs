@@ -232,7 +232,8 @@ public sealed class LedgerState
 {
     readonly List<LedgerSeason> closed = new List<LedgerSeason>();
 
-    public int DaysPerSeason { get; private set; } = 28;
+    // The season length this ledger counts its periods with: the calendar's for a new ledger, the saved one for a ledger loaded from a save (LedgerSaveData.daysPerSeason).
+    public int DaysPerSeason { get; private set; } = CalendarRules.Current.DaysPerSeason;
     public bool Started { get; private set; }
 
     // A season has closed that the player has not looked at yet (the "statement ready" flag).
@@ -242,25 +243,27 @@ public sealed class LedgerState
     public int OpenIndex => Open != null ? Open.index : -1;
     public IReadOnlyList<LedgerSeason> Closed => closed;
 
-    public const int MinutesPerDay = 1440;
+    public const int MinutesPerDay = GameCalendar.MinutesPerDay;
 
     // --- Time ---
 
+    // The ledger counts its time in PERIODS, a calendar function (GameCalendar.PeriodIndexOf and the rest): today a period is a season, and the statement does not care how long one is.
+    // The functions without a season length use the game's calendar (CalendarRules.Current). The ones that take a length are the original form, kept: a ledger loaded from a save
+    // counts with the length it was saved with, and the tests pin it.
+
+    // The period (today, the season) a game day is in, counting from 0 (Spring, Year 1). Days before 0 count as the first one.
+    public static int PeriodOf(int day) => CalendarRules.Current.PeriodIndexOf(day);
+
     // The season a game day is in, counting from 0 (Spring, Year 1). Days before 0 count as the first season.
-    public static int SeasonOf(int day, int daysPerSeason)
-    {
-        if (daysPerSeason < 1)
-            daysPerSeason = 1;
-        return Math.Max(0, day) / daysPerSeason;
-    }
+    public static int SeasonOf(int day, int daysPerSeason) => GameCalendar.Of(daysPerSeason).PeriodIndexOf(day);
 
-    public static long SeasonStartMinute(int index, int daysPerSeason) => (long)index * Math.Max(1, daysPerSeason) * MinutesPerDay;
+    public static long SeasonStartMinute(int index, int daysPerSeason) => GameCalendar.Of(daysPerSeason).PeriodStartMinute(index);
 
-    public static long SeasonEndMinute(int index, int daysPerSeason) => SeasonStartMinute(index + 1, daysPerSeason);
+    public static long SeasonEndMinute(int index, int daysPerSeason) => GameCalendar.Of(daysPerSeason).PeriodEndMinute(index);
 
-    public static int YearOf(int index) => index / 4 + 1;
+    public static int YearOf(int index) => CalendarRules.Current.YearOfPeriod(index);
 
-    public static string SeasonLabel(int index) => $"{MarketRules.SeasonName(index % 4)}, Year {YearOf(index)}";
+    public static string SeasonLabel(int index) => CalendarRules.Current.PeriodLabel(index);
 
     // --- Starting, recording, closing ---
 
@@ -274,6 +277,9 @@ public sealed class LedgerState
 
     // Starts the ledger: cash at the start is openingCash (a new game's full savings, or an old save's cash when it loads), and the
     // open season is the one nowMinute is in, covered from nowMinute on.
+    public void Begin(long openingCashCents, int seasonIndex, long nowMinute) =>
+        Begin(openingCashCents, seasonIndex, nowMinute, CalendarRules.Current.DaysPerSeason);
+
     public void Begin(long openingCashCents, int seasonIndex, long nowMinute, int daysPerSeason)
     {
         Clear();

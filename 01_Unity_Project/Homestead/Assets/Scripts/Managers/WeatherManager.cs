@@ -71,7 +71,7 @@ public class WeatherManager : MonoBehaviour, ISaveable
         // Spring: frequent rain, unpredictable conditions.
         new SeasonClimate { weights = new float[] { 30, 30, 22, 10, 3, 2, 0, 3, 0 }, highC = 18f, lowC = 5f, windStrength = 0.3f },
         // Summer: heat, occasional thunderstorms, drought risk in dry stretches. Heat Wave 15 (Clear came down by the same 15)
-        // is about one a Summer: weights are shares of time, and a wave averages 108 h of a 28-day (672 h) Summer.
+        // is about one a Summer: weights are shares of time, and a wave averages 108 h of a 28-day (672 h) Summer (the calendar's season length today).
         new SeasonClimate { weights = new float[] { 49, 25, 3, 1, 2, 0, 0, 5, 15 }, highC = 30f, lowC = 18f, windStrength = 0.2f },
         // Fall: cooling trends, increasing wind.
         new SeasonClimate { weights = new float[] { 40, 28, 10, 4, 1, 7, 0, 10, 0 }, highC = 17f, lowC = 5f, windStrength = 0.4f },

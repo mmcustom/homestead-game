@@ -199,7 +199,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TimeManager
   realMinutesPerDay: 30
-  daysPerSeason: 28
   startHour: 6
   runOnStart: 1
   sunriseSunset:
@@ -242,11 +241,12 @@ MonoBehaviour:
     - 2
     - 0
     - 3
+    - 0
     highC: 18
     lowC: 5
     windStrength: 0.3
   - weights:
-    - 64
+    - 49
     - 25
     - 3
     - 1
@@ -254,6 +254,7 @@ MonoBehaviour:
     - 0
     - 0
     - 5
+    - 15
     highC: 30
     lowC: 18
     windStrength: 0.2
@@ -266,6 +267,7 @@ MonoBehaviour:
     - 7
     - 0
     - 10
+    - 0
     highC: 17
     lowC: 5
     windStrength: 0.4
@@ -278,6 +280,7 @@ MonoBehaviour:
     - 15
     - 30
     - 7
+    - 0
     highC: 5
     lowC: -6
     windStrength: 0.35
@@ -314,11 +317,50 @@ MonoBehaviour:
     maxHours: 12
     temperatureOffsetC: -1
     minWindStrength: 0.8
+  - minHours: 72
+    maxHours: 144
+    temperatureOffsetC: 0
+    minWindStrength: 0
+  heatWaveBaseC: 6
+  heatWaveVariationC: 1.5
+  heatWaveStrongChance: 0.2
+  heatWaveStrongExtraC: {x: 4, y: 10}
+  heatWaveBuildHours: 24
+  heatWaveEaseHours: 24
+  heatWaveNightCoolingCut: 0.5
+  heatWaveCountsAsDry: 0
+  heatWaveReliefThunderstormChance: 0.7
+  seasonDewPointC:
+  - 6
+  - 17
+  - 7
+  - -4
+  dailyDewPointVariationC: 3
+  weatherDewPointC:
+  - 0
+  - 1.5
+  - 3
+  - 4
+  - 4
+  - -4
+  - 0
+  - -2
+  - 0
+  precipitationDewDepressionC: 1
+  rainRecentDewPointC: 3
+  rainRecentHoursMax: 24
+  heatWaveDewPointC: {x: 3, y: 5}
+  minDewDepressionC: 0.5
   dailyTemperatureVariationC: 4
   dailyWindShiftDegrees: 45
   maxTemperatureChangePerHour: 3
+  maxTemperatureC: 46
   offsetColdBelowC: 14
   offsetHotAboveC: 26
+  windSpeedMphAtFull: 40
+  lightRainMm: 1.5
+  heavyRainMm: 8
+  thunderstormMm: 12
   lateFallSnowShare: 4
   lateFallStartsAt: 0.75
   droughtDryDays: 5
@@ -860,6 +902,7 @@ MonoBehaviour:
     fadeOut: 0.2
     pitch: 1
   sfxVoices: 12
+  meleeHitSeconds: 0.35
 --- !u!114 &199833592
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -910,11 +953,64 @@ MonoBehaviour:
     shiverFuelHunger: 25
     normalCoreC: 37
     dissipationWattsPerC: 400
+    hotSweatWattsPerC: 1000
+    hotSweatFromAirC: 18
+    hotSweatFullAirC: 26
+    maxSweatWatts: 1000
+    strokeFromC: 40
+    strokeFloorAtC: 41.5
+    strokeSweatFloor: 0.25
     minCoreC: 24
     maxCoreC: 41
   fireRadiantWatts: 250
   windMetersPerSecondAtFull: 8
   bedReferenceResistance: 0.44
+  sunWattsFull: 270
+  shadeWattsFull: 50
+  sunMiddayElevation:
+  - 53
+  - 76
+  - 53
+  - 30
+  canopySunBlock: 0.85
+  bareCanopySunBlock: 0.15
+  sunColdScale: 0.4
+  sunColdAirC: 0
+  sunWarmAirC: 15
+  sunLyingScale: 0.4
+  sunlightBlendPerHour: 2
+  evaporationFullWetBulbC: 17
+  evaporationZeroWetBulbC: 35
+  windEvaporationBoost: 0.4
+  sweatFullHydration: 50
+  sweatSupplyAtEmpty: 0.2
+  sweatHydrationPerKilowatt: 12
+  sweatHydrationAboveAirC: 18
+  heatStamina:
+  - 1
+  - 1
+  - 0.7
+  - 0.5
+  - 0.4
+  heatSevereLoss: 1
+  heatStrokeLoss: 4
+  wadeStartDepth: 0.05
+  wadeAnkleDepth: 0.15
+  wadeKneeDepth: 0.5
+  wadeWaistDepth: 0.9
+  wadeAnkleShare: 0.3
+  wadeKneeShare: 0.7
+  waterCoolingMaxWatts: 250
+  waterTaperFullCoreC: 37
+  waterTaperNoneCoreC: 36.5
+  waterFullEffectBelowSkinC: 10
+  waterBelowRecentAirC: 4
+  hotWetFromAirC: 28
+  hotWetFullAirC: 30
+  evaporativeTailHours: 0.5
+  evaporativeTailWatts: 60
+  bagIgnoredFromC: 20
+  bagIgnoredAtC: 24
   winterClo: 2
   summerClo: 0.8
   clothingColdC: -1
@@ -929,6 +1025,13 @@ MonoBehaviour:
   workMet: 5.5
   workPerSwing: 0.35
   workFadePerSecond: 0.15
+  rewarmWalking: 1.5
+  rewarmWorking: 2
+  rewarmSprinting: 2.5
+  rewarmCrouching: 1
+  rewarmCeilingC: 37
+  visibleShiverOnsetC: 35.5
+  visibleShiverFullC: 34.5
   shiverStamina: 0.7
   dampBuildPerHour: 0.5
   dampMinMet: 4.5
@@ -949,6 +1052,7 @@ MonoBehaviour:
   vomitEveryHours: 1.5
   vomitHydrationLoss: 8
   vomitHungerLoss: 8
+  injuryHealthFloor: 10
 --- !u!114 &199833593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -981,7 +1085,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FireManager
   campfirePrefab: {fileID: 7474108885875764593, guid: 8b0fb1d8498b2e24faea96fa2658158b, type: 3}
   firewoodToBuild: 3
+  campfireSticksCost: 6
   hoursPerFirewood: 2
+  hoursPerLog: 10
+  hoursPerBranch: 1
+  hoursPerStick: 0.15
   maxFuelHours: 12
   buildDistance: 1.8
   minSpacing: 3
@@ -989,7 +1097,6 @@ MonoBehaviour:
   bowDrill:
     drillSeconds: 6
     staminaCost: 15
-    minutesPerAttempt: 10
     reach: 3
     chanceCalm: 0.45
     chanceWind: 0.35
@@ -1074,6 +1181,7 @@ MonoBehaviour:
   baitStolenChance: 0.006
   wearPerDay: 0.1
   damageWear: 0.5
+  trapSweepChance: 0.25
 --- !u!114 &199833597
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1150,6 +1258,7 @@ MonoBehaviour:
   baseWaitSeconds: 11
   coverRange: 30
   coverSiteName: Bass Hole
+  creekBiteWaitMultiplier: 2
 --- !u!114 &199833598
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1162,6 +1271,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d261f557f94510b44990847943a8c25c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ForagingManager
+  seasonalFrequency:
+  - type: 0
+    baseCount: 2
+    spring: 1.5
+    summer: 1
+    fall: 0.4
+    winter: 0
+  - type: 1
+    baseCount: 1
+    spring: 1
+    summer: 1
+    fall: 1
+    winter: 0.5
+  - type: 2
+    baseCount: 3
+    spring: 1.2
+    summer: 0.5
+    fall: 1.5
+    winter: 0
+  - type: 3
+    baseCount: 2
+    spring: 0.1
+    summer: 2
+    fall: 0.5
+    winter: 0
+  - type: 4
+    baseCount: 2
+    spring: 0
+    summer: 0.3
+    fall: 1.5
+    winter: 0.1
+  - type: 5
+    baseCount: 3
+    spring: 0
+    summer: 0
+    fall: 2
+    winter: 0.4
 --- !u!114 &199833599
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1183,6 +1329,13 @@ MonoBehaviour:
   woodPileSticks: 4
   barrelLitres: 40
   buildDistance: 1.8
+  rainBarrelLitres: 80
+  rainBarrelLogCount: 3
+  rainBarrelBranches: 2
+  rainEfficiency: 0.8
+  eaveMinOutside: 0.45
+  eaveMaxOutside: 1.2
+  rainBarrelSpacing: 1.2
   minSpacing: 2
   maxSlope: 30
   cabinLogs: 20
@@ -1245,6 +1398,8 @@ MonoBehaviour:
   holdSeconds: 1.4
   wakeBelowWarmth: 20
   wakeBelowHealth: 15
+  wakeAboveCoreC: 38
+  heatCollapseWakesAtDuskOrDawn: 1
 --- !u!114 &199833603
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1269,11 +1424,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 47f0744ec1cb10848b073a3a8bc90560, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DifficultyManager
---- !u!1660057539 &9223372036854775807
-SceneRoots:
-  m_ObjectHideFlags: 0
-  m_Roots:
-  - {fileID: 199833584}
 --- !u!114 &199833605
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1286,13 +1436,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e086d62a209ca6488eeb73683a74d23, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MoneyManager
+  overrideTierTerms: 0
+  sellBasisPoints: 10000
   rateBasisPoints: 800
   payments: 180
-  intervalDays: 28
-  firstDueDay: 112
   graceDays: 10
   lateFeeCents: 7500
   missedWarningCount: 3
+  lossMissedCount: 3
 --- !u!114 &199833606
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1303,7 +1454,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 633bc9bfa87ded44eaf59a60f02b2944, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MarketManager
   data: {fileID: 11400000, guid: cb200b37f4499524faa890bea39981b7, type: 2}
   recoveryPercent: 25
@@ -1321,5 +1472,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 534c34ef266324e46af162534fc5b85a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LedgerManager
+--- !u!1660057539 &9223372036854775807
+SceneRoots:
+  m_ObjectHideFlags: 0
+  m_Roots:
+  - {fileID: 199833584}

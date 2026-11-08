@@ -10,26 +10,13 @@ public static class MarketRules
     public const int MaxBp = 20000;       // the multiplier never goes above 2.0 (and never below its group's floor)
     public const int SnapBp = 10;         // recovery lands exactly on the target once the gap is under this
 
-    // 0 Spring, 1 Summer, 2 Fall, 3 Winter (the Season enum's order).
-    public static int SeasonOf(int day, int daysPerSeason)
-    {
-        if (daysPerSeason < 1)
-            daysPerSeason = 1;
-        if (day < 0)
-            day = 0;
-        return day / daysPerSeason % 4;
-    }
+    // 0 Spring, 1 Summer, 2 Fall, 3 Winter (the Season enum's order), in the game's calendar.
+    public static int SeasonOf(int day) => CalendarRules.Current.SeasonOfYear(day);
 
-    public static string SeasonName(int season)
-    {
-        switch (season)
-        {
-            case 0: return "Spring";
-            case 1: return "Summer";
-            case 2: return "Fall";
-            default: return "Winter";
-        }
-    }
+    // The same for a season this many days long (the original form, kept: the market state is handed the length and the tests pin it).
+    public static int SeasonOf(int day, int daysPerSeason) => GameCalendar.Of(daysPerSeason).SeasonOfYear(day);
+
+    public static string SeasonName(int season) => GameCalendar.SeasonName(season);
 
     public static int Clamp(int multiplierBp, int floorBp) => Math.Min(MaxBp, Math.Max(floorBp, multiplierBp));
 

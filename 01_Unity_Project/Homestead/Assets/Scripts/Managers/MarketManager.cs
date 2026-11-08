@@ -115,7 +115,7 @@ public class MarketManager : MonoBehaviour, ISaveable
     // --- Time ---
 
     int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
-    int DaysPerSeason => TimeManager.Instance != null ? TimeManager.Instance.DaysPerSeason : 28;
+    int DaysPerSeason => TimeManager.Instance != null ? TimeManager.Instance.DaysPerSeason : CalendarRules.Current.DaysPerSeason;
     public int Season => MarketRules.SeasonOf(Today, DaysPerSeason);
 
     void Update()

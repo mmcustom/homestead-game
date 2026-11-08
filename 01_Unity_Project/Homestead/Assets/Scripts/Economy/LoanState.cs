@@ -7,17 +7,23 @@ public struct LoanTerms
 {
     public int rateBasisPoints;   // 800 = 8% a year, spread over 12 payments
     public int payments;          // 180
-    public int intervalDays;      // a payment falls due every 28 days
-    public int firstDueDay;       // TotalDays of the first payment: 112
+    public int intervalDays;      // days between payments (the calendar's: GameCalendar.LoanIntervalDays, 28 today)
+    public int firstDueDay;       // TotalDays of the first payment (the calendar's: GameCalendar.LoanFirstDueDay, 112 today)
     public int graceDays;         // unpaid this many days after its due day is late: 10
     public long lateFeeCents;     // $75, once per late payment
 
-    public static LoanTerms Default => new LoanTerms
+    // The terms of a new loan: the schedule is the game's calendar (CalendarRules.Current), the rest is the loan's own.
+    public static LoanTerms Default => For(CalendarRules.Current);
+
+    // The original terms (first payment on day 112, then every 28 days), kept for good: tests and anything that pins the old schedule use these whatever the calendar becomes.
+    public static LoanTerms Legacy => For(CalendarRules.Legacy);
+
+    static LoanTerms For(GameCalendar calendar) => new LoanTerms
     {
         rateBasisPoints = 800,
         payments = 180,
-        intervalDays = 28,
-        firstDueDay = 112,
+        intervalDays = calendar.LoanIntervalDays,
+        firstDueDay = calendar.LoanFirstDueDay,
         graceDays = 10,
         lateFeeCents = 7500,
     };

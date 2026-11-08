@@ -10,7 +10,8 @@ using UnityEngine;
 // The maths is pure (days in, answer out) so the edit-mode tests can run it; the properties below read the live tunables.
 public static class WoodMoisture
 {
-    public const int DefaultDaysPerSeason = 28;
+    // Days in a season when no game is running: the calendar's, not a number of its own.
+    public static int DefaultDaysPerSeason => CalendarRules.Current.DaysPerSeason;
     public const float DefaultSeasons = 1f;
     public const float DefaultWetBurnFraction = 0.7f;
 

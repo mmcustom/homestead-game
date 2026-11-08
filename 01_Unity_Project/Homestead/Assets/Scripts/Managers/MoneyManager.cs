@@ -32,14 +32,11 @@ public class MoneyManager : MonoBehaviour, ISaveable
     [SerializeField, Min(1)] int sellBasisPoints = TierRules.FullSellBasisPoints;
 
     [Header("Land loan (Money_System.md)")]
-    [Tooltip("Override only (see above): yearly interest in basis points: 800 is 8%, spread over 12 payments a year.")]
+    [Tooltip("Override only (see above): yearly interest in basis points: 800 is 8%, charged as 1/12 of it on each payment.")]
     [SerializeField, Min(0)] int rateBasisPoints = 800;
-    [Tooltip("Payments in the whole loan (15 years).")]
+    [Tooltip("Payments in the whole loan (180).")]
     [SerializeField, Min(1)] int payments = 180;
-    [Tooltip("Game days between payments (a season).")]
-    [SerializeField, Min(1)] int intervalDays = 28;
-    [Tooltip("TotalDays the first payment falls due: the end of the first year.")]
-    [SerializeField, Min(1)] int firstDueDay = 112;
+    // The first payment day and the days between payments are not set here: they are the game's calendar (GameCalendar.LoanFirstDueDay and LoanIntervalDays, through LoanTerms.Default).
     [Tooltip("A payment still unpaid this many days after its due day gets the late fee and counts as missed.")]
     [SerializeField, Min(0)] int graceDays = 10;
     [Tooltip("Override only (see above): the one-time late fee, in cents ($75).")]
@@ -78,17 +75,21 @@ public class MoneyManager : MonoBehaviour, ISaveable
     // The tier now, without needing a manager (a scene played on its own gets the table).
     public static TierTerms CurrentTier => Instance != null ? Instance.Tier : TierRules.For((int)DifficultyManager.Tier);
 
-    // The loan terms a new loan starts with on this tier: the inspector's payments, spacing, first due day and grace days, with the tier's
+    // The loan terms a new loan starts with on this tier: the inspector's payments and grace days, the calendar's first due day and spacing, with the tier's
     // rate and late fee.
-    public LoanTerms TermsFor(Difficulty tier) => TierRules.LoanTermsFor(new LoanTerms
+    public LoanTerms TermsFor(Difficulty tier)
     {
-        rateBasisPoints = rateBasisPoints,
-        payments = payments,
-        intervalDays = intervalDays,
-        firstDueDay = firstDueDay,
-        graceDays = graceDays,
-        lateFeeCents = lateFeeCents,
-    }, TierFor(tier));
+        LoanTerms schedule = LoanTerms.Default;
+        return TierRules.LoanTermsFor(new LoanTerms
+        {
+            rateBasisPoints = rateBasisPoints,
+            payments = payments,
+            intervalDays = schedule.intervalDays,
+            firstDueDay = schedule.firstDueDay,
+            graceDays = graceDays,
+            lateFeeCents = lateFeeCents,
+        }, TierFor(tier));
+    }
 
     public LoanTerms Terms => TermsFor(DifficultyManager.Tier);
 
@@ -213,7 +214,7 @@ public class MoneyManager : MonoBehaviour, ISaveable
         }
 
         TradingPost post = TradingPost.Instance;
-        LossSummary = RunSummary.Build(time.TotalDays, time.DaysPerSeason, income, expenses, loan != null ? loan.balanceCents : 0,
+        LossSummary = RunSummary.Build(time.TotalDays, income, expenses, loan != null ? loan.balanceCents : 0,
                                        dueDays, post != null ? post.Cents : 0)
             .WithSettlement(LossSettlement.Of(loan, post != null ? post.Cents : 0)); // the cash goes to the debt on a copy: display only
         ToolStatus.ClearBanners(); // the loss screen is what the player sees now, not a queue of payment banners

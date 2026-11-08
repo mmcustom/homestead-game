@@ -18,16 +18,16 @@ public struct TimeSaveData
 // Clock, day/night, calendar and seasons (Unity_Architecture.md, Season_System.md).
 public class TimeManager : MonoBehaviour, ISaveable
 {
-    public const int MinutesPerDay = 1440;
-    const int SeasonCount = 4;
+    public const int MinutesPerDay = GameCalendar.MinutesPerDay;
+    const int SeasonCount = GameCalendar.SeasonsPerYear;
 
     public static TimeManager Instance { get; private set; }
 
-    // Season_System.md's Pacing section (confirmed 2026-09-23): 30-minute days, 28-day seasons, start 06:00 Spring 1.
+    // Season_System.md's Pacing section (confirmed 2026-09-23): 30-minute days, start 06:00 Spring 1. The length of a season, a year and the rest of the calendar is not set here:
+    // it is GameCalendar (CalendarRules.Current), the one source every system reads. This is only the time scale.
     [Header("Pacing")]
     [Tooltip("Real-time minutes for one full in-game day.")]
     [SerializeField, Min(0.1f)] float realMinutesPerDay = 30f;
-    [SerializeField, Min(1)] int daysPerSeason = 28;
     [SerializeField, Range(0f, 24f)] float startHour = 6f;
     [SerializeField] bool runOnStart = true;
 
@@ -71,9 +71,9 @@ public class TimeManager : MonoBehaviour, ISaveable
     // keeping the time of day.
     public void DebugSkipToSeason(Season season)
     {
-        int yearLength = daysPerSeason * SeasonCount;
+        int yearLength = Calendar.DaysPerYear;
         int dayOfYear = totalDays % yearLength;
-        int target = (int)season * daysPerSeason;
+        int target = Calendar.SeasonStartDay((int)season);
         int days = target - dayOfYear;
         if (days <= 0)
             days += yearLength;
@@ -95,23 +95,20 @@ public class TimeManager : MonoBehaviour, ISaveable
     public int Hour => (int)HourOfDay;
     public int Minute => (int)minuteOfDay % 60;
 
-    public int DaysPerSeason => daysPerSeason;
-    public int DayOfSeason => totalDays % daysPerSeason + 1;
-    public Season CurrentSeason => (Season)(totalDays / daysPerSeason % SeasonCount);
-    public int Year => totalDays / (daysPerSeason * SeasonCount) + 1;
+    // The calendar every date below is worked out with.
+    static GameCalendar Calendar => CalendarRules.Current;
+
+    public int DaysPerSeason => Calendar.DaysPerSeason;
+    public int DayOfSeason => Calendar.DayOfSeason(totalDays);
+    public Season CurrentSeason => (Season)Calendar.SeasonOfYear(totalDays);
+    public int Year => Calendar.YearOfDay(totalDays);
 
     // 0 at the first minute of a season, approaching 1 at its end. Lets systems place windows
     // relatively (e.g. Large_Game.md's Rut Window is "the second half of Fall": SeasonProgress >= 0.5).
-    public float SeasonProgress => (totalDays % daysPerSeason + minuteOfDay / MinutesPerDay) / daysPerSeason;
+    public float SeasonProgress => Calendar.SeasonProgress(totalDays, minuteOfDay);
 
     // A day count (e.g. a stored TotalDays) as "Spring 3, Year 1".
-    public string FormatDate(int day)
-    {
-        day = Mathf.Max(0, day);
-        var season = (Season)(day / daysPerSeason % SeasonCount);
-        int year = day / (daysPerSeason * SeasonCount) + 1;
-        return $"{season} {day % daysPerSeason + 1}, Year {year}";
-    }
+    public string FormatDate(int day) => Calendar.FormatDate(day);
 
     public DayPhase Phase => phase;
     public float SunriseHour => sunriseSunset[(int)CurrentSeason].x;
