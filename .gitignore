@@ -9,6 +9,7 @@ UserSettings/
 *.csproj
 *.unityproj
 *.sln
+*.slnx
 *.user
 
 .vscode/
