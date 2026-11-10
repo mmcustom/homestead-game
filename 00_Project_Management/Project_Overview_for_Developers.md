@@ -18,7 +18,7 @@ Motto: *Survive. Prepare. Build. Prosper.*
 
 Design pillars: Water First; Knowledge Is Power (journal, discovery, map); Self-Sufficiency Before Profit; Preparation Beats Panic; Money Shapes Every Decision; Modern Tools Are Earned; Everything Connects. Full text: `GDD/Homestead_GDD_v2.0.md` (the filename stays; it was revised to v2.1 on 2026-11-08 and the revision note says so).
 
-Key numbers: a game day is 30 real minutes; a season is 28 days; a year is 112 days. The first loan payment is due on day 112, then every 28 days. Loan: 8% a year fixed, 180 payments. Parcels: 5 acres ($60,000), 10 acres ($140,000), 40 acres ($450,000).
+Key numbers: a game day is 30 real minutes; the calendar is real (a 365-day year running March to February, real month lengths, seasons of 92, 92, 91 and 90 days; built 2026-11-10). The first loan payment is due July 1, Year 1 (day 122), then on the 1st of every month. Loan: 8% a year fixed, 180 payments. Parcels: 5 acres ($60,000), 10 acres ($140,000), 40 acres ($450,000).
 
 Difficulty tiers: **Pioneer** (hardest, $0 savings, starts with a recurve bow), **Settler** (20% savings, starts with a bolt-action rifle), **Homesteader** (easiest, 40% savings, rifle). Savings are capped at $30,000. Tier levers (missed payments before a loss, late fee, interest rate, sell share) exist as a table but still hold today's values for every tier; setting them is the open Money Phase D2.
 
@@ -26,7 +26,7 @@ Difficulty tiers: **Pioneer** (hardest, $0 savings, starts with a recurve bow), 
 
 - Phase: pre-release development, solo project with AI assistants. Not packaged, not yet shown to anyone outside.
 - The core survival loop was playtested and passed by Mike on 2026-10-11 and has been extended heavily since.
-- Code: 199 game script files (11 are Editor tools) and 66 test files. Full EditMode test suite run on 2026-11-08: **1,900 of 1,900 passing** (255 seconds).
+- Code: 199 game script files (11 are Editor tools) and 66 test files. Full EditMode test suite run on 2026-11-08: **1,900 of 1,900 passing** (255 seconds). UPDATE 2026-11-10: after the real calendar and the Wait control, the suite is **2,177 of 2,177 passing** (file counts above not recounted). The Wait menu is on the Z key (a player key, not a debug key).
 - Source control: Git, GitHub (`origin` = github.com/mmcustom/homestead-game, branch `master`). Everything built is committed and pushed. Large art files are Git LFS.
 - Art: placeholders almost everywhere. The art style is decided (realistic, PBR, 2026-11-05). Only the first-person hands are real art so far. This is the largest remaining body of work.
 - Audio: 22 original sound files plus thunder are sourced. The Knife has no sound of its own.
@@ -181,7 +181,7 @@ Engine-free logic goes in `*Rules` and `*State` classes (for example `LoanState`
 
 Everything here is built, play tested by Mike, committed and pushed.
 
-- **Survival core:** first-person controller, hydration, hunger, fatigue and sleep, fire, water collection and purification, temperature and weather, seasons and a 112-day year, flood, heat wave, journal, discovery, minimap.
+- **Survival core:** first-person controller, hydration, hunger, fatigue and sleep, fire, water collection and purification, temperature and weather, seasons and a real 365-day year, flood, heat wave, journal, discovery, minimap.
 - **Food and animals:** foraging (seasonal patches), fishing, fish traps, hunting, trapping, snares, game animals.
 - **Money and debt:** money in cents, the land loan, payments, late fees and the loss screen, the seasonal Account Statement, the ledger with an item-level export, locked parcels, the Trading Post market with quantity controls, difficulty tiers (levers exist, values not yet tuned).
 - **Production chains:** Ash and Kindling, Maple sugaring, Tripod and Cooking Pot, Potash and Lye with the Leach Hopper, Pottery (Potter's Shed, Kiln, creek banks), Metal (Charcoal Pit, Bloomery, Smithy, iron Shovel and Pick Axe), the Workshop (bench, Stool, End Table, Chair, Table).

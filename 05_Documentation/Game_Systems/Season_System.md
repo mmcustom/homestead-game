@@ -3,6 +3,10 @@
 
 Status: Design Draft
 
+UPDATE 2026-11-08: the season length in this doc (28-day seasons, 112-day year, 30-minute day) is being replaced. Mike decided on a real 365-day calendar (12 real-length months, no leap years; Spring March to May, Summer June to August, Fall September to November, Winter December to February). Not built yet. See Calendar_and_Time_Scale_Options.md.
+
+UPDATE 2026-11-10: the real 365-day calendar is BUILT (Phase 1) and playtested 16 of 16. Spring is 92 days (Mar to May), Summer 92 (Jun to Aug), Fall 91 (Sep to Nov), Winter 90 (Dec to Feb); the game year runs March to February; the day is still 30 real minutes. Everywhere this doc says 28 days a season or a 112-day year, read the real lengths above. Per-season effects (weather weights, Maple colour, forage, heat waves) are NOT retuned: Summer is now 92 days, about 1.4 heat waves per Summer at the current weights. See Calendar_and_Time_Scale_Options.md.
+
 ---
 
 # Purpose

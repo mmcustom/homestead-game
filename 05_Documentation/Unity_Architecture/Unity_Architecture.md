@@ -89,6 +89,7 @@ Engine-free logic goes in `*Rules` and `*State` classes (for example `LoanState`
 # Tests
 
 - Run: Window > General > Test Runner > EditMode. Command line (Unity's standard form, not yet run from the CLI here): `Unity.exe -batchmode -projectPath <path> -runTests -testPlatform EditMode -testResults <file.xml>`.
+- **UPDATE 2026-11-10: 2,177 run, 2,177 passed (after the real calendar and Wait control). New: Economy/CalendarRules.cs (the one calendar source), CalendarSaveRules.cs, CalendarConversion.cs, TimeControlRules.cs; Managers/TimeControlManager.cs (the shared PassWorld loop used by Wait and sleep); UI/WaitPanel.cs (key Z).**
 - **Result on 2026-11-08: 1,900 run, 1,900 passed, 0 failed, 0 skipped, 255 seconds.** (1,435 `[Test]` plus 465 `[TestCase]`.) There is no PlayMode test folder.
 - One test assembly, `Homestead.Tests.EditMode` (Editor-only, references NUnit plus the four asmdefs below). The main game code is in the default `Assembly-CSharp`, which an asmdef cannot reference, so tests reach it by **reflection** (a `Find(name)` helper scans loaded assemblies for a type by name). Pure rule classes in the four asmdefs are tested directly. Some tests read source files as text and assert on them (for example that menu items exist).
 - Tests must never touch the real `Saves` folder.

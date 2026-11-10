@@ -348,7 +348,7 @@ Suggested extra contents, not yet decided: starting and ending cash, payments ma
 
 ## Payments, Late Fees, and Losing
 
-- A payment is due every 28 days, at the monthly-sized amount, starting at the end of the first year (day 112). The player can pay less than the full amount (applied to the late fee, then interest, then principal), but a payment still short after the 10 days counts as missed.
+- A payment is due on the 1st of every month, starting July 1 of Year 1 (day 122). The player can pay less than the full amount (applied to the late fee, then interest, then principal), but a payment still short after the 10 days counts as missed.
 - A payment that is 10 days late gets a $75 late fee, added on top of the regular payment, and counts as missed.
 - Three missed payments is a fail state: the game is lost. Catching up clears a missed payment (it stays missed until paid with its late fee), so the loss is three open at once.
 - On a loss, the game offers to restart or load a save, with a banner or text telling the player that mother nature beat them. A loss never overwrites the autosave, so Continue loads the last safe autosave.
@@ -356,7 +356,7 @@ Suggested extra contents, not yet decided: starting and ending cash, payments ma
 
 ## Timing
 
-Money enters early. A bare version of the land payment and balance comes in well before the income systems. Income streams follow later. The first payment falls due at the end of the first year (day 112), then every 28 days. To keep the early game winnable, the player starts on a smaller and cheaper starter parcel, and early income is raised (sizes, prices and income numbers still to be set). The full design is in Money_System.md.
+Money enters early. A bare version of the land payment and balance comes in well before the income systems. Income streams follow later. The first payment falls due on July 1 of Year 1 (day 122), then on the 1st of every month. To keep the early game winnable, the player starts on a smaller and cheaper starter parcel, and early income is raised (sizes, prices and income numbers still to be set). The full design is in Money_System.md.
 
 ---
 
@@ -631,7 +631,9 @@ Future livestock:
 
 Game Day Length:
 
-30 real minutes. A season is 28 game days and a year is 112 game days.
+30 real minutes. The game uses a real 365-day calendar: a game year runs March to February, with 12 real-length months and no leap years. Spring is 92 days (Mar to May), Summer 92 (Jun to Aug), Fall 91 (Sep to Nov) and Winter 90 (Dec to Feb).
+
+Built 2026-11-10 (Phase 1, playtest passed 16 of 16): the game now uses a real 365-day calendar (12 real-length months, no leap years; Spring March to May, Summer June to August, Fall September to November, Winter December to February), and a land payment on the 1st of every month from July 1. Monthly bills (phone, internet, utilities) will be charged on the 15th. A player-facing Wait control (key Z: 1, 3 or 6 hours, until dawn or until dusk) was built 2026-11-10 (Phase 2a, playtest passed 16 of 16). It shares one world-passing loop with sleep, and stops early for a low stat, severe weather, a rising creek, a dying fire, a trap catch or a notice. Dates read "Mar 1, Year 1"; the year is the game year, so "Jan 1, Year 1" follows "Dec 31, Year 1". See Calendar_and_Time_Scale_Options.md.
 
 Design Rule:
 
