@@ -20,15 +20,18 @@ public class RegrowTests
     [TestCase(0, 0)]
     [TestCase(13, 0)]
     [TestCase(14, 1)]
-    [TestCase(20, 1)]
-    [TestCase(21, 2)]
-    [TestCase(35, 4)]
-    [TestCase(56, 7)]
-    [TestCase(77, 10)]
-    [TestCase(98, 13)]
-    [TestCase(105, 14)]
-    [TestCase(111, 14)]
-    [TestCase(112, 15)]
+    [TestCase(38, 1)]
+    [TestCase(39, 2)]
+    [TestCase(63, 2)]
+    [TestCase(64, 3)]
+    [TestCase(89, 4)]
+    [TestCase(164, 7)]
+    [TestCase(239, 10)]
+    [TestCase(314, 13)]
+    [TestCase(338, 13)]
+    [TestCase(339, 14)]
+    [TestCase(364, 14)]
+    [TestCase(365, 15)]
     [TestCase(500, 15)]
     public void TheStageFollowsTheDaysSinceFelling(int days, int stage)
     {
@@ -36,14 +39,14 @@ public class RegrowTests
     }
 
     [Test]
-    public void ItSproutsAtDayFourteenGrowsInFourteenSevenDaySteps()
+    public void ItSproutsAtDayFourteenGrowsInFourteenTwentyFiveDayStepsToTheFullYear()
     {
         Assert.That(RegrowRules.SproutDays, Is.EqualTo(14));
-        Assert.That(RegrowRules.FullDays, Is.EqualTo(112), "one game year: 4 seasons of 28 days");
-        Assert.That(RegrowRules.StepDays, Is.EqualTo(7));
+        Assert.That(RegrowRules.FullDays, Is.EqualTo(365), "one game year: 365 days");
+        Assert.That(RegrowRules.StepDays, Is.EqualTo(25), "(365 - 14) / 14 is not whole, so 25-day steps and the last one is a day longer");
         Assert.That(RegrowRules.LastGrowingStage, Is.EqualTo(14));
         int changes = 0, last = 0;
-        for (int day = 0; day <= 130; day++)
+        for (int day = 0; day <= 400; day++)
         {
             int stage = RegrowRules.Stage(day);
             Assert.That(stage, Is.GreaterThanOrEqualTo(last), "a spot never goes backwards");
@@ -51,19 +54,22 @@ public class RegrowTests
             {
                 changes++;
                 if (stage <= RegrowRules.LastGrowingStage)
-                    Assert.That(day, Is.EqualTo(14 + 7 * (stage - 1)), "a step every seven days from the sprout");
+                    Assert.That(day, Is.EqualTo(14 + 25 * (stage - 1)), "a step every 25 days from the sprout");
             }
             last = stage;
         }
         Assert.That(changes, Is.EqualTo(15), "14 growing steps, then the full tree");
+        Assert.That(RegrowRules.Stage(RegrowRules.FullDays - 1), Is.EqualTo(RegrowRules.LastGrowingStage), "the last growing stage holds to the day before the full year (clamped)");
+        Assert.That(RegrowRules.Stage(RegrowRules.SproutDays + RegrowRules.StepDays * RegrowRules.LastGrowingStage - 1), Is.EqualTo(RegrowRules.LastGrowingStage));
+        Assert.That(RegrowRules.SproutDays + RegrowRules.StepDays * (RegrowRules.LastGrowingStage - 1) + RegrowRules.StepDays, Is.LessThanOrEqualTo(RegrowRules.FullDays), "fourteen steps fit in the year");
     }
 
     [Test]
     public void AYearSkippedInOneGoLandsOnTheFullTree()
     {
         const int felledOn = 40;
-        Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(RegrowRules.StampFor(felledOn + 1, felledOn + 112), felledOn + 112)), Is.EqualTo(RegrowRules.FullStage));
-        Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(felledOn + 1, felledOn + 300)), Is.EqualTo(RegrowRules.FullStage), "more days than a year is still just full");
+        Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(RegrowRules.StampFor(felledOn + 1, felledOn + RegrowRules.FullDays), felledOn + RegrowRules.FullDays)), Is.EqualTo(RegrowRules.FullStage));
+        Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(felledOn + 1, felledOn + 1000)), Is.EqualTo(RegrowRules.FullStage), "more days than a year is still just full");
     }
 
     // --- The growth curve ---
@@ -83,9 +89,9 @@ public class RegrowTests
     [Test]
     public void TheDaysOfThePlanGiveItsGrowthFigures()
     {
-        // day 14, 35, 56, 77, 98, 112 -> g 0.08, 0.277, 0.474, 0.671, 0.869, 1
+        // day 14, 89, 164, 239, 314, 365 (stages 1, 4, 7, 10, 13, 15) -> g 0.08, 0.277, 0.474, 0.671, 0.869, 1
         float[] expected = { 0.08f, 0.277f, 0.474f, 0.671f, 0.869f, 1f };
-        int[] days = { 14, 35, 56, 77, 98, 112 };
+        int[] days = { 14, 89, 164, 239, 314, 365 };
         for (int i = 0; i < days.Length; i++)
             Assert.That(RegrowRules.GrowthFraction(RegrowRules.Stage(days[i])), Is.EqualTo(expected[i]).Within(0.002f), "day " + days[i]);
     }
@@ -104,7 +110,8 @@ public class RegrowTests
 
     // --- Blows and Logs: a young tree takes fewer of each ---
 
-    static readonly int[] PlanDays = { 14, 35, 56, 77, 98, 112 };
+    // The plan's six stages (1, 4, 7, 10, 13 and the full tree) on the 25-day steps.
+    static readonly int[] PlanDays = { 14, 89, 164, 239, 314, 365 };
 
     static float SizeOnDay(int days) => AverageSize * RegrowRules.GrowthFraction(RegrowRules.Stage(days));
 
@@ -155,7 +162,7 @@ public class RegrowTests
     public void ACutSaplingNeverGivesLogsFasterPerBlowThanAFullTree()
     {
         float fullPerBlow = RegrowRules.LogsFor(3f, AverageSize) / AxeRules.FellBlows(13f, AverageSize, 1f);
-        foreach (int days in new[] { 35, 56, 77, 98 })
+        foreach (int days in new[] { 89, 164, 239, 314 })
         {
             float size = SizeOnDay(days);
             float perBlow = RegrowRules.LogsFor(3f, size) / AxeRules.FellBlows(13f, size, 1f);
@@ -196,7 +203,7 @@ public class RegrowTests
         Assert.That(stamp, Is.EqualTo(today + 1));
         Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(stamp, today)), Is.EqualTo(0), "still a stump, not an instant tree");
         Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(stamp, today + 14)), Is.EqualTo(1));
-        Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(stamp, today + 112)), Is.EqualTo(RegrowRules.FullStage));
+        Assert.That(RegrowRules.Stage(RegrowRules.DaysSince(stamp, today + RegrowRules.FullDays)), Is.EqualTo(RegrowRules.FullStage));
     }
 
     [Test]

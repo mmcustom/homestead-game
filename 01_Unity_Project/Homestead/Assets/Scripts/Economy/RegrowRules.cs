@@ -5,8 +5,8 @@ using System;
 //
 // A felled spot keeps one stamp (the day it was felled plus one; 0 means a save from before this existed). The days since then give its stage:
 //   0          Cut: before day 14 there is no tree (a hardwood leaves its stump).
-//   1 to 14    Growing: from day 14 a scaled tree stands there, growing in 7-day steps.
-//   15 (Full)  At day 112 (one game year) the original tree is back and the spot is forgotten.
+//   1 to 14    Growing: from day 14 a scaled tree stands there, growing in 25-day steps (stage 14 lasts 26 days, to the full year).
+//   15 (Full)  At day 365 (one game year) the original tree is back and the spot is forgotten.
 // A hardwood whose stump was dug out is Cleared for good (CanRegrow). Growth g runs from 0.08 at the sprout to 1 at the full year; height and width are both
 // scaled by g^(2/3), so a tree's size (height times the square root of its width) is g times the full size: blows and Logs follow it in proportion.
 public static class RegrowRules
@@ -16,7 +16,8 @@ public static class RegrowRules
     public const int SproutDays = 14;
     // One game year (4 seasons of 28 days today): the calendar's, not a number of its own.
     public static int FullDays => CalendarRules.Current.DaysPerYear;
-    public const int StepDays = 7;
+    // (365 - 14) / 14 is not a whole number, so the steps are 25 days and the last growing stage takes up the odd day: Stage is clamped to LastGrowingStage until the full year.
+    public const int StepDays = 25;
     public const int LastGrowingStage = 14;
     public const int FullStage = LastGrowingStage + 1;
 
@@ -68,7 +69,7 @@ public static class RegrowRules
             return 0;
         if (days >= FullDays)
             return FullStage;
-        return 1 + (days - SproutDays) / StepDays;
+        return Math.Min(LastGrowingStage, 1 + (days - SproutDays) / StepDays);
     }
 
     // 0 for a cut spot, 1 for a full tree, otherwise 0.08 rising in even steps (stage 1 is the sprout, stage 14 is 0.934).

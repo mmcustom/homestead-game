@@ -6,7 +6,7 @@ using UnityEngine;
 // All pure: no files, no scene, no managers.
 public class LoanTests
 {
-    static readonly LoanTerms Terms = LoanTerms.Default;
+    static readonly LoanTerms Terms = LoanTerms.Legacy; // the old schedule (day 112, then every 28 days); the real calendar's monthly one is MonthlyLoanTests
     const long Rich = 1000000000L; // cash that never runs out
 
     // The 5-acre parcel with $12,000 down: a $48,000 loan, $458.71 a payment.

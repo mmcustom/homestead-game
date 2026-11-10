@@ -76,7 +76,7 @@ public class MainMenuController : MonoBehaviour
         confirmPanel.SetActive(false);
         BuildDifficultyPanel();
         SetInteractable(continueButton, GameManager.Instance.HasSaveGame);
-        SetInteractable(loadGameButton, GameManager.Instance.HasSaveGame);
+        SetInteractable(loadGameButton, GameManager.Instance.HasAnySlot);
         Select(continueButton.interactable ? continueButton : newGameButton);
 
         // The loss screen's Restart found no record of how the lost game began: say so and go straight to the New Game screens.
@@ -256,7 +256,7 @@ public class MainMenuController : MonoBehaviour
     void SetMainButtonsInteractable(bool value)
     {
         SetInteractable(continueButton, value && GameManager.Instance.HasSaveGame);
-        SetInteractable(loadGameButton, value && GameManager.Instance.HasSaveGame);
+        SetInteractable(loadGameButton, value && GameManager.Instance.HasAnySlot);
         SetInteractable(newGameButton, value);
         SetInteractable(quitButton, value);
     }

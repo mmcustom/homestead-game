@@ -43,6 +43,7 @@ public class SaveManager : MonoBehaviour
     {
         public int version;
         public string savedAtUtc;
+        public int calendarVersion; // CalendarRules.SaveVersion; 0 (absent) is a save from the old calendar (CalendarSaveRules)
     }
 
     // The slot list's record for one slot. Kept apart from the game sections so the save format is untouched.
@@ -58,6 +59,7 @@ public class SaveManager : MonoBehaviour
         public string difficulty;
         public string savedAtUtc;
         public string lastSlot; // the current slot when this was saved (SlotRules); empty on a save from before it existed
+        public int calendarVersion; // as in meta.json, so the slot list can label an old-calendar save without opening it
     }
 
     [Serializable]
@@ -76,6 +78,12 @@ public class SaveManager : MonoBehaviour
         public string Difficulty = "";
         public string LastSlot = "";
         public DateTime SavedAtUtc = DateTime.MinValue;
+        public int CalendarVersion;
+
+        // Saved on the old calendar: listed as such, never loaded, asked about before anything writes over it.
+        public bool IsLegacy => CalendarSaveRules.IsLegacySlot(Exists, CalendarVersion);
+        public bool CanLoad => CalendarSaveRules.CanLoad(Exists, CalendarVersion);
+        public string DateColumn => CalendarSaveRules.DateColumn(Exists, CalendarVersion, InGame);
 
         public bool IsAutosave => Id == AutosaveId;
         public string SavedAtLocal => SavedAtUtc == DateTime.MinValue ? "" : SavedAtUtc.ToLocalTime().ToString("MMM d, h:mm tt", CultureInfo.CurrentCulture);
@@ -102,8 +110,11 @@ public class SaveManager : MonoBehaviour
     // The current slot as the slot screen shows it: the active slot, only while it still holds a save (SlotRules).
     public string CurrentSlot => SlotRules.ResolveCurrent(activeSlot, SlotExists);
 
-    // True when any slot (manual or autosave) holds a completed save.
-    public bool HasSave => AllSlotIds().Any(SlotExists);
+    // True when any slot (manual or autosave) holds a save that can be loaded: one from this calendar. Continue and the Load Game button depend on it.
+    public bool HasSave => AllSlotIds().Any(id => SlotExists(id) && !IsLegacySlot(id));
+
+    // True when any slot holds a save at all, an old-calendar one included (the Load Game list still shows those, labeled).
+    public bool HasAnySlot => AllSlotIds().Any(SlotExists);
 
     static bool InGame =>
         GameManager.Instance != null && GameManager.Instance.InGame;
@@ -271,6 +282,7 @@ public class SaveManager : MonoBehaviour
             {
                 string root = SavesRoot;
                 string target = slot;
+                PreserveIfLegacy(target); // an old-calendar save is copied aside before the first write over it (the autosave has no question to ask)
                 Dictionary<string, string> files = CaptureFiles(slot);
                 currentWrite = Task.Run(() => SlotSwap.Save(root, target, files));
                 await currentWrite;
@@ -312,6 +324,12 @@ public class SaveManager : MonoBehaviour
             SaveMeta meta = JsonUtility.FromJson<SaveMeta>(File.ReadAllText(FilePath(folder, MetaFile)));
             if (meta.version != SaveVersion)
                 Debug.LogWarning($"[SaveManager] Save version {meta.version} differs from current {SaveVersion}.");
+            if (CalendarSaveRules.IsLegacy(meta.calendarVersion))
+            {
+                // Nothing is restored: every date, due day and stamp in it is on the old calendar.
+                Debug.LogWarning($"[SaveManager] {slotId} was saved on the old calendar (calendarVersion {meta.calendarVersion}); not loaded.");
+                return false;
+            }
 
             foreach (IGrouping<string, ISaveable> file in saveables.Values.ToList().GroupBy(s => s.SaveFile))
             {
@@ -429,6 +447,7 @@ public class SaveManager : MonoBehaviour
             SaveMeta meta = JsonUtility.FromJson<SaveMeta>(File.ReadAllText(FilePath(folder, MetaFile)));
             if (DateTime.TryParse(meta.savedAtUtc, null, DateTimeStyles.RoundtripKind, out DateTime saved))
                 info.SavedAtUtc = saved.ToUniversalTime();
+            info.CalendarVersion = meta.calendarVersion;
         }
         catch (Exception)
         {
@@ -455,6 +474,41 @@ public class SaveManager : MonoBehaviour
         return info;
     }
 
+    // True when the slot holds a save from the old calendar (no calendarVersion in meta.json, or another number).
+    public bool IsLegacySlot(string slotId)
+    {
+        if (!SlotExists(slotId))
+            return false;
+        try
+        {
+            SaveMeta meta = JsonUtility.FromJson<SaveMeta>(File.ReadAllText(FilePath(SlotFolder(slotId), MetaFile)));
+            return CalendarSaveRules.IsLegacy(meta.calendarVersion);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    // Copies an old-calendar slot to Saves/_old_calendar/<slot>_<stamp> before anything writes over it. Never fails a save: a copy that can't be made is a warning.
+    void PreserveIfLegacy(string slotId)
+    {
+        if (!IsLegacySlot(slotId))
+            return;
+        try
+        {
+            string dest = Path.Combine(SavesRoot, CalendarSaveRules.PreservedFolder, slotId + "_" + DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture));
+            Directory.CreateDirectory(dest);
+            foreach (string file in Directory.GetFiles(SlotFolder(slotId)))
+                File.Copy(file, Path.Combine(dest, Path.GetFileName(file)), true);
+            Debug.LogWarning($"[SaveManager] {slotId} was an old-calendar save: a copy is kept in {dest}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogWarning($"[SaveManager] Couldn't keep a copy of the old-calendar save {slotId}: {e.Message}");
+        }
+    }
+
     // The slot whose save is newest (by the time it was written), or null when no slot has a save. Continue loads this.
     public string NewestSlot()
     {
@@ -465,7 +519,10 @@ public class SaveManager : MonoBehaviour
         {
             if (!SlotExists(id))
                 continue;
-            DateTime time = GetSlotInfo(id).SavedAtUtc;
+            SlotInfo candidate = GetSlotInfo(id);
+            if (!candidate.CanLoad)
+                continue; // an old-calendar save is never what Continue loads
+            DateTime time = candidate.SavedAtUtc;
             if (newest == null || time > newestTime)
             {
                 newest = id;
@@ -566,6 +623,7 @@ public class SaveManager : MonoBehaviour
         {
             version = SaveVersion,
             savedAtUtc = savedAt,
+            calendarVersion = CalendarRules.SaveVersion,
         }, true);
         json[SlotInfoFile] = JsonUtility.ToJson(BuildSlotInfo(slotId, savedAt, CurrentSlot), true);
         return json;
@@ -580,6 +638,7 @@ public class SaveManager : MonoBehaviour
             difficulty = DifficultyManager.Tier.ToString(),
             savedAtUtc = savedAt,
             lastSlot = SlotRules.LastSlotToWrite(slotId, currentSlot) ?? "",
+            calendarVersion = CalendarRules.SaveVersion,
         };
 
         TimeManager time = TimeManager.Instance;

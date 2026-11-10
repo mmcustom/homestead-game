@@ -29,7 +29,11 @@ public class GameManager : MonoBehaviour, ISaveable
 
     // In the World with a game underway, whether playing, paused or in a game screen.
     public bool InGame => state == GameState.Playing || state == GameState.Paused || state == GameState.Menu;
+    // A save that can be loaded exists (one from this calendar): Continue works.
     public bool HasSaveGame => SaveManager.Instance != null && SaveManager.Instance.HasSave;
+
+    // Any slot holds a save, an old-calendar one included: the Load Game list is worth opening to see them labeled.
+    public bool HasAnySlot => SaveManager.Instance != null && SaveManager.Instance.HasAnySlot;
 
     // How this game began (difficulty, parcel, savings split; the weapon follows from the difficulty), so the loss screen's Restart can start the same one again. Saved
     // with the game (player/setup); a save made before it existed has none and Restart falls back to the New Game screens.
@@ -180,6 +184,16 @@ public class GameManager : MonoBehaviour, ISaveable
     {
         if (IsLoading || SaveManager.Instance == null || !SaveManager.Instance.SlotExists(slotId))
             return;
+
+        if (SaveManager.Instance.IsLegacySlot(slotId))
+        {
+            // An old-calendar save is never loaded (the slot list already greys its Load button); this is the backstop for any other way in.
+            string refusal = CalendarSaveRules.RefusalMessage(SaveManager.Instance.GetSlotInfo(slotId).Name);
+            Debug.LogWarning("[GameManager] " + refusal);
+            if (InGame)
+                ToolStatus.Flash(refusal, 5f);
+            return;
+        }
 
         if (InGame)
             StartCoroutine(LoadFromGameRoutine(slotId));

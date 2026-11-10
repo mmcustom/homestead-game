@@ -98,8 +98,12 @@ public class TimeManager : MonoBehaviour, ISaveable
     // The calendar every date below is worked out with.
     static GameCalendar Calendar => CalendarRules.Current;
 
+    // A typical season length (91 on the real calendar, whose seasons are 92, 92, 91 and 90 days); anything that needs one season's length asks the calendar's SeasonLength.
     public int DaysPerSeason => Calendar.DaysPerSeason;
     public int DayOfSeason => Calendar.DayOfSeason(totalDays);
+    public int MonthOfYear => Calendar.MonthOfYear(totalDays);   // 0 March to 11 February
+    public int MonthIndex => Calendar.MonthIndexOf(totalDays);    // counts from March, Year 1 without end (Bills and the loan use it)
+    public int DayOfMonth => Calendar.DayOfMonth(totalDays);
     public Season CurrentSeason => (Season)Calendar.SeasonOfYear(totalDays);
     public int Year => Calendar.YearOfDay(totalDays);
 

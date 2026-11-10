@@ -71,8 +71,8 @@ public class WellsAndOuthouses : MonoBehaviour
     public int woodShedBranches = 8;
     [Tooltip("The shed stands at least this far (metres) from a Small Cabin.")]
     public float setbackShedFromBuildingMetres = 3f;
-    [Tooltip("In-game seasons a wet batch of wood takes to dry. One season is a calendar season (28 days today, about 14 real hours); wood in an open Wood Pile is re-wetted by every hour of rain or snow.")]
-    public float seasoningSeasons = 1f;
+    [Tooltip("In-game days a wet batch of wood takes to dry (28: about 14 real hours; it is plain days, not a calendar season, which is now about three times as long). Wood in an open Wood Pile is re-wetted by every hour of rain or snow.")]
+    [Min(1)] public int seasoningDays = 28;
     [Tooltip("Wet wood burns this fraction of its normal time (about 30 percent of the heat goes into driving off the water).")]
     [Range(0.1f, 1f)] public float wetBurnFraction = 0.7f;
 

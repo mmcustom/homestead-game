@@ -33,6 +33,7 @@ public class SlotPanel : MonoBehaviour
     const float ColSlot = 12f, ColName = 52f, NameWidth = 140f;
     const float ColBadge = 196f, BadgeWidth = 176f;
     const float ColInGame = 378f, InGameWidth = 282f;
+    static readonly Color LegacyColor = new Color(0.95f, 0.72f, 0.35f); // "old calendar": amber, the colour of a warning
     const float ColDifficulty = 666f, DifficultyWidth = 145f;
     const float ColSaved = 816f, SavedWidth = 174f;
     const float ButtonWidth = 90f, ButtonGap = 6f, ButtonMargin = 8f;
@@ -221,7 +222,7 @@ public class SlotPanel : MonoBehaviour
             AddCell(row, badge, ColBadge, BadgeWidth, new Color(0.78f, 0.84f, 0.55f), 18);
         if (info.Exists)
         {
-            AddCell(row, info.InGame, ColInGame, InGameWidth, UiKit.Cream);
+            AddCell(row, info.DateColumn, ColInGame, InGameWidth, info.IsLegacy ? LegacyColor : UiKit.Cream);
             AddCell(row, info.Difficulty, ColDifficulty, DifficultyWidth, UiKit.Cream);
             AddCell(row, info.SavedAtLocal, ColSaved, SavedWidth, UiKit.Cream);
         }
@@ -251,7 +252,11 @@ public class SlotPanel : MonoBehaviour
         else
         {
             if (info.Exists)
+            {
                 primary = AddButton(row, "Load", ButtonX(2), ButtonWidth, () => OnLoad(info));
+                if (info.IsLegacy)
+                    primary.interactable = false; // saved on the old calendar: listed, never loaded (CalendarSaveRules)
+            }
             if (inGame && !info.IsAutosave)
                 primary = AddButton(row, "Save", ButtonX(3), ButtonWidth, () => OnSave(info));
         }
@@ -303,7 +308,12 @@ public class SlotPanel : MonoBehaviour
 
     void ConfirmOverwriteThenPick(SaveManager.SlotInfo info)
     {
-        if (SlotRules.NeedsOverwriteConfirm(info.Exists, info.Id, inGame ? current : null))
+        if (CalendarSaveRules.NeedsOverwriteWarning(info.Exists, info.CalendarVersion))
+        {
+            // An old-calendar save always asks, even in the current slot: what replaces it can't be loaded back (a copy is kept aside).
+            Confirm(CalendarSaveRules.OverwriteWarning(info.Name, info.InGame), () => DoPick(info.Id));
+        }
+        else if (SlotRules.NeedsOverwriteConfirm(info.Exists, info.Id, inGame ? current : null))
         {
             string details = info.InGame.Length > 0 ? $" ({info.InGame})" : "";
             Confirm($"Overwrite {info.Name}{details}?", () => DoPick(info.Id));
@@ -348,7 +358,9 @@ public class SlotPanel : MonoBehaviour
     {
         Play(SoundCue.UiClick);
         string source = SaveManager.Instance.GetSlotInfo(copySource).Name;
-        if (target.Exists)
+        if (target.IsLegacy)
+            Confirm(CalendarSaveRules.OverwriteWarning(target.Name, target.InGame), () => DoCopy(target));
+        else if (target.Exists)
             Confirm($"Overwrite {target.Name} with a copy of {source}?\nWhat is in {target.Name} now will be lost.", () => DoCopy(target));
         else
             DoCopy(target);

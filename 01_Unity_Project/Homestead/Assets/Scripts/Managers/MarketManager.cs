@@ -115,8 +115,7 @@ public class MarketManager : MonoBehaviour, ISaveable
     // --- Time ---
 
     int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
-    int DaysPerSeason => TimeManager.Instance != null ? TimeManager.Instance.DaysPerSeason : CalendarRules.Current.DaysPerSeason;
-    public int Season => MarketRules.SeasonOf(Today, DaysPerSeason);
+    public int Season => CalendarRules.Current.SeasonOfYear(Today);
 
     void Update()
     {
@@ -137,7 +136,7 @@ public class MarketManager : MonoBehaviour, ISaveable
             return;
 
         processedDay = time.TotalDays;
-        state.Advance(table, time.TotalDays, time.DaysPerSeason, recoveryPercent);
+        state.Advance(table, time.TotalDays, CalendarRules.Current, recoveryPercent);
         Changed?.Invoke();
     }
 

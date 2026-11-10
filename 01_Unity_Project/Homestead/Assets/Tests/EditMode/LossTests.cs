@@ -6,7 +6,7 @@ using UnityEngine;
 // text, the run summary and the new-game setup record with its save struct. No manager, no scene.
 public class LossTests
 {
-    static readonly LoanTerms Terms = LoanTerms.Default;                     // first payment day 112, every 28 days, 10 days of grace
+    static readonly LoanTerms Terms = LoanTerms.Legacy;                      // first payment day 112, every 28 days, 10 days of grace (the real calendar's: MonthlyLoanTests)
     const long Rich = 1000000000L;
 
     static LoanState NewLoan() => LoanState.Create(5, Money.Dollars(60000), Money.Dollars(12000), Terms);

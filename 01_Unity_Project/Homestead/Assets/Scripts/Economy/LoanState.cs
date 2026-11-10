@@ -7,15 +7,16 @@ public struct LoanTerms
 {
     public int rateBasisPoints;   // 800 = 8% a year, spread over 12 payments
     public int payments;          // 180
-    public int intervalDays;      // days between payments (the calendar's: GameCalendar.LoanIntervalDays, 28 today)
-    public int firstDueDay;       // TotalDays of the first payment (the calendar's: GameCalendar.LoanFirstDueDay, 112 today)
+    public int intervalDays;      // days between payments, used only when dueDayOfMonth is 0 (the old rule: every 28 days)
+    public int firstDueDay;       // TotalDays of the first payment (the calendar's: GameCalendar.LoanFirstDueDay, July 1 = day 122)
+    public int dueDayOfMonth;     // the day of the month every payment falls due on (1: the 1st); 0 means the old rule, every intervalDays days. A save from before it existed reads 0.
     public int graceDays;         // unpaid this many days after its due day is late: 10
     public long lateFeeCents;     // $75, once per late payment
 
-    // The terms of a new loan: the schedule is the game's calendar (CalendarRules.Current), the rest is the loan's own.
+    // The terms of a new loan: the schedule is the game's calendar (CalendarRules.Current: a payment on the 1st of every month from July 1), the rest is the loan's own.
     public static LoanTerms Default => For(CalendarRules.Current);
 
-    // The original terms (first payment on day 112, then every 28 days), kept for good: tests and anything that pins the old schedule use these whatever the calendar becomes.
+    // The original terms (first payment on day 112, then every 28 days), kept for good: tests and old loans that pin the old schedule use these whatever the calendar becomes.
     public static LoanTerms Legacy => For(CalendarRules.Legacy);
 
     static LoanTerms For(GameCalendar calendar) => new LoanTerms
@@ -24,6 +25,7 @@ public struct LoanTerms
         payments = 180,
         intervalDays = calendar.LoanIntervalDays,
         firstDueDay = calendar.LoanFirstDueDay,
+        dueDayOfMonth = calendar.LoanDueDayOfMonth,
         graceDays = 10,
         lateFeeCents = 7500,
     };
@@ -64,7 +66,7 @@ public struct PayResult
 }
 
 // Money_System.md's land loan, pure and engine-free so edit-mode tests cover it. All amounts are cents (Money); the payment formula
-// uses decimal, rounded half up to a cent. The loan is a fixed payment every intervalDays from firstDueDay; each payment's interest
+// uses decimal, rounded half up to a cent. The loan is a fixed payment on the 1st of every month from firstDueDay (or every intervalDays days, the old rule, when the terms have no dueDayOfMonth); each payment's interest
 // is the balance at its due date times the period rate, and the rest of the payment is principal. A payment unpaid graceDays after
 // its due day gets a one-time late fee and counts as missed. Money pays the oldest open payment first (fee, interest, principal);
 // what is left once nothing is open is an extra payment straight to principal, which never covers a future payment.
@@ -290,8 +292,14 @@ public class LoanState
             principal = unassigned; // the last payment clears what is left exactly
 
         open.Add(new OpenPayment { number = paymentsDue, dueDay = dueDay, interest = interest, principal = principal });
-        nextDueDay = last ? -1 : dueDay + terms.intervalDays;
+        nextDueDay = last ? -1 : NextDueDayAfter(dueDay);
     }
+
+    // The payment after the one due on dueDay: the same day of the next month when the terms say a day of the month (the real calendar, so February's is the 1st too), otherwise
+    // intervalDays later (the old rule, which a loan made before the real calendar keeps).
+    int NextDueDayAfter(int dueDay) => terms.dueDayOfMonth > 0
+        ? CalendarRules.Current.NextMonthDay(dueDay, terms.dueDayOfMonth)
+        : dueDay + terms.intervalDays;
 
     // --- Paying ---
 
@@ -384,4 +392,38 @@ public struct LoanSaveData
         loan.Normalize();
         return loan;
     }
+}
+
+// How the loan's schedule reads in the game's text, from the terms the loan was made with: "a month, due on the 1st" for a loan on the real calendar, "every 28 days" for a loan made
+// on the old rule. Pure so the tests pin the wording.
+public static class LoanScheduleText
+{
+    public static bool IsMonthly(LoanTerms terms) => terms.dueDayOfMonth > 0;
+
+    // 1st, 2nd, 3rd, 4th ... 11th, 12th, 13th ... 21st.
+    public static string Ordinal(int n)
+    {
+        int lastTwo = n % 100;
+        if (lastTwo >= 11 && lastTwo <= 13)
+            return n + "th";
+        switch (n % 10)
+        {
+            case 1: return n + "st";
+            case 2: return n + "nd";
+            case 3: return n + "rd";
+            default: return n + "th";
+        }
+    }
+
+    // After the payment amount on the Finances screen: "a month, due on the 1st".
+    public static string Cadence(LoanTerms terms) =>
+        IsMonthly(terms) ? $"a month, due on the {Ordinal(terms.dueDayOfMonth)}" : $"every {terms.intervalDays} days";
+
+    // The land purchase screen's "Payment every month".
+    public static string PaymentEvery(LoanTerms terms) =>
+        IsMonthly(terms) ? "Payment every month" : $"Payment every {terms.intervalDays} days";
+
+    // The land purchase summary: "180, one a month".
+    public static string Count(LoanTerms terms) =>
+        IsMonthly(terms) ? $"{terms.payments}, one a month (the {Ordinal(terms.dueDayOfMonth)})" : $"{terms.payments}, one every {terms.intervalDays} days";
 }

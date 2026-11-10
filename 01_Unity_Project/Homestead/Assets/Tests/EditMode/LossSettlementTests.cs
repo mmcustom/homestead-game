@@ -7,7 +7,7 @@ public class LossSettlementTests
     // The loan on its day of loss with nothing ever paid: three missed payments (due 112, 140, 168), a $75 late fee on each.
     static LoanState LostLoan()
     {
-        LoanState loan = LoanState.Create(5, Money.Dollars(60000), Money.Dollars(12000), LoanTerms.Default);
+        LoanState loan = LoanState.Create(5, Money.Dollars(60000), Money.Dollars(12000), LoanTerms.Legacy);
         loan.Advance(178);
         return loan;
     }

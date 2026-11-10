@@ -137,13 +137,13 @@ public class WoodShedTests
     }
 
     [Test]
-    public void SeasoningIsOneSeasonScaledToTheCalendarAndWetWoodBurnsSeventyPercent()
+    public void SeasoningIs28PlainDaysAndWetWoodBurnsSeventyPercent()
     {
         Type m = Find("WoodMoisture");
         MethodInfo daysFor = m.GetMethod("DaysFor");
-        Assert.That(daysFor.Invoke(null, new object[] { 28, 1f }), Is.EqualTo(28), "one season of 28 days, about 14 real hours");
+        Assert.That(daysFor.Invoke(null, new object[] { 28, 1f }), Is.EqualTo(28), "28 days, about 14 real hours");
         Assert.That(daysFor.Invoke(null, new object[] { 28, 0.5f }), Is.EqualTo(14));
-        Assert.That(daysFor.Invoke(null, new object[] { 20, 1f }), Is.EqualTo(20), "follows the calendar's season length");
+        Assert.That(daysFor.Invoke(null, new object[] { 20, 1f }), Is.EqualTo(20), "DaysFor scales a season length by the number of seasons (kept; the game itself now uses plain days)");
         Assert.That((int)m.GetProperty("SeasoningDays").GetValue(null), Is.EqualTo(28), "default with no game running");
 
         MethodInfo factor = m.GetMethod("BurnFactor", new[] { typeof(int), typeof(int), typeof(int), typeof(float) });
@@ -156,7 +156,7 @@ public class WoodShedTests
         try
         {
             Component rules = go.AddComponent(wells);
-            Assert.That(wells.GetField("seasoningSeasons").GetValue(rules), Is.EqualTo(1f));
+            Assert.That(wells.GetField("seasoningDays").GetValue(rules), Is.EqualTo(28), "28 plain days, whatever a calendar season is");
             Assert.That(wells.GetField("wetBurnFraction").GetValue(rules), Is.EqualTo(0.7f));
         }
         finally

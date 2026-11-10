@@ -2,32 +2,24 @@ using UnityEngine;
 
 // Structures Slice 1, phase B (Structures_Slice1_Dry_And_Clean.md, Wood Shed): wood is wet or dry. No new save keys: the day stamp every
 // batch of wood already carries (ItemStack.acquiredDay in a pack, WoodStack.day in a pile; ItemDefinition.keepsBatchDay keeps it apart
-// from other batches) is the day the batch was last made wet. A batch is dry once a season's worth of days has passed since then
-// (the tunable seasoning length on WellsAndOuthouses), and day 0 means "no stamp": wood from before this existed, or marked dry,
+// from other batches) is the day the batch was last made wet. A batch is dry once 28 days have passed since then
+// (WellsAndOuthouses.seasoningDays), and day 0 means "no stamp": wood from before this existed, or marked dry,
 // is dry. A fresh stamp is never below 1 so it can't be mistaken for that. Rain on an open Wood Pile restamps its wood to today, so
 // it can't finish seasoning while it keeps being rained on (WoodManager.RainOnOpenPiles); a Wood Shed is never rained on.
 //
 // The maths is pure (days in, answer out) so the edit-mode tests can run it; the properties below read the live tunables.
 public static class WoodMoisture
 {
-    // Days in a season when no game is running: the calendar's, not a number of its own.
-    public static int DefaultDaysPerSeason => CalendarRules.Current.DaysPerSeason;
-    public const float DefaultSeasons = 1f;
+    // Days a wet batch takes to dry when no game is running (WellsAndOuthouses.seasoningDays is the tunable): plain days, not a calendar season.
+    public const int DefaultSeasoningDays = 28;
     public const float DefaultWetBurnFraction = 0.7f;
 
     public static int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
 
     static WellsAndOuthouses Settings => WellsAndOuthouses.Instance;
 
-    // Days a wet batch takes to dry: the tunable number of in-game seasons, scaled by the real length of a season.
-    public static int SeasoningDays
-    {
-        get
-        {
-            int perSeason = TimeManager.Instance != null ? TimeManager.Instance.DaysPerSeason : DefaultDaysPerSeason;
-            return DaysFor(perSeason, Settings != null ? Settings.seasoningSeasons : DefaultSeasons);
-        }
-    }
+    // Days a wet batch takes to dry: the tunable number of days (28), whatever the length of a calendar season.
+    public static int SeasoningDays => Settings != null ? Mathf.Max(1, Settings.seasoningDays) : DefaultSeasoningDays;
 
     // Fraction of its normal burn time wet wood gives (about 30 percent of the heat goes into driving off the water).
     public static float WetBurnFraction => Settings != null ? Settings.wetBurnFraction : DefaultWetBurnFraction;

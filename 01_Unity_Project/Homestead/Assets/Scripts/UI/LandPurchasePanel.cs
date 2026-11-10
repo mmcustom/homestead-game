@@ -223,7 +223,7 @@ public class LandPurchasePanel : MonoBehaviour
         splitProblem = UiKit.Text(splitGroup, "Problem", "", 22, UiKit.Warning, TextAnchor.MiddleLeft);
         Place(splitProblem.rectTransform, 40f, 268f, PanelWidth - 80f, 36f);
 
-        string[] labels = { "Down payment", "Cash reserve", "Loan amount", "Payment every " + terms.intervalDays + " days" };
+        string[] labels = { "Down payment", "Cash reserve", "Loan amount", LoanScheduleText.PaymentEvery(terms) };
         for (int i = 0; i < labels.Length; i++)
         {
             Text label = UiKit.Text(splitGroup, labels[i], labels[i], 24, UiKit.Muted, TextAnchor.MiddleLeft);
@@ -346,7 +346,7 @@ public class LandPurchasePanel : MonoBehaviour
             Parcel p = LandRules.Starters[i];
             long save = SavingsFor(i);
             string text = $"<size=30><b>{p.name}</b></size>\n{Money.Format(p.priceCents)}\n{Money.Format(p.PricePerAcreCents)} per acre\n\n";
-            string every = "Payment every " + terms.intervalDays + " days";
+            string every = LoanScheduleText.PaymentEvery(terms);
             if (save > 0)
             {
                 text += $"Your savings: {Money.Format(save)}\n\n{every}:\n<b>{Money.Format(LoanState.PaymentFor(p.priceCents - save, terms))}</b> with all savings down\n" +
@@ -442,7 +442,7 @@ public class LandPurchasePanel : MonoBehaviour
             Money.Format(LandRules.Reserve(savings, down)),
             Money.Format(loan),
             $"{terms.rateBasisPoints / 100m:0.##}% a year, fixed",
-            $"{terms.payments}, one every {terms.intervalDays} days",
+            LoanScheduleText.Count(terms),
             Money.Format(payment),
             first,
             Money.Format(LoanState.TotalInterest(loan, terms)),

@@ -94,7 +94,7 @@ public static class ToolStatus
     // A large message across the top of the screen, for something the player must not miss (a Small Cabin site that
     // just got its last material, a payment due, a statement ready). ToolHud draws it. The same message again keeps the one already up
     // (or waiting) instead of piling up.
-    public static void Banner(string message, float seconds = 8f) => banners.Add(message, seconds);
+    public static void Banner(string message, float seconds = 8f, string tag = null) => banners.Add(message, seconds, tag);
 
     // ToolHud, every frame: canDraw is whether a banner can be seen right now (the world is live: not a menu, not asleep). The one on show
     // counts down only then, and the next in line takes its place when it runs out.
@@ -102,6 +102,9 @@ public static class ToolStatus
 
     // A new or loaded game starts without the last one's banners.
     public static void ClearBanners() => banners.Clear();
+
+    // Takes down only the banners that carry this tag (see BannerQueue.ClearTagged).
+    public static int ClearBanners(string tag) => banners.ClearTagged(tag);
 
     public static string BannerMessage => banners.Current;
     public static int BannersWaiting => banners.Waiting;

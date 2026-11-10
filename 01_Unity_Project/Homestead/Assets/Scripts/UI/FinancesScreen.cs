@@ -308,7 +308,7 @@ public class FinancesScreen : MonoBehaviour
             Money.Format(loan.downCents),
             Money.Format(loan.originalCents),
             Money.Format(loan.balanceCents),
-            $"{Money.Format(loan.paymentCents)} every {loan.terms.intervalDays} days",
+            $"{Money.Format(loan.paymentCents)} {LoanScheduleText.Cadence(loan.terms)}",
             next,
             Money.Format(loan.OwedNow),
             missed.ToString(),

@@ -36,7 +36,7 @@ public class MoneyManager : MonoBehaviour, ISaveable
     [SerializeField, Min(0)] int rateBasisPoints = 800;
     [Tooltip("Payments in the whole loan (180).")]
     [SerializeField, Min(1)] int payments = 180;
-    // The first payment day and the days between payments are not set here: they are the game's calendar (GameCalendar.LoanFirstDueDay and LoanIntervalDays, through LoanTerms.Default).
+    // The first payment day and the day of the month a payment falls due on are not set here: they are the game's calendar (GameCalendar.LoanFirstDueDay and LoanDueDayOfMonth, through LoanTerms.Default).
     [Tooltip("A payment still unpaid this many days after its due day gets the late fee and counts as missed.")]
     [SerializeField, Min(0)] int graceDays = 10;
     [Tooltip("Override only (see above): the one-time late fee, in cents ($75).")]
@@ -86,6 +86,7 @@ public class MoneyManager : MonoBehaviour, ISaveable
             payments = payments,
             intervalDays = schedule.intervalDays,
             firstDueDay = schedule.firstDueDay,
+            dueDayOfMonth = schedule.dueDayOfMonth,
             graceDays = graceDays,
             lateFeeCents = lateFeeCents,
         }, TierFor(tier));
@@ -232,6 +233,9 @@ public class MoneyManager : MonoBehaviour, ISaveable
     }
 #endif
 
+    // Every land-payment reminder banner carries this tag, so a settled payment takes down its own reminders and nothing else.
+    public const string LoanBannerTag = "land payment";
+
     string DateOf(TimeManager time, int day) => time != null ? time.FormatDate(day) : "day " + day;
 
     void Announce(LoanNotice notice, TimeManager time)
@@ -242,17 +246,17 @@ public class MoneyManager : MonoBehaviour, ISaveable
                 ToolStatus.Flash($"Land payment of {Money.Format(notice.amount)} due in {notice.days} day{(notice.days == 1 ? "" : "s")} ({DateOf(time, notice.dueDay)}). Press L for Finances.", 6f);
                 break;
             case LoanNoticeKind.DueToday:
-                ToolStatus.Banner($"Your land payment of {Money.Format(notice.amount)} is due today. Press L to pay.", 8f);
+                ToolStatus.Banner($"Your land payment of {Money.Format(notice.amount)} is due today. Press L to pay.", 8f, LoanBannerTag);
                 break;
             case LoanNoticeKind.Late:
-                ToolStatus.Banner($"Your land payment is overdue ({Money.Format(notice.amount)}). Pay by {DateOf(time, notice.dueDay + loan.terms.graceDays - 1)} or a {Money.Format(loan.terms.lateFeeCents)} late fee is added.", 10f);
+                ToolStatus.Banner($"Your land payment is overdue ({Money.Format(notice.amount)}). Pay by {DateOf(time, notice.dueDay + loan.terms.graceDays - 1)} or a {Money.Format(loan.terms.lateFeeCents)} late fee is added.", 10f, LoanBannerTag);
                 break;
             case LoanNoticeKind.Missed:
                 int missed = loan.MissedCount;
                 string text = $"MISSED land payment: a {Money.Format(loan.terms.lateFeeCents)} late fee was added ({Money.Format(notice.amount)} now owed). {missed} missed payment{(missed == 1 ? " is" : "s are")} open.";
                 if (missed >= missedWarningCount)
                     text = $"WARNING: {missed} missed land payments are open! " + text;
-                ToolStatus.Banner(text, 12f);
+                ToolStatus.Banner(text, 12f, LoanBannerTag);
                 break;
         }
     }
@@ -280,6 +284,8 @@ public class MoneyManager : MonoBehaviour, ISaveable
             post.TrySpend(result.applied);
             if (LedgerManager.Instance != null)
                 LedgerManager.Instance.RecordLoanPayment(result); // late fees, interest, principal and extra payment lines
+            if (loan.open.Count == 0)
+                ToolStatus.ClearBanners(LoanBannerTag); // nothing is owed any more: the due, overdue and missed reminders have done their job
             if (result.paidOff)
                 ToolStatus.Banner($"Congratulations! The land is paid off. {Money.Format(loan.interestPaid)} in interest paid over the loan.", 12f);
         }

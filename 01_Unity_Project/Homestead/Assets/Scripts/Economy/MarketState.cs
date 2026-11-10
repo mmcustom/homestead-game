@@ -52,7 +52,12 @@ public sealed class MarketState
         startAtTargets = true;
     }
 
-    public void Advance(MarketTable table, int today, int daysPerSeason, int recoveryPercent)
+    // Brings the market up to this day with uniform seasons of this many days (the original form, kept: the tests pin it).
+    public void Advance(MarketTable table, int today, int daysPerSeason, int recoveryPercent) =>
+        Advance(table, today, GameCalendar.Of(daysPerSeason), recoveryPercent);
+
+    // Brings the market up to this day in the given calendar (the game's: CalendarRules.Current).
+    public void Advance(MarketTable table, int today, GameCalendar calendar, int recoveryPercent)
     {
         if (today < 0)
             today = 0;
@@ -61,7 +66,7 @@ public sealed class MarketState
         {
             if (startAtTargets)
             {
-                int start = MarketRules.SeasonOf(today, daysPerSeason);
+                int start = calendar.SeasonOfYear(today);
                 foreach (string pool in table.Pools)
                 {
                     MarketGroupRule rule = table.RuleOfPool(pool);
@@ -82,7 +87,7 @@ public sealed class MarketState
 
         for (int day = LastDay + 1; day <= today; day++)
         {
-            int season = MarketRules.SeasonOf(day, daysPerSeason);
+            int season = calendar.SeasonOfYear(day);
             foreach (string pool in table.Pools)
             {
                 MarketGroupRule rule = table.RuleOfPool(pool);

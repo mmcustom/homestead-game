@@ -77,7 +77,15 @@ public struct RunSummary
 
     // The same with the game's calendar working out the whole seasons behind the player.
     public static RunSummary Build(int totalDays, long incomeCents, long expensesCents, long balanceCents, IEnumerable<int> missedDueDays, long cashCents) =>
-        Build(totalDays, CalendarRules.Current.DaysPerSeason, incomeCents, expensesCents, balanceCents, missedDueDays, cashCents);
+        Build(totalDays, incomeCents, expensesCents, balanceCents, missedDueDays, cashCents, CalendarRules.Current);
+
+    // The whole seasons behind the player, counted by the given calendar (the real seasons are different lengths).
+    public static RunSummary Build(int totalDays, long incomeCents, long expensesCents, long balanceCents, IEnumerable<int> missedDueDays, long cashCents, GameCalendar calendar)
+    {
+        RunSummary summary = Build(totalDays, 1, incomeCents, expensesCents, balanceCents, missedDueDays, cashCents);
+        summary.seasonsCompleted = calendar.PeriodIndexOf(totalDays);
+        return summary;
+    }
 
     public static RunSummary Build(int totalDays, int daysPerSeason, long incomeCents, long expensesCents, long balanceCents,
                                    IEnumerable<int> missedDueDays, long cashCents)
