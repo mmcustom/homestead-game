@@ -94,7 +94,14 @@ public static class ToolStatus
     // A large message across the top of the screen, for something the player must not miss (a Small Cabin site that
     // just got its last material, a payment due, a statement ready). ToolHud draws it. The same message again keeps the one already up
     // (or waiting) instead of piling up.
-    public static void Banner(string message, float seconds = 8f, string tag = null) => banners.Add(message, seconds, tag);
+    public static void Banner(string message, float seconds = 8f, string tag = null)
+    {
+        BannersRaised++;
+        banners.Add(message, seconds, tag);
+    }
+
+    // How many banners have been raised since the game started: only ever goes up. Wait (TimeControlManager) compares it before and after each step to see a notice arrive.
+    public static int BannersRaised { get; private set; }
 
     // ToolHud, every frame: canDraw is whether a banner can be seen right now (the world is live: not a menu, not asleep). The one on show
     // counts down only then, and the next in line takes its place when it runs out.

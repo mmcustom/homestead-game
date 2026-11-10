@@ -186,36 +186,32 @@ public class SleepManager : MonoBehaviour
             survival.SleepRecovery = recovery + WellsAndOuthouses.SleepRecoveryBonus; // a sanitary homestead rests a little better
         }
 
-        const float Step = 0.25f;
-        float slept = 0f;
-        while (slept < hours - 0.001f)
+        // The same loop Wait uses (TimeControlManager.PassWorld): survival, fire, wood, portable-light fuel, then the clock, in 0.25-hour steps. What is sleep's own is the wake rule below,
+        // asked after each step; a wake is only honoured after half an hour of sleep.
+        string woke = null;
+        float slept = TimeControlManager.PassWorld(hours, true, soFar =>
         {
-            float step = Mathf.Min(Step, hours - slept);
-            if (survival != null)
-                survival.PassHours(step);
-            if (FireManager.Instance != null)
-                FireManager.Instance.PassHours(step);
-            if (WoodManager.Instance != null)
-                WoodManager.Instance.PassHours(step);
-            time.AdvanceMinutes(step * 60f);
-            slept += step;
-
             if (survival == null)
-                continue;
+                return false;
+            string why = null;
             if (survival.Warmth < wakeBelowWarmth)
-                wokeEarly = "You wake shivering — too cold to sleep.";
+                why = "You wake shivering — too cold to sleep.";
             else if (survival.CoreTemperatureC > wakeAboveCoreC)
-                wokeEarly = "You wake drenched in sweat — too hot to sleep.";
+                why = "You wake drenched in sweat — too hot to sleep.";
             else if (survival.Hydration <= 0f)
-                wokeEarly = "You wake parched — you need water.";
+                why = "You wake parched — you need water.";
             else if (survival.Hunger <= 0f)
-                wokeEarly = "You wake starving — you need food.";
+                why = "You wake starving — you need food.";
             else if (survival.Health < wakeBelowHealth)
-                wokeEarly = "You wake feeling terrible.";
-            if (wokeEarly != null && slept >= 0.5f)
-                break;
-            wokeEarly = null;
-        }
+                why = "You wake feeling terrible.";
+            if (why != null && soFar >= 0.5f)
+            {
+                woke = why;
+                return true;
+            }
+            return false;
+        });
+        wokeEarly = woke;
 
         if (survival != null)
         {

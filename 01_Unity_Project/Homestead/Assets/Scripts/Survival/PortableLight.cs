@@ -178,7 +178,20 @@ public class PortableLight : MonoBehaviour, ISaveable
         if (litId == null || time == null || !time.IsRunning)
             return;
 
-        float hours = Time.deltaTime * time.GameHoursPerRealSecond;
+        BurnHours(inventory, Time.deltaTime * time.GameHoursPerRealSecond);
+    }
+
+    // Time passed by the world loop (Wait, sleep): burns whatever is lit for those game hours, the same as real-time play does.
+    public void PassHours(float hours)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (litId == null || inventory == null || hours <= 0f)
+            return;
+        BurnHours(inventory, hours);
+    }
+
+    void BurnHours(InventoryManager inventory, float hours)
+    {
         if (litId == TorchId)
         {
             torchHoursLeft -= hours;
