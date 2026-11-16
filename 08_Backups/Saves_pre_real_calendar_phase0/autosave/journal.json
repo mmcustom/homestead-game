@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "journal",
+            "data": "{\"entries\":[],\"nextId\":1,\"knowHow\":[{\"id\":\"tripod\",\"day\":0,\"read\":false},{\"id\":\"melee\",\"day\":0,\"read\":false}]}"
+        }
+    ]
+}

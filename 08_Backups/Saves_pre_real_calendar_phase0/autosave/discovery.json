@@ -1,0 +1,12 @@
+{
+    "sections": [
+        {
+            "key": "discovery",
+            "data": "{\"records\":[],\"milestones\":[]}"
+        },
+        {
+            "key": "map",
+            "data": "{\"resolution\":240,\"explored\":\"H4sIAAAAAAAACu3arY7qUBDA8TaQgqoimxyNQlRV1JHwAAgED4DAVhyLwCKw2EosohKJqEA2waFJ6mqaYuhy7+6Km92SK2CbnPn/nmAmnc6Z82FZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgBR2y+l0nJbddBy/ou2qvucHge/1ldtuOppX6ypvNJ3rxXK50PPpyFPdpiN6JUf5k3AV7faHJDnsd9EqnPjKaTqql3EHY72Jj+csL8qyyLPzMd7o8cBtOq7XsHvBbB2nWXmrPt3KLI3Xs6BnYuey34ZhlFyu1T+ulyQKh28GJtwb6m2aV9/k6VYPe01H93RuEG5Pxfd0q6o4bcPAtH/YGcyi9Md07wmn0WxgWJdW43XyQzF/lnSyHqumI3yqrq/jS126VXWJtW/U4KEmm/Ran+813UxM+sBtL4yz+nSrKotDz6BZ2h2tjuWjfMvjamRQi1bT6Hx7lO/tHE3NKWi7P989LOd7Qe/mfWOGrJan97WL0Yd8r71W03E+i+MvDjWzxpfisPCNGTk6wTJ52K7uDStZBp2m43wWaflKq2dp/UraeiRt3hA3T0rbL0jbD4rb70s7zxF3XiftPFbcebu4+xRp92WWtPtQS9x9tyXtPcMfst6r/CXqPRIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPhP7/fydTQA4QAA\"}"
+        }
+    ]
+}

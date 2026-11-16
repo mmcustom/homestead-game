@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "journal",
+            "data": "{\"entries\":[{\"id\":1,\"type\":0,\"section\":4,\"day\":0,\"title\":\"South Ridge Cabin Site\",\"body\":\"Type: Buildable Homesite\\nBuildability: Good\\nSoil Conditions: Well-drained\\nWater Access: Near Spring Hollow\",\"siteId\":\"south_ridge_cabin_site\",\"isRead\":false},{\"id\":2,\"type\":2,\"section\":5,\"day\":0,\"title\":\"First Property Feature found\",\"body\":\"\",\"siteId\":\"\",\"isRead\":false}],\"nextId\":3}"
+        }
+    ]
+}

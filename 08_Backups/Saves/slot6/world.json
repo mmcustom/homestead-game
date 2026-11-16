@@ -1,0 +1,48 @@
+{
+    "sections": [
+        {
+            "key": "groundwood",
+            "data": "{\"ids\":[9854,3502],\"takenDays\":[0,0]}"
+        },
+        {
+            "key": "time",
+            "data": "{\"totalDays\":0,\"minuteOfDay\":575.0956420898438}"
+        },
+        {
+            "key": "weather",
+            "data": "{\"type\":0,\"hoursRemaining\":8,\"temperatureC\":8.404214859008789,\"dailyTemperatureOffset\":-0.2564990520477295,\"windDirection\":137.3645782470703,\"dryDays\":0,\"rainedToday\":false,\"seed\":59937281,\"heatWaveStrengthC\":0.0,\"heatWaveTotalHours\":0,\"rainRecentHours\":0.0}"
+        },
+        {
+            "key": "fires",
+            "data": "{\"fires\":[],\"nextId\":1}"
+        },
+        {
+            "key": "traps",
+            "data": "{\"traps\":[],\"nextId\":1}"
+        },
+        {
+            "key": "forage",
+            "data": "{\"patches\":[],\"seed\":59937281}"
+        },
+        {
+            "key": "wood",
+            "data": "{\"felled\":[{\"index\":3247,\"stump\":true}],\"piles\":[{\"id\":1,\"kind\":0,\"position\":{\"x\":14.924531936645508,\"y\":28.051406860351564,\"z\":-103.54798126220703},\"yaw\":204.7225799560547,\"contents\":[{\"itemId\":\"logs\",\"count\":1,\"day\":0}]},{\"id\":2,\"kind\":1,\"position\":{\"x\":17.354278564453126,\"y\":29.593307495117189,\"z\":-89.93867492675781},\"yaw\":324.7002868652344,\"contents\":[{\"itemId\":\"logs\",\"count\":2,\"day\":0}]},{\"id\":3,\"kind\":2,\"position\":{\"x\":15.120330810546875,\"y\":29.52831268310547,\"z\":-91.50944519042969},\"yaw\":308.800048828125,\"contents\":[{\"itemId\":\"stone\",\"count\":5,\"day\":0}]}],\"nextPileId\":4,\"snowLoadHours\":0.0,\"stormAfterglow\":0.0}"
+        },
+        {
+            "key": "stone",
+            "data": "{\"gathered\":[1047,248,246,250,249,247],\"mined\":0}"
+        },
+        {
+            "key": "grass",
+            "data": "{\"ids\":[74,1106,55,33,35,81],\"cutDays\":[0,0,0,0,0,0]}"
+        },
+        {
+            "key": "dropped",
+            "data": "{\"items\":[]}"
+        },
+        {
+            "key": "groundSnow",
+            "data": "{\"amount\":0.0}"
+        }
+    ]
+}

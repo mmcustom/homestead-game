@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "inventory",
+            "data": "{\"player\":{\"id\":\"player\",\"maxWeightKg\":45.0,\"stacks\":[{\"itemId\":\"knife\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"flint_and_steel\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"bolt_action_rifle\",\"quantity\":1,\"acquiredDay\":94},{\"itemId\":\"sleeping_bag\",\"quantity\":1,\"acquiredDay\":94},{\"itemId\":\"rifle_rounds\",\"quantity\":5,\"acquiredDay\":114},{\"itemId\":\"cordage\",\"quantity\":11,\"acquiredDay\":114},{\"itemId\":\"spile\",\"quantity\":1,\"acquiredDay\":119},{\"itemId\":\"sap_bucket\",\"quantity\":1,\"acquiredDay\":121},{\"itemId\":\"cooked_small_game\",\"quantity\":2,\"acquiredDay\":123},{\"itemId\":\"axe\",\"quantity\":1,\"acquiredDay\":123},{\"itemId\":\"tall_grass\",\"quantity\":3,\"acquiredDay\":123}]},\"equippedItemId\":\"bolt_action_rifle\",\"storage\":[],\"hotkeys\":[\"bolt_action_rifle\",\"axe\",\"spile\",\"hammer\",\"iron_shovel\",\"wood_saw\",\"fishing_rod\",\"primitive_bow\",\"\",\"\"]}"
+        }
+    ]
+}

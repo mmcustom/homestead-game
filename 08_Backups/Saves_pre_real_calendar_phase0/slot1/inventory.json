@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "inventory",
+            "data": "{\"player\":{\"id\":\"player\",\"maxWeightKg\":45.0,\"stacks\":[{\"itemId\":\"sleeping_bag\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"axe\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"flint_and_steel\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"knife\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"bolt_action_rifle\",\"quantity\":2,\"acquiredDay\":0},{\"itemId\":\"rifle_rounds\",\"quantity\":11,\"acquiredDay\":0},{\"itemId\":\"hammer\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"small_furs\",\"quantity\":2,\"acquiredDay\":5},{\"itemId\":\"kindling_bundle\",\"quantity\":1,\"acquiredDay\":5},{\"itemId\":\"cordage\",\"quantity\":1,\"acquiredDay\":5}]},\"equippedItemId\":\"\",\"storage\":[],\"hotkeys\":[\"hammer\",\"axe\",\"bolt_action_rifle\",\"shovel\",\"\",\"\",\"\",\"\",\"\",\"\"]}"
+        }
+    ]
+}

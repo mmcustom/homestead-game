@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "inventory",
+            "data": "{\"player\":{\"id\":\"player\",\"maxWeightKg\":45.0,\"stacks\":[{\"itemId\":\"bucket\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"knife\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"recurve_bow\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"arrows\",\"quantity\":20,\"acquiredDay\":0},{\"itemId\":\"primitive_axe\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"shovel\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"hammer\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"flint_and_steel\",\"quantity\":1,\"acquiredDay\":2},{\"itemId\":\"cordage\",\"quantity\":10,\"acquiredDay\":3},{\"itemId\":\"fishing_rod\",\"quantity\":1,\"acquiredDay\":3},{\"itemId\":\"bolt_action_rifle\",\"quantity\":1,\"acquiredDay\":8},{\"itemId\":\"rifle_rounds\",\"quantity\":7,\"acquiredDay\":8},{\"itemId\":\"sticks\",\"quantity\":9,\"acquiredDay\":8},{\"itemId\":\"sticks\",\"quantity\":6,\"acquiredDay\":92}]},\"equippedItemId\":\"\",\"storage\":[],\"hotkeys\":[\"primitive_axe\",\"shovel\",\"hammer\",\"bow_drill\",\"fishing_rod\",\"bolt_action_rifle\",\"\",\"\",\"\",\"\"]}"
+        }
+    ]
+}

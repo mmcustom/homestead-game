@@ -1,0 +1,48 @@
+{
+    "sections": [
+        {
+            "key": "groundwood",
+            "data": "{\"ids\":[9851,6012,5951,6018,6013,6236,11182,6238,6014,6017,6015,6157,6242,6016,6240,6239,6088,6089,6241,5952,5955],\"takenDays\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1]}"
+        },
+        {
+            "key": "time",
+            "data": "{\"totalDays\":2,\"minuteOfDay\":829.2565307617188}"
+        },
+        {
+            "key": "weather",
+            "data": "{\"type\":1,\"hoursRemaining\":3,\"temperatureC\":13.905582427978516,\"dailyTemperatureOffset\":3.041531562805176,\"windDirection\":45.68669891357422,\"dryDays\":1,\"rainedToday\":true,\"seed\":83427734,\"heatWaveStrengthC\":0.0,\"heatWaveTotalHours\":0,\"rainRecentHours\":13.0}"
+        },
+        {
+            "key": "fires",
+            "data": "{\"fires\":[{\"id\":1,\"position\":{\"x\":-9.608997344970704,\"y\":21.808712005615236,\"z\":87.06884002685547},\"yaw\":103.29991149902344,\"fuelHours\":10.80722713470459,\"lit\":true},{\"id\":2,\"position\":{\"x\":-13.945027351379395,\"y\":21.8522891998291,\"z\":87.59454345703125},\"yaw\":189.39968872070313,\"fuelHours\":0.0,\"lit\":false}],\"nextId\":3}"
+        },
+        {
+            "key": "traps",
+            "data": "{\"traps\":[],\"nextId\":1}"
+        },
+        {
+            "key": "forage",
+            "data": "{\"patches\":[],\"seed\":83428406}"
+        },
+        {
+            "key": "wood",
+            "data": "{\"felled\":[{\"index\":5377,\"stump\":false},{\"index\":5326,\"stump\":false},{\"index\":5378,\"stump\":true},{\"index\":5379,\"stump\":true},{\"index\":5327,\"stump\":true},{\"index\":5381,\"stump\":true},{\"index\":5486,\"stump\":true},{\"index\":5329,\"stump\":true},{\"index\":5382,\"stump\":true}],\"piles\":[{\"id\":1,\"kind\":8,\"position\":{\"x\":-13.737884521484375,\"y\":21.372289657592775,\"z\":86.09051513671875},\"yaw\":189.39968872070313,\"contents\":[]},{\"id\":4,\"kind\":1,\"position\":{\"x\":-9.838043212890625,\"y\":21.333711624145509,\"z\":86.41281127929688},\"yaw\":81.89947509765625,\"contents\":[{\"itemId\":\"branches\",\"count\":27,\"day\":0},{\"itemId\":\"sticks\",\"count\":35,\"day\":0}]},{\"id\":9,\"kind\":0,\"position\":{\"x\":10.37313461303711,\"y\":20.257001876831056,\"z\":104.3987045288086},\"yaw\":24.956947326660158,\"contents\":[{\"itemId\":\"logs\",\"count\":3,\"day\":0}]}],\"nextPileId\":12,\"snowLoadHours\":0.0,\"stormAfterglow\":0.0}"
+        },
+        {
+            "key": "stone",
+            "data": "{\"gathered\":[162,110,2021,191,207,225,2012,205,2009,201,2075,2069],\"mined\":0}"
+        },
+        {
+            "key": "grass",
+            "data": "{\"ids\":[1090,1041,64,74,1106,1078,77,55,81,56,1003,1044,66,1006,1102,1010,30,1014,1098,51],\"cutDays\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}"
+        },
+        {
+            "key": "dropped",
+            "data": "{\"items\":[]}"
+        },
+        {
+            "key": "groundSnow",
+            "data": "{\"amount\":0.0}"
+        }
+    ]
+}

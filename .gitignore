@@ -20,3 +20,5 @@ Thumbs.db
 
 # Mike's spare sound candidates from audio sourcing — kept locally, not part of the project
 /Xtra Sound files/
+# Blender's automatic copy of the previous save (the .blend itself is committed)
+*.blend1

@@ -25,6 +25,10 @@
 *.obj filter=lfs diff=lfs merge=lfs -text
 *.blend filter=lfs diff=lfs merge=lfs -text
 *.dae filter=lfs diff=lfs merge=lfs -text
+*.glb filter=lfs diff=lfs merge=lfs -text
+
+# Baked data from the Blender art work
+*.npz filter=lfs diff=lfs merge=lfs -text
 
 # Video
 *.mp4 filter=lfs diff=lfs merge=lfs -text

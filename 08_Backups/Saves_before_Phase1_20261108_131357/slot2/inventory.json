@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "inventory",
+            "data": "{\"player\":{\"id\":\"player\",\"maxWeightKg\":45.0,\"stacks\":[{\"itemId\":\"knife\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"shovel\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"hammer\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"flint_and_steel\",\"quantity\":1,\"acquiredDay\":2},{\"itemId\":\"sleeping_bag\",\"quantity\":1,\"acquiredDay\":2},{\"itemId\":\"spile\",\"quantity\":1,\"acquiredDay\":28},{\"itemId\":\"sap_bucket\",\"quantity\":1,\"acquiredDay\":28},{\"itemId\":\"bolt_action_rifle\",\"quantity\":1,\"acquiredDay\":28},{\"itemId\":\"rifle_rounds\",\"quantity\":5,\"acquiredDay\":28},{\"itemId\":\"cooking_pot\",\"quantity\":1,\"acquiredDay\":28},{\"itemId\":\"axe\",\"quantity\":1,\"acquiredDay\":28},{\"itemId\":\"fishing_rod\",\"quantity\":1,\"acquiredDay\":28},{\"itemId\":\"cooked_catfish\",\"quantity\":1,\"acquiredDay\":28},{\"itemId\":\"cordage\",\"quantity\":8,\"acquiredDay\":29},{\"itemId\":\"tall_grass\",\"quantity\":1,\"acquiredDay\":29},{\"itemId\":\"firewood\",\"quantity\":1,\"acquiredDay\":30},{\"itemId\":\"cooked_small_game\",\"quantity\":2,\"acquiredDay\":30}]},\"equippedItemId\":\"\",\"storage\":[],\"hotkeys\":[\"axe\",\"hammer\",\"bolt_action_rifle\",\"shovel\",\"spile\",\"fishing_rod\",\"\",\"\",\"\",\"\"]}"
+        }
+    ]
+}

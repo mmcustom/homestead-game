@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "inventory",
+            "data": "{\"player\":{\"id\":\"player\",\"maxWeightKg\":45.0,\"stacks\":[{\"itemId\":\"bolt_action_rifle\",\"quantity\":1,\"acquiredDay\":34},{\"itemId\":\"rifle_rounds\",\"quantity\":5,\"acquiredDay\":34},{\"itemId\":\"sleeping_bag\",\"quantity\":1,\"acquiredDay\":2},{\"itemId\":\"knife\",\"quantity\":2,\"acquiredDay\":33},{\"itemId\":\"flint_and_steel\",\"quantity\":1,\"acquiredDay\":4},{\"itemId\":\"firewood\",\"quantity\":9,\"acquiredDay\":925},{\"itemId\":\"axe\",\"quantity\":1,\"acquiredDay\":927},{\"itemId\":\"canteen\",\"quantity\":1,\"acquiredDay\":927},{\"itemId\":\"weather_station\",\"quantity\":1,\"acquiredDay\":927}]},\"equippedItemId\":\"\",\"storage\":[],\"hotkeys\":[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]}"
+        }
+    ]
+}

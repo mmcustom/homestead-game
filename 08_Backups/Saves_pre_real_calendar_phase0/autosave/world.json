@@ -1,0 +1,60 @@
+{
+    "sections": [
+        {
+            "key": "groundwood",
+            "data": "{\"ids\":[],\"takenDays\":[]}"
+        },
+        {
+            "key": "taps",
+            "data": "{\"taps\":[],\"hoursSinceFreeze\":5.0,\"nextId\":1}"
+        },
+        {
+            "key": "time",
+            "data": "{\"totalDays\":0,\"minuteOfDay\":720.0}"
+        },
+        {
+            "key": "weather",
+            "data": "{\"type\":0,\"hoursRemaining\":23,\"temperatureC\":3.0,\"dailyTemperatureOffset\":-0.13297438621520997,\"windDirection\":53.61940383911133,\"dryDays\":0,\"rainedToday\":true,\"seed\":123588531,\"heatWaveStrengthC\":0.0,\"heatWaveTotalHours\":0,\"rainRecentHours\":18.0}"
+        },
+        {
+            "key": "fires",
+            "data": "{\"fires\":[],\"nextId\":1}"
+        },
+        {
+            "key": "traps",
+            "data": "{\"traps\":[],\"nextId\":1}"
+        },
+        {
+            "key": "forage",
+            "data": "{\"patches\":[],\"seed\":123588578}"
+        },
+        {
+            "key": "wood",
+            "data": "{\"felled\":[],\"piles\":[],\"nextPileId\":1,\"snowLoadHours\":0.0,\"stormAfterglow\":0.0}"
+        },
+        {
+            "key": "stone",
+            "data": "{\"gathered\":[],\"mined\":0}"
+        },
+        {
+            "key": "grass",
+            "data": "{\"ids\":[],\"cutDays\":[]}"
+        },
+        {
+            "key": "dropped",
+            "data": "{\"items\":[]}"
+        },
+        {
+            "key": "ponds",
+            "data": "{\"names\":[],\"levels\":[],\"overflowHours\":[]}"
+        },
+        {
+            "key": "stream",
+            "data": "{\"stageMm\":0.0,\"creekMurkHours\":0.0}"
+        },
+        {
+            "key": "groundSnow",
+            "data": "{\"amount\":0.0}"
+        }
+    ]
+}

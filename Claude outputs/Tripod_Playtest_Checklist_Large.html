@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tripod Playtest Checklist (large print)</title>
+<style>
+  :root { --bg:#ffffff; --fg:#111111; --muted:#444444; --card:#f3f1ea; --line:#cfc9b8; --pass:#1b7a2f; --fail:#b3261e; --accent:#7a4a12; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16140f; --fg:#f4f1e6; --muted:#cfc9b8; --card:#24211a; --line:#4a4536; --pass:#59d37a; --fail:#ff7b72; --accent:#e8b568; }
+  }
+  html { font-size: 22px; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family: Georgia, "Times New Roman", serif; line-height:1.5; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+  h1 { font-size: 2rem; line-height:1.2; margin: 0 0 12px; }
+  h2 { font-size: 1.5rem; color: var(--accent); margin: 40px 0 12px; border-bottom: 3px solid var(--line); padding-bottom: 6px; }
+  p { margin: 0 0 14px; }
+  .note { background: var(--card); border-left: 6px solid var(--accent); padding: 12px 16px; border-radius: 6px; margin: 0 0 16px; }
+  .item { background: var(--card); border: 2px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 0 0 14px; }
+  .item.pass { border-color: var(--pass); }
+  .item.fail { border-color: var(--fail); }
+  .row { display:flex; gap:12px; align-items:flex-start; }
+  .num { font-weight:700; font-size:1.4rem; min-width: 2.2rem; color: var(--accent); }
+  .text { flex:1; }
+  .btns { display:flex; gap:10px; margin-top: 12px; flex-wrap: wrap; }
+  button { font: inherit; font-weight:700; padding: 8px 22px; border-radius: 8px; border: 3px solid var(--line); background: var(--bg); color: var(--fg); cursor:pointer; min-height: 48px; }
+  button.p.on { background: var(--pass); border-color: var(--pass); color:#fff; }
+  button.f.on { background: var(--fail); border-color: var(--fail); color:#fff; }
+  input.why { font: inherit; width:100%; box-sizing:border-box; margin-top:10px; padding:8px 10px; border:2px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); display:none; }
+  .item.fail input.why { display:block; }
+  #summary { position: sticky; bottom: 0; background: var(--bg); border-top: 4px solid var(--accent); padding: 12px 16px; margin: 30px -16px 0; }
+  #out { width:100%; box-sizing:border-box; font: inherit; padding:10px; border:2px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); min-height: 90px; }
+  .count { font-weight:700; margin-bottom:6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tripod (Hanging Cooking Pot) Playtest Checklist</h1>
+
+  <div class="note">
+    <p><strong>Status:</strong> the full test suite passes (858 of 858, Console clean). Nothing has been seen in Play Mode yet, so this is the first real look.</p>
+    <p><strong>How to use this page:</strong> press Pass or Fail on each item. If you press Fail, a box opens for a short note. The box at the bottom builds your reply for you. Copy it and paste it into the chat.</p>
+  </div>
+
+  <div class="note">
+    <p><strong>Before you start:</strong> the Saves folder is backed up (SavesBackup29, 22 files, 0 differences). Use a throwaway new game. Tell Claude Code when you finish so it can restore the Saves folder.</p>
+    <p><strong>Setup:</strong> a Homesteader game starts with the Hammer, Tripod and Pot. On another tier, F11 gives the starting kit (with a Tripod) and F12 gives the full kit. Items 1 and 2 need 3 Branches and 1 Cordage (fell a tree if you have no Branches). Dev keys: Delete gives 20 L of Maple Sap, F5 skips a day.</p>
+  </div>
+
+  <div id="list"></div>
+
+  <div id="summary">
+    <div class="count" id="count"></div>
+    <textarea id="out" readonly></textarea>
+  </div>
+</main>
+
+<script>
+const sections = [
+  ["Craft and set up", [
+    "Open Craft > Fire and Light with 3 Branches and 1 Cordage and craft a Tripod. A 3 kg Tripod is in the pack.",
+    "Try to craft one without the materials. The banner says what is missing.",
+    "Open Build > Other with no Tripod and click Set Up. It refuses with a message starting \"Needs a Tripod\".",
+    "Carry a Tripod, build a Campfire, and click Set Up. The screen closes and a green ghost sits on the nearest fire within 3 m.",
+    "Aim more than 3 m from any fire. No ghost shows and the HUD says \"Aim at a fire within 3 m of you.\"",
+    "Left-click the green ghost. Poles stand over the fire, the Tripod leaves the pack, and the message tells you to press E to hang the Pot.",
+    "Try to set up a second tripod on the same fire. The ghost is red with \"This fire already has a tripod.\"",
+    "Try the Grill's fire. The ghost is red with \"The Grill's firebox is too small for a tripod.\""
+  ]],
+  ["Hang the Pot and boil", [
+    "Aim at the poles with the Pot in the pack and press E. The prompt reads \"Hang the Cooking Pot on the tripod\", the Pot appears hanging over the fire, and it leaves the pack.",
+    "Aim at the fire ring, not the poles, and press E. The fire still lights or takes fuel as before.",
+    "With the fire lit and raw water in the pack, open Inventory (I) and use Boil. The row is enabled and boiling gives Purified Water with the progress bar.",
+    "Press Delete for 20 L of sap and Boil 2. About 24 seconds later you have 2 Maple Syrup.",
+    "During a boil, take the Pot down with E at the tripod. The HUD says \"Boiling paused: hang the Cooking Pot on a tripod at this fire\" and the queue stays in Inventory.",
+    "Hang the Pot again. The boil restarts from the beginning of the batch, and no sap or water was used up meanwhile.",
+    "At a lit fire with no tripod, open Inventory. The Boil row is disabled and says \"needs a tripod with the Cooking Pot hung\".",
+    "At that same fire, queue Cook on raw venison. It still cooks (cooking meat and fish does not need the tripod).",
+    "Walk more than 3 m from the fire during a boil. The HUD says \"Boiling paused: get back to a burning campfire\". Return and it resumes with its progress kept."
+  ]],
+  ["Take it down", [
+    "Look at the tripod while the fire is lit. The R prompt says to put the fire out first. With the fire out and no Hammer equipped it says it needs the Hammer.",
+    "With the fire out and the Hammer equipped, press R at the tripod. The Tripod and the Pot return whole to the pack, and the fire stays.",
+    "Dismantle the whole Campfire with a tripod and Pot up. The prompt's \"back:\" line lists the Tripod and Pot, and both arrive in the pack.",
+    "Put a tripod on a Cabin hearth or Kitchen hearth, hang the Pot and boil. It works. Dismantling the Kitchen or Cabin returns them and shows \"Took down the tripod\"."
+  ]],
+  ["Saves, kits and Console", [
+    "Save, quit and load with the Pot hung. The tripod and Pot are still there and boiling works.",
+    "Load an older save that has a Pot in the pack and no tripod. The Pot stays in the pack and boiling says it needs a tripod.",
+    "Start new games on all three tiers. Settler and Homesteader carry a Tripod and the Pot, the Pioneer carries neither. The Console is clean throughout."
+  ]]
+];
+
+const state = {};   // n -> {r:'p'|'f'|undefined, why:''}
+const list = document.getElementById('list');
+let n = 0;
+const total = sections.reduce((a, s) => a + s[1].length, 0);
+
+sections.forEach(([title, items]) => {
+  const h = document.createElement('h2'); h.textContent = title; list.appendChild(h);
+  items.forEach(text => {
+    n += 1; const id = n; state[id] = {};
+    const d = document.createElement('div'); d.className = 'item';
+    d.innerHTML =
+      '<div class="row"><div class="num">' + id + '</div><div class="text"></div></div>' +
+      '<div class="btns"><button class="p" type="button">Pass</button><button class="f" type="button">Fail</button></div>' +
+      '<input class="why" type="text" placeholder="What went wrong? (short note)">';
+    d.querySelector('.text').textContent = text;
+    const bp = d.querySelector('.p'), bf = d.querySelector('.f'), why = d.querySelector('.why');
+    function set(r) {
+      state[id].r = (state[id].r === r) ? undefined : r;
+      d.className = 'item' + (state[id].r === 'p' ? ' pass' : state[id].r === 'f' ? ' fail' : '');
+      bp.classList.toggle('on', state[id].r === 'p');
+      bf.classList.toggle('on', state[id].r === 'f');
+      update();
+    }
+    bp.onclick = () => set('p'); bf.onclick = () => set('f');
+    why.oninput = () => { state[id].why = why.value; update(); };
+    list.appendChild(d);
+  });
+});
+
+function range(nums) {
+  const parts = []; let i = 0;
+  while (i < nums.length) {
+    let j = i; while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++;
+    parts.push(j - i >= 2 ? nums[i] + ' to ' + nums[j] : nums.slice(i, j + 1).join(', '));
+    i = j + 1;
+  }
+  return parts.join(', ');
+}
+
+function update() {
+  const pass = [], fail = [], left = [];
+  for (let k = 1; k <= total; k++) {
+    const r = state[k].r;
+    if (r === 'p') pass.push(k); else if (r === 'f') fail.push(k); else left.push(k);
+  }
+  document.getElementById('count').textContent =
+    pass.length + ' pass, ' + fail.length + ' fail, ' + left.length + ' not done yet (of ' + total + ')';
+  const lines = [];
+  if (pass.length) lines.push(range(pass) + ' pass');
+  fail.forEach(k => lines.push(k + ' fail' + (state[k].why ? ', ' + state[k].why : '')));
+  if (left.length && left.length < total) lines.push('Not tested: ' + range(left));
+  document.getElementById('out').value = lines.join('\n');
+}
+update();
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+    "sections": [
+        {
+            "key": "setup",
+            "data": "{\"version\":1,\"hasSetup\":true,\"setup\":{\"difficulty\":1,\"hasLand\":false,\"parcelIndex\":0,\"downCents\":0,\"reserveCents\":0}}"
+        },
+        {
+            "key": "survival",
+            "data": "{\"health\":100.0,\"hydration\":99.69658660888672,\"hunger\":99.84831237792969,\"illnessHours\":0.0,\"chill\":8.112144470214844,\"wetness\":0.03791949152946472,\"coreTempC\":36.8377571105957,\"damp\":0.0,\"collapseCount\":0,\"collapseClockDay\":0,\"weakenedHours\":0.0,\"weakenedStamina\":1.0}"
+        },
+        {
+            "key": "money",
+            "data": "{\"version\":1,\"money\":0,\"cents\":0}"
+        },
+        {
+            "key": "difficulty",
+            "data": "{\"difficulty\":1,\"saved\":true}"
+        },
+        {
+            "key": "loan",
+            "data": "{\"version\":1,\"hasLoan\":false,\"loan\":{\"acres\":0,\"priceCents\":0,\"downCents\":0,\"originalCents\":0,\"paymentCents\":0,\"balanceCents\":0,\"nextDueDay\":0,\"paymentsDue\":0,\"paymentsMade\":0,\"interestPaid\":0,\"feesPaid\":0,\"principalPaid\":0,\"extraPaid\":0,\"soonNoticeDue\":-1,\"terms\":{\"rateBasisPoints\":0,\"payments\":0,\"intervalDays\":0,\"firstDueDay\":0,\"graceDays\":0,\"lateFeeCents\":0},\"open\":[]}}"
+        },
+        {
+            "key": "market",
+            "data": "{\"version\":1,\"lastDay\":0,\"pools\":[{\"pool\":\"flint_and_steel\",\"bp\":10000},{\"pool\":\"knife\",\"bp\":10000},{\"pool\":\"canteen\",\"bp\":10000},{\"pool\":\"bucket\",\"bp\":10000},{\"pool\":\"cooking_pot\",\"bp\":10000},{\"pool\":\"tarp\",\"bp\":10000},{\"pool\":\"sleeping_bag\",\"bp\":10000},{\"pool\":\"tent\",\"bp\":10000},{\"pool\":\"axe\",\"bp\":10000},{\"pool\":\"hammer\",\"bp\":10000},{\"pool\":\"fishing_rod\",\"bp\":10000},{\"pool\":\"recurve_bow\",\"bp\":10000},{\"pool\":\"bolt_action_rifle\",\"bp\":10000},{\"pool\":\"lamp_oil\",\"bp\":10000},{\"pool\":\"lumber\",\"bp\":10000},{\"pool\":\"weather_station\",\"bp\":10000},{\"pool\":\"potash_kettle\",\"bp\":10000},{\"pool\":\"wood_saw\",\"bp\":10000},{\"pool\":\"iron_ore\",\"bp\":10000},{\"pool\":\"deer_hide\",\"bp\":10000},{\"pool\":\"deer_antlers\",\"bp\":10000},{\"pool\":\"small_furs\",\"bp\":10000},{\"pool\":\"feathers\",\"bp\":10000},{\"pool\":\"sinew\",\"bp\":10000},{\"pool\":\"venison\",\"bp\":10000},{\"pool\":\"turkey_meat\",\"bp\":10000},{\"pool\":\"waterfowl_meat\",\"bp\":10000},{\"pool\":\"small_game_meat\",\"bp\":10000},{\"pool\":\"chicken_meat\",\"bp\":10000},{\"pool\":\"bluegill\",\"bp\":10000},{\"pool\":\"crappie\",\"bp\":10000},{\"pool\":\"bass\",\"bp\":10000},{\"pool\":\"catfish\",\"bp\":10000},{\"pool\":\"blackberries\",\"bp\":8500},{\"pool\":\"raspberries\",\"bp\":8500},{\"pool\":\"wild_apples\",\"bp\":8500},{\"pool\":\"pawpaw\",\"bp\":8500},{\"pool\":\"chestnuts\",\"bp\":8500},{\"pool\":\"hickory_nuts\",\"bp\":8500},{\"pool\":\"walnuts\",\"bp\":8500},{\"pool\":\"morel\",\"bp\":8500},{\"pool\":\"oyster_mushroom\",\"bp\":8500},{\"pool\":\"dryads_saddle\",\"bp\":8500},{\"pool\":\"wild_onion\",\"bp\":8500},{\"pool\":\"cattail\",\"bp\":8500},{\"pool\":\"chicken_eggs\",\"bp\":10000},{\"pool\":\"goat_milk\",\"bp\":10000},{\"pool\":\"firewood\",\"bp\":10000},{\"pool\":\"logs\",\"bp\":10000},{\"pool\":\"stone\",\"bp\":10000},{\"pool\":\"charcoal\",\"bp\":10000},{\"pool\":\"stone_pick_axe\",\"bp\":10000},{\"pool\":\"shovel\",\"bp\":10000},{\"pool\":\"primitive_axe\",\"bp\":10000},{\"pool\":\"rabbit_snare\",\"bp\":10000},{\"pool\":\"box_trap\",\"bp\":10000},{\"pool\":\"fish_trap\",\"bp\":10000},{\"pool\":\"cane_pole\",\"bp\":10000},{\"pool\":\"pouch\",\"bp\":10000},{\"pool\":\"torch\",\"bp\":10000},{\"pool\":\"bow_drill\",\"bp\":10000},{\"pool\":\"lantern\",\"bp\":10000},{\"pool\":\"primitive_bow\",\"bp\":10000},{\"pool\":\"ash\",\"bp\":10000},{\"pool\":\"kindling_bundle\",\"bp\":10000},{\"pool\":\"maple_syrup\",\"bp\":10000},{\"pool\":\"lye\",\"bp\":10000},{\"pool\":\"potash\",\"bp\":10000},{\"pool\":\"rough_stool\",\"bp\":10000},{\"pool\":\"end_table\",\"bp\":10000},{\"pool\":\"chair\",\"bp\":10000},{\"pool\":\"table\",\"bp\":10000},{\"pool\":\"clay_cup\",\"bp\":10000},{\"pool\":\"clay_bowl\",\"bp\":10000},{\"pool\":\"clay_pot\",\"bp\":10000},{\"pool\":\"water_crock\",\"bp\":10000},{\"pool\":\"brick_batch\",\"bp\":10000},{\"pool\":\"door_hinges\",\"bp\":10000},{\"pool\":\"hook_set\",\"bp\":10000},{\"pool\":\"nails_box\",\"bp\":10000}]}"
+        },
+        {
+            "key": "ledger",
+            "data": "{\"version\":1,\"daysPerSeason\":28,\"started\":true,\"unread\":false,\"open\":{\"index\":0,\"startMinute\":360,\"endMinute\":0,\"cashStart\":0,\"cashEnd\":0,\"loanEnd\":0,\"owedEnd\":0,\"realMillis\":13296,\"cents\":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],\"items\":[]},\"closed\":[]}"
+        },
+        {
+            "key": "portable_light",
+            "data": "{\"torchHoursLeft\":0.0,\"lanternFuelHours\":0.0}"
+        },
+        {
+            "key": "controller",
+            "data": "{\"position\":{\"x\":20.0,\"y\":27.252588272094728,\"z\":-40.0},\"yaw\":180.0,\"pitch\":0.0,\"stamina\":100.0,\"crouched\":false}"
+        }
+    ]
+}

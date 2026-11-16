@@ -1,0 +1,8 @@
+{
+    "sections": [
+        {
+            "key": "inventory",
+            "data": "{\"player\":{\"id\":\"player\",\"maxWeightKg\":45.0,\"stacks\":[{\"itemId\":\"tent\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"sleeping_bag\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"cooking_pot\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"tripod\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"bucket\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"axe\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"stone_pick_axe\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"shovel\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"canteen\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"flint_and_steel\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"cordage\",\"quantity\":3,\"acquiredDay\":0},{\"itemId\":\"knife\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"bolt_action_rifle\",\"quantity\":1,\"acquiredDay\":0},{\"itemId\":\"rifle_rounds\",\"quantity\":10,\"acquiredDay\":0}]},\"equippedItemId\":\"knife\",\"storage\":[],\"hotkeys\":[\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\",\"\"]}"
+        }
+    ]
+}

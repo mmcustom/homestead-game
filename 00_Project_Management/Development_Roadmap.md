@@ -237,7 +237,7 @@ Style decision: realistic (PBR), 2026-11-05. Art_Needed_List.md holds the list i
 - The rifle model is a placeholder with an unfinished shoulder seat (Art_Needed_List.md row tool_bolt_action_rifle).
 - A packaged build and how the game would be shared have not been scoped.
 - The "PlayerLoop internal function has been called recursively" console message was traced on 2026-11-07 to the Unity MCP package's synchronous screenshot call (editor only, cannot affect a built game). No game change.
-- Never committed on purpose: Homestead.slnx, Captures/, the top-level Art/ and Blender/ folders, Claude outputs/, 08_Backups/ (including Saves). A push uploads Resources/Art as Git LFS objects (done 2026-11-07, 30 MB).
+- Never committed on purpose: Homestead.slnx and Blender's *.blend1 backup copies (both gitignored). Since 2026-11-16 everything else is committed, including Resources/Art, the top-level Art/ and Blender/ folders, Captures/, Claude outputs/ and 08_Backups/ (Mike's call: "include everything with the next commit, even the art"). Images, models and .blend files go up as Git LFS objects (about 1.7 GB in that first commit).
 
 ## Next step (Mike to pick)
 
@@ -273,7 +273,7 @@ Built with Claude (Copilot is no longer on the project): Blender through the Ble
 
 ## Open question
 
-- **Committing Resources/Art:** the 2026-11-07 update says Resources/Art was pushed as Git LFS objects, while the working rule in the art sessions has been "never commit Resources/Art or Art\". Mike to decide which holds; until then the new art stays uncommitted.
+- **Committing Resources/Art:** settled 2026-11-16. Mike decided all art is committed (Resources/Art and the Art\ sources), stored with Git LFS. Watch the GitHub LFS storage quota as art grows.
 
 ## Next step (Mike to pick; the 2026-11-07 candidate list still stands)
 

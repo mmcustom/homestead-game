@@ -1,0 +1,24 @@
+{
+    "sections": [
+        {
+            "key": "survival",
+            "data": "{\"health\":100.0,\"hydration\":95.0699234008789,\"hunger\":87.20755767822266,\"illnessHours\":0.0,\"chill\":0.0,\"wetness\":0.0,\"coreTempC\":37.494422912597659,\"damp\":0.0,\"collapseCount\":1,\"collapseClockDay\":503,\"weakenedHours\":0.0,\"weakenedStamina\":1.0}"
+        },
+        {
+            "key": "money",
+            "data": "{\"money\":176}"
+        },
+        {
+            "key": "difficulty",
+            "data": "{\"difficulty\":2,\"saved\":true}"
+        },
+        {
+            "key": "portable_light",
+            "data": "{\"torchHoursLeft\":0.0,\"lanternFuelHours\":0.0}"
+        },
+        {
+            "key": "controller",
+            "data": "{\"position\":{\"x\":-13.057039260864258,\"y\":21.349227905273439,\"z\":89.950439453125},\"yaw\":-5759.345703125,\"pitch\":46.071048736572269,\"stamina\":100.0,\"crouched\":false}"
+        }
+    ]
+}
