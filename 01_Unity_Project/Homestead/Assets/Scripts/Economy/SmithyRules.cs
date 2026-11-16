@@ -66,7 +66,7 @@ public static class SmithyRules
         public int bars, charcoal;
         public int sticks, cordage; // M4: the iron tools' other ingredients, taken from the forge's stock like the Bars and the Charcoal (0 for the goods)
         public int hours;          // game hours the job takes
-        public long baseCents;     // the Trading Post's base price; 0 = for the player's own use, with no market row (the iron tools)
+        public long baseCents;     // the Trading Post's price for a good; 0 = a tool for the player's own use (the iron tools: no price on the Smithy screen and no Ledger line here; the Trading Post stocks them, see ToolRules)
         public float weightKg;
         public bool OwnUse => baseCents <= 0;
     }
@@ -77,7 +77,7 @@ public static class SmithyRules
         new Recipe { itemId = HingesId, name = "Door Hinges", metalId = MetalRules.IronId, bars = 1, charcoal = 1, hours = 3, baseCents = 2600, weightKg = 0.8f },
         new Recipe { itemId = HooksId, name = "Hook Set", metalId = MetalRules.IronId, bars = 1, charcoal = 1, hours = 2, baseCents = 1800, weightKg = 0.5f },
         new Recipe { itemId = NailsId, name = "Box of Nails (20)", metalId = MetalRules.IronId, bars = 1, charcoal = 1, hours = 2, baseCents = 1600, weightKg = 0.6f },
-        // M4: the iron tools, for the player's own use (baseCents 0: no market row, no price, no Ledger line). Each is a Bar-and-Charcoal job with a haft and lashing, like the stone tool's sticks and cordage.
+        // M4: the iron tools, for the player's own use (baseCents 0: no price on the Smithy screen, no Ledger line; since 2026-11-14 the Trading Post also stocks them). Each is a Bar-and-Charcoal job with a haft and lashing, like the stone tool's sticks and cordage.
         new Recipe { itemId = IronShovelId, name = "Iron Shovel", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 3, cordage = 1, hours = 3, baseCents = 0, weightKg = 1.8f },
         new Recipe { itemId = IronPickAxeId, name = "Iron Pick Axe", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 2, cordage = 1, hours = 3, baseCents = 0, weightKg = 2f },
     };
@@ -215,7 +215,7 @@ public static class SmithyRules
     // What collecting a finished item flashes: goods are for sale, tools are the player's own.
     public static string TookMessage(Recipe good, int took, int stayed) =>
         stayed > 0 ? $"Took {took} {good.name} ({stayed} left in the Smithy, no room)."
-        : good.OwnUse ? $"Took the {good.name}. It is yours to use; it cannot be sold."
+        : good.OwnUse ? $"Took the {good.name}. It is yours to use."
         : $"Took the {good.name}. Sell it at the Trading Post.";
 
     public static string BuiltMessage =>
@@ -255,13 +255,13 @@ public static class SmithyRules
         return $"Forge is idle - it holds {BarsText(bars)}, {charcoal} Charcoal, {SticksText(sticks)}, {cordage} Cordage";
     }
 
-    // A list row: the name, then the hours and what the Trading Post pays now (cents; 0 shows the base price), or "own use" for a tool that is not sold.
+    // A list row: the name, then the hours and what the Trading Post pays now (cents; 0 shows the base price), or "own use" for a tool.
     public static string ListLabel(Recipe recipe, long sellCents) =>
         recipe.OwnUse ? $"{recipe.name}\n{recipe.hours} h  -  own use" : $"{recipe.name}\n{recipe.hours} h  -  {Money.Format(sellCents > 0 ? sellCents : recipe.baseCents)}";
 
     // The detail line under the name: hours, weight and the base price, or what a tool is for.
     public static string DetailLine(Recipe recipe) =>
-        recipe.OwnUse ? $"{recipe.hours} h  -  {recipe.weightKg:0.#} kg  -  your own use, not sold"
+        recipe.OwnUse ? $"{recipe.hours} h  -  {recipe.weightKg:0.#} kg  -  your own use"
                       : $"{recipe.hours} h  -  {recipe.weightKg:0.#} kg  -  base price {Money.Format(recipe.baseCents)}";
 
     // The Start button: "START DOOR HINGES" when it can start, otherwise why not in a few words.

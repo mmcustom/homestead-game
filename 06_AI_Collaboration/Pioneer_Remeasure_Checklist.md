@@ -9,6 +9,8 @@ UPDATE 2026-11-10: rewritten for the real 365-day calendar (Phase 1) and the Wai
 
 Plan and rules: `Income_Measuring_Plan.md`. Results go into `Measurements\Income_Measuring_Log.md`.
 
+UPDATE 2026-11-10 (later): the Pioneer loan term is going to change after this run (a longer term, planned 30 years, about $440 a month or $14.47 a game day). This run measures INCOME, not whether you can afford the payment, so play it with the current terms and ignore the change.
+
 ## The numbers to keep in mind
 
 - Pioneer, 5 acres: $60,000 loan, **$573.39 a month**, due on the 1st. That is about **$18.85 per game day**. Early income target is about $25 a day.

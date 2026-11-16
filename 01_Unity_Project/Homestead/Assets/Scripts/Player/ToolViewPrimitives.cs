@@ -66,7 +66,7 @@ public static class ToolViewPrimitives
         {
             case "axe": return new Layout { twoHanded = true, holdPitch = -14f, holdRoll = -28f, gripLeft = new Vector3(0f, 0f, 0.20f), tip = new Vector3(0f, -0.14f, 0.56f) };
             case "primitive_axe": return new Layout { twoHanded = true, holdPitch = -14f, holdRoll = -28f, gripLeft = new Vector3(0f, 0f, 0.18f), tip = new Vector3(0f, -0.08f, 0.47f) };
-            case "wood_saw": return new Layout { twoHanded = true, holdPitch = -8f, holdRoll = -55f, gripLeft = new Vector3(0f, 0f, 0.30f), tip = new Vector3(0f, -0.07f, 0.62f) };
+            case "wood_saw": return new Layout { twoHanded = false, holdPitch = -8f, holdRoll = -55f, tip = new Vector3(0f, -0.07f, 0.62f) }; // one-handed (Mike, 2026-11-15)
             case "hammer": return new Layout { twoHanded = false, holdPitch = -24f, gripLeft = new Vector3(0f, 0f, 0.16f), tip = new Vector3(0f, 0f, 0.32f) };
             case "shovel":
             case "iron_shovel": return new Layout { twoHanded = true, holdPitch = -14f, gripLeft = new Vector3(0f, 0f, 0.42f), tip = new Vector3(0f, 0f, 0.92f) };
@@ -81,7 +81,7 @@ public static class ToolViewPrimitives
             case "primitive_bow": return new Layout { twoHanded = true, holdPitch = 0f, gripLeft = Vector3.zero, tip = BowTip(false), hasNock = true, nock = new Vector3(0f, BowNockY, BowTip(false).z) };
             case "recurve_bow": return new Layout { twoHanded = true, holdPitch = 0f, gripLeft = Vector3.zero, tip = BowTip(true), hasNock = true, nock = new Vector3(0f, BowNockY, BowTip(true).z) };
             case "bolt_action_rifle": return new Layout { twoHanded = true, holdPitch = -20f, gripRight = new Vector3(0f, 0f, RifleGripBack), gripLeft = new Vector3(0f, -0.02f, 0.40f), tip = new Vector3(0f, 0.01f, 0.78f), hasMuzzle = true, muzzle = new Vector3(0f, 0.01f, 0.79f) };
-            case "bow_drill": return new Layout { twoHanded = false, holdPitch = -14f, tip = new Vector3(0f, 0f, 0.32f) };
+            case "bow_drill": return new Layout { twoHanded = true, holdPitch = -14f, gripLeft = new Vector3(-0.02f, 0.112f, 0.15f), tip = new Vector3(0f, 0f, 0.32f) }; // the left hand on top of the spindle (Mike, 2026-11-15)
             case "bucket": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.22f, 0f) };
             case "sap_bucket": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.16f, 0f) };
             case "canteen": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.10f, 0f) };

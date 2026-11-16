@@ -55,6 +55,7 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
             BuildTarp();
         else
             BuildLeanTo();
+        UseArt();
     }
 
     public string InteractionPrompt
@@ -336,6 +337,30 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
         Solid("Lintel", new Vector3(0f, doorTop + lintelHeight / 2f, depth / 2f), new Vector3(DoorWidth, lintelHeight, logDiameter), Quaternion.identity);
 
         BuildHearth(stoneColor);
+    }
+
+    // The shelters' art (Art_Needed_List.md rows structure_cabin, structure_tent, structure_tarpshelter, structure_leanto; Mike
+    // 2026-11-15): when Resources/Art/structure_<kind>.prefab (ArtSwap.StructureId) exists it is drawn instead of the primitives.
+    // For the Small Cabin: The primitives stay where they are for their colliders (the floor,
+    // step, walls, lintel, hearth slab and the two roof panels, whose BoxColliders keep the rain off and RainCatchment uses)
+    // and only stop drawing. The hearth's Campfire is FireManager's own object, not a child, so it is untouched. The art is
+    // built to the same sizes as the primitives (CabinWidth, CabinDepth, WallHeight, RidgeHeight, HearthLocal) and carries no
+    // colliders of its own. The Tent and Lean-To keep the BoxCollider on this object and the Tarp Shelter its sheet's collider
+    // the same way. Without the prefab nothing changes.
+    public const string ArtPrefix = "Art/";
+
+    void UseArt()
+    {
+        GameObject prefab = Resources.Load<GameObject>(ArtPrefix + ArtSwap.StructureId(state.kind));
+        if (prefab == null)
+            return;
+
+        foreach (MeshRenderer primitive in GetComponentsInChildren<MeshRenderer>(true))
+            primitive.enabled = false;
+        GameObject art = Instantiate(prefab, transform, false);
+        art.name = "Art";
+        foreach (Collider c in art.GetComponentsInChildren<Collider>(true))
+            Destroy(c);
     }
 
     // The fireplace for the cabin's furnished campfire: a low stone slab to stand it on (walkable, with a collider), a clay

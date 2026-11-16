@@ -1,7 +1,7 @@
 # Homestead
 ## Development Roadmap
 
-Status: Active — refreshed 2026-11-07 (see the 2026-11-07 status update at the bottom, which supersedes the older "not built", "Next step" and "Still designed, not built" lists above where they differ)
+Status: Active — refreshed 2026-11-15 (see the 2026-11-15 and 2026-11-07 status updates at the bottom, which supersedes the older "not built", "Next step" and "Still designed, not built" lists above where they differ)
 
 ---
 
@@ -251,3 +251,32 @@ Candidates, not confirmed and not in priority order:
 6. Large Cabin and the housing tiers, or Power_System and the Flashlight.
 7. Regions, or digging and mining.
 8. A performance pass over the world scene, and scoping a packaged build.
+
+---
+
+# Status Update — 2026-11-15 (adds to the 2026-11-07 update; supersedes its "Art status" paragraph)
+
+Built with Claude (Copilot is no longer on the project): Blender through the Blender MCP, Unity through the Unity MCP. Each piece was checked by Mike in Play Mode before the next was started. Not yet committed at the time of writing; Mike to run the full EditMode suite before committing.
+
+## Art: Wave 1 complete
+
+- **All 30 tools now have realistic art** (baked PBR, Resources/Art/tool_<id>.prefab), every one approved in game by Mike on 2026-11-14 and 2026-11-15: knife, torch, bucket, hammer, stone and iron shovel, stone and iron pick axe, fishing rod, cane pole, lantern, primitive and recurve bow, bolt-action rifle ("ok for now"; the angled hold is a possible revisit), bow drill, sap bucket, canteen, spile, box trap, fish trap, rabbit snare, primitive axe, wood saw, flint and steel, pouch, clay pot, cooking pot, potash kettle, tarp, and the axe (rebuilt, replacing the 2026-11-05 test blockout). Details per piece in Art_Needed_List.md.
+- **Beyond Wave 1, done early:** the tap on a maple (Tap.cs uses the spile and sap bucket art, lid off, with a sap level that rises and sours) and the traps set out in the world (Trap.cs loads Resources/Art/trap_<item id>: the box trap with its door raised or shut, the fish trap on its side in the water, the snare staked with its noose at rabbit height).
+- **Still primitive:** Waves 2 to 6 (structures, storage and workshop furniture, world items and icons, animals, trees, terrain, water, weather and effects). The hands polish backlog stays open.
+
+## Gameplay changes made along the way (all played by Mike)
+
+- Every basic hand tool is now sold at the Trading Post (iron Shovel $12, iron Pick Axe $15), and every homemade tool too, at 2.5 times what the store pays; homemade items keep their own buy-back price (MarketRow.sellCents). Clay Cooking Pot included.
+- Both bows aim with the right mouse button at a gentle zoom (1.5x), like the rifle's scope but lighter.
+- The Lantern hangs by gravity like the bucket; the Bow Drill is held mirrored (left hand on the spindle); the Wood Saw is one-handed.
+- Files touched: ToolRules, MarketCatalog, Ledger, SmithyRules, KnowHowRules, MarketData.asset, PlayerHands, HuntingWeapon, HandPoseRules, ToolViewPrimitives, Tap, Trap, plus their tests (Market, Bloomery, CharcoalPit, Kiln, Maple, Potash, Smithy, SmithyTool, EquipNameFade, Hands, ToolsInHand, HangPendulum, ArtSwap) and docs (Art_Needed_List, Trading_Post_Market, Journal_KnowHow_Text).
+
+## Open question
+
+- **Committing Resources/Art:** the 2026-11-07 update says Resources/Art was pushed as Git LFS objects, while the working rule in the art sessions has been "never commit Resources/Art or Art\". Mike to decide which holds; until then the new art stays uncommitted.
+
+## Next step (Mike to pick; the 2026-11-07 candidate list still stands)
+
+Claude's suggestion: carry on with the art as the main thread (Wave 2, Kiln first since its swap point is built, then the Small Cabin; each structure needs its own ArtSwap spec row), with Money Phase D2 measuring sessions fitted in between, since only Mike can play those and the art does not depend on them.
+
+**Update 2026-11-16: Art Wave 2 complete.** All 15 shelter and main structures have realistic art, each approved in game by Mike: Kiln, Small Cabin, Tent, Tarp Shelter, Lean-To (2026-11-15); Well, Outhouse, Workshop, Potter's Shed, Charcoal Pit, Bloomery, Smithy, Leach Hopper, Covered Outdoor Kitchen and the three kitchen add-ons (2026-11-16). Code: Shelter.UseArt for the four shelters; thirteen ArtSwap rows; BuildWell, BuildLeachHopper and BuildSlopSink draw their fixed pieces before their changing ones. Details in Art_Needed_List.md. Next art: Wave 3 (storage, piles, workshop furniture, hand cart, tripod, campfire).

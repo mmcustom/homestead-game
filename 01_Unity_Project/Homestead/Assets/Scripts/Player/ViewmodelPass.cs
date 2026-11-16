@@ -48,7 +48,11 @@ public class ViewmodelPass : CustomPass
         // HDRP's Lit forward pass tests depth as Equal for opaque objects (it expects a depth prepass to have run, material value _ZTestDepthEqualForOpaque), and this pass clears its own
         // depth first, so nothing would ever pass. LessEqual with depth write on makes the hands draw (and sort among themselves) as ordinary opaque objects.
         var depthOverride = new RenderStateBlock(RenderStateMask.Depth) { depthState = new DepthState(true, CompareFunction.LessEqual) };
-        CustomPassUtils.RenderFromCamera(ctx, viewCamera, ctx.cameraColorBuffer, depth, ClearFlag.Depth, layerMask, overrideRenderState: depthOverride);
+        CustomPassUtils.RenderFromCamera(ctx, viewCamera, ctx.cameraColorBuffer, depth, ClearFlag.Depth, layerMask, RenderQueueType.AllOpaque, overrideRenderState: depthOverride);
+        // Transparent things in hand (the Torch's flame cards, later lantern glass) come second, tested against the hands' depth but never writing it,
+        // so one see-through card cannot hide another behind it (2026-11-14: a front flame card cut the back one off at its own top edge).
+        var transparentDepth = new RenderStateBlock(RenderStateMask.Depth) { depthState = new DepthState(false, CompareFunction.LessEqual) };
+        CustomPassUtils.RenderFromCamera(ctx, viewCamera, ctx.cameraColorBuffer, depth, ClearFlag.None, layerMask, RenderQueueType.AllTransparent, overrideRenderState: transparentDepth);
     }
 
     protected override void Cleanup()

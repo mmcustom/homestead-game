@@ -271,13 +271,13 @@ public class SmithyToolTests
     }
 
     [Test]
-    public void ATextForAToolSaysItIsForYourOwnUseAndNotSold()
+    public void ATextForAToolSaysItIsForYourOwnUse()
     {
         Assert.That(SmithyRules.ListLabel(Shovel, 0), Is.EqualTo("Iron Shovel\n3 h  -  own use"));
         Assert.That(SmithyRules.ListLabel(PickAxe, 999), Is.EqualTo("Iron Pick Axe\n3 h  -  own use"), "a price never shows for a tool");
-        Assert.That(SmithyRules.DetailLine(Shovel), Is.EqualTo("3 h  -  1.8 kg  -  your own use, not sold"));
-        Assert.That(SmithyRules.DetailLine(PickAxe), Is.EqualTo("3 h  -  2 kg  -  your own use, not sold"));
-        Assert.That(SmithyRules.TookMessage(Shovel, 1, 0), Is.EqualTo("Took the Iron Shovel. It is yours to use; it cannot be sold."));
+        Assert.That(SmithyRules.DetailLine(Shovel), Is.EqualTo("3 h  -  1.8 kg  -  your own use"));
+        Assert.That(SmithyRules.DetailLine(PickAxe), Is.EqualTo("3 h  -  2 kg  -  your own use"));
+        Assert.That(SmithyRules.TookMessage(Shovel, 1, 0), Is.EqualTo("Took the Iron Shovel. It is yours to use."));
         Assert.That(SmithyRules.TookMessage(Hinges, 1, 0), Is.EqualTo("Took the Door Hinges. Sell it at the Trading Post."), "a good still says to sell it");
         Assert.That(SmithyRules.TookMessage(PickAxe, 1, 1), Is.EqualTo("Took 1 Iron Pick Axe (1 left in the Smithy, no room)."));
         Assert.That(SmithyRules.DonePrompt(Shovel), Is.EqualTo("Collect Iron Shovel  (ready in the Smithy)"));
@@ -468,30 +468,29 @@ public class SmithyToolTests
     }
 
     [Test]
-    public void TheStoneToolsAreStillCraftableAtTheSamePriceAndTheIronOnesHaveNoRecipeOrRow()
+    public void TheStoneToolsAreStillCraftableAndEveryHandToolIsStockedAtTheTradingPost()
     {
         string crafting = SourceText("Scripts/Inventory/Crafting.cs");
         Assert.That(crafting, Does.Contain("Make(\"stone_pick_axe\", (\"sticks\", 2), (\"cordage\", 1), (\"stone\", 1)),"));
         Assert.That(crafting, Does.Contain("Make(\"shovel\", (\"sticks\", 3), (\"cordage\", 1), (\"stone\", 1)),"));
-        Assert.That(crafting.Contains("iron_shovel") || crafting.Contains("iron_pick_axe"), Is.False, "the iron tools are made only at the Smithy");
+        Assert.That(crafting.Contains("iron_shovel") || crafting.Contains("iron_pick_axe"), Is.False, "the iron tools are made only at the Smithy (or bought)");
 
+        // Mike, 2026-11-14: every basic hand tool is on the shelf. The three that were bought-only Crafted rows at $4 are now Stocked.
         MarketTable table = MarketCatalog.Table;
-        Assert.That(table.SellBaseCents("shovel"), Is.EqualTo(400L), "the stone Shovel sells for $4 as before");
-        Assert.That(table.SellBaseCents("stone_pick_axe"), Is.EqualTo(400L), "and the Stone Pick Axe");
-        Assert.That(table.TryGetRow("shovel", out MarketRow shovelRow) && shovelRow.group == MarketGroup.Crafted && shovelRow.kind == MarketKind.Bought, Is.True);
-        foreach (string id in new[] { "iron_shovel", "iron_pick_axe" })
+        var prices = new (string id, long cents)[] { ("shovel", 600), ("stone_pick_axe", 600), ("primitive_axe", 600), ("iron_shovel", 1200), ("iron_pick_axe", 1500) };
+        foreach (var (id, cents) in prices)
         {
-            Assert.That(table.TryGetRow(id, out _), Is.False, id + " has no market row");
-            Assert.That(table.SellBaseCents(id), Is.EqualTo(0L), id + " cannot be sold, so the Trading Post list never shows it");
-            Assert.That(table.BuyBaseCents(id), Is.EqualTo(0L), id + " cannot be bought");
+            Assert.That(table.TryGetRow(id, out MarketRow row) && row.kind == MarketKind.Stocked && row.group == MarketGroup.Stocked, Is.True, id + " is a stocked row");
+            Assert.That(table.BuyBaseCents(id), Is.EqualTo(cents), id + " price");
+            Assert.That(table.SellBaseCents(id), Is.GreaterThan(0L), id + " sells back at the usual share");
+            Assert.That(table.Stock.Any(r => r.itemId == id), Is.True, id + " is on the Trading Post list");
+            Assert.That(LedgerCategories.ForPurchase(id), Is.EqualTo(LedgerCategory.BuyTools), id + " is a tool purchase");
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(92), "no market row was added");
-        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(25));
-        Assert.That(table.Stock.Count, Is.EqualTo(22));
-        Assert.That(LedgerCategories.Count, Is.EqualTo(19), "and no Ledger line");
-        Assert.That(SourceText("Scripts/Economy/MarketCatalog.cs").Contains("iron_shovel"), Is.False);
-        Assert.That(SourceText("Resources/Market/MarketData.asset").Contains("iron_shovel"), Is.False);
-        Assert.That(SourceText("Scripts/Economy/Ledger.cs").Contains("iron_shovel"), Is.False);
+        Assert.That(table.Rows.Count, Is.EqualTo(96));
+        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(22));
+        Assert.That(table.Stock.Count, Is.EqualTo(39));
+        Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new Ledger category");
+        Assert.That(SourceText("Resources/Market/MarketData.asset").Contains("iron_shovel"), Is.True, "the asset was reseeded");
         Assert.That(SourceText("Scripts/Managers/DifficultyManager.cs").Contains("iron_"), Is.False, "the starting kits are the stone tools");
     }
 
@@ -502,7 +501,7 @@ public class SmithyToolTests
         var parent = new GameObject("Smithy tool visuals test");
         var pieces = new List<GameObject>();
         object[] args = { parent.transform, state, null, pieces, Vector3.zero, Vector3.zero };
-        Find("StructureVisuals").GetMethod("Build").Invoke(null, args);
+        Find("StructureVisuals").GetMethod("BuildPrimitive", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).Invoke(null, args); // the primitive look (a prefab at Resources/Art would replace it in Build)
         pieces.Add(parent);
         return pieces;
     }
@@ -636,7 +635,7 @@ public class SmithyToolTests
         Assert.That(smithy.body, Does.Contain("an iron Shovel and Pick Axe for your own use"));
         Assert.That(smithy.body, Does.Contain("An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each."));
         Assert.That(smithy.body, Does.Contain("a quarter fewer blows"));
-        Assert.That(smithy.body, Does.Contain("cannot be sold"));
+        Assert.That(smithy.body, Does.Contain("The Trading Post also stocks the iron Shovel ($12) and Pick Axe ($15)."));
         Assert.That(smithy.body, Does.Contain("it holds 8 Iron Bars, 8 Charcoal, 6 Sticks and 4 Cordage"));
         Assert.That(smithy.body, Does.Contain("Door Hinges take 3 game hours; a Hook Set and a Box of Nails take 2."));
         Assert.That(smithy.body, Does.Contain("about $26").And.Contain("about $18").And.Contain("about $16"), "the goods' prices are as they were");
@@ -649,7 +648,7 @@ public class SmithyToolTests
         foreach (string id in new[] { "iron_shovel", "iron_pick_axe" })
         {
             string tip = KnowHowRules.ItemTip(id);
-            Assert.That(tip, Does.Contain("Made at a Smithy").And.Contain("not sold"), id);
+            Assert.That(tip, Does.Contain("Made at a Smithy").And.Contain("Trading Post"), id);
             Assert.That(tip.Length, Is.LessThanOrEqualTo(80), id + " fits two lines of the item row");
         }
         Assert.That(KnowHowRules.ItemTip("door_hinges"), Does.Contain("$26"), "the goods' tips are unchanged");

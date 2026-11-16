@@ -26,6 +26,9 @@ public struct MarketRow
     public long baseCents;
     public MarketKind kind;
     public bool seasonalBuy;
+    // A stocked item the player can also make (Mike, 2026-11-14): what the store pays for one, so selling a homemade one pays what it always did.
+    // 0: the usual sell-back share of the buy price. Appended last, so older MarketData assets read it as 0.
+    public long sellCents;
 }
 
 // A group's selling rules. All in basis points, 10000 = 1.0: the drop per unit sold, the floor, and the level the price recovers toward
@@ -63,8 +66,11 @@ public struct SaleResult
 
 public static class MarketCatalog
 {
-    static MarketRow Row(string id, MarketGroup group, long cents, MarketKind kind, string pool = null, bool seasonalBuy = false) =>
-        new MarketRow { itemId = id, group = group, pool = pool ?? id, baseCents = cents, kind = kind, seasonalBuy = seasonalBuy };
+    static MarketRow Row(string id, MarketGroup group, long cents, MarketKind kind, string pool = null, bool seasonalBuy = false, long sellCents = 0) =>
+        new MarketRow { itemId = id, group = group, pool = pool ?? id, baseCents = cents, kind = kind, seasonalBuy = seasonalBuy, sellCents = sellCents };
+
+    // A hand tool the player can also make, now on the shelf (Mike, 2026-11-14): sold at ToolRules.StoreCents of what the store pays, and still bought back at that price.
+    static MarketRow Homemade(string id, MarketGroup group, long sellCents) => Row(id, group, ToolRules.StoreCents(sellCents), MarketKind.Stocked, sellCents: sellCents);
 
     static MarketGroupRule Rule(MarketGroup group, int dropBp, int floorBp, int spring, int summer, int fall, int winter) =>
         new MarketGroupRule { group = group, dropBp = dropBp, floorBp = floorBp, spring = spring, summer = summer, fall = fall, winter = winter };
@@ -83,6 +89,18 @@ public static class MarketCatalog
         Row("tent", MarketGroup.Stocked, 2500, MarketKind.Stocked, seasonalBuy: true),
         Row("axe", MarketGroup.Stocked, 2000, MarketKind.Stocked),
         Row("hammer", MarketGroup.Stocked, 1000, MarketKind.Stocked),
+        // Every basic hand tool is stocked (Mike, 2026-11-14): the stone Shovel, Stone Pick Axe and Primitive Axe (still craftable; they used to be
+        // bought-only Crafted rows at $4) and the iron Shovel and Pick Axe (still made at the Smithy). ToolRules has the prices.
+        Row(ToolRules.StoneShovelId, MarketGroup.Stocked, ToolRules.StoneShovelStoreCents, MarketKind.Stocked, sellCents: ToolRules.StoneToolSellCents),
+        Row(ToolRules.StonePickAxeId, MarketGroup.Stocked, ToolRules.StonePickAxeStoreCents, MarketKind.Stocked, sellCents: ToolRules.StoneToolSellCents),
+        Row(ToolRules.PrimitiveAxeId, MarketGroup.Stocked, ToolRules.PrimitiveAxeStoreCents, MarketKind.Stocked, sellCents: ToolRules.StoneToolSellCents),
+        Row(ToolRules.IronShovelId, MarketGroup.Stocked, ToolRules.IronShovelStoreCents, MarketKind.Stocked),
+        Row(ToolRules.IronPickAxeId, MarketGroup.Stocked, ToolRules.IronPickAxeStoreCents, MarketKind.Stocked),
+        // The maple gear, which had no row at all (Mike, 2026-11-14): now on the shelf, selling back at the usual share. The rest of the hand tools
+        // (Lantern, Torch, Cane Pole, Primitive Bow, Bow Drill, the traps and snare, the Pouch and the Clay Cooking Pot) stay Crafted rows further
+        // down but became Stocked at ToolRules.StoreCents of their sell price, so selling a homemade one pays exactly what it did.
+        Row(MapleRules.SapBucketId, MarketGroup.Stocked, ToolRules.SapBucketStoreCents, MarketKind.Stocked),
+        Row(MapleRules.SpileId, MarketGroup.Stocked, ToolRules.SpileStoreCents, MarketKind.Stocked),
         Row("fishing_rod", MarketGroup.Stocked, 1200, MarketKind.Stocked),
         Row("recurve_bow", MarketGroup.Stocked, 3000, MarketKind.Stocked),
         Row("arrows", MarketGroup.Stocked, 100, MarketKind.Stocked),
@@ -140,18 +158,15 @@ public static class MarketCatalog
         Row("stone", MarketGroup.WoodStone, 100, MarketKind.Bought),
         // Metalworking M1: Charcoal from the Charcoal Pit sells for $1 in the wood-and-stone group (the store never sells it, so there is no buy loop).
         Row(MetalRules.CharcoalId, MarketGroup.WoodStone, MetalRules.CharcoalBaseCents, MarketKind.Bought),
-        Row("stone_pick_axe", MarketGroup.Crafted, 400, MarketKind.Bought),
-        Row("shovel", MarketGroup.Crafted, 400, MarketKind.Bought),
-        Row("primitive_axe", MarketGroup.Crafted, 400, MarketKind.Bought),
-        Row("rabbit_snare", MarketGroup.Crafted, 100, MarketKind.Bought),
-        Row("box_trap", MarketGroup.Crafted, 200, MarketKind.Bought),
-        Row("fish_trap", MarketGroup.Crafted, 300, MarketKind.Bought),
-        Row("cane_pole", MarketGroup.Crafted, 200, MarketKind.Bought),
-        Row("pouch", MarketGroup.Crafted, 300, MarketKind.Bought),
-        Row("torch", MarketGroup.Crafted, 100, MarketKind.Bought),
-        Row("bow_drill", MarketGroup.Crafted, 100, MarketKind.Bought),
-        Row("lantern", MarketGroup.Crafted, 400, MarketKind.Bought),
-        Row("primitive_bow", MarketGroup.Crafted, 200, MarketKind.Bought),
+        Homemade("rabbit_snare", MarketGroup.Crafted, 100),
+        Homemade("box_trap", MarketGroup.Crafted, 200),
+        Homemade("fish_trap", MarketGroup.Crafted, 300),
+        Homemade("cane_pole", MarketGroup.Crafted, 200),
+        Homemade("pouch", MarketGroup.Crafted, 300),
+        Homemade("torch", MarketGroup.Crafted, 100),
+        Homemade("bow_drill", MarketGroup.Crafted, 100),
+        Homemade("lantern", MarketGroup.Crafted, 400),
+        Homemade("primitive_bow", MarketGroup.Crafted, 200),
         // Early_Income_Design.md: raw Ash from burnt fuel (its own group), and 10 Sticks crafted into a cheap Kindling Bundle.
         Row(AshRules.ItemId, MarketGroup.Ash, AshRules.BaseCents, MarketKind.Bought),
         Row(AshRules.KindlingItemId, MarketGroup.Crafted, AshRules.KindlingBaseCents, MarketKind.Bought),
@@ -168,7 +183,7 @@ public static class MarketCatalog
         // Pottery P2: the five fired pieces from the Kiln, in the Crafted group (10% off per unit, floor 0.1); the dry pieces and Sand have no row, so they do not sell. PotteryRules has the prices.
         Row(PotteryRules.FiredCupId, MarketGroup.Crafted, PotteryRules.Recipes[0].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredBowlId, MarketGroup.Crafted, PotteryRules.Recipes[1].firedCents, MarketKind.Bought),
-        Row(PotteryRules.FiredPotId, MarketGroup.Crafted, PotteryRules.Recipes[2].firedCents, MarketKind.Bought),
+        Homemade(PotteryRules.FiredPotId, MarketGroup.Crafted, PotteryRules.Recipes[2].firedCents),
         Row(PotteryRules.FiredCrockId, MarketGroup.Crafted, PotteryRules.Recipes[3].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredBrickId, MarketGroup.Crafted, PotteryRules.Recipes[4].firedCents, MarketKind.Bought),
         // Metalworking M3: the three iron goods made at the Smithy, in the Crafted group (10% off per unit, floor 0.1; SmithyRules has the prices). Never in the store; the Iron Bar has no row.
@@ -279,12 +294,14 @@ public sealed class MarketTable
         TryGetRow(itemId, out MarketRow row) && row.kind == MarketKind.Stocked ? row.baseCents : 0;
 
     // The price one unit sells for at multiplier 1.0, in cents (0: the store doesn't buy it). A stocked item goes back at the sell-back
-    // share of its BASE buy price (Money.SellBackCents); anything else has its own base price.
+    // share of its BASE buy price (Money.SellBackCents), unless it is a homemade item with its own sellCents; anything else has its own base price.
     public long SellBaseCents(string itemId)
     {
         if (!TryGetRow(itemId, out MarketRow row))
             return 0;
-        return row.kind == MarketKind.Stocked ? Money.SellBackCents(row.baseCents, SellBackPercent) : row.baseCents;
+        if (row.kind != MarketKind.Stocked)
+            return row.baseCents;
+        return row.sellCents > 0 ? row.sellCents : Money.SellBackCents(row.baseCents, SellBackPercent);
     }
 
     public string PoolOf(string itemId) => TryGetRow(itemId, out MarketRow row) ? row.pool : null;

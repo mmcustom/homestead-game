@@ -33,8 +33,41 @@ public class Campfire : MonoBehaviour, IInteractable, ISecondaryInteractable
 
     public CampfireState State => state;
 
+    // Wave 3 art (Mike 2026-11-16): Resources/Art/effect_campfire, when it exists, replaces the drawn stone ring, ash and logs. Its children Logs and Ash take over
+    // the logs and ash this script switches (burning down and going out work as before); the flames, embers, light and sound are untouched. The root's collider
+    // stays the prefab's own. Without the art nothing changes.
+    public const string ArtPath = "Art/effect_campfire";
+
+    void UseArt()
+    {
+        GameObject prefab = Resources.Load<GameObject>(ArtPath);
+        if (prefab == null)
+            return;
+        GameObject art = Instantiate(prefab, transform, false);
+        art.name = "Art";
+        foreach (Collider c in art.GetComponentsInChildren<Collider>(true))
+            Destroy(c);
+        Transform stones = transform.Find("Stones");
+        if (stones != null)
+            stones.gameObject.SetActive(false);
+        Transform artLogs = art.transform.Find("Logs"), artAsh = art.transform.Find("Ash");
+        if (artLogs != null)
+        {
+            if (logs != null)
+                logs.SetActive(false);
+            logs = artLogs.gameObject;
+        }
+        if (artAsh != null)
+        {
+            if (ash != null)
+                ash.SetActive(false);
+            ash = artAsh.gameObject;
+        }
+    }
+
     void Awake()
     {
+        UseArt();
         flameRate = flames != null ? flames.emission.rateOverTime.constant : 0f;
         emberRate = embers != null ? embers.emission.rateOverTime.constant : 0f;
         flickerSeed = Random.value * 100f;

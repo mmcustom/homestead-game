@@ -616,6 +616,8 @@ public static class StructureVisuals
             Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side.x, 1.15f, side.y), Vector3.zero, new Vector3(1.05f, 0.4f, 0.08f), bark);
         foreach (Vector2 side in new[] { new Vector2(-0.5f, 0f), new Vector2(0.5f, 0f) })
             Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side.x, 1.15f, side.y), Vector3.zero, new Vector3(0.08f, 0.4f, 1.05f), bark);
+        // The catch crock is drawn with the fixed pieces, before the changing water, ash and drip (ArtSwap structure_leachhopper, staticPieces 10).
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.2f, 0f), Vector3.zero, new Vector3(0.5f, 0.2f, 0.5f), null), ClayColor);
 
         if (state.hopperWater > 0)
             Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.975f, 0f), Vector3.zero,
@@ -628,7 +630,6 @@ public static class StructureVisuals
             Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.97f + level / 2f, 0f), Vector3.zero, new Vector3(0.95f, level, 0.95f), null), fill);
         }
 
-        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.2f, 0f), Vector3.zero, new Vector3(0.5f, 0.2f, 0.5f), null), ClayColor);
         if (state.leachHours > 0f)
             Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(0f, 0.55f, 0f), Vector3.zero, new Vector3(0.06f, 0.3f, 0.06f), null), new Color(0.2f, 0.28f, 0.34f));
 
@@ -795,11 +796,13 @@ public static class StructureVisuals
         foreach (float x in new[] { -0.33f, 0.33f })
             Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(x, 0.93f, 0f), Vector3.zero, new Vector3(0.04f, 0.1f, 0.4f), bark), wood);
 
+        // The drain spout is drawn with the fixed pieces, before the water (ArtSwap structure_slopsink, staticPieces 11).
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.8f, 0.28f), new Vector3(90f, 0f, 0f), new Vector3(0.05f, 0.05f, 0.05f), null), ClayColor); // drain spout
+
         int capacity = WellsAndOuthouses.Instance != null ? WellsAndOuthouses.Instance.slopSinkLitres : 20;
         float fill = Mathf.Clamp01(state.Total / (float)Mathf.Max(1, capacity));
         if (fill > 0f)
             Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.905f + 0.03f * fill, 0f), Vector3.zero, new Vector3(0.6f, 0.004f, 0.32f), null), WaterColor);
-        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.8f, 0.28f), new Vector3(90f, 0f, 0f), new Vector3(0.05f, 0.05f, 0.05f), null), ClayColor); // drain spout
 
         boxCenter = new Vector3(0f, 0.5f, 0f);
         boxSize = new Vector3(0.88f, 1f, 0.5f);
@@ -815,18 +818,19 @@ public static class StructureVisuals
                 Stone(parent, pieces, new Vector3(Mathf.Cos(a) * 0.62f, 0.12f + layer * 0.22f, Mathf.Sin(a) * 0.62f), 0.3f, random);
             }
 
-        int buffer = WellsAndOuthouses.WellNumbers(state).bufferLitres; // this well's own (Shallow 200, Medium and old wells 150, Deep 120)
-        float fill = Mathf.Clamp01(state.litres / (float)Mathf.Max(1, buffer));
-        float contaminated = state.contaminatedHours > 0f ? 1f : 0f;
-        Color water = Color.Lerp(WaterColor, new Color(0.3f, 0.22f, 0.12f), contaminated);
-        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.04f + 0.14f * fill, 0f), Vector3.zero, new Vector3(1f, 0.01f, 1f), null), water);
-
         foreach (float x in new[] { -0.8f, 0.8f })
             Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(x, 0.75f, 0f), Vector3.zero, new Vector3(0.1f, 0.75f, 0.1f), bark);
         Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 1.2f, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.09f, 0.8f, 0.09f), bark); // windlass beam
         Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 1.62f, 0f), new Vector3(0f, 0f, 0f), new Vector3(1.9f, 0.05f, 1.3f), bark);       // plank roof
         Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0.2f, 0.95f, 0f), Vector3.zero, new Vector3(0.18f, 0.12f, 0.18f), null),
                new Color(0.35f, 0.25f, 0.15f)); // the bucket on its rope
+
+        // The water is drawn last so a Well with art keeps it as its one changing piece (ArtSwap structure_well, staticPieces 29).
+        int buffer = WellsAndOuthouses.WellNumbers(state).bufferLitres; // this well's own (Shallow 200, Medium and old wells 150, Deep 120)
+        float fill = Mathf.Clamp01(state.litres / (float)Mathf.Max(1, buffer));
+        float contaminated = state.contaminatedHours > 0f ? 1f : 0f;
+        Color water = Color.Lerp(WaterColor, new Color(0.3f, 0.22f, 0.12f), contaminated);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.04f + 0.14f * fill, 0f), Vector3.zero, new Vector3(1f, 0.01f, 1f), null), water);
 
         boxCenter = new Vector3(0f, 0.6f, 0f);
         boxSize = new Vector3(1.9f, 1.2f, 1.7f);

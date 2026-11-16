@@ -15,6 +15,15 @@ public class Trap : MonoBehaviour, IInteractable, ISecondaryInteractable
     TrapState state;
     Quaternion bodyRest = Quaternion.identity;
 
+    // The art (Mike, 2026-11-15): a prefab at Resources/Art/trap_<item id> replaces the primitive Body. Its children, found by name, take over:
+    // "Body" (tilted when broken), "Catch" (shown with a catch), "Bait" (shown while baited) and "State_Set" (shown while set, hidden with a
+    // catch: the Box Trap's raised door). Any of them the art lacks stays the prefab's own. Without the art nothing changes.
+    public const string ArtPrefix = "Art/trap_";
+    public const string ArtBodyName = "Body", ArtCatchName = "Catch", ArtBaitName = "Bait", ArtSetName = "State_Set";
+    public const float ColliderPadding = 0.02f, ColliderMinSize = 0.25f;
+    GameObject setVisual;
+    bool artChecked;
+
     public TrapState State => state;
 
     void Awake()
@@ -26,7 +35,85 @@ public class Trap : MonoBehaviour, IInteractable, ISecondaryInteractable
     public void Bind(TrapState trapState)
     {
         state = trapState;
+        if (!artChecked)
+            UseArt();
         Refresh();
+    }
+
+    void UseArt()
+    {
+        artChecked = true;
+        GameObject prefab = Resources.Load<GameObject>(ArtPrefix + TrapManager.ItemFor(state.type));
+        if (prefab == null)
+            return;
+
+        GameObject art = Instantiate(prefab, transform, false);
+        art.name = "Art";
+        foreach (Collider c in art.GetComponentsInChildren<Collider>(true))
+            Destroy(c);
+
+        Transform artCatch = FindDeep(art.transform, ArtCatchName);
+        if (artCatch != null)
+        {
+            if (catchVisual != null)
+                catchVisual.SetActive(false);
+            catchVisual = artCatch.gameObject;
+        }
+        Transform artBait = FindDeep(art.transform, ArtBaitName);
+        if (artBait != null)
+        {
+            if (baitVisual != null)
+                baitVisual.SetActive(false);
+            baitVisual = artBait.gameObject;
+        }
+        if (body != null)
+            body.gameObject.SetActive(false); // the primitives
+        Transform artBody = art.transform.Find(ArtBodyName);
+        if (artBody != null)
+        {
+            body = artBody;
+            bodyRest = body.localRotation;
+        }
+        Transform set = FindDeep(art.transform, ArtSetName);
+        setVisual = set != null ? set.gameObject : null;
+
+        FitCollider(art.transform);
+    }
+
+    static Transform FindDeep(Transform root, string childName)
+    {
+        foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            if (t != root && t.name == childName)
+                return t;
+        return null;
+    }
+
+    // The interaction box fitted round the art (the prefab's own box was sized for the bigger primitives).
+    void FitCollider(Transform art)
+    {
+        var box = GetComponent<BoxCollider>();
+        if (box == null)
+            return;
+        bool any = false;
+        Bounds local = default;
+        foreach (MeshFilter mf in art.GetComponentsInChildren<MeshFilter>(true))
+        {
+            if (mf.sharedMesh == null)
+                continue;
+            Bounds b = mf.sharedMesh.bounds;
+            for (int i = 0; i < 8; i++)
+            {
+                var corner = new Vector3((i & 1) == 0 ? b.min.x : b.max.x, (i & 2) == 0 ? b.min.y : b.max.y, (i & 4) == 0 ? b.min.z : b.max.z);
+                Vector3 p = transform.InverseTransformPoint(mf.transform.TransformPoint(corner));
+                if (!any) { local = new Bounds(p, Vector3.zero); any = true; }
+                else local.Encapsulate(p);
+            }
+        }
+        if (!any)
+            return;
+        Vector3 size = local.size + Vector3.one * (2f * ColliderPadding);
+        box.center = local.center;
+        box.size = Vector3.Max(size, Vector3.one * ColliderMinSize);
     }
 
     public void Refresh()
@@ -38,6 +125,8 @@ public class Trap : MonoBehaviour, IInteractable, ISecondaryInteractable
             : state.result == TrapResult.SuccessfulCatch || state.result == TrapResult.SmallCatch;
         if (catchVisual != null)
             catchVisual.SetActive(caught);
+        if (setVisual != null)
+            setVisual.SetActive(!caught);
         if (baitVisual != null)
             baitVisual.SetActive(!string.IsNullOrEmpty(state.bait));
         if (body != null)

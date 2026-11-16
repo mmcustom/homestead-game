@@ -63,12 +63,25 @@ public class PlayerHands : MonoBehaviour
     float shownFor;         // seconds the tool in hand has been shown (the settle of a hanging item)
     float heldPitch, heldRoll;
     readonly SwingState swing = new SwingState();
+    readonly HangPendulum pendulum = new HangPendulum(); // hanging items swing by gravity, not with the view (2026-11-14)
     readonly PunchState punch = new PunchState(); // the two fists, one state each (Hands M0e-1); the tool swing above is for the right hand's tools only
     public PunchState Punch => punch;
     readonly KnifeState knife = new KnifeState(); // the Knife's slash and stab, right hand only (Hands M0e-2)
     public KnifeState Knife => knife;
     readonly ToolActionState action = new ToolActionState(); // the rods and lights in hand (M0c-1)
     Transform lineAnchor, flameAnchor, stateLit, stateUnlit, flameShape;
+    Transform fillShape, fillBottom;          // a container's water surface and its floor marker (Fill, Fill_Bottom), when the prefab has them
+    Vector3 fillTopPosition, fillTopScale;    // the surface as authored: the full level
+    public const string FillName = "Fill", FillBottomName = "Fill_Bottom";
+    // How full the containers in hand are, 0 to 1: the litres of water carried over what every Bucket and Canteen holds (water is one shared pool). A test replaces it.
+    public System.Func<string, float> FillQuery = id =>
+    {
+        InventoryManager inv = InventoryManager.Instance;
+        if (inv == null || inv.Player == null)
+            return 0f;
+        int capacity = WaterQualities.Capacity(inv.Player);
+        return capacity > 0 ? (float)WaterQualities.LitresCarried(inv.Player) / capacity : 0f;
+    };
     Vector3 flameShapeScale;
     bool heldIsPrimitive, lightMoved;
     bool pushing;
@@ -386,11 +399,14 @@ public class PlayerHands : MonoBehaviour
         heldTwoHanded = false;
         heldGripR = null;
         lineAnchor = flameAnchor = stateLit = stateUnlit = flameShape = null;
+        fillShape = fillBottom = null;
         nockAnchor = null;
         stringHalves = null;
         bowStance = ToolActionRules.IsBow(toolId);
-        hanging = ToolActionRules.IsHanging(toolId);
+        // The Lantern hangs from its bail by gravity too (Mike, 2026-11-14), though it is not in HangingIds: it keeps the light's own ready pose and sway.
+        hanging = ToolActionRules.IsHanging(toolId) || toolId == ToolActionRules.LanternId;
         shownFor = 0f;
+        pendulum.Reset();
         flameParticles = null;
         heldIsPrimitive = false;
         heldShown = toolId;
@@ -414,6 +430,17 @@ public class PlayerHands : MonoBehaviour
             if (tool == null)
                 tool = ToolViewPrimitives.Build(toolId, parent, layer).transform;
             Transform gripR = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripR);
+            if (ToolActionRules.IsContainer(toolId))
+            {
+                List<Transform> fills = ArtSwap.Named(tool, FillName), bottoms = ArtSwap.Named(tool, FillBottomName);
+                if (fills.Count > 0 && bottoms.Count > 0)
+                {
+                    fillShape = fills[0];
+                    fillBottom = bottoms[0];
+                    fillTopPosition = fillShape.localPosition;
+                    fillTopScale = fillShape.localScale;
+                }
+            }
             gripL = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorGripL);
             ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorTip);
             if (spec.Anchor(ArtSwap.AnchorLine) != null)
@@ -434,8 +461,9 @@ public class PlayerHands : MonoBehaviour
             if (bowStance)
             {
                 nockAnchor = ArtSwap.ToolAnchor(tool, spec, ArtSwap.AnchorNock);
-                if (heldIsPrimitive)
-                    stringHalves = new[] { tool.Find(ToolViewPrimitives.StringUpper), tool.Find(ToolViewPrimitives.StringLower) };
+                // The string follows the drawing hand whenever the bow has the two halves: the primitive's, or a prefab's own "String Upper" and "String Lower"
+                // (unit cylinders, as tool_primitive_bow has, 2026-11-14). A prefab without them simply keeps its string still.
+                stringHalves = new[] { tool.Find(ToolViewPrimitives.StringUpper), tool.Find(ToolViewPrimitives.StringLower) };
             }
             heldGripR = bowStance ? gripL : gripR; heldPitch = spec.holdPitch; heldRoll = spec.holdRoll;
             AlignToGrip(tool, heldGripR, heldPitch, heldRoll);
@@ -477,7 +505,20 @@ public class PlayerHands : MonoBehaviour
         tool.position += palm.position - grip.position;
     }
 
-    // The primitive bow's string: two halves from the limb tips to wherever the right hand is holding it, so the string draws back with the hand. A prefab's string is the prefab's own.
+    // A hanging item by GRAVITY (Mike, 2026-11-14): the grip sits on the palm, the body hangs along the pendulum's world direction (straight down at rest, so looking up
+    // or down does not tilt it), it turns with the player's heading only, and the step sway and the action's own pitch (dip, drink, set-down) tip it about the grip as before.
+    void AlignHangingByGravity(Transform tool, Transform grip, Transform palm, float pitch, float roll)
+    {
+        // Outside Play Mode (edit-mode tests, previews) the pendulum does not step: Time.deltaTime there is the editor's, so a posed hand would swing by chance. It hangs straight down.
+        Vector3 down = pendulum.Step(palm.position, Application.isPlaying ? Time.deltaTime : 0f);
+        Quaternion heading = Quaternion.Euler(0f, rig.transform.eulerAngles.y, 0f);
+        Quaternion hang = Quaternion.FromToRotation(Vector3.down, down);
+        Quaternion gripRotation = Quaternion.Inverse(tool.rotation) * grip.rotation;
+        tool.rotation = hang * heading * Quaternion.Euler(pitch, 0f, roll) * Quaternion.Inverse(gripRotation);
+        tool.position += palm.position - grip.position;
+    }
+
+    // The bow's string: two halves from the limb tips to wherever the right hand is holding it, so the string draws back with the hand (the primitive's, or a prefab's halves of the same names).
     void UpdateString()
     {
         if (stringHalves == null || stringHalves[0] == null || stringHalves[1] == null || heldRoot == null)
@@ -578,6 +619,7 @@ public class PlayerHands : MonoBehaviour
         }
         Apply(raise.Shown, raise.Raise * HandPoseRules.ScopeLowering(scope), breathTime, stepPhase, motion);
         UpdateLight(shown);
+        UpdateFill();
     }
 
     // Where PortableLight makes its point light, relative to the camera: low and right of the view. The light goes back here whenever the flame in hand is not carrying it.
@@ -595,6 +637,24 @@ public class PlayerHands : MonoBehaviour
             heldLight.position = flame.position + (heldLight.parent != null ? heldLight.parent.forward * FlameLightAhead : Vector3.zero);
         else
             heldLight.localPosition = HeldLightHome;
+    }
+
+    // The water in a container in hand (Mike, 2026-11-14): a prefab with a child named Fill (the water surface, authored at the full level) and an empty named Fill_Bottom
+    // (the floor level; its localScale.x is the surface's size there, for a tapered vessel) shows the surface while there is water and raises it from the floor to the full
+    // level by FillQuery. Containers without those children (the primitives) are untouched.
+    void UpdateFill()
+    {
+        if (fillShape == null || fillBottom == null)
+            return;
+        float level = FillQuery != null ? Mathf.Clamp01(FillQuery(heldShown)) : 0f;
+        bool any = level > 0.001f;
+        if (fillShape.gameObject.activeSelf != any)
+            fillShape.gameObject.SetActive(any);
+        if (!any)
+            return;
+        fillShape.localPosition = Vector3.Lerp(fillBottom.localPosition, fillTopPosition, level);
+        float size = Mathf.Lerp(fillBottom.localScale.x, 1f, level);
+        fillShape.localScale = new Vector3(fillTopScale.x * size, fillTopScale.y, fillTopScale.z * size);
     }
 
     // The lit or unlit state of a Torch or Lantern in hand: the matching State_ child, the flame's flicker, a prefab's particles, and the point light's place.
@@ -667,7 +727,7 @@ public class PlayerHands : MonoBehaviour
                     // Gravity: the body hangs straight down; the step swings it a little and a fresh equip settles it. The action's own pitch (the dip, the drink, the set-down) still tips it.
                     HandPose sway = ToolActionRules.HangSway(steps, HandPoseRules.StepAmount(motion));
                     float settle = ToolActionRules.HangSettle(shownFor - HandPoseRules.RaiseSeconds);
-                    AlignHanging(heldRoot, heldGripR, anchorR, toolPitch + sway.Pitch + settle, sway.Roll);
+                    AlignHangingByGravity(heldRoot, heldGripR, anchorR, toolPitch + sway.Pitch + settle, sway.Roll);
                 }
                 else if (ToolActionRules.IsRifle(shownTool))
                     AlignHanging(heldRoot, heldGripR, anchorR, ToolActionRules.RiflePitch + toolPitch, ToolActionRules.RifleRoll, ToolActionRules.RifleYaw); // barrel along the view, not the hand

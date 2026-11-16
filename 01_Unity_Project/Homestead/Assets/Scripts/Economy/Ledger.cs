@@ -90,6 +90,13 @@ public static class LedgerCategories
     static readonly Dictionary<string, LedgerCategory> Purchases = new Dictionary<string, LedgerCategory>
     {
         { "axe", LedgerCategory.BuyTools }, { "hammer", LedgerCategory.BuyTools }, { "knife", LedgerCategory.BuyTools }, { AxeRules.SawId, LedgerCategory.BuyTools },
+        { ToolRules.StoneShovelId, LedgerCategory.BuyTools }, { ToolRules.StonePickAxeId, LedgerCategory.BuyTools }, { ToolRules.PrimitiveAxeId, LedgerCategory.BuyTools },
+        { ToolRules.IronShovelId, LedgerCategory.BuyTools }, { ToolRules.IronPickAxeId, LedgerCategory.BuyTools },
+        { MapleRules.SapBucketId, LedgerCategory.BuyTools }, { MapleRules.SpileId, LedgerCategory.BuyTools }, { "pouch", LedgerCategory.BuyOtherGoods },
+        { "cane_pole", LedgerCategory.BuyHuntingFishing }, { "primitive_bow", LedgerCategory.BuyHuntingFishing }, { "box_trap", LedgerCategory.BuyHuntingFishing },
+        { "fish_trap", LedgerCategory.BuyHuntingFishing }, { "rabbit_snare", LedgerCategory.BuyHuntingFishing },
+        { "lantern", LedgerCategory.BuyCookingWaterFire }, { "torch", LedgerCategory.BuyCookingWaterFire }, { "bow_drill", LedgerCategory.BuyCookingWaterFire },
+        { PotteryRules.FiredPotId, LedgerCategory.BuyCookingWaterFire },
         { "fishing_rod", LedgerCategory.BuyHuntingFishing }, { "recurve_bow", LedgerCategory.BuyHuntingFishing },
         { "bolt_action_rifle", LedgerCategory.BuyHuntingFishing }, { "arrows", LedgerCategory.BuyHuntingFishing },
         { "rifle_rounds", LedgerCategory.BuyHuntingFishing },

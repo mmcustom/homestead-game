@@ -4,7 +4,7 @@ using System;
 // place that used to ask "is the equipped tool the Shovel?" asks here, and a later tier (steel) is one more id in a list. Pure and engine-free so edit-mode tests cover it.
 //
 // The stone Shovel (id "shovel", shown as the Primitive Shovel) and the Stone Pick Axe (id "stone_pick_axe") keep their ids, recipes and every number. The iron ones are made at the
-// Smithy (SmithyRules), are for the player's own use (no market row, so the Trading Post never lists them), and need IronToolBlowFactor times the blows of the stone ones on every dig and
+// Smithy (SmithyRules) or bought at the Trading Post (Mike, 2026-11-14: every basic hand tool is stocked; StoreCents below), and need IronToolBlowFactor times the blows of the stone ones on every dig and
 // mine, the way the Wood Saw needs 0.65 times the Axe's (AxeRules.DefaultSawFactor). The Axe and the Saw are untouched. There is no wear or durability: no such system exists.
 public static class ToolRules
 {
@@ -20,6 +20,23 @@ public static class ToolRules
 
     // Iron needs this fraction of the stone tools' blows: 25% fewer. The AxeTool component carries the live value (a tunable, as the Saw's); this is its default.
     public const float DefaultIronToolBlowFactor = 0.75f;
+
+    // What the Trading Post charges for the hand tools it did not stock before (Mike, 2026-11-14), in cents. All are Stocked rows in MarketCatalog, so they
+    // also sell back at the usual share. The stone tools and the Primitive Axe stay craftable; buying one is the shortcut.
+    public const string PrimitiveAxeId = "primitive_axe";
+    public const long StoneShovelStoreCents = 600;
+    public const long StonePickAxeStoreCents = 600;
+    public const long PrimitiveAxeStoreCents = 600;
+    public const long IronShovelStoreCents = 1200;
+    public const long IronPickAxeStoreCents = 1500;
+    public const long StoneToolSellCents = 400;     // the stone Shovel, Stone Pick Axe and Primitive Axe still sell for $4, as when they were bought-only rows
+    public const long SapBucketStoreCents = 800;
+    public const long SpileStoreCents = 100;
+
+    // The rest of the hand tools the player can also make (Mike, 2026-11-14): the store charges 2.5 times what it pays for one, so its sell-back
+    // share (40%) is exactly the old price and selling a homemade one pays the same as before.
+    public const int StoreMarkupPercent = 250;
+    public static long StoreCents(long sellCents) => sellCents * StoreMarkupPercent / 100;
 
     public static bool IsShovel(string itemId) => itemId != null && Array.IndexOf(ShovelIds, itemId) >= 0;
 

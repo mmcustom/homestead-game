@@ -434,9 +434,9 @@ public class SmithyTests
             Assert.That(table.BuyBaseCents(id), Is.EqualTo(0L), "not sold in the store");
             Assert.That(table.SellBaseCents(id), Is.EqualTo(cents));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(92), "89 and the three");
-        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(25), "22 and the three");
-        Assert.That(table.Stock.Count, Is.EqualTo(22), "stocked stays 22");
+        Assert.That(table.Rows.Count, Is.EqualTo(96), "89 and the three, then the hand tools and the maple gear (2026-11-14)");
+        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(22), "22 and the three, less the three hand tools now stocked");
+        Assert.That(table.Stock.Count, Is.EqualTo(39), "the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14");
         Assert.That(table.TryGetRow("iron_bar", out _), Is.False, "the Iron Bar still has no row");
         Assert.That(table.TryGetRule(MarketGroup.Crafted, out MarketGroupRule rule), Is.True);
         Assert.That(rule.dropBp, Is.EqualTo(1000), "10% off per unit sold");
@@ -454,7 +454,7 @@ public class SmithyTests
             Assert.That(asset, Does.Contain($"  - itemId: {id}\n    group: 5\n    pool: {id}\n    baseCents: {cents}\n    kind: 1\n    seasonalBuy: 0\n"));
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(92));
+        Assert.That(rows, Is.EqualTo(96));
         Assert.That(asset, Does.Not.Contain("iron_bar"));
     }
 
@@ -522,7 +522,7 @@ public class SmithyTests
         var parent = new GameObject("Smithy visuals test");
         var pieces = new List<GameObject>();
         object[] args = { parent.transform, state, null, pieces, Vector3.zero, Vector3.zero };
-        Find("StructureVisuals").GetMethod("Build").Invoke(null, args);
+        Find("StructureVisuals").GetMethod("BuildPrimitive", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).Invoke(null, args); // the primitive look (a prefab at Resources/Art would replace it in Build)
         size = (Vector3)args[5];
         pieces.Add(parent);
         return pieces;
@@ -1035,7 +1035,7 @@ public class SmithyTests
         Assert.That(WorkshopRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 4, 5 }));
         Assert.That(WorkshopRules.SiteLogs, Is.EqualTo(5));
         Assert.That(WorkshopRules.LogsCap, Is.EqualTo(6));
-        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(22));
+        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(39));
         Assert.That(MarketCatalog.Table.BuyBaseCents("iron_ore"), Is.EqualTo(400L));
         Assert.That(MarketCatalog.Table.SellBaseCents("charcoal"), Is.EqualTo(100L));
         Assert.That(MarketCatalog.Table.SellBaseCents("rough_stool"), Is.EqualTo(1400L));

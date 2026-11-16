@@ -287,10 +287,12 @@ public class MapleTests
     }
 
     [Test]
-    public void SapIsNotSoldAndNeitherAreTheTapParts()
+    public void SapIsNotSoldButTheTapPartsAreOnTheShelf()
     {
-        foreach (string id in new[] { "maple_sap", "spile", "sap_bucket" })
-            Assert.That(Table.TryGetRow(id, out _), Is.False, id + " has no market row");
+        Assert.That(Table.TryGetRow("maple_sap", out _), Is.False, "maple_sap has no market row");
+        // Mike, 2026-11-14: every tool is stocked, the maple gear included.
+        Assert.That(Table.BuyBaseCents("sap_bucket"), Is.EqualTo(800L));
+        Assert.That(Table.BuyBaseCents("spile"), Is.EqualTo(100L));
     }
 
     [Test]
@@ -393,5 +395,32 @@ public class MapleTests
         Assert.That(Prop(spile, "Category").ToString(), Is.EqualTo("Tool"));
         Assert.That(Prop(bucket, "Id"), Is.EqualTo("sap_bucket"));
         Assert.That(Prop(bucket, "Category").ToString(), Is.EqualTo("Tool"));
+    }
+
+    // --- The tap on the tree (Mike, 2026-11-15) ---
+
+    [Test]
+    public void TheTapOnTheTreeUsesTheSpileAndSapBucketArtWithTheLidOffAndTheSapRises()
+    {
+        Type tap = Find("Tap");
+        Assert.That(tap, Is.Not.Null);
+        Assert.That(tap.GetField("SpileArt").GetValue(null), Is.EqualTo("Art/tool_spile"));
+        Assert.That(tap.GetField("BucketArt").GetValue(null), Is.EqualTo("Art/tool_sap_bucket"));
+        Assert.That(tap.GetField("BucketLidName").GetValue(null), Is.EqualTo("Sap_Lid"), "the lid is taken off on the tree (it stays on in the hand)");
+
+        var level = tap.GetMethod("SapLevel");
+        Assert.That(level.Invoke(null, new object[] { 0f }), Is.EqualTo(0f));
+        Assert.That(level.Invoke(null, new object[] { MapleRules.BucketCapacityLitres / 2f }), Is.EqualTo(0.5f).Within(1e-5f));
+        Assert.That(level.Invoke(null, new object[] { MapleRules.BucketCapacityLitres }), Is.EqualTo(1f));
+        Assert.That(level.Invoke(null, new object[] { 99f }), Is.EqualTo(1f), "never above the rim");
+
+        Assert.That((float)tap.GetField("SapTopY").GetValue(null), Is.GreaterThan((float)tap.GetField("SapFloorY").GetValue(null)));
+
+        // The trunk's bark sits 4 to 7 cm behind the tap's origin at tap height (an octagonal, tapering trunk): the Spile's tip (0.155 in from
+        // its grip) must reach well past that, and the bucket must stay in front of it.
+        var spile = (UnityEngine.Vector3)tap.GetField("SpilePosition").GetValue(null);
+        var bucket = (UnityEngine.Vector3)tap.GetField("BucketPosition").GetValue(null);
+        Assert.That(spile.z - 0.155f, Is.LessThan(-0.09f), "the tip is in the bark");
+        Assert.That(bucket.z - 0.067f, Is.GreaterThan(-0.035f), "the bucket's back is clear of the bark");
     }
 }

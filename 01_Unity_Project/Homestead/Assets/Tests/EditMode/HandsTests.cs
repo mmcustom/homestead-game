@@ -315,7 +315,7 @@ public class HandsTests
     [Test]
     public void TheTwoHandedToolsAreThoseInThePlan()
     {
-        foreach (string id in new[] { "axe", "primitive_axe", "wood_saw", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe",
+        foreach (string id in new[] { "axe", "primitive_axe", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe",
                                       "fishing_rod", "cane_pole", "primitive_bow", "recurve_bow", "bolt_action_rifle" })
             Assert.That(HeldTools.IsTwoHanded(id), Is.True, id);
     }
@@ -323,7 +323,7 @@ public class HandsTests
     [Test]
     public void EverythingElseIsOneHanded()
     {
-        foreach (string id in new[] { "hammer", "torch", "lantern", "knife", "bucket", "sap_bucket", "canteen", "bow_drill", "flint_and_steel",
+        foreach (string id in new[] { "hammer", "wood_saw", "torch", "lantern", "knife", "bucket", "sap_bucket", "canteen", "flint_and_steel",
                                       "spile", "box_trap", "fish_trap", "rabbit_snare", "clay_pot", "cooking_pot", "potash_kettle", "pouch", "tarp" })
             Assert.That(HeldTools.IsTwoHanded(id), Is.False, id);
         Assert.That(HeldTools.IsTwoHanded(null), Is.False);

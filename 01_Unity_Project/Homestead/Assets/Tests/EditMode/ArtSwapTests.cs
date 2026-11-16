@@ -152,10 +152,39 @@ public class ArtSwapTests
     [Test]
     public void AKindWithNoRowAndAnUnknownIdHaveNoSpec()
     {
-        foreach (string kind in new[] { "Well", "Smithy", "KilnSite", "Cabin", "WoodStorage" })
+        foreach (string kind in new[] { "KilnSite", "Cabin", "WoodStorage" })
             Assert.That(Spec(Kind(kind)), Is.Null, kind + " has no row yet");
         Assert.That(Art.GetMethod("SpecFor", new[] { typeof(string) }).Invoke(null, new object[] { "structure_nothing" }), Is.Null);
-        Assert.That(((IEnumerable)Art.GetProperty("AllSpecs").GetValue(null)).Cast<object>().Count(), Is.EqualTo(1), "the Kiln is the only pilot");
+        Assert.That(((IEnumerable)Art.GetProperty("AllSpecs").GetValue(null)).Cast<object>().Count(), Is.EqualTo(13), "the Kiln, the six Wave 2 rows (2026-11-15), the Smithy, the Leach Hopper, the Kitchen and its three add-ons (2026-11-16)");
+    }
+
+    // The Wave 2 rows (Mike, 2026-11-15): each row's box and fixed-piece count are the primitive builder's for an empty one, so the changing contents start right after them.
+    [Test]
+    public void EachWaveTwoRowAgreesWithItsPrimitiveBuilder()
+    {
+        var rows = new[] { ("Well", "structure_well", 1), ("Outhouse", "structure_outhouse", 0), ("Workshop", "structure_workshop", 0),
+                           ("PotterShed", "structure_pottershed", 0), ("CharcoalPit", "structure_charcoalpit", 0), ("Bloomery", "structure_bloomery", 0),
+                           ("Smithy", "structure_smithy", 0), ("LeachHopper", "structure_leachhopper", 0),
+                           ("Kitchen", "structure_kitchen", 0), ("Countertop", "structure_countertop", 0), ("Grill", "structure_grill", 0),
+                           ("SlopSink", "structure_slopsink", 0) };
+        foreach (var (kind, id, contentsWhenEmpty) in rows)
+        {
+            object spec = Spec(Kind(kind));
+            Assert.That(spec, Is.Not.Null, kind);
+            Assert.That(Field(spec, "id"), Is.EqualTo(id));
+            var parent = new GameObject(kind + " primitive test");
+            made.Add(parent);
+            var pieces = new List<GameObject>();
+            object[] args = { parent.transform, NewPile(kind), null, pieces, Vector3.zero, Vector3.zero };
+            Find("StructureVisuals").GetMethod("BuildPrimitive", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).Invoke(null, args);
+            Assert.That((Vector3)Field(spec, "boxCenter"), Is.EqualTo((Vector3)args[4]), kind + " box centre");
+            Assert.That((Vector3)Field(spec, "boxSize"), Is.EqualTo((Vector3)args[5]), kind + " box size");
+            Assert.That(pieces.Count, Is.EqualTo((int)Field(spec, "staticPieces") + contentsWhenEmpty), kind + ": the fixed pieces, then the contents (the Well's water is always drawn, last)");
+        }
+        string source = SourceText("Scripts/World/PlacedStructure.cs");
+        int bucket = source.IndexOf("// the bucket on its rope", StringComparison.Ordinal);
+        int water = source.IndexOf("new Vector3(0f, 0.04f + 0.14f * fill, 0f)", StringComparison.Ordinal);
+        Assert.That(bucket > 0 && water > bucket, Is.True, "BuildWell draws the water after every fixed piece");
     }
 
     [Test]
@@ -564,5 +593,96 @@ public class ArtSwapTests
         string source = SourceText("Scripts/World/ArtSwap.cs");
         foreach (string word in new[] { "SaveVersion", "LedgerSaveData", "PlayerPrefs", "SaveData", "File.", "Directory." })
             Assert.That(source.Contains(word), Is.False, word);
+    }
+
+    // --- The traps set out in the world (Mike, 2026-11-15) ---
+
+    [Test]
+    public void ASetTrapUsesItsArtByNameAndKeepsItsPrimitivesWithoutIt()
+    {
+        Type trap = Find("Trap");
+        Assert.That(trap, Is.Not.Null);
+        Assert.That(trap.GetField("ArtPrefix").GetValue(null), Is.EqualTo("Art/trap_"), "Resources/Art/trap_<item id>: trap_box_trap, trap_fish_trap, trap_rabbit_snare");
+        Assert.That(trap.GetField("ArtBodyName").GetValue(null), Is.EqualTo("Body"));
+        Assert.That(trap.GetField("ArtCatchName").GetValue(null), Is.EqualTo("Catch"));
+        Assert.That(trap.GetField("ArtBaitName").GetValue(null), Is.EqualTo("Bait"));
+        Assert.That(trap.GetField("ArtSetName").GetValue(null), Is.EqualTo("State_Set"), "the Box Trap's raised door, hidden once something is caught");
+
+        string source = SourceText("Scripts/World/Trap.cs");
+        Assert.That(source, Does.Contain("Resources.Load<GameObject>(ArtPrefix + TrapManager.ItemFor(state.type))"));
+        Assert.That(source, Does.Contain("if (prefab == null)\n            return;").Or.Contain("if (prefab == null)\r\n            return;"), "no art: the prefab's own primitives stay");
+        Assert.That(source, Does.Contain("setVisual.SetActive(!caught)"));
+    }
+
+    // --- The shelters: Small Cabin, Tent, Tarp Shelter, Lean-To (Mike, 2026-11-15) ---
+
+    [Test]
+    public void EveryShelterDrawsItsArtByNameAndKeepsThePrimitiveCollidersForShelterAndRain()
+    {
+        Type shelter = Find("Shelter");
+        Assert.That(shelter, Is.Not.Null);
+        Assert.That(shelter.GetField("ArtPrefix").GetValue(null), Is.EqualTo("Art/"));
+        Type artSwap = Find("ArtSwap");
+        Type kind = Find("PileKind");
+        var ids = new System.Collections.Generic.List<string>();
+        foreach (string name in new[] { "Cabin", "Tent", "TarpShelter", "LeanTo" })
+            ids.Add((string)artSwap.GetMethod("StructureId", new[] { kind }).Invoke(null, new[] { Enum.Parse(kind, name) }));
+        Assert.That(ids, Is.EqualTo(new[] { "structure_cabin", "structure_tent", "structure_tarpshelter", "structure_leanto" }));
+
+        string source = SourceText("Scripts/World/Shelter.cs");
+        Assert.That(source, Does.Contain("BuildLeanTo();\n        UseArt();").Or.Contain("BuildLeanTo();\r\n        UseArt();"), "the art goes in after every kind's primitives and colliders are built");
+        Assert.That(source, Does.Contain("Resources.Load<GameObject>(ArtPrefix + ArtSwap.StructureId(state.kind))"));
+        Assert.That(source, Does.Contain("if (prefab == null)\n            return;").Or.Contain("if (prefab == null)\r\n            return;"), "no art: the primitives stay");
+        Assert.That(source, Does.Contain("primitive.enabled = false;"), "the primitives stop drawing but keep their colliders");
+        Assert.That(source, Does.Not.Contain("Destroy(primitive"), "the roof panels' and the sheet's colliders keep the rain off, so nothing is destroyed");
+    }
+
+    // --- Wave 3 (Mike, 2026-11-16): storage and piles (WoodPile), the tripod and the campfire ---
+
+    [Test]
+    public void StorageAndPilesHideOnlyTheirContainerPiecesForTheirArt()
+    {
+        Type pile = Find("WoodPile");
+        Assert.That(pile.GetField("ArtPrefix").GetValue(null), Is.EqualTo("Art/"));
+        MethodInfo frame = pile.GetMethod("FramePieces");
+        var expected = new[] { ("RockStorage", 6), ("WaterBarrel", 1), ("RainBarrel", 2), ("FoodCache", 2), ("StorageBin", 2), ("ToolRack", 3),
+                               ("WoodShed", 18), ("Shelving", 7), ("HandCart", 10), ("Tent", 0), ("Felled", 0) };
+        foreach (var (kind, count) in expected)
+            Assert.That(frame.Invoke(null, new[] { NewPile(kind) }), Is.EqualTo(count), kind);
+
+        string source = SourceText("Scripts/World/WoodPile.cs");
+        Assert.That(source, Does.Contain("BuildPrimitives();\n        UseArt();").Or.Contain("BuildPrimitives();\r\n        UseArt();"), "the primitives first, then the art");
+        Assert.That(source, Does.Contain("Resources.Load<GameObject>(ArtPrefix + ArtSwap.StructureId(state.kind))"));
+        Assert.That(source, Does.Contain("primitive.enabled = false;"), "the container primitives stop drawing; the contents drawn after them stay");
+        int rim = source.IndexOf("if (rain) // the rim is drawn with the barrel", StringComparison.Ordinal);
+        int water = source.IndexOf("float fill = Mathf.Clamp01(state.Total / (float)Mathf.Max(1, capacity));", StringComparison.Ordinal);
+        Assert.That(rim > 0 && water > rim, Is.True, "the Rain Barrel's rim is drawn before its water");
+    }
+
+    [Test]
+    public void TheTripodFrameAndItsVesselUseTheirArtAndKeepTheirColliders()
+    {
+        Type tripod = Find("Tripod");
+        Assert.That(tripod.GetField("FrameArtPath").GetValue(null), Is.EqualTo("Art/structure_tripod"));
+        Assert.That(tripod.GetField("VesselArtPrefix").GetValue(null), Is.EqualTo("Art/tool_"), "the hung pot, clay pot or kettle is its own tool art");
+        string source = SourceText("Scripts/World/Tripod.cs");
+        Assert.That(source, Does.Contain("UseFrameArt();"));
+        Assert.That(source, Does.Contain("UseVesselArt(hung);"));
+        Assert.That(source, Does.Contain("art.transform.localScale *= Mathf.Max(1f, scale);"), "a hand-sized pot is grown to the drawn vessel's width on the tripod");
+        Assert.That(source, Does.Contain("scale = Mathf.Min(scale, (ChainEnd - LowestVesselBottom) / height);"), "but never down into the fire's logs");
+        Assert.That(source, Does.Contain("chainEnd.x - after.center.x"), "and centred under the chain");
+        Assert.That(source, Does.Contain("primitive.enabled = false;"));
+        Assert.That(source, Does.Not.Contain("Destroy(primitive"), "the poles' and the vessel's colliders stay");
+    }
+
+    [Test]
+    public void TheCampfireArtTakesOverTheLogsAndAshItSwitches()
+    {
+        Type fire = Find("Campfire");
+        Assert.That(fire.GetField("ArtPath").GetValue(null), Is.EqualTo("Art/effect_campfire"));
+        string source = SourceText("Scripts/World/Campfire.cs");
+        Assert.That(source, Does.Contain("logs = artLogs.gameObject;"));
+        Assert.That(source, Does.Contain("ash = artAsh.gameObject;"));
+        Assert.That(source, Does.Contain("void Awake()\n    {\n        UseArt();").Or.Contain("void Awake()\r\n    {\r\n        UseArt();"));
     }
 }

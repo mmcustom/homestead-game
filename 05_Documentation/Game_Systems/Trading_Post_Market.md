@@ -279,3 +279,40 @@ Claude Code's choices (all accepted unless Mike objects): the seeder fills from 
 Not covered: the Shift button was not clicked in the UI (the sale was checked through TradingPost.Sell and the quote text read from a screenshot); real income per game day was not measured; a hand-edited save with a stocked item above 1.0 could sell back above its buy price (normal play cannot).
 
 Playtest: `06_AI_Collaboration\Market_Playtest_Checklist.md` (28 pass-or-fail items plus 4 notes).
+
+
+## Change 2026-11-14 (Mike): every basic hand tool is stocked
+
+The Trading Post now sells the five hand tools it did not stock before. They are Stocked rows (they sell back at the usual share) and Ledger "Tools" purchases. Prices live in ToolRules.
+
+| Item | id | Price | Before |
+|---|---|---|---|
+| Primitive Shovel | shovel | $6 | bought-only, store paid $4 |
+| Stone Pick Axe | stone_pick_axe | $6 | bought-only, store paid $4 |
+| Primitive Axe | primitive_axe | $6 | bought-only, store paid $4 |
+| Iron Shovel | iron_shovel | $12 | not sold or bought |
+| Iron Pick Axe | iron_pick_axe | $15 | not sold or bought |
+
+The stone tools are still craftable and the iron ones are still made at the Smithy; buying is the shortcut. Selling one back now pays the sell-back share (40%: $2.40, $4.80, $6.00) instead of the old $4 for the stone tools. The stocked shelf is 27 items, the catalog 94 rows; MarketData.asset was reseeded (it matched the catalog exactly before).
+
+
+## Change 2026-11-14, part 2 (Mike): every tool is stocked
+
+The rest of the tools are on the shelf too. A tool the player can also make sells at 2.5 times what the store pays for one (ToolRules.StoreCents), and keeps its old buy-back price through a new MarketRow field, sellCents, so selling a homemade one pays exactly what it did (the plain sell-back rule, 40% of the whole-dollar price with a minimum, would have made a homemade Torch, Snare or Bow Drill unsellable). These rows stay in the Crafted group.
+
+| Item | Price | Store pays |
+|---|---|---|
+| Lantern | $10 | $4 |
+| Torch | $2.50 | $1 |
+| Cane Pole | $5 | $2 |
+| Primitive Bow | $5 | $2 |
+| Bow Drill | $2.50 | $1 |
+| Box Trap | $5 | $2 |
+| Fish Trap | $7.50 | $3 |
+| Rabbit Snare | $2.50 | $1 |
+| Pouch | $7.50 | $3 |
+| Clay Cooking Pot | $25 | $10 |
+| Sap Bucket (new row, Stocked group) | $8 | $3 |
+| Spile (new row, Stocked group) | $1 | nothing (under the sell-back minimum) |
+
+The Primitive Shovel, Stone Pick Axe and Primitive Axe ($6) also got sellCents: the store pays $4 for one again, as before part 1. The shelf is 39 items and the catalog 96 rows; MarketData.asset was reseeded from the catalog.

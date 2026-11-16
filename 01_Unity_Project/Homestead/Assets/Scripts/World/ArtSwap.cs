@@ -28,6 +28,11 @@ public static class ArtSwap
     public const string AnchorSmoke = "Anchor_Smoke";
     public const string AnchorMouth = "Anchor_Mouth";
     public const string AnchorStock = "Anchor_Stock";
+    public const string AnchorWater = "Anchor_Water";
+    public const string AnchorBench = "Anchor_Bench";
+    public const string AnchorShelf = "Anchor_Shelf";
+    public const string AnchorFill = "Anchor_Fill";
+    public const string AnchorFire = "Anchor_Fire";
 
     // KilnSmoke.height's default: the vent is at 1.0 and the smoke starts a hand above it. A test pins it against the component.
     public const float KilnSmokeHeight = 1.1f;
@@ -94,6 +99,167 @@ public static class ArtSwap
             stateOf = KilnStateOf,
             flagsOf = s => WellsAndOuthouses.KilnPhaseOf(s) == PotteryRules.KilnPhase.Firing ? new[] { "On_Firing" } : NoFlags,
             smokeOn = s => WellsAndOuthouses.KilnPhaseOf(s) == PotteryRules.KilnPhase.Firing,
+        },
+        // Wave 2 batch (Mike, 2026-11-15). Each count, box and phase below is the primitive builder's in PlacedStructure.cs (StructureVisuals); the changing contents stay primitives at
+        // one anchor at the origin, so they sit exactly where the builder puts them. Smoke for the Charcoal Pit and Bloomery stays PlacedStructure.Rebuild's own (smokeOn null).
+        new Spec
+        {
+            id = "structure_well",
+            kind = PileKind.Well,
+            anchors = new[] { A(AnchorWater, false, 0f, 0f, 0f) },  // the water disc (it rises with the litres and browns when contaminated)
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(2.1f, 1.9f, 1.5f),
+            boxCenter = new Vector3(0f, 0.6f, 0f),
+            boxSize = new Vector3(1.9f, 1.2f, 1.7f),
+            staticPieces = 29,                                      // 24 ring stones, two posts, windlass, roof, bucket; the water disc is drawn last
+            contentAnchors = new[] { AnchorWater },
+        },
+        new Spec
+        {
+            id = "structure_outhouse",
+            kind = PileKind.Outhouse,
+            anchors = new AnchorSpec[0],
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(1.4f, 2.15f, 1.5f),
+            boxCenter = new Vector3(0f, 1f, 0f),
+            boxSize = new Vector3(1.3f, 2.1f, 1.3f),
+            staticPieces = 6,                                       // floor, back, left, right, door, roof (the primitive's darkening as the pit fills is not drawn by the art)
+        },
+        new Spec
+        {
+            id = "structure_workshop",
+            kind = PileKind.Workshop,
+            anchors = new[] { A(AnchorBench, false, 0f, 0f, 0f) },  // the work piece and product on the bench, the Logs and Branches beside it
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(3.5f, 2.6f, 2.8f),
+            boxCenter = new Vector3(0f, 0.55f, -1.08f + 0.4f),
+            boxSize = new Vector3(2.0f, 1.1f, 0.7f),
+            staticPieces = 18,                                      // soil, four posts, back wall, seven roof bundles, the bench's top and four legs
+            contentAnchors = new[] { AnchorBench },
+        },
+        new Spec
+        {
+            id = "structure_pottershed",
+            kind = PileKind.PotterShed,
+            anchors = new[] { A(AnchorShelf, false, 0f, 0f, 0f) },  // the wet lump, the shelf's pieces, the Clay and the Sand
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(2.9f, 2.5f, 2.4f),
+            boxCenter = new Vector3(0f, 0.7f, -0.88f + 0.35f),
+            boxSize = new Vector3(2.2f, 1.4f, 0.7f),
+            staticPieces = 19,                                      // soil, four posts, back wall, six roof bundles, the table's top and four legs, two shelf boards
+            contentAnchors = new[] { AnchorShelf },
+        },
+        new Spec
+        {
+            id = "structure_charcoalpit",
+            kind = PileKind.CharcoalPit,
+            anchors = new[] { A(AnchorSmoke, false, 0f, CharcoalRules.SmokeHeight, 0f), A(AnchorStock, false, 0f, 0f, 0f) },
+            states = new[] { "State_Idle", "State_Burning", "State_Done" },
+            flags = new[] { "On_Burning" },
+            expectedSize = new Vector3(1.9f, 0.85f, 1.9f),
+            boxCenter = new Vector3(0f, 0.4f, 0f),
+            boxSize = new Vector3(1.7f, 0.9f, 1.7f),
+            staticPieces = 4,                                       // pad, mound, vent, draught hole
+            contentAnchors = new[] { AnchorStock },                 // the stacked Logs, or the Charcoal heap when it is done
+            stateOf = s => WellsAndOuthouses.PitPhaseOf(s) == CharcoalRules.Phase.Burning ? "State_Burning"
+                         : WellsAndOuthouses.PitPhaseOf(s) == CharcoalRules.Phase.Done ? "State_Done" : "State_Idle",
+            flagsOf = s => WellsAndOuthouses.PitPhaseOf(s) == CharcoalRules.Phase.Burning ? new[] { "On_Burning" } : NoFlags,
+        },
+        new Spec
+        {
+            id = "structure_bloomery",
+            kind = PileKind.Bloomery,
+            anchors = new[] { A(AnchorSmoke, false, 0f, BloomeryRules.SmokeHeight, 0f), A(AnchorMouth, false, 0f, 0.28f, 0.5f), A(AnchorStock, false, 0f, 0f, 0f) },
+            states = new[] { "State_Idle", "State_Smelting" },
+            flags = new[] { "On_Smelting" },
+            expectedSize = new Vector3(1.45f, 1.25f, 1.45f),
+            boxCenter = new Vector3(0f, 0.65f, 0f),
+            boxSize = new Vector3(1.2f, 1.4f, 1.2f),
+            staticPieces = 9,                                       // footing, lower and upper stack, chimney, four footing stones, mouth
+            contentAnchors = new[] { AnchorStock },                 // the Ore, the Charcoal and the iron bars
+            stateOf = s => WellsAndOuthouses.BloomeryPhaseOf(s) == BloomeryRules.Phase.Smelting ? "State_Smelting" : "State_Idle",
+            flagsOf = s => WellsAndOuthouses.BloomeryPhaseOf(s) == BloomeryRules.Phase.Smelting ? new[] { "On_Smelting" } : NoFlags,
+        },
+        new Spec
+        {
+            id = "structure_smithy",
+            kind = PileKind.Smithy,
+            anchors = new[] { A(AnchorStock, false, 0f, 0f, 0f) },   // the hot piece or the finished good on the anvil, the Iron Bars and the Charcoal outside
+            states = new string[0],
+            flags = new[] { "On_Working" },                          // the forge's coals and mouth glow while a job runs
+            expectedSize = new Vector3(3.5f, 3.1f, 2.8f),
+            boxCenter = new Vector3(-0.07f, 0.55f, -0.31f),
+            boxSize = new Vector3(2.4f, 1.1f, 1.3f),
+            staticPieces = 21,                                       // soil, four posts, back wall, seven roof bundles, hearth, fire bed, mouth, chimney, stump and three anvil parts
+            contentAnchors = new[] { AnchorStock },
+            flagsOf = s => !string.IsNullOrEmpty(s.jobItem) && s.jobHours > 0f ? new[] { "On_Working" } : NoFlags,
+        },
+        new Spec
+        {
+            id = "structure_leachhopper",
+            kind = PileKind.LeachHopper,
+            anchors = new[] { A(AnchorFill, false, 0f, 0f, 0f) },    // the water, the Ash or Lye in the box (scaled by how full it is) and the drip while it leaches
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(1.1f, 1.35f, 1.1f),
+            boxCenter = new Vector3(0f, 0.7f, 0f),
+            boxSize = new Vector3(1.2f, 1.4f, 1.2f),
+            staticPieces = 10,                                       // four posts, floor, four sides, the catch crock (drawn before the contents)
+            contentAnchors = new[] { AnchorFill },
+        },
+        new Spec
+        {
+            id = "structure_kitchen",
+            kind = PileKind.Kitchen,
+            anchors = new AnchorSpec[0],                             // the hearth fire is FireManager's own Campfire at Setbacks.KitchenLayout.HearthLocal
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(3.8f, 2.75f, 3.3f),
+            boxCenter = new Vector3(0f, Setbacks.KitchenLayout.RoofHeight / 2f, 0f),
+            boxSize = new Vector3(0.1f, 0.1f, 0.1f),                 // unused (PlacedStructure turns the Kitchen's box off): its Solid_Post_1-4, Solid_Roof and Solid_Table are what is aimed at and bumped into
+            staticPieces = 31,                                       // soil, the hearth (slab, backing, nine stones), four posts, eight roof planks, two beams, the prep table's top and legs
+        },
+        // The kitchen add-ons (Mike, 2026-11-16): each stands in a slot facing local +Z, 0.88 m wide and 0.5 m deep; their own interaction boxes are kept.
+        new Spec
+        {
+            id = "structure_countertop",
+            kind = PileKind.Countertop,
+            anchors = new AnchorSpec[0],
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(0.88f, 1.02f, 0.5f),
+            boxCenter = new Vector3(0f, 0.5f, 0f),
+            boxSize = new Vector3(0.88f, 1f, 0.5f),
+            staticPieces = 8,                                        // the table's top and four legs, the lower board, the back lip, the chopping board
+        },
+        new Spec
+        {
+            id = "structure_grill",
+            kind = PileKind.Grill,
+            anchors = new[] { A(AnchorFire, false, 0f, WoodManager.GrillFireHeight, 0f) },  // the grill's fire is FireManager's own Campfire at WoodManager.GrillFireSpot
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(1.0f, 0.83f, 0.6f),
+            boxCenter = new Vector3(0f, WoodManager.GrillFireHeight / 2f, 0f),
+            boxSize = new Vector3(0.88f, WoodManager.GrillFireHeight, 0.5f),
+            staticPieces = 14,                                       // firebox, two flat stone tops, four foot stones, two rack posts, five green sticks
+        },
+        new Spec
+        {
+            id = "structure_slopsink",
+            kind = PileKind.SlopSink,
+            anchors = new[] { A(AnchorFill, false, 0f, 0f, 0f) },    // the water at its level in the basin
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(0.88f, 0.98f, 0.62f),
+            boxCenter = new Vector3(0f, 0.5f, 0f),
+            boxSize = new Vector3(0.88f, 1f, 0.5f),
+            staticPieces = 11,                                       // the table's top and four legs, the basin, four rim boards, the drain spout (drawn before the water)
+            contentAnchors = new[] { AnchorFill },
         },
     };
 

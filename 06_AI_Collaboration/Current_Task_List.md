@@ -4405,3 +4405,15 @@ Uncommitted docs: Current_Task_List.md, Income_Measuring_Plan.md (amendment).
 - Claude Code committed Phase 2a as 173ef84 (15 files, tag real-calendar-phase2a, not pushed). master is 7 commits ahead of origin.
 - Cowork docs commit made (all pending docs: calendar, modern systems, Season/Money notes, GDD, overview, architecture, decisions log, playtest checklists, rewritten Pioneer re-measure checklist). Not pushed.
 - NEXT: Mike plays the Pioneer re-measure (Pioneer_Remeasure_Checklist.md, required to Aug 31), then Cowork computes income per game day and proposes D2 tier numbers.
+
+## 2026-11-10 (night): push held
+
+- Mike: do NOT push yet, wait for the Pioneer re-test. master is 8 commits ahead of origin (da55162 Phase 1, 173ef84 Phase 2a, 2269442 docs, plus earlier unpushed commits). Nothing pushed. Ask Mike again after the re-test before pushing.
+- Uncommitted by design: hands_skin.mat, Captures\, 08_Backups\, Art\, Blender\, Claude outputs\. This log entry itself is uncommitted until the next docs commit.
+
+## 2026-11-10 (night): Pioneer loan term decision
+
+- Mike: assume we will not hit $25 a day (his guess about $2 a day); do BOTH cheaper Pioneer terms and raise early income; chose a LONGER TERM (not a cheaper or smaller parcel).
+- Plan: Pioneer 360 payments at 8% = $440.26 a month = $14.47 a game day (40 years would only reach $13.72). Not built; held until after the re-measure so tier levers are set once. Term becomes a new tier lever. Settler and Homesteader terms undecided.
+- Early income: aim for a ramp, not a flat $25 (about $3 to $5 a day in Spring, about $10 by mid-Summer, more in Fall). Levers to examine after the re-measure data: early sellable goods, Trading Post prices, a small daily-wage option.
+- Docs updated (uncommitted): Money_System UPDATE line, Decisions_Log, Pioneer_Remeasure_Checklist note (play with current terms, this run measures income).

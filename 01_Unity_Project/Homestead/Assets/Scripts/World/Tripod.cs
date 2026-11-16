@@ -51,6 +51,85 @@ public class Tripod : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         Piece(transform, PrimitiveType.Cylinder, top + Vector3.down * 0.04f, Quaternion.identity, new Vector3(0.15f, 0.06f, 0.15f), LashColor, false);
         Piece(transform, PrimitiveType.Cylinder, new Vector3(0f, PoleHeight - 0.32f, 0f), Quaternion.identity, new Vector3(0.012f, 0.3f, 0.012f), ChainColor, false);
+        UseFrameArt();
+    }
+
+    // Wave 3 art (Mike 2026-11-16). The frame: Resources/Art/structure_tripod replaces the drawn poles, lashing and chain (the poles keep their colliders, so aiming
+    // is unchanged). The vessel: the hung pot, clay pot or kettle uses its own tool art (Resources/Art/tool_<id>, the one carried in the hands), grown to the drawn
+    // vessel's width and hung by its top from the chain's end; the primitive keeps its collider. Without a prefab nothing changes.
+    public const string FrameArtPath = "Art/structure_tripod";
+    public const string VesselArtPrefix = "Art/tool_";
+    const float ChainEnd = PoleHeight - 0.62f; // the bottom of the chain, where a vessel's top hangs
+    const float LowestVesselBottom = 0.55f;    // a hung vessel's bottom stays above the fire's logs (their tops are about 0.5 m up)
+
+    void UseFrameArt()
+    {
+        GameObject prefab = Resources.Load<GameObject>(FrameArtPath);
+        if (prefab == null)
+            return;
+        foreach (MeshRenderer primitive in GetComponentsInChildren<MeshRenderer>(true))
+            primitive.enabled = false;
+        AddArt(prefab, transform, Vector3.zero);
+    }
+
+    void UseVesselArt(string hung)
+    {
+        GameObject prefab = Resources.Load<GameObject>(VesselArtPrefix + hung);
+        if (prefab == null || vesselRoot == null)
+            return;
+        float wanted = WidthOf(vesselRoot.GetComponentsInChildren<MeshRenderer>(true)); // the drawn vessel's width, before it is hidden
+        foreach (MeshRenderer primitive in vesselRoot.GetComponentsInChildren<MeshRenderer>(true))
+            primitive.enabled = false;
+        GameObject art = AddArt(prefab, vesselRoot.transform, new Vector3(0f, ChainEnd - VesselHeight, 0f));
+        // A carried pot is sized for the hands; on the tripod it is grown to the drawn vessel's width (Mike 2026-11-16: the clay pot looked too small), but never
+        // so far that it would reach down into the fire's logs, and it is then hung by its top (not its grip, which on the clay pot is at its middle) from the chain's end.
+        MeshRenderer[] shown = art.GetComponentsInChildren<MeshRenderer>(true);
+        float have = WidthOf(shown);
+        Bounds before = BoundsOf(shown);
+        float height = before.size.y / Mathf.Max(0.0001f, transform.lossyScale.y);
+        float scale = have > 0.01f && wanted > have ? wanted / have : 1f;
+        if (height > 0.001f)
+            scale = Mathf.Min(scale, (ChainEnd - LowestVesselBottom) / height);
+        art.transform.localScale *= Mathf.Max(1f, scale);
+        Bounds after = BoundsOf(shown);
+        // Centred under the chain too (the clay pot's grip is at its handle, off to one side): its middle goes straight below the chain's end.
+        Vector3 chainEnd = transform.TransformPoint(new Vector3(0f, ChainEnd, 0f));
+        art.transform.position += new Vector3(chainEnd.x - after.center.x, chainEnd.y - after.max.y, chainEnd.z - after.center.z);
+        foreach (Transform t in art.GetComponentsInChildren<Transform>(true))
+            if (t.name == "Fill")
+                t.gameObject.SetActive(false); // a carried container's water surface; nothing is filled on the tripod
+    }
+
+    static Bounds BoundsOf(MeshRenderer[] renderers)
+    {
+        Bounds b = default;
+        bool any = false;
+        foreach (MeshRenderer r in renderers)
+        {
+            if (r.name.Contains("Fill"))
+                continue;
+            if (!any) { b = r.bounds; any = true; }
+            else b.Encapsulate(r.bounds);
+        }
+        return b;
+    }
+
+    static float WidthOf(MeshRenderer[] renderers)
+    {
+        float width = 0f;
+        foreach (MeshRenderer r in renderers)
+            width = Mathf.Max(width, Mathf.Max(r.bounds.size.x, r.bounds.size.z));
+        return width;
+    }
+
+    static GameObject AddArt(GameObject prefab, Transform parent, Vector3 at)
+    {
+        GameObject art = Instantiate(prefab, parent, false);
+        art.name = "Art";
+        art.transform.localPosition = at;
+        foreach (Collider c in art.GetComponentsInChildren<Collider>(true))
+            Destroy(c);
+        return art;
     }
 
     // Redraws the hung vessel when it has changed.
@@ -76,6 +155,7 @@ public class Tripod : MonoBehaviour, IInteractable, ISecondaryInteractable
             BuildKettle(vesselRoot.transform);
         else
             BuildPot(vesselRoot.transform, hung == TripodRules.ClayPotId);
+        UseVesselArt(hung);
     }
 
     // A squat iron pot with a lighter rim, or the Clay Cooking Pot in clay brown with a paler rim (Pottery P3); the chain's end is at its top.

@@ -156,7 +156,7 @@ public class EquipNameFadeTests
         ("Scripts/Survival/BowDrill.cs", "ToolStatus.ReportIdle(\"Bow Drill — face a built Campfire with fuel in it and hold click to start a fire\")"),
         ("Scripts/Survival/PortableLight.cs", "ToolStatus.ReportIdle(line)"),
         ("Scripts/Wildlife/HuntingWeapon.cs", "ToolStatus.ReportIdle($\"{name} — no arrows\")"),
-        ("Scripts/Wildlife/HuntingWeapon.cs", "ToolStatus.ReportIdle($\"{name} — hold to draw, release to shoot   Arrows: {arrows}\")"),
+        ("Scripts/Wildlife/HuntingWeapon.cs", "ToolStatus.ReportIdle($\"{name} — right-click to aim, hold click to draw, release to shoot   Arrows: {arrows}\")"), // bow aim added 2026-11-14 (Mike)
         ("Scripts/Wildlife/HuntingWeapon.cs", "ToolStatus.ReportIdle(\"Rifle — no ammunition\")"),
         ("Scripts/Wildlife/HuntingWeapon.cs", "ToolStatus.ReportIdle($\"Bolt-Action Rifle — right-click to aim, click to fire   Rounds: {rounds}\")"),
     };

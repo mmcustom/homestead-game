@@ -17,6 +17,8 @@ using UnityEngine.InputSystem;
 // spread right now — wide on a partial draw or on the move, tight at full draw. The rifle shoots loose from the hip
 // and raises a scope with Aim (right mouse): 6x zoom, slower look, and a precise shot. Both sights read the shot
 // line against Shot Placement: amber on an animal's body, green through its heart and lungs, with the range.
+// Bow aim (Mike, 2026-11-14): with either bow, holding Aim (right mouse) brings the view in a little (BowAimZoom, 1.5x, far
+// less than the scope), slows the look, and steadies the arrow a little. The hands stay in view; there is no overlay.
 public class HuntingWeapon : MonoBehaviour
 {
     const string BowId = "recurve_bow";
@@ -57,6 +59,13 @@ public class HuntingWeapon : MonoBehaviour
     [Tooltip("Animals within this distance flee at a rifle shot (metres).")]
     [SerializeField, Min(0f)] float gunshotEarshot = 250f;
 
+    [Header("Bow aim (right mouse)")]
+    [SerializeField, Min(1f)] float bowAimZoom = 1.5f;
+    [Tooltip("Look sensitivity while aiming a bow, as a share of normal.")]
+    [SerializeField, Range(0.05f, 1f)] float bowAimLookScale = 0.65f;
+    [Tooltip("The arrow's spread while aiming, as a share of the spread from the hip.")]
+    [SerializeField, Range(0.1f, 1f)] float bowAimSpreadScale = 0.8f;
+
     [Tooltip("Spread multiplier while moving.")]
     [SerializeField, Min(1f)] float movingSpread = 3f;
 
@@ -64,9 +73,13 @@ public class HuntingWeapon : MonoBehaviour
     float draw;
     float readyAt;
     float scope;          // 0-1, how far the rifle's scope is raised
+    float bowAim;         // 0-1, how far a bow is brought up to aim (right mouse)
 
     // Read-only: how far the rifle's scope is raised (0 = down, 1 = fully up; the overlay shows past 0.5). PlayerHands lowers and hides the hands with it. Zero for the bows, which have no scope.
     public float ScopeFraction => scope;
+
+    // Read-only: how far a bow is brought up to aim (0 = from the hip, 1 = fully aimed). The hands stay shown.
+    public float BowAimFraction => bowAim;
     Camera view;
     float baseFov;
 
@@ -84,6 +97,7 @@ public class HuntingWeapon : MonoBehaviour
     void OnDisable()
     {
         scope = 0f;
+        bowAim = 0f;
         ApplyScope();
     }
 
@@ -94,9 +108,10 @@ public class HuntingWeapon : MonoBehaviour
         if (equipped != BowId && equipped != PrimitiveBowId && equipped != RifleId)
         {
             draw = 0f;
-            if (scope > 0f)
+            if (scope > 0f || bowAim > 0f)
             {
                 scope = 0f;
+                bowAim = 0f;
                 ApplyScope();
             }
             return;
@@ -107,6 +122,9 @@ public class HuntingWeapon : MonoBehaviour
         // The scope comes up while Aim is held with the rifle out, and drops for anything else.
         bool wantScope = equipped == RifleId && aim != null && aim.IsPressed();
         scope = Mathf.MoveTowards(scope, wantScope ? 1f : 0f, Time.deltaTime / scopeRaiseSeconds);
+        // A bow comes up to aim the same way, in the same time, with no scope.
+        bool wantBowAim = equipped != RifleId && aim != null && aim.IsPressed();
+        bowAim = Mathf.MoveTowards(bowAim, wantBowAim ? 1f : 0f, Time.deltaTime / scopeRaiseSeconds);
         ApplyScope();
 
         if (equipped == BowId || equipped == PrimitiveBowId)
@@ -115,13 +133,16 @@ public class HuntingWeapon : MonoBehaviour
             UpdateRifle(inventory);
     }
 
-    // Zoom and look sensitivity follow how far the scope is raised.
+    // Zoom and look sensitivity follow how far the scope is raised, or how far a bow is brought up to aim.
     void ApplyScope()
     {
         if (view != null && baseFov > 0f)
-            view.fieldOfView = Mathf.Lerp(baseFov, baseFov / scopeZoom, scope);
+        {
+            float fov = Mathf.Lerp(baseFov, baseFov / scopeZoom, scope);
+            view.fieldOfView = Mathf.Lerp(fov, fov / bowAimZoom, bowAim);
+        }
         if (player != null)
-            player.LookScale = Mathf.Lerp(1f, scopedLookScale, scope);
+            player.LookScale = Mathf.Lerp(1f, scopedLookScale, scope) * Mathf.Lerp(1f, bowAimLookScale, bowAim);
     }
 
     // The bow in hand's numbers; the Primitive Bow is the Recurve's worse cousin.
@@ -129,7 +150,8 @@ public class HuntingWeapon : MonoBehaviour
     float EffectiveRange(bool primitive) => primitive ? primitiveEffectiveRange : bowEffectiveRange;
     float MaxRange(bool primitive) => primitive ? primitiveMaxRange : bowMaxRange;
     float BowSpread(bool primitive, float power) =>
-        Mathf.Lerp(primitive ? primitiveSpreadWeak : bowSpreadWeak, primitive ? primitiveSpreadFull : bowSpreadFull, power) * (Moving ? movingSpread : 1f);
+        Mathf.Lerp(primitive ? primitiveSpreadWeak : bowSpreadWeak, primitive ? primitiveSpreadFull : bowSpreadFull, power) * (Moving ? movingSpread : 1f)
+        * Mathf.Lerp(1f, bowAimSpreadScale, bowAim);
     float RifleSpread => Mathf.Lerp(rifleHipSpread, rifleScopedSpread, scope) * (Moving ? movingSpread : 1f);
 
     // What the sight is on right now, for the reticle: nothing, an animal's body, or its vitals — and how far.
@@ -193,7 +215,7 @@ public class HuntingWeapon : MonoBehaviour
             return;
         }
 
-        ToolStatus.ReportIdle($"{name} — hold to draw, release to shoot   Arrows: {arrows}");
+        ToolStatus.ReportIdle($"{name} — right-click to aim, hold click to draw, release to shoot   Arrows: {arrows}");
     }
 
     void UpdateRifle(InventoryManager inventory)

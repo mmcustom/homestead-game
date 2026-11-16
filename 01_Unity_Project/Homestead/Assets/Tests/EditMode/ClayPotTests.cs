@@ -217,7 +217,10 @@ public class ClayPotTests
         Assert.That(ironBuy, Is.EqualTo(1200L), "the bought pot is $12");
         Assert.That(ironBack, Is.EqualTo(400L), "and sells back at 40% of the whole-dollar price, rounded down: $4.00 (Money.SellBackCents), not $4.80");
         Assert.That(claySell, Is.EqualTo(1000L), "the clay pot sells for $10");
-        Assert.That(table.BuyBaseCents(Clay), Is.EqualTo(0L), "the store never sells a clay pot, so there is nothing to buy and resell");
+        // Since 2026-11-15 the store sells every homemade tool at 2.5 times what it pays for it (Mike), the clay pot included: $25 to buy, $10 back.
+        long clayBuy = table.BuyBaseCents(Clay);
+        Assert.That(clayBuy, Is.EqualTo(2500L), "the store sells a clay pot at 2.5 times its $10 buy-back");
+        Assert.That(claySell, Is.LessThan(clayBuy), "so buying a clay pot and selling it back always loses");
         Assert.That(ironBack, Is.LessThan(ironBuy), "buying the iron pot and selling it back always loses");
         Assert.That(claySell, Is.LessThan(ironBuy), "and a sold clay pot does not pay for an iron one");
         Assert.That(table.RuleOf(Clay).group, Is.EqualTo(MarketGroup.Crafted));

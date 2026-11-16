@@ -174,10 +174,11 @@ public static class HeldTools
 {
     public static readonly string[] TwoHandedIds =
     {
-        "axe", "primitive_axe", "wood_saw",
+        "axe", "primitive_axe", // the Wood Saw is one-handed (Mike, 2026-11-15)
         "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe",
         "fishing_rod", "cane_pole",
         "primitive_bow", "recurve_bow", "bolt_action_rifle",
+        "bow_drill", // Mike, 2026-11-15: the left hand presses down on top of the spindle while the right saws the bow
     };
 
     public static bool IsTwoHanded(string toolId) => toolId != null && Array.IndexOf(TwoHandedIds, toolId) >= 0;

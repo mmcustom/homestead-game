@@ -376,15 +376,17 @@ public class CharcoalPitTests
     public void IronOreIsTheTwentySecondStockedItemAtFourDollarsAndSellsBackForOne()
     {
         MarketTable table = MarketCatalog.Table;
-        Assert.That(table.Stock.Count, Is.EqualTo(22), "21 before Iron Ore");
+        Assert.That(table.Stock.Count, Is.EqualTo(39), "21 before Iron Ore; the rest of the hand tools and the maple gear joined the shelf 2026-11-14;  the five hand tools joined the shelf 2026-11-14");
         Assert.That(table.TryGetRow("iron_ore", out MarketRow row), Is.True);
         Assert.That(row.kind, Is.EqualTo(MarketKind.Stocked));
         Assert.That(row.group, Is.EqualTo(MarketGroup.Stocked));
         Assert.That(row.baseCents, Is.EqualTo(400L));
         Assert.That(table.BuyBaseCents("iron_ore"), Is.EqualTo(400L));
         Assert.That(table.SellBaseCents("iron_ore"), Is.EqualTo(100L), "sells back at 40%: $1, less than it costs");
-        Assert.That(table.Stock[table.Stock.Count - 1].itemId, Is.EqualTo("iron_ore"), "it joins the shelf after the Wood Saw");
-        Assert.That(table.Stock[table.Stock.Count - 2].itemId, Is.EqualTo("wood_saw"));
+        int ore = table.Stock.ToList().FindIndex(r => r.itemId == "iron_ore");
+        Assert.That(ore, Is.GreaterThan(0), "Iron Ore is on the shelf");
+        // The homemade tools stocked 2026-11-14 sit further down the catalog, so Iron Ore is no longer last; it still follows the Wood Saw.
+        Assert.That(table.Stock[ore - 1].itemId, Is.EqualTo("wood_saw"), "it joins the shelf after the Wood Saw");
     }
 
     [Test]
@@ -410,7 +412,7 @@ public class CharcoalPitTests
         Assert.That(asset, Does.Contain("  - itemId: charcoal\n    group: 0\n    pool: charcoal\n    baseCents: 100\n    kind: 1\n    seasonalBuy: 0\n"));
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(92), "87, the two M1 rows and the three Smithy goods");
+        Assert.That(rows, Is.EqualTo(96), "the maple gear's two rows; the five hand tools joined the shelf 2026-11-14; 87, the two M1 rows and the three Smithy goods");
         Assert.That(SourceText("Scripts/Editor/MarketDataSeeder.cs"), Does.Not.Contain("CharcoalRules"), "the seeder was not touched");
     }
 
@@ -517,7 +519,7 @@ public class CharcoalPitTests
         var parent = new GameObject("Pit visuals test");
         var pieces = new List<GameObject>();
         object[] args = { parent.transform, state, null, pieces, Vector3.zero, Vector3.zero };
-        Find("StructureVisuals").GetMethod("Build").Invoke(null, args);
+        Find("StructureVisuals").GetMethod("BuildPrimitive", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).Invoke(null, args); // the primitive look (a prefab at Resources/Art would replace it in Build)
         size = (Vector3)args[5];
         pieces.Add(parent);
         return pieces;

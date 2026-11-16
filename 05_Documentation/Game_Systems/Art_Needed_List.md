@@ -136,7 +136,7 @@ Count-dependent contents (logs, stones, delivered materials) are the hard part; 
 | structure_shelving | Shelving unit | confirm | Anchor_Shelf_* | none yet | Medium. |
 | structure_handcart | Hand cart: bed, two wheels, handles | confirm (about 0.8 x 0.7 x 1.6) | Anchor_Handle (E grabs here), Anchor_Load; Wheels as separate children | primitive hand cart.png (faint watermarks, reference only) | Hands pose for the cart is already tuned. |
 | structure_tripod | Cooking tripod: three poles, chain | about 1.4 tall (confirm) | Anchor_Hang (vessel hangs here) | cooking tripod.png, tripod campfire.png, tripod kettle.png | Pot or kettle is a separate tool or item prefab. |
-| structure_tap | Sap tap on a tree: spile, bucket, sap disc | small | Anchor_Spile; Fill (sap level), State_Sour | spile.png, sap bucket.png | Low priority. |
+| structure_tap | Sap tap on a tree: spile, bucket, sap disc | small | Anchor_Spile; Fill (sap level), State_Sour | spile.png, sap bucket.png | Done 2026-11-15 from tool_spile and tool_sap_bucket (see the structure_tap notes). |
 | effect_campfire | Campfire (existing prefab slot, FireManager.campfirePrefab) | about 0.9 across | Anchor_Flame, light, particles | tripod campfire.png | Already prefab-based; needs real fire mesh and ash. |
 
 Note on ids: the structure_<pilekind> ids above follow the ArtSwap convention (lower-case pile kind name). The exact id spelling for each kind is fixed when its Spec row is added in phase A2; the Placeholder List editor tool will then print the final ids and replace this column.
@@ -176,7 +176,7 @@ Animals are prefabs already (Prefabs/Wildlife/*.prefab, built from capsules and 
 | Duck (mallard) | 0.55 long | Floats on water. | Low |
 | Fish (creek species) | 0.2 to 0.5 long | Seen on the line and in the Fish Trap. | Low |
 | Bobber | 0.04 | Floats; part of the fishing rod. | Low |
-| Rabbit Snare, Box Trap, Fish Trap (world versions) | see tools table | Use the same shapes as the tool_ versions with a set and sprung state. | Low |
+| Rabbit Snare, Box Trap, Fish Trap (world versions) | see tools table | Done 2026-11-15 from the tool_ art (see the trap_ notes). | Low |
 
 ---
 
@@ -311,6 +311,93 @@ Realistic plan for art: Blender (Claude can model, UV, bake and export), ComfyUI
 - Blender GPU bake gives black images for DIFFUSE/AO here; bake on CPU.
 
 
+## tool_knife pilot: axis rule confirmed (2026-11-14)
+
+The first piece made end to end by Claude: Blender (Blender MCP) to Unity (MCP for Unity). Copilot is no longer on the project. Claude now does the Unity import too, and the per-piece workflow is the homestead-blender-art skill.
+
+- What it is: a knapped flint blade, a stripped-branch wooden handle and a sinew wrap, matching the stone-blade primitive in ToolViewPrimitives.
+  - 7,482 triangles: blade 3,006, handle 2,558, wrap 1,918.
+  - Three materials, each with 2048 basecolor, normal and HDRP mask maps.
+  - Sources: Art\Blender_Work\tool_knife\ (tool_knife.blend, tool_knife_model.fbx, textures\, review\).
+- AXIS RULE (confirmed with an asymmetric marker, a knot authored on the handle's Blender +X side). With the FBX settings used (forward -Z, up Y, apply scale All, apply transform):
+  - Blender -Y becomes Unity +Z.
+  - Blender -Z becomes Unity -Y.
+  - Blender +X becomes Unity -X: X is mirrored, and the knot landed on Unity -X.
+  - Nodes import with zero rotation.
+  - Author tools with the working end along Blender -Y and the cutting side along Blender -Z, and no wrapper turn is needed. The axe needed its 180-degree turn only because it was built along +Y.
+  - For anything left/right-specific, author it on Blender +X to get Unity -X.
+- In Unity:
+  - tool_knife.prefab is flat, like tool_axe: root, Anchor_Grip_R (0, 0, 0), Anchor_Tip (0, 0.0042, 0.24), and Knife_Blade, Knife_Handle, Knife_Lashing.
+  - The meshes still reference tool_knife_model.fbx, so a re-export updates them. Anchors are NOT updated by a re-export.
+  - Materials tool_knife_flint, wood and sinew are HDRP/Lit (keywords _NORMALMAP and _MASKMAP).
+  - Normal maps are imported as Normal map; masks with sRGB off.
+  - ArtSwap.ToolSpecFor("knife") resolves the prefab, and the ArtSwap EditMode tests pass 27/27 with the art present. The earlier Resources/Art test problem (line 558) was already fixed.
+- In-game check: approved by Mike 2026-11-14 ("looks good for now"). Seats in the right hand at the existing holdPitch of -22 degrees; no changes needed. Possible later polish: the blade reads dark and thin at a distance in daylight.
+
+
+
+## tool_torch (2026-11-14): flames on the Viewmodel layer
+
+- What it is: a pitch torch. A weathered branch handle (bark patches, a knot), a head of pitch-soaked cloth wraps bound with three twisted hemp ropes, and a cord binding where the head meets the stick. Reference: primitive torch.png.
+  - 11,748 visible triangles.
+  - Five materials: wood, pitch, pitch_lit (with an ember emissive map), rope, binding. Rope is 1024 and binding 512; the rest are 2048.
+  - Sources: Art\Blender_Work\tool_torch\ (tool_torch.blend, tool_torch_model.fbx, textures\, review\, make_torch_flame_sheet.py).
+- Axis rule confirmed a second time: the FBX imported with no wrapper turn.
+- Lit and unlit:
+  - State_Unlit holds Torch_Head; State_Lit holds Torch_Head_Lit (the same mesh, pitch_lit material, emissive color 6, like the campfire's flames) and Torch_Flame.
+  - Anchor_Flame stays at (0, 0, 0.58), where the code moves the held light.
+- THE FLAME, and two lessons for every future held effect:
+  1. Particle systems do NOT work on the Viewmodel layer. The main camera never sees that layer, so Unity pauses them (culling) and stops rebuilding their geometry. The flame froze where it was lit, and AlwaysSimulate did not fix the drawing.
+     - Fix: Assets/Scripts/World/ViewFlame.cs (new code, commit it). Three upright mesh cards step through a 4 x 4 flipbook (tool_torch_flame_sheet.png, generated by make_torch_flame_sheet.py, original work) with a small flicker.
+     - The cards play together, a frame or two apart, and mirror together.
+     - Material tool_torch_flame is HDRP/Unlit, transparent, premultiplied, copied from the campfire's Flame Outer.
+  2. ViewmodelPass drew everything with depth write on, so a transparent card hid the cards behind it.
+     - Fix (Assets/Scripts/Player/ViewmodelPass.cs, commit it): opaque renderers first, as before; then transparent ones with depth write off.
+     - The 247 hands, tools and ArtSwap EditMode tests pass.
+- Approved in game by Mike 2026-11-14: follows the torch, looks right. Possible later polish: sparks, done as cards (particles will not work here).
+
+## tool_bucket (2026-11-14): hanging by gravity, and water in hand
+
+- What it is: a wooden staved bucket. 14 slightly uneven pale staves, tapered (outer 0.17 m across at the top and 0.15 m at the bottom, 0.17 m deep), a real inside with a darker water-stained wall and floor, two forged iron hoops with rust and a rivet, iron ears, and a wire bail through a worn wooden grip. Reference: primitive bucket.png.
+  - 11,104 triangles.
+  - Two materials: wood (the inside is darkened through a per-vertex "inner" attribute) and iron (metal; its base colour was baked through Emission, and its metallic value comes from the mask's R channel).
+  - Sources: Art\Blender_Work\tool_bucket\.
+- Hanging rule confirmed: authored grip at the origin, body down Blender -Z. It imported hanging along Unity -Y, with Anchor_Tip at (0, -0.22, 0) and no wrapper.
+- NEW CODE 1, hanging by gravity (Mike's request):
+  - Hanging items used to hang "straight down in the view", so they tilted when looking up or down.
+  - Assets/Scripts/Player/HangPendulum.cs (new) is a damped world-space pendulum: gravity, plus the hand's own acceleration, 45-degree cap, settles in about a second.
+  - PlayerHands.AlignHangingByGravity uses it for every hanging item: bucket, sap bucket, canteen, cooking pot, kettle, pouch and traps. The rifle and bows keep the view-locked AlignHanging.
+  - Tests: Assets/Tests/EditMode/HangPendulumTests.cs (6).
+- NEW CODE 2, water in a container in hand:
+  - Convention: a prefab child named Fill (the water surface, authored at the full level) and an empty named Fill_Bottom (the floor level; its localScale.x is the surface size there, for the taper).
+  - PlayerHands.UpdateFill shows the surface while water is carried and raises it by FillQuery: litres carried over the capacity of every Bucket and Canteen, since water is one shared pool.
+  - Bucket assets: tool_bucket_water_disc.asset (unit disc) and tool_bucket_water.mat (dark glossy HDRP/Lit).
+  - The sap bucket and canteen can use the same two children.
+- Approved in game by Mike 2026-11-14: look, lighting, filling, drinking, hanging and the water level all right.
+
+## tool_hammer (2026-11-14): wooden mallet
+
+- What it is: a wooden mallet. A turned barrel head with a ringed band, worn grey-green paint over pale wood (more wear toward the striking ends, end grain on the faces, a faded red band) and a dark streaky oak handle, slightly faceted and tapering, polished at the grip. Reference: primitive hammer.png.
+  - 8,252 triangles.
+  - Two materials: head and handle, each with 2048 basecolor, normal and mask maps.
+  - Sources: Art\Blender_Work\tool_hammer\.
+- Design change from the primitive: the primitive laid the head sideways (0.16 m along X). The real mallet's barrel stands across the swing (along Unity Y), so a flat end strikes on the downswing.
+  - Anchor_Tip is the centre of the striking face, (0, -0.076, 0.31).
+  - No Anchor_Grip_L (one-handed).
+  - holdPitch stays -24 degrees.
+- Art only, no code changes. Approved in game by Mike 2026-11-14: grip, swing and lighting all right.
+
+## tool_shovel (2026-11-14): Primitive Shovel, the first two-handed tool
+
+- What it is, per the code (not the list's "wooden shovel"): the item "shovel" is the Primitive Shovel, crafted from 3 sticks, 1 cordage and 1 stone.
+  - A flat dark slate blade, spade-shaped with a rounded point, about 2.5 cm thick in the middle and thin at the edges.
+  - Two tight cord lashings hold it under the end of the handle.
+  - A sapling handle with bark patches, a knot and a slight bow, and a crossbar through the butt for the T-grip.
+  - 10,416 triangles. Three materials: stone, wood (handle and crossbar) and cord (1024).
+  - Sources: Art\Blender_Work\tool_shovel\.
+- Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Grip_L (0, 0, 0.42) as the code's gripLeft, Anchor_Tip (0, -0.029, 0.975) at the blade point. holdPitch stays -14 degrees.
+- The iron shovel (tool_iron_shovel) is a separate prefab id and still uses its primitive.
+- Art only, no code changes. Approved in game by Mike 2026-11-14: both hands, digging pose, size and lighting all right.
 
 ---
 
@@ -320,14 +407,140 @@ How this audit was done: Waves 1 to 6 were read against the current build (the S
 
 Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Marketing are all empty (0 files). There is no logo, no app icon, no title or splash art and no concept art anywhere in the project. The only art on disk is the root Art folder (Blender_Work, References, Reference_Photos and two ComfyUI output folders) and Assets/Resources/Art (the hands).
 
+
+## tool_iron_shovel (2026-11-14): Iron Shovel, forged blade on a stick handle
+
+- What it is, per the recipe (SmithyRules: 2 iron bars, 2 charcoal, 3 sticks, 1 cordage, made at the Smithy): a forged iron spade blade with a socket the stick handle fits into, rolled treads on the top edge, a rivet through the socket, and a T-grip crossbar held on by a cord binding. Same layout as the Primitive Shovel (twoHanded, holdPitch -14, gripLeft 0.42, tip 0.92).
+- Size: 1.15 m overall (crossbar to point), blade about 0.20 wide and 0.25 long, sheet iron about 3.5 mm, slightly dished.
+- Tris: 10,416 (budget 15,000).
+- Materials: tool_iron_shovel_iron (metal: base colour baked through emission, metallic baked into mask R; worn bright edge, scale and light rust), tool_iron_shovel_wood (handle and crossbar, one object), tool_iron_shovel_cord. All 2048.
+  - Sources: Art\Blender_Work\tool_iron_shovel\.
+- Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Grip_L (0, 0, 0.42), Anchor_Tip (0, -0.022, 0.985) at the blade point.
+- Unity: Assets/Resources/Art/tool_iron_shovel.prefab, ArtSwap.ToolSpecFor("iron_shovel") resolves, ArtSwapTests 27/27 passed.
+- Status: approved in game by Mike 2026-11-14 (bought at the Trading Post): both hands, look and lighting right.
+
+## tool_stone_pick_axe (2026-11-14): Stone Pick Axe, a ground stone point lashed across a stick
+
+- What it is, per the recipe (Crafting: 2 sticks, 1 cordage, 1 stone): a long stone, ground to a point at the working end and blunt at the butt, lashed across the top of a stick haft with cordage: tight wraps on the haft above and below the head and an X binding over the joint. Layout from ToolViewPrimitives (twoHanded, holdPitch -14, holdRoll -24, gripLeft 0.22, tip (0, -0.24, 0.68)).
+- Size: haft 0.85 m (Grip_R to the end, plus 0.14 behind the grip), head 0.39 long, about 5 cm wide.
+- Tris: 11,134 (budget 15,000). The cord was decimated to 55% to stay in budget.
+- Materials: tool_stone_pick_axe_stone, _wood and _cord, copied from tool_shovel's procedural set. All 2048. The head uses Smart UV Project (its loft caps are filled).
+  - Sources: Art\Blender_Work\tool_stone_pick_axe\. The lashing hugs the surfaces by ray-casting (no floating loops).
+- Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Grip_L (0, 0, 0.22), Anchor_Tip (0, -0.24, 0.655) at the stone point (the head sits 0.655 along the haft; the haft runs on to 0.705).
+- Unity: Assets/Resources/Art/tool_stone_pick_axe.prefab, ArtSwap.ToolSpecFor("stone_pick_axe") resolves, ArtSwapTests 27/27 passed.
+- Status: approved in game by Mike 2026-11-14: grip, look and lighting right.
+
+## tool_iron_pick_axe (2026-11-14): Iron Pick Axe, a forged head on a stick haft
+
+- What it is, per the recipe (SmithyRules: 2 iron bars, 2 charcoal, 2 sticks, 1 cordage, made at the Smithy): a forged iron head with an eye the haft passes through (an iron wedge in the top), a square point down and a flat chisel end up, on the same kind of stick haft as the Stone Pick Axe. The cordage is a tight wrap on the haft just under the eye. Same layout as the stone one.
+- Size: haft 0.84 m, head 0.39 long.
+- Tris: 8,624 (budget 15,000).
+- Materials: tool_iron_pick_axe_iron (copied from the iron shovel; the worn bright edge moved to the point and the chisel edge), _wood and _cord. All 2048. Head UVs by Smart UV Project.
+  - Sources: Art\Blender_Work\tool_iron_pick_axe\.
+- Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Grip_L (0, 0, 0.22), Anchor_Tip (0, -0.24, 0.655) at the point.
+- Unity: Assets/Resources/Art/tool_iron_pick_axe.prefab, ArtSwap.ToolSpecFor("iron_pick_axe") resolves, ArtSwapTests 27/27 passed.
+- Pipeline note: the bake_util text block was not kept in the earlier .blend files (a text with no users is dropped on save). It is now saved with a fake user and also as Art\Blender_Work\bake_util.py (with the metallic pass).
+- Status: approved in game by Mike 2026-11-14: grip, look and lighting right.
+
+## tool_fishing_rod (2026-11-14): Fishing Rod, a store-bought spinning rod
+
+- What it is (a Trading Post item, $12): a two-piece-look dark brown varnished blank tapering to the tip, cork rear and fore grips with a metal reel seat between, a small spinning reel hanging under the seat with its crank on the player's left (Unity -X), four ring guides under the rod plus a tip-top, and red thread wraps over every guide foot and a winding check above the fore grip.
+- Size: 1.59 m overall (butt cap at -0.155 to the tip at 1.459), blank 7.8 mm at the butt to 1.5 mm at the tip.
+- Tris: 7,620 (budget 15,000).
+- Materials: tool_fishing_rod_cork, _blank, _wrap (1024) and _metal (metal: metallic baked into mask R). Metal, cork and wraps use Smart UV Project; the blank keeps its loft UVs.
+  - Sources: Art\Blender_Work\tool_fishing_rod\.
+- Anchors: Anchor_Grip_R (0, 0, 0) on the rear cork, Anchor_Grip_L (0, 0, 0.30) on the fore cork, Anchor_Tip (0, 0, 1.45), Anchor_Line (0, 0, 1.47) just past the tip-top. The line itself is the bobber's LineRenderer, drawn from Anchor_Line (FishingRod.cs / PlayerHands.LineAnchor), so nothing to model for it.
+- Unity: Assets/Resources/Art/tool_fishing_rod.prefab, ArtSwap.ToolSpecFor("fishing_rod") resolves, ArtSwapTests and RodsAndLightsInHandTests 62/62 passed.
+- Status: approved in game by Mike 2026-11-14: grip, reel, line from the tip and lighting right.
+
+## tool_cane_pole (2026-11-14): Cane Pole, a natural cane with the line tied on
+
+- What it is: one natural cane with 8 nodes (closer together toward the tip), tapering from 29 mm at the butt to about 6 mm, with a slight bow and a drooping tip. The line is tied on with tight turns at the tip and a short tag end; no rings. The bobber's line is drawn from Anchor_Line by the game.
+- Size: 1.74 m (butt at -0.165 to the tip at 1.575), following the code layout (tip 1.55, line 1.56), not the list's 2.4 m guess.
+- Tris: 10,552 (budget 15,000).
+- Materials: tool_cane_pole_cane (2048: straw-tan cane with lengthwise streaks, mottling and darker nodes) and tool_cane_pole_cord (1024, from tool_shovel's cord). Loft UVs.
+  - Sources: Art\Blender_Work\tool_cane_pole\.
+- Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Grip_L (-0.008, -0.003, 0.32), Anchor_Tip (-0.007, -0.034, 1.55) and Anchor_Line (-0.007, -0.034, 1.56), on the drooping tip.
+- Unity: Assets/Resources/Art/tool_cane_pole.prefab, ArtSwap.ToolSpecFor("cane_pole") resolves, ArtSwapTests and RodsAndLightsInHandTests 62/62 passed.
+- Status: approved in game by Mike 2026-11-14 (length kept at 1.74 m).
+
+## tool_lantern (2026-11-14): Lantern, a red hurricane lantern
+
+- What it is: a cold-blast hurricane lantern in worn red paint over tin (chips to bare tin, a little rust): wire bail with a wooden grip roll, vented chimney cap, glass globe in four guard wires, two side tubes from the fount to the cap, burner collar with a wick knob at the front, and a round fuel fount with a filler cap.
+- Size: 0.27 m from the grip to the base; glass globe 9.4 cm wide.
+- Tris: 7,276.
+- Materials: tool_lantern_tin (metal, 2048), tool_lantern_wood (1024, from tool_shovel's wood), and two Unity-only glass materials: tool_lantern_glass (clear, transparent, double-sided) under State_Unlit and tool_lantern_glass_lit (warm tint with a faint orange emissive glow) under State_Lit.
+- The flame: State_Lit/Lantern_Flame, two small cards from the torch's flipbook (tool_torch_flame.mat), driven by ViewFlame with flicker 0.05 at 14 fps, standing on the wick at (0, -0.189, 0). The point light comes from the code at Anchor_Flame.
+  - Sources: Art\Blender_Work\tool_lantern\.
+- Anchors: Anchor_Grip_R (0, 0, 0) on the bail grip, Anchor_Flame and Anchor_Tip (0, -0.17, 0) in the globe.
+- Code: PlayerHands now hangs the Lantern by gravity like the bucket (it stays out of HangingIds, so its ready pose and light sway are unchanged). Also, the pendulum no longer steps outside Play Mode, which fixes a flaky RestOfToolsInHandTests case (the editor's deltaTime made a posed hanging item swing by chance). New test: HangPendulumTests.TheLanternHangsByGravityLikeTheBucket.
+- Unity: Assets/Resources/Art/tool_lantern.prefab, ArtSwap.ToolSpecFor("lantern") resolves; ArtSwapTests, RodsAndLightsInHandTests, HangPendulumTests and RestOfToolsInHandTests pass.
+- Status: approved in game by Mike 2026-11-14: hangs and swings by gravity, clear glass unlit, warm glass and flame on the wick lit. (A solid cyan globe seen once on first equip is the Editor's placeholder while it compiles the new transparent shader variant; it does not happen in a build.)
+
+## tool_primitive_bow (2026-11-14): Primitive Bow, a self bow from one branch
+
+- What it is, per the recipe (Crafting: 1 branch, 1 cordage): a carved self bow, pale wood with grain and a few knots, flat wide limbs (3.6 cm across at the fades to 1.9 cm at the tips, 1.4 cm thick) on a rounder handle wrapped tight with cordage, and a few turns of cord at each tip where the string is looped on. Seen side-on the limbs arc back to the tips, 3 cm behind the grip (the game's brace), with no forward bulge.
+- Size: 0.74 m tip to tip, matching ToolViewPrimitives.BowTip(false) (0, +/-0.37, -0.03).
+- Tris: 12,808 (stave 6,436, cord 6,312), plus the two string halves.
+- Materials: tool_primitive_bow_wood (2048) and tool_primitive_bow_cord (1024, from tool_shovel's cord; the string uses it too).
+  - Sources: Art\Blender_Work\tool_primitive_bow\.
+- The string: two children of the prefab, "String Upper" and "String Lower", Unity's built-in cylinder (height 2) at 3.2 mm thick, set at rest from each tip to the nock. PlayerHands.UpdateString stretches them from the tips to the right hand while drawing.
+- Anchors: Anchor_Grip_L (0, 0, 0) on the wrapped handle (the left hand holds it), Anchor_Nock (0, -0.07, -0.03) on the string, Anchor_Tip (0, 0.37, -0.03).
+- Code: PlayerHands now looks up the string halves on a prefab too (before, only the primitive's string followed the hand). New test: HangPendulumTests.APrefabBowsStringHalvesFollowTheDrawingHand.
+- Unity: Assets/Resources/Art/tool_primitive_bow.prefab, ArtSwap.ToolSpecFor("primitive_bow") resolves; ArtSwapTests, HangPendulumTests and RestOfToolsInHandTests pass.
+- Status: approved in game by Mike 2026-11-14: looks and draws right.
+
+## tool_recurve_bow (2026-11-14): Recurve Bow, a store-bought laminated recurve
+
+- What it is (a Trading Post item, $30): a laminated wood recurve. A deep, shaped riser of dark figured wood (its laminations show where it fades into the limbs) with a pebbled leather grip sleeve and a small arrow shelf on the archer's left, and glossy reddish-brown limbs that sweep back toward the archer and recurve forward over the last third. A dark waxed string.
+- Size: 0.76 m tip to tip, matching ToolViewPrimitives.BowTip(true) (0, +/-0.38, -0.035).
+- Tris: 12,152 (bow 10,712, grip 1,440), plus the two string halves.
+- Materials: tool_recurve_bow_wood (2048; Smart UV Project), tool_recurve_bow_leather (1024), and tool_recurve_bow_string (Unity-only, plain dark, no texture).
+  - Sources: Art\Blender_Work\tool_recurve_bow\.
+- The string: "String Upper" and "String Lower", Unity's built-in cylinder at 2.8 mm, the same as the Primitive Bow; PlayerHands.UpdateString draws them to the right hand.
+- Anchors: Anchor_Grip_L (0, 0, 0) in the leather grip, Anchor_Nock (0, -0.07, -0.035), Anchor_Tip (0, 0.38, -0.035).
+- Unity: Assets/Resources/Art/tool_recurve_bow.prefab, ArtSwap.ToolSpecFor("recurve_bow") resolves; ArtSwapTests and HangPendulumTests 36/36 passed.
+- Status: approved in game by Mike 2026-11-14.
+
+## tool_bolt_action_rifle (2026-11-14): Bolt-Action Rifle, a scoped sporter
+
+- What it is (a Trading Post item, $60): an oiled walnut sporter stock with a free-floating blued barrel (front sight post at the muzzle), a round receiver with the bolt shroud at the back and the bolt handle out to the right (Unity +X) with a round knob, a trigger and trigger guard, a magazine floorplate, and a scope on two rings and bases: ocular bell at the back, larger objective bell at the front, turrets on top and right.
+- The butt: as the placeholder did (ToolViewPrimitives.RifleStockDrop), the stock behind the wrist drops 42 degrees and 0.24 m toward the shoulder, so the butt stays below the bottom of the hands' view rather than coming at the camera. Only the wrist and the start of the drop are ever in view, under the right hand.
+- Size: muzzle at 0.79 m in front of the receiver; fore-end to 0.556.
+- Tris: 8,132 (wood 5,540, steel 2,592).
+- Materials: tool_bolt_action_rifle_wood (walnut, 2048) and tool_bolt_action_rifle_steel (blued, metallic, 2048). Both Smart UV Project; the steel is shaded smooth by angle (40 degrees).
+  - Sources: Art\Blender_Work\tool_bolt_action_rifle\.
+- Anchors: Anchor_Grip_R (0, 0, -0.09) on the wrist, Anchor_Grip_L (0, -0.02, 0.40) under the fore-end, Anchor_Tip (0, 0.01, 0.78), Anchor_Muzzle (0, 0.01, 0.79).
+- Unity: Assets/Resources/Art/tool_bolt_action_rifle.prefab, ArtSwap.ToolSpecFor("bolt_action_rifle") resolves; ArtSwapTests, HandsTests and RestOfToolsInHandTests 145/145 passed.
+- Status: approved by Mike 2026-11-14 as "ok for now". Revisit later: in the ready pose the rifle sits angled across the view and the right hand reads as over the action/scope rather than on the wrist; a nearer, straighter hold or a lower scope may read better.
+
+## tool_bow_drill (2026-11-15): Bow Drill, a stick bow with the spindle in its cord
+
+- What it is, per the recipe (Crafting: 2 sticks, 1 cordage): a curved stick bow, held at its back end in the right hand and bowing out to the right, the spindle on its LEFT (mirrored at Mike's request, 2026-11-15), with the cord tied on at both ends and wrapped once round an upright spindle (pointed foot scorched black from drilling, rounded top). No hearth board: the recipe has none (the fire is lit on a built Campfire).
+- Size: bow 0.375 m (from 5 cm behind the grip to the tip at 0.325), spindle 0.205 m.
+- Tris: 4,848.
+- Materials: tool_bow_drill_wood (bow and spindle in one object with split UVs, the tool_shovel wood with a scorch below Blender z -0.07) and tool_bow_drill_cord (1024, from tool_shovel's cord).
+  - Sources: Art\Blender_Work\tool_bow_drill\.
+- Anchors: Anchor_Grip_R (0, 0, 0) on the bow's back end, Anchor_Grip_L (-0.02, 0.112, 0.15) on top of the spindle, Anchor_Tip (0, 0, 0.32).
+- Code (2026-11-15): the Bow Drill is now two-handed (HandPoseRules.TwoHandedIds; ToolViewPrimitives layout gripLeft on the spindle top), so the left hand presses on the spindle. The left hand rides on the kit, so it moves with the sawing stroke too. HandsTests' one-handed list no longer has it.
+- Unity: Assets/Resources/Art/tool_bow_drill.prefab, ArtSwap.ToolSpecFor("bow_drill") resolves; ArtSwapTests and HangPendulumTests 36/36 passed.
+- Status: approved in game by Mike 2026-11-15 after the mirror ("much better"): spindle on the left under the left hand, bow in the right.
+
+## tool_sap_bucket (2026-11-15): Sap Bucket, a small lidded wooden bucket lashed with cord
+- Built from tool_bucket.blend scaled to 0.78. The iron hoops and bail became cord (the recipe is 1 log, 3 branches, 1 cordage: no iron). A two-plank lid with a cleat sits in the rim.
+- No Fill child: the sap bucket in hand is always empty, since sap is collected at the tap. It hangs by gravity (HangingIds).
+- Meshes: Sap_Wood 7,716 tris, Sap_Lashing 3,388, Sap_Lid 1,148 (12,252 total). Anchors: Anchor_Grip_R at the bail grip (origin), Anchor_Tip (0, -0.16, 0).
+- Materials: tool_sap_bucket_wood (2048), tool_sap_bucket_lid (1024), tool_sap_bucket_lashing (1024, cord).
+  - Sources: Art\Blender_Work\tool_sap_bucket\.
+- Unity: Assets/Resources/Art/tool_sap_bucket.prefab, ArtSwap.ToolSpecFor("sap_bucket") resolves; ArtSwapTests and HangPendulumTests 36/36 passed. Approved in game by Mike 2026-11-15.
 ## Status tracker (summary)
 
 | Wave | What | Rows | Done | Partly | Not started |
 |---|---|---|---|---|---|
 | 1 | First-person hands | 1 (2 prefabs) | 1 (idle and tool-grip, Hands v3) | polish backlog below | 0 |
-| 1 | The 30 tools | 30 | 0 | 1 (tool_axe is a test blockout, not shipped art) | 29 |
-| 2 | Shelter and main structures | 15 | 0 | 1 (structure_kiln has the swap point built, no art) | 14 |
-| 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 0 | 0 | 12 |
+| 1 | The 30 tools | 30 | 30 (tool_knife, tool_torch, tool_bucket, tool_hammer, tool_shovel, tool_iron_shovel, tool_stone_pick_axe, tool_iron_pick_axe, tool_fishing_rod, tool_cane_pole, tool_lantern, tool_primitive_bow, tool_recurve_bow, tool_bolt_action_rifle, tool_bow_drill, tool_sap_bucket, tool_canteen, tool_spile, tool_box_trap, tool_fish_trap, tool_rabbit_snare, tool_primitive_axe, tool_wood_saw, tool_flint_and_steel, tool_pouch, tool_clay_pot, tool_cooking_pot, tool_potash_kettle, tool_tarp and tool_axe (rebuilt), realistic, approved in game by Mike 2026-11-14/15; the rifle "ok for now") | 0 | 0 |
+| 2 | Shelter and main structures | 15 | 15 (structure_kiln, structure_cabin, structure_tent, structure_tarpshelter, structure_leanto approved 2026-11-15; structure_well, structure_outhouse, structure_workshop, structure_pottershed, structure_charcoalpit, structure_bloomery, structure_smithy, structure_leachhopper, structure_kitchen and the kitchen add-ons approved 2026-11-16; WAVE 2 COMPLETE) | 0 | 0 |
+| 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 11 (structure_tap 2026-11-15; wood pile, rock pile, both barrels, food cache, storage bin, tool rack, shelving, wood shed, hand cart, campfire approved 2026-11-16) | 1 (structure_tripod: vessel now centred under the chain, awaiting re-check 2026-11-16) | 0 |
 | 4 | World items, icons, stump, carcass | 9 groups | 0 | 0 | 9 |
 | 5 | Animals and traps | 8 | 0 | 0 | 8 |
 | 6 | Trees, terrain, water, weather, effects | 11 groups | 0 | 0 | 11 |
@@ -338,6 +551,125 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 
 Plain reading: in-game art so far is the hands and nothing else. The tool, structure and world art waves are all still primitive shapes. The swap-point system (ArtSwap) exists so each piece can arrive one at a time.
 
+
+## tool_canteen (2026-11-15): Canteen, a round wool-covered tin drum canteen on a leather strap
+- 17.5 cm across and 7.5 cm thick (about 1.8 L, close to the game's 2 L per canteen). Tin seam band around the edge, a tin spout with a cork, two tin lugs the strap runs through. Faces front and back (Unity Z), as the primitive did.
+- No Fill child: the canteen is closed, so its water level isn't visible. It hangs by gravity (HangingIds) from the top of the strap.
+- Meshes: Canteen_Body (wool cover) 3,968 tris, Canteen_Tin (band, spout, lugs) 1,570, Canteen_Strap 644, Canteen_Cork 178 (6,360 total). Anchors: Anchor_Grip_R at the top of the strap (origin), Anchor_Tip (0, -0.15, 0) at the body centre (the code's fallback is -0.10).
+- Materials: tool_canteen_cover (2048, wool), tool_canteen_tin (1024, metallic 1 in the mask), tool_canteen_strap (1024, leather), tool_canteen_cork (512).
+  - Sources: Art\Blender_Work\tool_canteen\.
+- Unity: Assets/Resources/Art/tool_canteen.prefab, ArtSwap.ToolSpecFor("canteen") resolves; ArtSwapTests and HangPendulumTests 36/36 passed. Approved in game by Mike 2026-11-15 (hang, drinking and filling all fine).
+
+## tool_spile (2026-11-15): Spile, a carved wooden sap spout
+- 19 cm long, 2.6 cm across, bored through (1 cm bore). The outer end (in the hand) is carved open on top into a sap trough; the middle keeps its bark; the inner end tapers to 1.4 cm to drive into the tree. Made from sticks, per the recipe (3 Sticks).
+- One mesh, Spile_Wood, 5,526 tris (the trough cut is a boolean; edges over 40 degrees split for crisp cut faces). Anchors: Anchor_Grip_R at the trough end (origin), Anchor_Tip (0, 0, 0.155) at the tapered point. The trough opens to Unity +Y.
+- Material: tool_spile_wood (1024, wood with a bark band, one material).
+  - Sources: Art\Blender_Work\tool_spile\.
+- Unity: Assets/Resources/Art/tool_spile.prefab, ArtSwap.ToolSpecFor("spile") resolves; ArtSwapTests and HangPendulumTests 36/36 passed. Approved in game by Mike 2026-11-15 (tapping still works).
+
+## structure_tap (2026-11-15): the tap on a maple, built from the approved Spile and Sap Bucket
+- No new model. Tap.cs (Assets/Scripts/World) now instantiates Art/tool_spile and Art/tool_sap_bucket instead of three primitives (it falls back to the primitives if the art is missing).
+  - Fix after Mike's first look: the tap's origin is 2 cm outside the trunk's capsule radius, but the trunk mesh is a tapering octagon, so at 1 m up the bark is 4 to 7 cm behind the origin and the Spile floated. Everything is set back by Tap.BarkInset (6 cm).
+  - Spile: grip end at (0, 0, 0.045), Euler (-8, 180, 0), so its tip reaches 11 cm behind the origin (well into the bark) and the trough end slopes down and out.
+  - Sap Bucket: its bail grip rests on the Spile at (0, 0.008, 0.06), with Sap_Lid switched off (lid off on the tree, on in the hand: Mike).
+  - Sap: a disc inside the bucket rises from the floor (-0.140 below the grip) to just under the rim (-0.035) with litres / 8 L, a watery amber, olive-brown once sour.
+- MapleTests.TheTapOnTheTreeUsesTheSpileAndSapBucketArtWithTheLidOffAndTheSapRises; MapleTests 31/31 and the Maple, ArtSwap and KnowHow suites (142) passed. Approved in game by Mike 2026-11-15 (after the bark fix).
+
+## tool_box_trap (2026-11-15): Box Trap, a board box with a drop door, carried by a dowel handle
+- 40 cm long (Unity Z, door at +Z), 13 cm wide, 15 cm tall; the primitive was 20 x 10 x 15, the list said about 0.5 long. Made of rough boards per the recipe (3 Firewood): bottom, top, two sides, three slats and a batten at the back, a drop door shut between two guides at the front.
+- Carried hanging from a dowel handle across Unity X on top (two uprights), like the bucket's bail; the box hangs below it.
+- One mesh, Trap_Wood (boards and handle joined), 720 tris, flat-shaded boards with a smooth dowel. Anchors: Anchor_Grip_R at the dowel (origin), Anchor_Tip (0, -0.10, 0) at the body centre.
+- Material: tool_box_trap_wood (2048, weathered board grain along the length).
+  - Sources: Art\Blender_Work\tool_box_trap\.
+- Unity: Assets/Resources/Art/tool_box_trap.prefab, ArtSwap.ToolSpecFor("box_trap") resolves; ArtSwapTests and HangPendulumTests 36/36 passed. Approved in game by Mike 2026-11-15 (placing still works).
+
+## tool_fish_trap (2026-11-15): Fish Trap, a splint basket with a funnel mouth, carried by a cord loop
+- 15 cm across, 28 cm tall, hanging straight down: 18 split-wood staves gathered and bound with cord at the top, three woven bands and a rolled rim, and a 14-stave funnel inside the open bottom narrowing to a 5 cm throat (the primitive was 10 x 17 cm). Made of firewood splints and cordage, per the recipe.
+- Carried by a cord loop round the grip (loop in the Unity Y-Z plane, round the fingers).
+- Meshes: Trap_Splints 7,616 tris, Trap_Cord 1,276 (8,892 total). Anchors: Anchor_Grip_R at the loop (origin), Anchor_Tip (0, -0.20, 0) at the funnel throat.
+- Materials: tool_fish_trap_splint (2048), tool_fish_trap_cord (512).
+  - Sources: Art\Blender_Work\tool_fish_trap\.
+- Unity: Assets/Resources/Art/tool_fish_trap.prefab, ArtSwap.ToolSpecFor("fish_trap") resolves; ArtSwapTests and HangPendulumTests 36/36 passed. Approved in game by Mike 2026-11-15 (setting at the water still works).
+
+## tool_rabbit_snare (2026-11-15): Rabbit Snare, a pointed stake with a cord noose
+- Held by the stake's blunt (notched) end, point forward: a 24 cm bark-on stick, 2.5 cm thick, whittled to a point at the front. Cord lashed round it behind the point runs forward to a 9 cm noose with a slip knot, standing upright in front (Unity X-Y plane). Not hung (the code holds it by the stake). Recipe: 1 Cordage.
+- Meshes: Snare_Stake 742 tris, Snare_Cord 2,468 (3,210 total). Anchors: Anchor_Grip_R at the stake's blunt end (origin), Anchor_Tip (0, 0, 0.32) at the noose, as in the code's layout.
+- Materials: tool_rabbit_snare_wood (1024, bark with the whittled point and cut end bare), tool_rabbit_snare_cord (512).
+  - Sources: Art\Blender_Work\tool_rabbit_snare\.
+- Unity: Assets/Resources/Art/tool_rabbit_snare.prefab, ArtSwap.ToolSpecFor("rabbit_snare") resolves; ArtSwapTests and HangPendulumTests 36/36 passed. Approved in game by Mike 2026-11-15 (setting still works).
+
+## trap_box_trap, trap_fish_trap, trap_rabbit_snare (2026-11-15): the traps set out in the world, from the hand art
+- Trap.cs (Assets/Scripts/World) now loads Resources/Art/trap_<item id> when a trap is placed or loaded and swaps out the prefab's primitive Body. Art children found by name take over: Body (tilts when broken), Catch, Bait and State_Set (shown while set, hidden with a catch). The interaction box is fitted round the art. Without the art the old primitives stay.
+- trap_box_trap: the hand Box Trap split in Blender (Art\Blender_Work\trap_box_trap) into Trap_Body and its door, standing on the ground: State_Set is the door raised 14 cm in its guides, Catch is the door shut, Bait is the prefab's apple, smaller, at the back inside.
+- trap_fish_trap: the hand Fish Trap laid on its side, half in the water (centre 5 cm under the surface, mouth to -Z), with the prefab's marker pole and flag moved in beside it and two smaller fish inside as Catch.
+- trap_rabbit_snare: the stake driven point-down (4 cm in), its lashing near the ground, a new cord running out to the upright noose 25 cm to the side at rabbit-head height (facing the run, +Z). The prefab's rabbit is kept as the catch.
+- No new textures: the hand materials are reused. ArtSwapTests.ASetTrapUsesItsArtByNameAndKeepsItsPrimitivesWithoutIt; ArtSwapTests and KnifeTests 50/50 passed. Approved in game by Mike 2026-11-15.
+
+## tool_primitive_axe (2026-11-15): Primitive Axe, a ground stone celt lashed into a branch haft
+- Per the recipe (2 sticks, 1 cordage, 1 stone): a 15 cm ground-stone celt, edge down (Unity -Y), poll standing 3.5 cm above the haft, set across a 64 cm branch haft (Grip_R to the end, plus 12 cm behind). Lashed with cord: tight wraps on the haft behind and in front of the head, an X over each side of the stone and a loop round the poll, all ray-cast onto the surfaces (as the Stone Pick Axe).
+- Layout from ToolViewPrimitives (twoHanded, holdPitch -14, holdRoll -28). Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Grip_L (0, 0, 0.18), Anchor_Tip (0, -0.08, 0.47).
+- Meshes: PAxe_Haft, PAxe_Head, PAxe_Cord (7,992 tris in all).
+- Materials: tool_primitive_axe_wood, _stone and _cord (2048), copied from the Stone Pick Axe's set so the two stone tools match.
+  - Sources: Art\Blender_Work\tool_primitive_axe\.
+- Unity: Assets/Resources/Art/tool_primitive_axe.prefab, ArtSwap.ToolSpecFor("primitive_axe") resolves; ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15 (chopping works).
+
+## tool_wood_saw (2026-11-15): Wood Saw, a broad toothed steel blade on a turned wooden handle
+- Shape after the general idea of primitive wood saw.png (not traced): a 21 cm oval wooden handle with a hanging-hole end, an iron ferrule, riveted iron cheek plates holding the blade, and a 50 cm steel blade (6 cm deep at the handle, 8.5 cm at the square tip) with real teeth along the lower edge (made coarser at Mike's ask: 9.5 mm pitch, 7.8 mm deep) (Unity -Y). Worn steel with rust spots, brighter along the teeth.
+- ONE-HANDED since Mike's first look (2026-11-15: "this type of saw is meant to be 1 handed"): HeldTools.TwoHandedIds and the ToolViewPrimitives layout no longer have it two-handed, and the prefab has no Anchor_Grip_L. Layout: holdPitch -8, holdRoll -55. Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Tip (0, -0.07, 0.62).
+- Meshes: Saw_Handle 1,156 tris, Saw_Iron 644, Saw_Blade 484 (2,284 total). The blade's faces are ear-clipped (mathutils tessellate_polygon): Blender's own ngon fill overlapped across the teeth and showed a black band.
+- Materials: tool_wood_saw_wood (1024), _iron (1024, metallic), _steel (2048, metallic).
+  - Sources: Art\Blender_Work\tool_wood_saw\.
+- Unity: Assets/Resources/Art/tool_wood_saw.prefab, ArtSwap.ToolSpecFor("wood_saw") resolves; ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15 (one-handed, coarser teeth).
+
+## tool_flint_and_steel (2026-11-15): Flint and Steel, a C-striker and a knapped flint, both in the right hand
+- Laid out as the primitive (one-handed, holdPitch -10): a 4.5 cm knapped flint shard (flat facets, black-grey with a little tan cortex) held at the grip, and below it a forged C-shaped steel striker, 9.5 cm across Unity X, its two ends curled up into scrolls. The striking face (the underside of the bar) is worn bright.
+- Meshes: FS_Steel 2,324 tris, FS_Flint 432 (2,756 total). Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Tip (0, 0, 0.07).
+- Materials: tool_flint_and_steel_steel (1024, metallic), tool_flint_and_steel_flint (512).
+  - Sources: Art\Blender_Work\tool_flint_and_steel\.
+- Unity: Assets/Resources/Art/tool_flint_and_steel.prefab, ArtSwap.ToolSpecFor("flint_and_steel") resolves; ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15.
+
+## tool_pouch (2026-11-15): Pouch, a gathered leather drawstring bag on a cord loop
+- 12 cm across, 16 cm tall, hanging (HangingIds): a round leather bag gathered into a frilled neck, tied twice round with cord, two knotted tails, and a cord loop up round the grip (as the Fish Trap's).
+- Meshes: Pouch_Leather 3,456 tris, Pouch_Cord 2,104 (5,560 total). Anchors: Anchor_Grip_R at the loop (origin), Anchor_Tip (0, -0.12, 0).
+- Materials: tool_pouch_leather (1024, dark tan with creases), tool_pouch_cord (512).
+  - Sources: Art\Blender_Work\tool_pouch\.
+- Unity: Assets/Resources/Art/tool_pouch.prefab, ArtSwap.ToolSpecFor("pouch") resolves; ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15.
+
+## tool_clay_pot (2026-11-15): Clay Cooking Pot, a fired terracotta pot with a strap handle
+- Held up in the palm as the primitive (not hung; holdPitch -6): a 13 cm round-bellied pot, 13 cm tall, short neck and flared rim, open with a sooty inside, and a strap handle at the back (toward the hand, near the grip). Terracotta with dark fire-clouding.
+- Meshes: Pot_Outer (wall, lip and handle) 1,912 tris, Pot_Inner 912. Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Tip (0, 0.04, 0.10).
+- Materials: tool_clay_pot_clay (1024), tool_clay_pot_inside (512).
+  - Sources: Art\Blender_Work\tool_clay_pot\.
+- Unity: Assets/Resources/Art/tool_clay_pot.prefab, ArtSwap.ToolSpecFor("clay_pot") resolves. ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15.
+
+## tool_cooking_pot (2026-11-15): Cooking Pot, a cast-iron bellied pot on a wire bail
+- Hanging (HangingIds): rim 17 cm across, belly 19.4 cm, 15 cm deep plus three stub legs; rolled lip, two cast ears and a wire bail whose top is the grip. Dark cast iron with a little rust, sooty inside. Built with Art\Blender_Work\vessel_util.py (shared with the kettle).
+- Meshes: V_Iron (body, lip, ears, bail, legs) 2,524 tris, V_Inside 616. Anchors: Anchor_Grip_R at the bail top (origin), Anchor_Tip (0, -0.14, 0).
+- Materials: tool_cooking_pot_iron (1024, metallic), tool_cooking_pot_inside (512).
+  - Sources: Art\Blender_Work\tool_cooking_pot\.
+- Unity: Assets/Resources/Art/tool_cooking_pot.prefab, ArtSwap.ToolSpecFor("cooking_pot") resolves. ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15.
+
+## tool_potash_kettle (2026-11-15): Potash Kettle, a lidded cast-iron kettle with a spout
+- Hanging (HangingIds): rim 20 cm, belly 24.4 cm, 17 cm deep plus legs, a pouring spout to the front (Unity +Z, as the primitive's), a lid with a knob (kept below the bail top so it clears the hand), ears and a wire bail. Same builder and iron as the Cooking Pot.
+- Meshes: V_Iron 3,516 tris, V_Inside 616. Anchors: Anchor_Grip_R at the bail top (origin), Anchor_Tip (0, -0.16, 0).
+- Materials: tool_potash_kettle_iron (1024, metallic), tool_potash_kettle_inside (512).
+  - Sources: Art\Blender_Work\tool_potash_kettle\.
+- Unity: Assets/Resources/Art/tool_potash_kettle.prefab, ArtSwap.ToolSpecFor("potash_kettle") resolves. ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15.
+
+## tool_tarp (2026-11-15): Tarp, a folded canvas bundle tied with cord
+- Carried as the primitive (one-handed, holdPitch -8): 20 x 7 x 15 cm, four folded layers of oiled canvas (olive-tan, woven texture) tied round twice with cord (at Unity z 0.06 and 0.14), knots on top.
+- Meshes: Tarp_Canvas 10,800 tris, Tarp_Cord 2,840 (13,640 total, inside the 15,000 tool budget). Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Tip (0, 0, 0.14).
+- Materials: tool_tarp_canvas (2048), tool_tarp_cord (512).
+  - Sources: Art\Blender_Work\tool_tarp\.
+- Unity: Assets/Resources/Art/tool_tarp.prefab, ArtSwap.ToolSpecFor("tarp") resolves. ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15.
+
+## tool_axe (2026-11-15): Felling Axe, rebuilt for real (replaces the 2026-11-05 blockout)
+- An American-pattern felling head (forged steel, dark with a polished bevel along the edge, a little rust): poll 4.6 cm above the handle, bit flaring to an 11.4 cm curved edge 15 cm below it, on a 73 cm hickory handle with a gentle S-curve, a thinner throat under the head, a swelled knob at the butt and grip grime toward the hand. The handle end shows through the eye.
+- Layout from ToolViewPrimitives (twoHanded, holdPitch -14, holdRoll -28). Anchors: Anchor_Grip_R (0, 0, 0), Anchor_Grip_L (0, 0, 0.20) (the blockout had it behind the grip at -0.17; it now follows the code, as the Primitive Axe), Anchor_Tip (0, -0.14, 0.56) at the edge.
+- Meshes: Axe_Handle 2,396 tris, Axe_Head 764.
+- Materials: tool_axe_hickory (2048), tool_axe_head (1024, metallic). tool_axe_wood.mat and tool_axe_steel.mat are kept: every tool's material is copied from tool_axe_wood.mat.
+  - Sources: Art\Blender_Work\tool_axe\tool_axe_v2.blend (the blockout's tool_axe.blend is kept).
+- Unity: Assets/Resources/Art/tool_axe.prefab replaced. ArtSwapTests and HangPendulumTests 37/37 passed. Approved in game by Mike 2026-11-15.
 ## Hands polish backlog (Wave 1 follow-up, from Hands v3)
 
 Lighter and warmer skin tone (the hands read dark in overcast light), nail texture (nails are a flat pink material), deep palm creases, real hair cards on the back of the hand and forearm, a Subsurface Scattering skin material (blocked today: the viewmodel pass draws after HDRP's SSS pass, so SSS renders black), a separate cuff on the sleeve (the sleeve silhouette is slightly faceted), and tool-specific grip variants (the grip hand is one shape for every tool). Photo references for this: Art\References\Hand_Photos (6 photos, 3 added 2026-11-07).
@@ -434,3 +766,93 @@ Audio is a separate list (Audio_System.md): the 22 original files plus thunder a
 6. Wave 4 items and icons, then Wave 5 animals.
 7. Wave 10 logo and icon any time, since they are small; the rest when the game is shown to others.
 8. Wave 9 only as each system is built.
+
+## structure_kiln (2026-11-15, Wave 2 pilot)
+
+- Clay beehive dome on a 2.4 m flagstone pad, a ring of footing stones, an arched mouth framed with stones, a vent collar topping out at about 1.08 m. 22,208 tris (the dome mesh is used four times, once per state).
+- Parts: Body (Kiln_Base: pad and stones; Kiln_Dark: mouth recess and vent hole); State_Empty and State_Loaded (clay dome), State_Firing (same dome, soot-tinted material), State_Done (ash-pale material, normal and mask maps kept); On_Firing (Kiln_Ember in the mouth and Kiln_VentGlow, HDRP Lit emissive, no shadows).
+- Anchors as built and imported: Anchor_Smoke (0, 1.1, 0), Anchor_Mouth (0, 0.45, 0.95), Anchor_Stock (-1.45, 0, 0). Front faces +Z.
+- Materials: structure_kiln_clay, _clay_soot, _clay_ash, _stone, _dark, _ember. Textures 2048: clay and stone basecolor, normal, mask. Sources in Art/Blender_Work/structure_kiln/.
+- Unity: Assets/Resources/Art/structure_kiln.prefab (FBX structure_kiln_model.fbx). ArtSwapTests and KilnTests 65/65 passed. Approved in game by Mike 2026-11-15.
+- Possible follow-up: the ember is fairly dim in full daylight; it reads at dusk and night. Easy to raise if wanted.
+
+## structure_cabin (2026-11-15)
+
+- Stacked round-log Small Cabin with saddle-notched corners overhanging 0.26 m, log gables, a thick thatch roof with a ridge roll, a ridge pole and five rafter pairs inside, hewn door jambs, a fieldstone footing and step, and the hearth: stone slab, stone-and-clay backing, clay chimney with a stone cap. 20,872 tris. Built to the exact primitive sizes (4 x 5 m, 8 courses of 0.28 m logs, wall top 2.54, ridge 3.4, door 1.1 x 1.96, HearthLocal (0.45, 0.48, -1.45)), so the existing colliders and RainCatchment still match.
+- Code: Shelter.UseArt (called at the end of Bind for every shelter kind since the Tent, Tarp and Lean-To run; first written as UseCabinArt) loads Resources/Art/ + ArtSwap.StructureId(kind). With it, the primitives stop drawing (MeshRenderer.enabled = false) but keep every collider (floor, step, walls, lintel, hearth slab, both roof panels); the art's own colliders are removed. Without it, nothing changes. The hearth Campfire is FireManager's own object and is untouched. Test: ArtSwapTests.TheSmallCabinDrawsItsArtByNameAndKeepsThePrimitiveCollidersForShelterAndRain.
+- Parts: Body (Cabin_Logs, Cabin_Thatch, Cabin_Stone, Cabin_Clay). Anchors (not read by code yet): Anchor_Hearth (0.45, 0.48, -1.45), Anchor_Door (0, 0.3, 2.5), Anchor_Chimney (0.45, 3.9, -2.19). Door faces +Z.
+- Materials: structure_cabin_log (UV-procedural, shared side band plus an end-grain square), _thatch (UV), _stone, _clay. Textures 2048 (clay 1024). Sources in Art/Blender_Work/structure_cabin/.
+- Tests after the change: ArtSwap, Cart, Setbacks, Regrow, WoodShed, Kitchen 221/221. Approved in game by Mike 2026-11-15.
+
+## structure_tent, structure_tarpshelter, structure_leanto (2026-11-15, one run)
+
+- Code: the Cabin's hook became Shelter.UseArt for every shelter kind (Resources/Art/ + ArtSwap.StructureId(kind): structure_cabin, structure_tent, structure_tarpshelter, structure_leanto), called at the end of Bind. Same rule: the primitives stop drawing and keep their colliders (the Tent's and Lean-To's BoxCollider on the Shelter, the Tarp's sheet collider). Test renamed to EveryShelterDrawsItsArtByNameAndKeepsThePrimitiveCollidersForShelterAndRain. ArtSwap, Cart, Setbacks, Regrow, WoodShed, Kitchen 221/221.
+- structure_tent: canvas A-frame 1.6 x 1.25 x 2.2 (the primitive's size), sagging slightly between the poles, closed back, front flaps tied back, ridge pole and two end poles, corner stakes, guy lines fore and aft. 3,764 tris. structure_tent_canvas (2048, UV-procedural: weave, stains, dirt toward the ground); poles use structure_cabin_log; ropes structure_shelter_rope (plain hemp colour, no textures). Anchor_Door (0, 0, 1.1).
+- structure_tarpshelter: blue poly tarp from the 2.0 m ridgeline at the front to 0.5 m at the back over 1.6 m, folded over the ridgeline, sagging in the middle, darker hem and steel grommets every 0.3 m; front poles, back stakes, ridgeline and guy lines to front stakes. 2,544 tris. structure_tarpshelter_tarp (2048); poles structure_cabin_log; ropes structure_shelter_rope.
+- structure_leanto: two forked uprights with a ridge pole at 1.5 m, 15 laid branches with cut twig stubs down to the ground behind (2.4 x 1.8), covered in about 126 overlapping bough clumps. 13,076 tris. structure_leanto_boughs (2048, needles with dead brown patches); wood structure_cabin_log.
+- All three: Unity prefabs at Assets/Resources/Art/<id>.prefab, sources in Art/Blender_Work/<id>/. Approved in game by Mike 2026-11-15 (looks and works).
+
+## Wave 2 batch: structure_well, structure_outhouse, structure_workshop, structure_pottershed, structure_charcoalpit, structure_bloomery (2026-11-15, one run)
+
+- Code (ArtSwap.cs): six new Spec rows after the Kiln's, each copying its builder's box, fixed-piece count and phases. The changing contents (water disc, work piece and product, shelf pieces, Clay, Sand, Logs, Branches, Charcoal, Ore, bars) stay primitives under one anchor at the origin (Anchor_Water, Anchor_Bench, Anchor_Shelf, Anchor_Stock), so they sit exactly where the builder draws them. New constants AnchorWater, AnchorBench, AnchorShelf. Charcoal Pit and Bloomery smoke stays PlacedStructure.Rebuild's own.
+- Code (PlacedStructure.cs): BuildWell draws its water disc last (after the bucket) so a Well with art keeps it live. No other builder changed.
+- Tests: ArtSwapTests.EachWaveTwoRowAgreesWithItsPrimitiveBuilder (box, fixed-piece count, water drawn last); AKindWithNoRowAndAnUnknownIdHaveNoSpec now expects 7 rows; BloomeryTests and CharcoalPitTests build with StructureVisuals.BuildPrimitive (they test the primitive look, which the art now replaces in Build). ArtSwap, Bloomery, CharcoalPit, Kiln, Pottery, PotteryPolish, WellDepth, WellPreview, WellWater, Workshop, Setbacks, WoodShed 375/375.
+- Shared materials: structure_plank (new, UV-procedural weathered boards in 16 strips, Art/Blender_Work/structure_shared), structure_cabin_log, structure_cabin_thatch, structure_shelter_rope, structure_kiln_dark, structure_kiln_ember, structure_iron (new, plain dark metal).
+- structure_well: fieldstone ring (three courses and a cap course) with a shaft lining down to -0.6 m, two posts, windlass with crank, pitched plank roof, stave bucket with iron bands on a rope. 6,420 tris. structure_well_stone (2048). Water disc stays the game's.
+- structure_outhouse: board-and-batten shack 1.2 x 1.9 m on a plank floor, slanted plank roof, door ajar 35 degrees with a crescent moon, a seat inside. 686 tris. Planks only. The primitive's darkening as the pit fills is not drawn by the art (could become states later).
+- structure_workshop: four log posts (Solid_Post_1-4), log beams, horizontal-board back wall (Solid_Wall), thatch roof higher at the open front (Solid_Roof), plank bench at the builder's spot (top 0.85), peg rail, chopping block, packed-earth floor. 3,048 tris. structure_workshop_earth (1024).
+- structure_pottershed: the same build at 2.4 x 2.0 (Solid_Post_1-4, Solid_Wall, Solid_Roof), shaping table and two shelf boards with uprights at the builder's spots. 2,368 tris. structure_pottershed_earth (1024).
+- structure_charcoalpit: earth-and-turf mound with sod lumps round the foot (clear in front), leaning sticks, vent, arched draught hole. State_Idle / State_Burning (soot-tinted material) / State_Done (ash-tinted), On_Burning ember in the hole and the vent. structure_charcoalpit_earth (2048) plus _soot and _ash tints.
+- structure_bloomery: tapering clay stack to a chimney lip at 1.25 m, stone footing ring and four footing stones (none in front), a clay bellows pipe toward the back left, arched mouth. State_Idle / State_Smelting (soot tint), On_Smelting ember in the mouth and chimney. structure_bloomery_clay (2048, soot tint variant), structure_bloomery_stone (1024).
+- All six: Assets/Resources/Art/<id>.prefab, sources in Art/Blender_Work/<id>/. Approved in game by Mike 2026-11-16.
+
+## structure_smithy (2026-11-16)
+
+- The Workshop's frame (Solid_Post_1-4, Solid_Wall, Solid_Roof, same footprint) with a sooty thatch (structure_smithy_thatch, a darker tint of structure_cabin_thatch) and a darkened plank wall (structure_smithy_plank). A dry-stone forge hearth at the builder's spot (0.9 x 0.8 x 0.7 at x -0.8, z -0.62) with a fire bed and mouth, and a stone chimney at SmithyRules.ChimneyX/Z rising to 3.0 m through the roof. Anvil (structure_iron) on a log stump at (0.55, z 0.15) with the horn toward +X, a quench tub, a rail of hanging tongs. 18,396 tris. structure_smithy_stone (2048). Floor reuses structure_workshop_earth (same pad).
+- On_Working: the coals on the fire bed and the mouth glow (structure_kiln_ember) while a job runs (jobItem set and jobHours > 0, as the builder's glow). Smoke stays PlacedStructure.Rebuild's own chimney smoke.
+- Code: ArtSwap row structure_smithy (staticPieces 21; the hot piece or finished good, the Iron Bars and the Charcoal stay primitives at Anchor_Stock at the origin). Tests: the Smithy added to EachWaveTwoRowAgreesWithItsPrimitiveBuilder, AllSpecs 8; SmithyTests and SmithyToolTests build with StructureVisuals.BuildPrimitive. ArtSwap, Smithy, SmithyTool 95/95. Approved in game by Mike 2026-11-16.
+
+## structure_leachhopper (2026-11-16)
+
+- A board box (slatted floor at 0.92 m, two-board sides to 1.35 m, structure_plank) on four log posts with cross braces (structure_cabin_log), a small spout trough under the middle, and a clay catch crock beneath (structure_clay_plain, a plain fired-clay material, no textures). 1,308 tris. Original design: the watermarked ash hopper.png was used for the general idea only.
+- Code: BuildLeachHopper now draws the catch crock with the fixed pieces (before the water, Ash or Lye fill and the drip), so ArtSwap row structure_leachhopper keeps those three live at Anchor_Fill at the origin (staticPieces 10). Test rows: LeachHopper added to EachWaveTwoRowAgreesWithItsPrimitiveBuilder, AllSpecs 9. ArtSwap, HopperStock, PotashWorld 90/90. Approved in game by Mike 2026-11-16.
+
+## structure_kitchen (2026-11-16)
+
+- Covered Outdoor Kitchen at Setbacks.KitchenLayout's size (posts at +/-1.55, +/-1.35, roof at 2.45): four log posts (Solid_Post_1-4), log beams and three purlins, a board roof sloping up to the open front with battens (Solid_Roof), the prep table at the builder's spot with a low shelf (Solid_Table), a packed-earth floor (structure_workshop_earth reused). Hearth at HearthLocal (-0.35, 0.14, 0.15): a 1.5 m slab of flags, a dry-stone back wall over a clay core (structure_kitchen_clay, plain), cap stones, and a row of fire-ring stones at the front. 6,476 tris. structure_kitchen_stone (2048; _BaseColor 0.5 in Unity, the bake read too pale in game light). The fire is FireManager's own Campfire, untouched.
+- Code: ArtSwap row structure_kitchen (staticPieces 31, no changing contents; boxSize unused as before, since PlacedStructure turns the Kitchen's box off and the Solid_* parts are what is aimed at and bumped into). Test: Kitchen added to EachWaveTwoRowAgreesWithItsPrimitiveBuilder, AllSpecs 10. ArtSwap, Kitchen, KitchenAddons 63/63. Approved in game by Mike 2026-11-16.
+
+## Kitchen add-ons: structure_countertop, structure_grill, structure_slopsink (2026-11-16)
+
+- structure_countertop: plank work surface at 0.9 m on four legs, a lower shelf with a clay crock, a back lip and a chopping board. 392 tris. structure_plank, structure_clay_plain.
+- structure_grill: a dry-stone firebox over a clay core (0.88 x 0.45 x 0.5), flat slabs either side, foot stones, an ash bed in the middle where the grill's Campfire stands (WoodManager.GrillFireSpot, untouched), and a rack of five green sticks on two forked posts. structure_grill_stone (1024, _BaseColor 0.5), structure_kitchen_clay, structure_cabin_log, structure_greenwood (a green tint of structure_cabin_log). Anchor_Fire at (0, 0.45, 0).
+- structure_slopsink: work-height table with a clay basin sunk in a board frame and rim, a drain spout at the front. structure_plank, structure_clay_plain. The water stays the game's (Anchor_Fill).
+- Code: BuildSlopSink draws the drain spout before the water (staticPieces 11). ArtSwap rows structure_countertop (8), structure_grill (14), structure_slopsink (11, water at Anchor_Fill); new constant AnchorFire. Test rows added, AllSpecs 13. ArtSwap, Kitchen, KitchenAddons 63/63. Approved in game by Mike 2026-11-16.
+
+## Wave 3 batch (2026-11-16, one run, Mike checks all at the end)
+
+Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend (objects named <kind>_<part>), one FBX per id. Materials reused: structure_plank, structure_cabin_log, structure_iron, structure_shelter_rope, structure_clay_plain; new: structure_ash (plain dark grey), structure_charred (dark tint of structure_cabin_log), structure_rockstorage_stone and effect_campfire_stone (1024 bakes, _BaseColor 0.55).
+
+- Code, WoodPile.cs: Rebuild now draws the primitives (BuildPrimitives, the old body) and then UseArt. When Resources/Art/structure_<kind> exists, the kind's first FramePieces(pile) primitives (the container) stop drawing and the art is shown (made once, kept across Rebuild, its colliders removed); everything drawn after them (stored Logs, Stone, water level, shelf boxes, tool pegs, the cart's load) stays the primitives. FramePieces: WoodStorage 2 (built only), RockStorage 6, WaterBarrel 1, RainBarrel 2, FoodCache 2, StorageBin 2, ToolRack 3, WoodShed 18, Shelving 7, HandCart 10. BuildBarrel now draws the Rain Barrel's rim before the water.
+- Code, Tripod.cs: UseFrameArt (Resources/Art/structure_tripod replaces the drawn poles, lashing and chain; the poles keep their colliders) and UseVesselArt (the hung pot, clay pot or kettle shows its own tool art, Resources/Art/tool_<id>, hung by its grip from the chain's end at PoleHeight - 0.62; any Fill child is hidden; the primitive keeps its collider).
+- Code, Campfire.cs: UseArt in Awake. Resources/Art/effect_campfire replaces the Stones ring; its Logs and Ash children take over the logs and ash fields the script switches, so burning down and going out work as before. Flames, embers, light and sound unchanged. This also applies to the kitchen hearth and grill fires (same prefab).
+- Tests (ArtSwapTests): StorageAndPilesHideOnlyTheirContainerPiecesForTheirArt, TheTripodFrameAndItsVesselUseTheirArtAndKeepTheirColliders, TheCampfireArtTakesOverTheLogsAndAshItSwitches. ArtSwap, Tripod, TripodWorld, Cart, WoodShed, KitchenAddons, Setbacks, ClayPot: 248/249; the one failure, ClayPotTests.NoBuyAndSellLoopExistsBetweenTheTwoPots, comes from the 2026-11-15 market change (the store now sells the Clay Cooking Pot), not from the art; left for Mike to decide.
+- structure_woodstorage: two ground rails on two sleepers, four corner stakes. 760 tris.
+- structure_rockstorage: a border of 11 flat edging stones round a 0.6 m circle. 880 tris.
+- structure_waterbarrel, structure_rainbarrel: open-topped stave barrels (0.67 x 0.95, 0.86 x 1.1) with four iron hoops; the rain barrel's top hoop is heavier (the rim). The water level stays the game's. 2,218 and 2,370 tris.
+- structure_foodcache: lidded plank chest 1.0 x 0.6 x 0.7 with corner posts, a battened lid and rope handles. structure_storagebin: open plank bin 1.1 x 0.55 x 0.75 with corner posts.
+- structure_toolrack: two posts on cross feet, rails at the peg heights (0.88 and 0.48), a top board; the pegs for stored tools stay the game's.
+- structure_shelving: two uprights, a boarded back and four shelves at the builder's heights (centre z -0.08). The shelf boxes stay the game's.
+- structure_woodshed: deck of boards on log skids, tall front and short back log posts with beams, slatted back and left side, board roof sloping down to the back. 1,404 tris.
+- structure_handcart: plank bed with two-board sides and front, cross battens, an axle and two spoked wheels (12 felloes, 8 spokes, hub), handles to the back, a rest leg. 1,556 tris. The handle collider (CartHandle) stays the code's.
+- structure_tripod: three poles crossing at 1.6 m, a rope lashing, an iron chain of alternating links to a hook at the chain's end. The hung vessel uses the approved tool art.
+- effect_campfire: Stones (10 stones, r 0.55), Ash (a low lumpy bed), Logs (a teepee of five charred logs). 1,876 tris.
+- All: Assets/Resources/Art/<id>.prefab. In Unity, awaiting Mike's batch check.
+
+## Wave 3 fixes after Mike's check (2026-11-16)
+
+- Mike: everything looked good except the wood lying outside the Wood Pile and the Clay Cooking Pot looking too small on the tripod.
+- structure_woodstorage rebuilt as a wide bed (3.0 x 2.1 m): four log sleepers from x -1.3 to 1.6, edge rails and four corner stakes, so the Logs (middle), Branches (+X), Sticks (-X) and Firewood (back) the game draws all lie on it.
+- Tripod.UseVesselArt: a hung vessel is grown to the drawn vessel's width (about 0.4 m), capped so its bottom stays at or above 0.55 m (the fire's logs reach about 0.5 m), and hung by its top from the chain's end (the clay pot's grip is at its middle, so it had sat up on the chain). Measured in the editor: iron pot x2.06 (bottom 0.55), clay pot x2.58 (bottom 0.63), kettle x1.23 (bottom 0.70). ArtSwap, Tripod, TripodWorld 88/88. Awaiting Mike's re-check.
+
+- Re-check 2026-11-16: the wood pile approved by Mike. The clay pot's size was better but it hung off to one side (its grip is at its handle); Tripod.UseVesselArt now also centres the vessel under the chain (measured offset 0.000 for all three vessels). ArtSwap, Tripod, TripodWorld 88/88. Awaiting re-check.

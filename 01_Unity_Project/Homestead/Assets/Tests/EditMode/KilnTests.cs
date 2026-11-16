@@ -602,15 +602,17 @@ public class KilnTests
         {
             Assert.That(table.TryGetRow(pair.Key, out MarketRow row), Is.True, pair.Key);
             Assert.That(row.group, Is.EqualTo(MarketGroup.Crafted), pair.Key);
-            Assert.That(row.kind, Is.EqualTo(MarketKind.Bought), pair.Key);
-            Assert.That(row.baseCents, Is.EqualTo(pair.Value), pair.Key);
+            // The Clay Cooking Pot is also on the shelf since 2026-11-14 (Mike): 2.5 times its price, and still bought back at that price.
+            bool stocked = pair.Key == "clay_pot";
+            Assert.That(row.kind, Is.EqualTo(stocked ? MarketKind.Stocked : MarketKind.Bought), pair.Key);
+            Assert.That(row.baseCents, Is.EqualTo(stocked ? pair.Value * 5 / 2 : pair.Value), pair.Key);
             Assert.That(row.pool, Is.EqualTo(pair.Key), pair.Key + " is its own pool");
             Assert.That(table.SellBaseCents(pair.Key), Is.EqualTo(pair.Value), pair.Key);
-            Assert.That(table.BuyBaseCents(pair.Key), Is.EqualTo(0L), pair.Key + " is not stocked");
+            Assert.That(table.BuyBaseCents(pair.Key), Is.EqualTo(stocked ? pair.Value * 5 / 2 : 0L), pair.Key + (stocked ? " is stocked" : " is not stocked"));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(92));
-        Assert.That(table.Stock.Count, Is.EqualTo(22), "Stocked is 22: Iron Ore joined it (Metalworking M1)");
-        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(25));
+        Assert.That(table.Rows.Count, Is.EqualTo(96));
+        Assert.That(table.Stock.Count, Is.EqualTo(39), "the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
+        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(22));
         MarketGroupRule crafted = table.RuleOf("clay_cup");
         Assert.That(crafted.dropBp, Is.EqualTo(1000), "10% off per unit");
         Assert.That(crafted.floorBp, Is.EqualTo(1000), "floor 0.1");

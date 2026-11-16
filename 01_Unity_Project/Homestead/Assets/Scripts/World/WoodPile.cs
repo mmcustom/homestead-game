@@ -747,7 +747,60 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 
     // --- Looks ---
 
+    // Wave 3 art (Art_Needed_List.md, Mike 2026-11-16): when Resources/Art/structure_<kind>.prefab (ArtSwap.StructureId) exists, it is shown and the kind's first
+    // FramePieces primitives (the container: frame, barrel, box, rack, shed, shelves, cart) stop drawing. Everything drawn after them (the stored Logs, Stone,
+    // water level, shelf boxes, tool pegs, the cart's load) stays the primitives it is today, in the same places. The art is made once and kept across Rebuild;
+    // its own colliders are removed (the interaction box and the cart's handle collider stay the code's). Without the prefab nothing changes.
+    public const string ArtPrefix = "Art/";
+    public const string ArtName = "Art";
+
+    public static int FramePieces(WoodPileState pile)
+    {
+        switch (pile.kind)
+        {
+            case PileKind.WoodStorage: return pile.IsBuilt ? 2 : 0; // the two ground poles
+            case PileKind.RockStorage: return 6;                    // the ring of base stones
+            case PileKind.WaterBarrel: return 1;                    // the barrel
+            case PileKind.RainBarrel: return 2;                     // the barrel and its rim
+            case PileKind.FoodCache: return 2;                      // the box and its lid
+            case PileKind.StorageBin: return 2;                     // the bin and its dark inside
+            case PileKind.ToolRack: return 3;                       // the board and two feet
+            case PileKind.WoodShed: return 18;                      // two skids, deck, four posts, five back and five side slats, roof
+            case PileKind.Shelving: return 7;                       // two uprights, the back, four boards
+            case PileKind.HandCart: return 10;                      // bed, two sides, front board, axle, two wheels, two handles, rest leg
+            default: return 0;
+        }
+    }
+
+    void UseArt()
+    {
+        if (state == null)
+            return;
+        int frame = FramePieces(state);
+        if (frame == 0)
+            return;
+        if (transform.Find(ArtName) == null)
+        {
+            GameObject prefab = Resources.Load<GameObject>(ArtPrefix + ArtSwap.StructureId(state.kind));
+            if (prefab == null)
+                return;
+            GameObject made = Instantiate(prefab, transform, false);
+            made.name = ArtName;
+            foreach (Collider c in made.GetComponentsInChildren<Collider>(true))
+                Destroy(c);
+        }
+        for (int i = 0; i < frame && i < pieces.Count; i++)
+            if (pieces[i] != null && pieces[i].TryGetComponent(out MeshRenderer primitive))
+                primitive.enabled = false;
+    }
+
     public void Rebuild()
+    {
+        BuildPrimitives();
+        UseArt();
+    }
+
+    void BuildPrimitives()
     {
         foreach (GameObject piece in pieces)
             if (piece != null)
@@ -1017,14 +1070,14 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         float height = rain ? 1.1f : 0.95f;
         float width = rain ? 0.9f : 0.7f;
         Piece(PrimitiveType.Cylinder, new Vector3(0f, height / 2f, 0f), Vector3.zero, new Vector3(width, height / 2f, width), bark);
+        if (rain) // the rim is drawn with the barrel, before the water (Wave 3 art: FramePieces counts the fixed pieces first)
+            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, height - 0.03f, 0f), Vector3.zero, new Vector3(width + 0.04f, 0.03f, width + 0.04f), null),
+                   new Color(0.16f, 0.12f, 0.08f));
         int capacity = WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(state.kind) : 1;
         float fill = Mathf.Clamp01(state.Total / (float)Mathf.Max(1, capacity));
         if (fill > 0f)
             Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, 0.08f + (height - 0.1f) * fill, 0f), Vector3.zero, new Vector3(width - 0.08f, 0.005f, width - 0.08f), null),
                    new Color(0.22f, 0.3f, 0.34f));
-        if (rain)
-            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, height - 0.03f, 0f), Vector3.zero, new Vector3(width + 0.04f, 0.03f, width + 0.04f), null),
-                   new Color(0.16f, 0.12f, 0.08f));
         box.center = new Vector3(0f, height / 2f, 0f);
         box.size = new Vector3(width + 0.05f, height, width + 0.05f);
     }

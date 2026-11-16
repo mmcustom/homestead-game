@@ -492,8 +492,8 @@ public class BloomeryTests
         Assert.That(table.SellBaseCents("iron_bar"), Is.EqualTo(0L), "nothing buys it, so the sell list never shows it (TradingPostScreen lists what CanSell)");
         Assert.That(table.BuyBaseCents("iron_bar"), Is.EqualTo(0L), "and the store does not sell it");
         Assert.That(table.HasPool("iron_bar"), Is.False);
-        Assert.That(table.Rows.Count, Is.EqualTo(92), "M2 added no row; M3 added the three Smithy goods, and still none for the Iron Bar");
-        Assert.That(table.Stock.Count, Is.EqualTo(22));
+        Assert.That(table.Rows.Count, Is.EqualTo(96), "the maple gear's two rows (2026-11-14); the five hand tools moved to the shelf (2026-11-14); M2 added no row; M3 added the three Smithy goods, and still none for the Iron Bar");
+        Assert.That(table.Stock.Count, Is.EqualTo(39));
         Assert.That(SourceText("Resources/Market/MarketData.asset"), Does.Not.Contain("iron_bar"));
         Assert.That(SourceText("Scripts/UI/TradingPostScreen.cs"), Does.Contain("market.CanSell(stack.itemId)"));
         Assert.That(SourceText("Scripts/Managers/TradingPost.cs"), Does.Contain("!Market.CanSell(itemId)"), "and a sale of it would do nothing");
@@ -569,7 +569,7 @@ public class BloomeryTests
         var parent = new GameObject("Bloomery visuals test");
         var pieces = new List<GameObject>();
         object[] args = { parent.transform, state, null, pieces, Vector3.zero, Vector3.zero };
-        Find("StructureVisuals").GetMethod("Build").Invoke(null, args);
+        Find("StructureVisuals").GetMethod("BuildPrimitive", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic).Invoke(null, args); // the primitive look (a prefab at Resources/Art would replace it in Build)
         size = (Vector3)args[5];
         pieces.Add(parent);
         return pieces;
@@ -796,7 +796,7 @@ public class BloomeryTests
         Assert.That(PotteryRules.KilnFirewood, Is.EqualTo(10));
         Assert.That(PotteryRules.KilnFireHours, Is.EqualTo(24));
         Assert.That(PotashRules.HopperCapacity, Is.EqualTo(12));
-        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(22));
+        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(39));
         Assert.That(MarketCatalog.Table.BuyBaseCents("iron_ore"), Is.EqualTo(400L));
         Assert.That(MarketCatalog.Table.SellBaseCents("charcoal"), Is.EqualTo(100L));
         Assert.That(Enum.GetValues(typeof(MarketGroup)).Length, Is.EqualTo(11), "no new market group");

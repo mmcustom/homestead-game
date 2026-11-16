@@ -25,7 +25,7 @@ public class ToolsInHandTests
     static readonly string[] EightIds = { "axe", "primitive_axe", "wood_saw", "hammer", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe" };
     static readonly string[] FourIds = { "fishing_rod", "cane_pole", "torch", "lantern" };
     static readonly string[] RestIds = { "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile", "box_trap", "fish_trap", "rabbit_snare", "knife", "flint_and_steel", "pouch", "clay_pot", "cooking_pot", "potash_kettle", "tarp" };
-    static readonly string[] TwoHandedIds = { "axe", "primitive_axe", "wood_saw", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe" };
+    static readonly string[] TwoHandedIds = { "axe", "primitive_axe", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe" };
 
     readonly List<GameObject> made = new List<GameObject>();
 
