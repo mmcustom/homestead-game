@@ -155,6 +155,7 @@ public class TradingPostScreen : GameScreen
         row = QuantityRowUi.Create(buyList, "Buy", true, buyAmounts.TryGetValue(item, out int chosen) ? chosen : 1, max,
                                    shift => Buy(item, shift ? 10 : row.Stepper.Amount));
         row.Name.text = $"{definition.DisplayName}{have}{why}";
+        row.SetIcon(item, definition.DisplayName);
         row.Price.text = Money.Format(price);
         row.Price.color = max > 0 ? UiKit.Cream : UiKit.Muted;
         row.SetActionEnabled(max > 0);
@@ -188,6 +189,7 @@ public class TradingPostScreen : GameScreen
         row = QuantityRowUi.Create(sellList, "Sell", true, sellAmounts.TryGetValue(item.Id, out int chosen) ? chosen : 1, count,
                                    shift => Sell(item, shift ? inventory.Player.Count(item.Id) : row.Stepper.Amount));
         row.Name.text = $"{item.DisplayName}  <size=16><color=#EDE3C799>×{count}</color></size>{note}{normal}";
+        row.SetIcon(item.Id, item.DisplayName);
         row.Trend.text = trend;
         row.Price.text = Money.Format(market.SellPrice(item.Id));
         row.SetActionEnabled(count > 0);

@@ -252,6 +252,31 @@ public sealed class QuantityRowUi
         return ui;
     }
 
+    // The item's picture down the row's left side, its name shown on hover (ItemIcons, HoverTip; Mike, 2026-11-19), as in the Inventory rows:
+    // 72 px, 6 px in, and the name, the stepper and the total move right of it. An item with no icon leaves the row as it was.
+    public const float IconSize = 72f, IconPad = 6f, IconGap = 10f;
+
+    public void SetIcon(string itemId, string hoverName)
+    {
+        Sprite icon = ItemIcons.For(itemId);
+        if (icon == null)
+            return;
+        Image picture = UiKit.Image(Row, "Icon", Color.white);
+        picture.sprite = icon;
+        picture.preserveAspect = true;
+        RectTransform pictureRt = picture.rectTransform;
+        pictureRt.anchorMin = Vector2.zero;
+        pictureRt.anchorMax = new Vector2(0f, 1f);
+        pictureRt.pivot = new Vector2(0f, 0.5f);
+        pictureRt.sizeDelta = new Vector2(IconSize, -IconPad * 2f);
+        pictureRt.anchoredPosition = new Vector2(IconPad, 0f);
+        HoverTip.Add(picture, hoverName);
+        float inset = IconPad + IconSize + IconGap;
+        Name.rectTransform.offsetMin = new Vector2(inset, 0f);
+        Stepper.Root.anchoredPosition = new Vector2(inset, Stepper.Root.anchoredPosition.y);
+        Total.rectTransform.offsetMin = new Vector2(Total.rectTransform.offsetMin.x - 12f + inset, 0f);
+    }
+
     // Enables or greys out the action button (its label dims too).
     public void SetActionEnabled(bool enabled) => QuantityStepper.SetEnabled(Action, enabled);
 

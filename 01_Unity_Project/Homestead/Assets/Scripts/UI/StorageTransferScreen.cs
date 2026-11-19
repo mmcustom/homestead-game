@@ -311,6 +311,7 @@ public class StorageTransferScreen : GameScreen
                                    shift => onMove(row.Stepper.Amount, shift));
         string detail = whyNot != null ? $"{unit} — {whyNot}" : unit;
         row.Name.text = $"{NameOf(itemId)}  <size=16><color=#EDE3C799>{detail}</color></size>";
+        row.SetIcon(itemId, NameOf(itemId));
         row.SetActionEnabled(max > 0);
 
         void ShowTotal() => row.Total.text = max > 0 ? $"{row.Stepper.Amount} of {max}{(litres ? " L" : "")}" : "";

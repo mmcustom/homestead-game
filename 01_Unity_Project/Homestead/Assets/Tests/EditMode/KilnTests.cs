@@ -38,9 +38,10 @@ public class KilnTests
 
     static PotteryRules.ShelfEntry Entry(string id, int count) => new PotteryRules.ShelfEntry { itemId = id, count = count, ready = 0 };
 
-    static string AssetText(string folder, string id) => File.ReadAllText(Path.Combine(Application.dataPath, "Resources", "Items", folder, id + ".asset"));
+    static string AssetText(string folder, string id) => File.ReadAllText(Path.Combine(Application.dataPath, "Resources", "Items", folder, id + ".asset")).Replace("\r\n", "\n");
 
-    static string SourceText(string relative) => File.ReadAllText(Path.Combine(Application.dataPath, relative));
+    // Line endings normalised: Git on Windows (core.autocrlf) can check these files out with CRLF.
+    static string SourceText(string relative) => File.ReadAllText(Path.Combine(Application.dataPath, relative)).Replace("\r\n", "\n");
 
     // --- The numbers ---
 

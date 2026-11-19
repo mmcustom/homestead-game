@@ -67,4 +67,48 @@ public class HoverTipTests
             UnityEngine.Object.DestroyImmediate(canvas);
         }
     }
+
+    // The Trading Post and Storage rows (QuantityRowUi.SetIcon): a known item gets its picture down the left with its name on hover, and the
+    // name, stepper and total move right of it; an id with no icon leaves the row exactly as it was.
+    [Test]
+    public void ATradeOrStorageRowShowsTheItemsIconAndNameOnHover()
+    {
+        Type rowType = Find("QuantityRowUi");
+        var canvas = new GameObject("Canvas", typeof(RectTransform), typeof(Canvas));
+        try
+        {
+            var list = new GameObject("List", typeof(RectTransform)).GetComponent<RectTransform>();
+            list.SetParent(canvas.transform, false);
+            MethodInfo create = rowType.GetMethod("Create");
+            MethodInfo setIcon = rowType.GetMethod("SetIcon");
+            UnityAction<bool> none = shift => { };
+
+            object row = create.Invoke(null, new object[] { list, "Buy", true, 1, 5, none });
+            var rowRt = (RectTransform)rowType.GetProperty("Row").GetValue(row);
+            var name = (Text)rowType.GetProperty("Name").GetValue(row);
+            var total = (Text)rowType.GetProperty("Total").GetValue(row);
+            float nameBefore = name.rectTransform.offsetMin.x, totalBefore = total.rectTransform.offsetMin.x;
+
+            setIcon.Invoke(row, new object[] { "chair", "Chair" });
+            Transform icon = rowRt.Find("Icon");
+            Assert.That(icon, Is.Not.Null, "the chair has a picture");
+            Assert.That(icon.GetComponent<Image>().sprite, Is.Not.Null);
+            Component tip = icon.GetComponent(Find("HoverTip"));
+            Assert.That(tip, Is.Not.Null, "hovering it shows the name");
+            Assert.That(tip.GetType().GetProperty("Text").GetValue(tip), Is.EqualTo("Chair"));
+            Assert.That(name.rectTransform.offsetMin.x, Is.GreaterThan(nameBefore + 70f), "the name moves right of the picture");
+            Assert.That(total.rectTransform.offsetMin.x, Is.GreaterThan(totalBefore + 70f), "the total moves with it");
+
+            object plain = create.Invoke(null, new object[] { list, "Store", false, 1, 5, none });
+            var plainName = (Text)rowType.GetProperty("Name").GetValue(plain);
+            float plainBefore = plainName.rectTransform.offsetMin.x;
+            setIcon.Invoke(plain, new object[] { "no_such_item", "Nothing" });
+            Assert.That(((RectTransform)rowType.GetProperty("Row").GetValue(plain)).Find("Icon"), Is.Null);
+            Assert.That(plainName.rectTransform.offsetMin.x, Is.EqualTo(plainBefore), "no icon, no change");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(canvas);
+        }
+    }
 }

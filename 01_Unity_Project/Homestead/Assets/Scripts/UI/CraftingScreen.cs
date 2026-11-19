@@ -29,6 +29,7 @@ public class CraftingScreen : GameScreen
     static readonly string[] BuildCategories = { "Shelter", "Storage and Piles", "Other" };
 
     const float RowHeight = 56f;
+    const float RowIconSize = 48f, RowIconPad = 4f; // the item picture in a list row
     const float RefreshSeconds = 0.25f;
     static readonly Color Good = new Color(0.56f, 0.82f, 0.42f);
     static readonly Color Bad = new Color(0.9f, 0.45f, 0.3f);
@@ -332,11 +333,29 @@ public class CraftingScreen : GameScreen
             UiKit.Height(row, RowHeight);
             Destroy(row.GetComponentInChildren<Text>().gameObject);
             var rt = (RectTransform)row.transform;
+            // The item's picture at the row's left, its name on hover (ItemIcons, HoverTip; Mike, 2026-11-19). Only entries that are items have one
+            // (every Craft recipe, the Tripod); the Campfire and the piles keep the plain row. A click on the picture selects the row as before.
+            float inset = 12f;
+            Sprite icon = ItemIcons.For(entry.key);
+            if (icon != null)
+            {
+                Image picture = UiKit.Image(rt, "Icon", Color.white);
+                picture.sprite = icon;
+                picture.preserveAspect = true;
+                RectTransform pictureRt = picture.rectTransform;
+                pictureRt.anchorMin = Vector2.zero;
+                pictureRt.anchorMax = new Vector2(0f, 1f);
+                pictureRt.pivot = new Vector2(0f, 0.5f);
+                pictureRt.sizeDelta = new Vector2(RowIconSize, -RowIconPad * 2f);
+                pictureRt.anchoredPosition = new Vector2(RowIconPad, 0f);
+                HoverTip.Add(picture, entry.name, () => Select(captured.key));
+                inset = RowIconPad + RowIconSize + 8f;
+            }
             Text nameText = UiKit.Text(rt, "Name", entry.name + MarkerText(entry.marker), 22, UiKit.Cream, TextAnchor.MiddleLeft);
             nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
             nameText.rectTransform.anchorMin = Vector2.zero;
             nameText.rectTransform.anchorMax = new Vector2(0.52f, 1f);
-            nameText.rectTransform.offsetMin = new Vector2(12f, 0f);
+            nameText.rectTransform.offsetMin = new Vector2(inset, 0f);
             nameText.rectTransform.offsetMax = Vector2.zero;
             Text costText = UiKit.Text(rt, "Cost", entry.cost, 15, UiKit.Muted, TextAnchor.MiddleRight);
             costText.rectTransform.anchorMin = new Vector2(0.4f, 0f);
