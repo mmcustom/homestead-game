@@ -153,7 +153,7 @@ Items today are one tinted cube sized by weight (DroppedItems.Spawn) and have no
 | item_<id> for iron ore, bars, nails, tools made at the Smithy | Metal goods | 0.1 to 0.4 | After the Smithy exists as art. | Medium |
 | item_<id> for hides, pelts, meat, fish, eggs, forage | Food and animal goods | 0.1 to 0.4 | Hides pair with the tanning rack reference (tanning not in code yet). | Medium |
 | item_<id> for pottery (pots, jars, bricks) | Fired and unfired clay goods | 0.1 to 0.3 | Dry versus fired colour difference matters. | Medium |
-| Item icons (2D) | One icon per item for inventory and market | 128 x 128 px, transparent PNG | Not built in code yet; needs an icon field added first. Render from the item prefab when possible so style matches. | Medium |
+| Item icons (2D) | One icon per item for inventory and market | 128 x 128 px, transparent PNG | Done 2026-11-19 (see Wave 4 item icons below): rendered from the item art, shown in the Inventory rows. | Medium |
 | Map icons (2D) | Map markers for structures and places | 64 x 64 px | Built in code today (UI/MapIcons.cs). | Low |
 | Stump | Tree stump left after felling | trunk radius (confirm) | Pivot at ground, cut face up. | Medium |
 | Carcass | Dead animal on the ground | by species | Carcass visuals not yet reviewed in code. | Low |
@@ -542,7 +542,7 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 | 1 | The 30 tools | 30 | 30 (tool_knife, tool_torch, tool_bucket, tool_hammer, tool_shovel, tool_iron_shovel, tool_stone_pick_axe, tool_iron_pick_axe, tool_fishing_rod, tool_cane_pole, tool_lantern, tool_primitive_bow, tool_recurve_bow, tool_bolt_action_rifle, tool_bow_drill, tool_sap_bucket, tool_canteen, tool_spile, tool_box_trap, tool_fish_trap, tool_rabbit_snare, tool_primitive_axe, tool_wood_saw, tool_flint_and_steel, tool_pouch, tool_clay_pot, tool_cooking_pot, tool_potash_kettle, tool_tarp and tool_axe (rebuilt), realistic, approved in game by Mike 2026-11-14/15; the rifle "ok for now") | 0 | 0 |
 | 2 | Shelter and main structures | 15 | 15 (structure_kiln, structure_cabin, structure_tent, structure_tarpshelter, structure_leanto approved 2026-11-15; structure_well, structure_outhouse, structure_workshop, structure_pottershed, structure_charcoalpit, structure_bloomery, structure_smithy, structure_leachhopper, structure_kitchen and the kitchen add-ons approved 2026-11-16; WAVE 2 COMPLETE) | 0 | 0 |
 | 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 12 (structure_tap 2026-11-15; wood pile, rock pile, both barrels, food cache, storage bin, tool rack, shelving, wood shed, hand cart, campfire, tripod approved 2026-11-16) | 0 | 0 |
-| 4 | World items, icons, stump, carcass | 9 groups | 2 (batch 1 raw materials: logs, branches, firewood, stone, clay, charcoal, ash; batch 2: sticks, kindling bundle, lumber, sand, iron ore, iron bar, box of nails; dropped tools use their Wave 1 art; approved by Mike 2026-11-16; batch 3: pottery raw and fired, door hinges, hook set, approved 2026-11-16) | 3 (world_stump; batch 4 fish and meat, raw and cooked; batch 5 animal goods; batch 6 forage; all in Unity, awaiting Mike's check 2026-11-19) | 3 |
+| 4 | World items, icons, stump, carcass | 9 groups | 2 (batch 1 raw materials: logs, branches, firewood, stone, clay, charcoal, ash; batch 2: sticks, kindling bundle, lumber, sand, iron ore, iron bar, box of nails; dropped tools use their Wave 1 art; approved by Mike 2026-11-16; batch 3: pottery raw and fired, door hinges, hook set, approved 2026-11-16) | 3 (world_stump; batch 4 fish and meat, raw and cooked; batch 5 animal goods; batch 6 forage; batch 7 furniture and crafted parts; batch 8 liquids and supplies; all in Unity, awaiting Mike's check 2026-11-19. Every item in the database now has dropped art and an icon (icons in the Inventory rows with the hover name, approved in game by Mike 2026-11-19); left in Wave 4: the carcass) | 3 |
 | 5 | Animals and traps | 8 | 0 | 0 | 8 |
 | 6 | Trees, terrain, water, weather, effects | 11 groups | 0 | 0 | 11 |
 | 7 | UI and screens (new) | see below | 0 | 0 | all |
@@ -917,3 +917,43 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Sources: Art\Blender_Work\item_wave4f (geo.py helpers). 14 FBX, 24 materials, 1024 px bakes.
 - Unity: Assets/Resources/Art/item_<id>.prefab, shown on dropped piles by DroppedItems.UseArt. Added to the ArtSwapTests dropped-pile test (35/35 pass).
 - Long items (cattail 1.0 m, tall_grass 0.8 m) lie flat on the ground.
+
+### Wave 4 batch 7: furniture and crafted parts (in Unity, awaiting in-game check, 2026-11-19)
+- Ids and what each is, per its recipe:
+  - rough_stool: split slab seat (0.38 x 0.29) on three splayed bark branch legs, tenons showing through the top, 0.47 tall.
+  - end_table: three-plank top 0.46 square on cleats, four branch legs, a low two-plank shelf on stretchers, 0.60 tall.
+  - chair: three-plank seat at 0.45, branch legs and back posts to 0.98, two back slats and the seat joints lashed with cordage, rungs.
+  - table: five-plank top 1.40 x 0.80 at 0.75 on cleats, four log legs, branch stretchers lashed with cordage (2 cordage).
+  - wooden_wheel: two solid wheels sawn from one log (0.48 across, 6.5 cm thick, bark rim, axle hole, growth rings and checks), stacked.
+  - arrows: three 0.74 m stick shafts with knapped flint points bound on with cord; no fletching, since the recipe is 1 stick and 1 stone.
+  - cordage: a coiled hank of two-ply twisted grass cord with a loose tail (the twist is a per-vertex 'rope' attribute read by the shader).
+  - tripod: three 1.6 m branch poles bundled and lashed near the top, as carried; the placed tripod is structure_tripod.
+- Sources: Art\Blender_Work\item_wave4g (geo7.py shapes, mats7.py materials). 8 FBX, 18 materials, 1024 bakes (the table 2048). 350 to 5,000 tris each.
+- Unity: Assets/Resources/Art/item_<id>.prefab. Item art is placed as authored (only tool art is rolled), so the furniture stands upright. Added to the ArtSwapTests dropped-pile test (35/35 pass).
+
+### Wave 4 batch 8: liquids and supplies (in Unity, awaiting in-game check, 2026-11-19)
+- Ids and what each is:
+  - water, water_excellent, water_good, water_questionable, water_unsafe, maple_sap: one buff clay jar (13 x 16 cm, about 1 L) shared by all six (same mesh and UVs, one material item_water_jar_clay). The open jars show the liquid inside: dark and clear (Excellent), clear (Good), cloudy green (Questionable), muddy brown (Unsafe), pale and watery (sap). Purified water is the same jar with a cork in it.
+  - maple_syrup: a small two-tone stoneware jug (dark brown dipped top, tan bottom) with a handle and a cork.
+  - lye: a grey salt-glazed crock with a wooden lid tied down with cord.
+  - lamp_oil: a painted red oil tin with a capped spout and a wire handle, a little worn.
+  - potash: a small pile of grey-white lumps.
+  - rifle_rounds: four loose brass cartridges with copper bullets.
+  - sleeping_bag: an olive canvas roll with two leather straps and buckles; the ends show the rolled layers.
+  - tent: a tan canvas roll tied with cord, the two poles alongside.
+  - weather_station: a walnut board with a brass barometer (ticked dial, needle) and a thermometer with its red column.
+- Sources: Art\Blender_Work\item_wave4h (geo8.py, mats8.py). 14 FBX, 30 materials (the six water surfaces are plain baked colours), 1024 bakes, 700 to 3,400 tris.
+- Test change: the last part of ADroppedPileShowsItsItemArtStandingOnTheGroundInsideItsCollider looked for an item with no art to check it keeps its cube. There are none now, so it builds a made-up ItemDefinition (test_item_without_art) instead. ArtSwapTests 35/35.
+- With this batch every one of the 116 items in the database has dropped art.
+
+### Wave 4 item icons (approved in game by Mike, 2026-11-19)
+- All 116 items have a 128 x 128 transparent icon at Assets/Resources/Icons/item_<id>.png (Sprite, uncompressed, no mipmaps), rendered from the same art a dropped pile shows (item_<id>, or the tool_<id> art unlit and empty for a Tool with no item art), so icons always match the world.
+- Renderer: Assets/Scripts/Editor/ItemIconRenderer.cs, menu Homestead > Art > Render Item Icons (re-run after changing any item art; about 1 s per icon). It uses a preview scene, so the open scene is never touched.
+  - Lighting: three directional lights (key 3.2, fill 1.1, rim 1.6 lux) that turn with the camera, fixed exposure EV -1.2, and a volume on layer 29 (unused; 31 is Unity's preview layer) with no sky, tonemapping, bloom, vignette or fog. Without "no sky" the open scene's sky ambient lit everything far brighter than the lights and the icons changed with its time of day.
+  - HDRP needs HDAdditionalLightData added by hand on lights made in a preview scene.
+  - Transparency: each icon is rendered on black and on white; alpha comes from the difference (HDRP's colour buffer keeps no alpha). Rendered at 512 and box-filtered to 128.
+  - Poses: anything more than 2.6 times longer than wide (tools, arrows, poles, rolls, fish) lies across the icon on a diagonal with its broad side to the camera; the rest is a three-quarter view from the front-left at 34 degrees (flat piles 50, open containers of liquid 58 so the water grades show).
+- Game code: Assets/Scripts/Inventory/ItemIcons.cs, ItemIcons.For(id) loads and caches Icons/item_<id> (null when there is none). InventoryScreen.AddRow shows it as a 72 px picture down the left of each row; the name line, the stepper and the info text start after it.
+- Test: ArtSwapTests.EveryItemHasAnIconTheInventoryCanFind (every item in ItemDatabase has a 128 px icon; unknown ids give null). ArtSwapTests 36/36, ClayPotTests 16/16.
+- Hover (Mike, 2026-11-19): hovering an icon shows the item's name beside the pointer (Assets/Scripts/UI/HoverTip.cs, a reusable component: HoverTip.Add(graphic, text, onClick)). One shared label per canvas, 22 px cream on a dark panel, drawn on top and kept on screen; a click on the icon still does the row's action; scrolling passes through. Test: HoverTipTests (the test assembly now references UnityEngine.UI).
+- Not done yet (same lookup, a few lines each): icons in the Trading Post, storage transfer and crafting screens.

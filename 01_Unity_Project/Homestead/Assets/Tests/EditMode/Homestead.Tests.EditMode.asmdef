@@ -7,7 +7,8 @@
         "Homestead.SlotSwap",
         "Homestead.CreekCrossing",
         "Homestead.Setbacks",
-        "Homestead.Economy"
+        "Homestead.Economy",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"

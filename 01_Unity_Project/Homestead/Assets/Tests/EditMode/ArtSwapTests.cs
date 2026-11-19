@@ -754,7 +754,9 @@ public class ArtSwapTests
                                            "cooked_bass", "cooked_bluegill", "cooked_catfish", "cooked_crappie", "cooked_chicken", "cooked_waterfowl",
                                            "cooked_turkey", "cooked_small_game", "cooked_venison",
                                            "chicken_eggs", "feathers", "deer_hide", "small_furs", "deer_antlers", "sinew", "goat_milk",
-            "blackberries", "raspberries", "chestnuts", "hickory_nuts", "walnuts", "wild_apples", "pawpaw", "morel", "oyster_mushroom", "dryads_saddle", "dandelion", "wild_onion", "cattail", "tall_grass", "axe", "fishing_rod", "shovel", "tarp", "bucket", "lantern" })
+            "blackberries", "raspberries", "chestnuts", "hickory_nuts", "walnuts", "wild_apples", "pawpaw", "morel", "oyster_mushroom", "dryads_saddle", "dandelion", "wild_onion", "cattail", "tall_grass",
+            "rough_stool", "end_table", "chair", "table", "wooden_wheel", "arrows", "cordage", "tripod",
+            "water", "water_excellent", "water_good", "water_questionable", "water_unsafe", "maple_sap", "maple_syrup", "lye", "lamp_oil", "potash", "rifle_rounds", "sleeping_bag", "tent", "weather_station", "axe", "fishing_rod", "shovel", "tarp", "bucket", "lantern" })
             {
                 bool tool = Resources.Load<GameObject>("Art/item_" + id) == null;
                 Assert.That(Resources.Load<GameObject>(tool ? "Art/tool_" + id : "Art/item_" + id), Is.Not.Null, id);
@@ -795,22 +797,46 @@ public class ArtSwapTests
                 }
             }
 
-            object plain = null;
-            foreach (object item in (IEnumerable)Find("ItemDatabase").GetProperty("All").GetValue(null))
-            {
-                string id = (string)item.GetType().GetProperty("Id").GetValue(item);
-                if (Resources.Load<GameObject>("Art/item_" + id) == null && Resources.Load<GameObject>("Art/tool_" + id) == null) { plain = item; break; }
-            }
-            Assert.That(plain, Is.Not.Null);
+            // Every item in the database has art now (Wave 4 batch 8, 2026-11-19), so the no-art case uses a made-up item.
+            Type def = Find("ItemDefinition");
+            var plain = ScriptableObject.CreateInstance(def);
+            def.GetField("id", Any | BindingFlags.Instance).SetValue(plain, "test_item_without_art");
+            def.GetField("displayName", Any | BindingFlags.Instance).SetValue(plain, "Test Item");
+            def.GetField("weightKg", Any | BindingFlags.Instance).SetValue(plain, 1f);
+            Assert.That(Resources.Load<GameObject>("Art/item_test_item_without_art"), Is.Null);
             var cube = ((Component)spawn.Invoke(null, new object[] { plain, 1, 10, Vector3.zero, 0f, false })).gameObject;
             made.Add(cube);
             Assert.That(cube.transform.Find("Art"), Is.Null);
             Assert.That(cube.GetComponent<MeshRenderer>().enabled, Is.True, "no art yet: the tinted cube still draws");
+            UnityEngine.Object.DestroyImmediate(plain);
         }
         finally
         {
             foreach (GameObject g in made)
                 UnityEngine.Object.DestroyImmediate(g);
         }
+    }
+
+    // Wave 4 item icons (2026-11-19): every item has a 128 px transparent icon in Resources/Icons, rendered from its art (ItemIconRenderer),
+    // and ItemIcons finds it by id; an unknown id gives no icon rather than an error.
+    [Test]
+    public void EveryItemHasAnIconTheInventoryCanFind()
+    {
+        Type icons = Find("ItemIcons");
+        Assert.That(icons.GetField("Prefix", Any).GetValue(null), Is.EqualTo("Icons/item_"));
+        MethodInfo forId = icons.GetMethod("For", new[] { typeof(string) });
+        int count = 0;
+        foreach (object item in (IEnumerable)Find("ItemDatabase").GetProperty("All").GetValue(null))
+        {
+            string id = (string)item.GetType().GetProperty("Id").GetValue(item);
+            var sprite = (Sprite)forId.Invoke(null, new object[] { id });
+            Assert.That(sprite, Is.Not.Null, id + ": has an icon");
+            Assert.That(sprite.texture.width, Is.EqualTo(128), id);
+            Assert.That(sprite.texture.height, Is.EqualTo(128), id);
+            count++;
+        }
+        Assert.That(count, Is.GreaterThan(100));
+        Assert.That(forId.Invoke(null, new object[] { "no_such_item" }), Is.Null);
+        Assert.That(forId.Invoke(null, new object[] { "" }), Is.Null);
     }
 }

@@ -334,6 +334,8 @@ public class InventoryScreen : GameScreen
     bool inventoryHasLantern;
 
     const float RowHeight = 84f;
+    // The row's icon: 72 px tall in the 84 px row, 6 px in from the edges; the row's text starts after it (or 12 px in without one).
+    const float IconSize = 72f, IconPad = 6f, IconGap = 10f, TextInset = 12f;
     const float ControlY = 5f; // line two's controls: this far above the row's bottom edge
 
     void AddRow(ItemDefinition item, int quantity, bool equipped, bool atFire, PlayerController player)
@@ -366,6 +368,25 @@ public class InventoryScreen : GameScreen
             main.colors = mainColors;
         }
 
+        // The item's picture down the row's left side (ItemIcons, Wave 4), when it has one; both lines start to the right of it.
+        float inset = TextInset;
+        Sprite icon = ItemIcons.For(item);
+        if (icon != null)
+        {
+            Image picture = UiKit.Image(rt, "Icon", Color.white);
+            picture.sprite = icon;
+            picture.preserveAspect = true;
+            // Hovering the picture shows the item's name (Mike, 2026-11-19); a click on it still does what clicking the row does.
+            HoverTip.Add(picture, item.DisplayName, click);
+            RectTransform pictureRt = picture.rectTransform;
+            pictureRt.anchorMin = Vector2.zero;
+            pictureRt.anchorMax = new Vector2(0f, 1f);
+            pictureRt.pivot = new Vector2(0f, 0.5f);
+            pictureRt.sizeDelta = new Vector2(IconSize, -IconPad * 2f);
+            pictureRt.anchoredPosition = new Vector2(IconPad, 0f);
+            inset = IconPad + IconSize + IconGap;
+        }
+
         string detail = item.IsFood ? FoodDetail(item) : CategoryName(item.Category);
         string tag = equipped ? "  <color=#C7D68C>• Equipped</color>" : "";
         PortableLight light = PortableLight.Instance;
@@ -388,7 +409,7 @@ public class InventoryScreen : GameScreen
 
         // Line one: name, the hotkey button, quantity, weight.
         Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, hotkeyable ? 0.36f : QtyMin,
-               TextAnchor.MiddleLeft, UiKit.Cream, 21, 12f, 0f, 0.5f);
+               TextAnchor.MiddleLeft, UiKit.Cream, 21, inset, 0f, 0.5f);
         // Tool Hotkeys (Inventory_System.md): the number key that equips this Tool. Click cycles 1-9, 0, none;
         // or point at the row and press a number key.
         if (hotkeyable)
@@ -411,7 +432,7 @@ public class InventoryScreen : GameScreen
         QuantityStepper stepper = QuantityStepper.Create(rt, amounts.TryGetValue(item.Id, out int chosen) ? chosen : 1, quantity);
         RectTransform stepperRt = stepper.Root;
         stepperRt.anchorMin = stepperRt.anchorMax = stepperRt.pivot = Vector2.zero;
-        stepperRt.anchoredPosition = new Vector2(12f, ControlY);
+        stepperRt.anchoredPosition = new Vector2(inset, ControlY);
 
         Button AddButton(string label, float fromRight, float width, UnityEngine.Events.UnityAction onClick)
         {
@@ -498,7 +519,7 @@ public class InventoryScreen : GameScreen
         info.verticalOverflow = VerticalWrapMode.Truncate;
         info.rectTransform.anchorMin = Vector2.zero;
         info.rectTransform.anchorMax = new Vector2(1f, 0.5f);
-        info.rectTransform.offsetMin = new Vector2(250f, 0f);
+        info.rectTransform.offsetMin = new Vector2(250f - TextInset + inset, 0f);
         info.rectTransform.offsetMax = new Vector2(action == null ? -142f : queue != null ? -368f : -268f, 0f);
 
         if (queue != null)
