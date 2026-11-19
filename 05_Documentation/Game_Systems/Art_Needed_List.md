@@ -524,7 +524,8 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 - Anchors: Anchor_Grip_R (0, 0, 0) on the bow's back end, Anchor_Grip_L (-0.02, 0.112, 0.15) on top of the spindle, Anchor_Tip (0, 0, 0.32).
 - Code (2026-11-15): the Bow Drill is now two-handed (HandPoseRules.TwoHandedIds; ToolViewPrimitives layout gripLeft on the spindle top), so the left hand presses on the spindle. The left hand rides on the kit, so it moves with the sawing stroke too. HandsTests' one-handed list no longer has it.
 - Unity: Assets/Resources/Art/tool_bow_drill.prefab, ArtSwap.ToolSpecFor("bow_drill") resolves; ArtSwapTests and HangPendulumTests 36/36 passed.
-- Status: approved in game by Mike 2026-11-15 after the mirror ("much better"): spindle on the left under the left hand, bow in the right.
+- Status: approved in game by Mike 2026-11-15 after the mirror ("much better"): spindle on the left under the left hand, bow in the right.
+
 
 ## tool_sap_bucket (2026-11-15): Sap Bucket, a small lidded wooden bucket lashed with cord
 - Built from tool_bucket.blend scaled to 0.78. The iron hoops and bail became cord (the recipe is 1 log, 3 branches, 1 cordage: no iron). A two-plank lid with a cleat sits in the rim.
@@ -540,8 +541,8 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 | 1 | First-person hands | 1 (2 prefabs) | 1 (idle and tool-grip, Hands v3) | polish backlog below | 0 |
 | 1 | The 30 tools | 30 | 30 (tool_knife, tool_torch, tool_bucket, tool_hammer, tool_shovel, tool_iron_shovel, tool_stone_pick_axe, tool_iron_pick_axe, tool_fishing_rod, tool_cane_pole, tool_lantern, tool_primitive_bow, tool_recurve_bow, tool_bolt_action_rifle, tool_bow_drill, tool_sap_bucket, tool_canteen, tool_spile, tool_box_trap, tool_fish_trap, tool_rabbit_snare, tool_primitive_axe, tool_wood_saw, tool_flint_and_steel, tool_pouch, tool_clay_pot, tool_cooking_pot, tool_potash_kettle, tool_tarp and tool_axe (rebuilt), realistic, approved in game by Mike 2026-11-14/15; the rifle "ok for now") | 0 | 0 |
 | 2 | Shelter and main structures | 15 | 15 (structure_kiln, structure_cabin, structure_tent, structure_tarpshelter, structure_leanto approved 2026-11-15; structure_well, structure_outhouse, structure_workshop, structure_pottershed, structure_charcoalpit, structure_bloomery, structure_smithy, structure_leachhopper, structure_kitchen and the kitchen add-ons approved 2026-11-16; WAVE 2 COMPLETE) | 0 | 0 |
-| 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 11 (structure_tap 2026-11-15; wood pile, rock pile, both barrels, food cache, storage bin, tool rack, shelving, wood shed, hand cart, campfire approved 2026-11-16) | 1 (structure_tripod: vessel now centred under the chain, awaiting re-check 2026-11-16) | 0 |
-| 4 | World items, icons, stump, carcass | 9 groups | 0 | 0 | 9 |
+| 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 12 (structure_tap 2026-11-15; wood pile, rock pile, both barrels, food cache, storage bin, tool rack, shelving, wood shed, hand cart, campfire, tripod approved 2026-11-16) | 0 | 0 |
+| 4 | World items, icons, stump, carcass | 9 groups | 2 (batch 1 raw materials: logs, branches, firewood, stone, clay, charcoal, ash; batch 2: sticks, kindling bundle, lumber, sand, iron ore, iron bar, box of nails; dropped tools use their Wave 1 art; approved by Mike 2026-11-16; batch 3: pottery raw and fired, door hinges, hook set, approved 2026-11-16) | 3 (world_stump; batch 4 fish and meat, raw and cooked; batch 5 animal goods; batch 6 forage; all in Unity, awaiting Mike's check 2026-11-19) | 3 |
 | 5 | Animals and traps | 8 | 0 | 0 | 8 |
 | 6 | Trees, terrain, water, weather, effects | 11 groups | 0 | 0 | 11 |
 | 7 | UI and screens (new) | see below | 0 | 0 | all |
@@ -855,4 +856,64 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - structure_woodstorage rebuilt as a wide bed (3.0 x 2.1 m): four log sleepers from x -1.3 to 1.6, edge rails and four corner stakes, so the Logs (middle), Branches (+X), Sticks (-X) and Firewood (back) the game draws all lie on it.
 - Tripod.UseVesselArt: a hung vessel is grown to the drawn vessel's width (about 0.4 m), capped so its bottom stays at or above 0.55 m (the fire's logs reach about 0.5 m), and hung by its top from the chain's end (the clay pot's grip is at its middle, so it had sat up on the chain). Measured in the editor: iron pot x2.06 (bottom 0.55), clay pot x2.58 (bottom 0.63), kettle x1.23 (bottom 0.70). ArtSwap, Tripod, TripodWorld 88/88. Awaiting Mike's re-check.
 
-- Re-check 2026-11-16: the wood pile approved by Mike. The clay pot's size was better but it hung off to one side (its grip is at its handle); Tripod.UseVesselArt now also centres the vessel under the chain (measured offset 0.000 for all three vessels). ArtSwap, Tripod, TripodWorld 88/88. Awaiting re-check.
+- Re-check 2026-11-16: the wood pile approved by Mike. The clay pot's size was better but it hung off to one side (its grip is at its handle); Tripod.UseVesselArt now also centres the vessel under the chain (measured offset 0.000 for all three vessels). ArtSwap, Tripod, TripodWorld 88/88.
+- Approved 2026-11-16: Mike re-checked the tripod in game ("looks better now"). Wave 3 complete, 12/12.
+
+## Wave 4 batch 1: raw materials (2026-11-16, one run, Mike checks all at the end)
+
+- Pieces (Art\Blender_Work\item_wave4a\item_wave4a.blend, one file, one FBX per item): item_logs (one 8 kg log, 0.77 x 0.17 m, tapered with two knot bumps, sawn ends with growth rings), item_branches (a loose bundle of five dry sticks about 1.1 m long with side twigs), item_firewood (one split quarter, 0.43 m, bark on the round side, split grain on the flat faces), item_stone (a 5 kg fieldstone, 0.21 x 0.16 x 0.11 m), item_clay (a 3.5 kg slumped wet lump with small finger presses), item_charcoal (a heap of 15 snapped lumps showing the wood grain), item_ash (a small grey heap with dark specks). Tris 520 to 1,280 each.
+- Materials: one per real material, baked at 1024 (bark, cut wood, stone, clay, charcoal, ash; 9 in all, no metal). Cut wood rings are centred on the log's axis, so the firewood's split faces show straight grain.
+- Code, DroppedItems.cs: Spawn calls UseArt(go, item). When Resources/Art/item_<id> exists the tinted cube's renderer is hidden, the art stands on the cube's bottom face at real size (the cube's scale is undone) and the cube's box collider is fitted to the art, so the whole model can be looked at and picked up. The cube stays as the pickup and the saved position, so saves are unchanged. Items with no art keep their cube.
+- Test (ArtSwapTests): ADroppedPileShowsItsItemArtStandingOnTheGroundInsideItsCollider. ArtSwapTests 34/34, HandsTests 62/62.
+- Not covered yet: an item held in the hands is still the tinted placeholder (PlayerHands); a pile of 10 logs still shows one log. Both are later steps.
+- All: Assets/Resources/Art/item_<id>.prefab. In Unity, awaiting Mike's batch check (drop each item from the inventory).
+
+## Dropped tools use their hand art (2026-11-16)
+
+- Code, DroppedItems.UseArt: an item with no item_<id> art but a Wave 1 tool row (ArtSwap.ToolSpecFor) shows Resources/Art/tool_<id> on the ground. Carried containers (ToolActionRules.HangingIds, plus clay_pot and lantern) stand upright as authored; every other tool is laid whichever way is lower (rolled 90 degrees onto its side, or left as authored: the shovels' blades and the folded tarp already lie flat). Lights are dropped unlit (State_Lit hidden) and containers empty (Fill hidden). The art sits under an "Art" holder that undoes the cube's scale, so a rolled tool is never squashed. All 30 tools checked in a preview render.
+- Test: the dropped-pile test also covers axe, fishing_rod, shovel, tarp (lying), bucket and lantern (upright, unlit, empty).
+
+## Wave 4 batch 2: sticks, kindling, lumber, sand and the first Smithy goods (2026-11-16, one run)
+
+- Pieces (Art\Blender_Work\item_wave4b\item_wave4b.blend, one FBX per item): item_sticks (three small dry sticks about 0.4 m), item_kindling_bundle (about 30 thin split sticks, 0.42 m, tied twice with cord), item_lumber (three rough-sawn boards 1.2 m x 0.14 x 0.022, stacked a little askew), item_sand (a tan heap with dark grains), item_iron_ore (a 3 kg rusty brown-black pitted lump), item_iron_bar (a hammered wrought-iron bar 0.42 x 0.026 m, scale and rust), item_nails_box (an open pine box with 34 nails inside and three lying on top). Tris 36 to 1,540 each.
+- Materials: 9, baked at 1024; item_iron_bar_iron and item_nails_box_iron are metal (mask R = 1, _Metallic 1).
+- Shared helpers now in Art\Blender_Work\item_util.py (shapes, the bark, grain and lump materials, a bake that handles objects with more than one material, masks, per-item FBX export, review renders).
+- ArtSwapTests 34/34 (the dropped-pile test covers all 14 items). In Unity, awaiting Mike's check (drop each item).
+- Approved 2026-11-16: Mike checked batches 1 and 2 and the dropped tools in game ("look good, carry on").
+
+## Wave 4 batch 3: pottery (raw and fired) and the last Smithy goods (2026-11-16, one run)
+
+- Pieces (Art\Blender_Work\item_wave4c\item_wave4c.blend, one FBX per item): fired item_clay_cup (9 cm with a handle), item_clay_bowl (17 cm), item_water_crock (32 cm, shouldered, rolled rim, two lug handles), item_brick_batch (six bricks in two crossed layers); the same four raw as item_dry_clay_cup, item_dry_clay_bowl, item_dry_water_crock, item_dry_brick_batch (same shapes, pale unfired clay); item_dry_clay_pot (the approved tool_clay_pot model itself, imported from its FBX and given raw clay, so the raw and fired pots match); item_door_hinges (a pair of forged strap hinges with knuckle, pintle plate and nail studs); item_hook_set (four forged S and J hooks tied with twine). Tris 264 to 2,824 each.
+- Materials: fired terracotta (bricks rougher and redder), raw clay pale grey-tan and matte, forged iron with rust (metal) and twine; 12 in all, baked at 1024.
+- Note: tool_clay_pot is authored upright (mouth up, Unity +Y); its extra length along Z is the strap handle. DroppedItems stands it upright as authored, which is right.
+- item_util.py gained tube() (one seamless tube along a path, for handles, hooks and wire) and revolve() (a lathe from a profile, for pottery).
+- ArtSwapTests 34/34 (the dropped-pile test covers all 25 items). In Unity, awaiting Mike's check (drop each item).
+- Approved 2026-11-16: Mike checked batch 3 in game ("looks great, continue").
+
+## world_stump (2026-11-16): the stump a felled hardwood leaves
+
+- Piece (Art\Blender_Work\world_stump\world_stump.blend): a hardwood stump authored for a 0.30 m trunk, pivot at ground level, cut about 0.41 m up. An axe-felled top: a flat cut, the back-cut side a little lower, a ridge of torn fibres across the middle (hinge); a fresh cut face with growth rings, darker heartwood and a dark bark rim; furrowed bark up the sides; six root flares spreading into the ground (to 0.09 m below it). 4,544 tris. Two materials baked at 2048 (world_stump_bark, world_stump_wood).
+- The bark is tinted to the trees' current placeholder bark (RGB 0.27, 0.20, 0.14) so stump and trunk don't clash; revisit when the trees get real art (Wave 6).
+- Code, WoodManager.SpawnStump calls UseStumpArt: the cylinder's renderer is hidden and the art sits at ground level, widened by trunkRadius / 0.30 (so a sapling's stump is small and a big hardwood's wide) but never taller. The cylinder stays the MeshCollider the Shovel digs at; swallowing and digging out are unchanged (they destroy the whole stump).
+- Test: ArtSwapTests.AStumpShowsItsArtWidenedWithTheTrunkOnTheGround (radii 0.12, 0.27, 0.5). ArtSwap, Regrow, Setbacks, Workshop 204/204.
+- In Unity, awaiting Mike's check (fell a hardwood, look at the stump, dig one out).
+
+## Wave 4 batch 4: fish and meat, raw and cooked (2026-11-16, one run)
+
+- Pieces (Art\Blender_Work\item_wave4d\item_wave4d.blend, one FBX per item, 18 in all; materials built by item_wave4d\mats.py): four fish lying on their sides with tail, dorsal, anal and pectoral fins, an eye and a gill line: item_bass (33 cm, olive with a dark blotchy side stripe), item_bluegill (21 cm, deep-bodied, dark bars, orange chest, dark ear flap), item_catfish (40 cm, flat head, four barbels, blue-grey with dark speckles), item_crappie (27 cm, silvery with black spots); item_chicken_meat and item_waterfowl_meat (whole plucked trussed birds, goose-pimpled skin), item_turkey_meat (two big drumsticks with the bone ends showing), item_small_game_meat (two skinned rabbit hind legs, red with silvery membrane), item_venison (a 2.5 kg roast, dark red with membrane and fat). Each has a cooked twin of the same shape: cooked fish browned with faint grill marks and a white cooked eye; roast chicken golden, roast duck mahogany, turkey legs golden with browned bone ends, rabbit legs and venison seared dark brown.
+- 22 materials (non-metal), baked at 1024. Tris 556 to 2,160 each.
+- The meats are portions, not whole animals: whole carcasses stay with the Carcass row.
+- ArtSwapTests 35/35 (the dropped-pile test covers all 43 items). In Unity, awaiting Mike's check (drop each raw and cooked item).
+
+## Wave 4 batch 5: animal goods (2026-11-16, one run)
+
+- Pieces (Art\Blender_Work\item_wave4e\item_wave4e.blend, one FBX per item): item_chicken_eggs (two brown eggs lying down), item_feathers (seven barred brown and cream feathers with quills), item_deer_hide (a rolled hide, 0.46 m, fur outside, leather at the ends, tied with two thongs), item_small_furs (two flat pelts with leg flaps, grey-brown fur, leather underneath), item_deer_antlers (a shed pair, three tines each, grooved bone paling to polished tips), item_sinew (a looped hank of amber strands, tied), item_goat_milk (a salt-glazed stoneware jar with the milk showing at the neck). Tris 320 to 4,832 each.
+- 13 materials (non-metal), baked at 1024. Material helpers for fur and feathers are in item_wave4e (fur stretched hair, barred vanes).
+- Watch in game: the rolled deer hide may read more like a tan tube than fur; darken or rough it up if so.
+- ArtSwapTests 35/35 (the dropped-pile test covers all 50 items). In Unity, awaiting Mike's check.
+
+### Wave 4 batch 6: forage (in Unity, awaiting in-game check, 2026-11-19)
+- Ids: blackberries, raspberries, chestnuts, hickory_nuts, walnuts, wild_apples, pawpaw, morel, oyster_mushroom, dryads_saddle, dandelion, wild_onion, cattail, tall_grass.
+- Sources: Art\Blender_Work\item_wave4f (geo.py helpers). 14 FBX, 24 materials, 1024 px bakes.
+- Unity: Assets/Resources/Art/item_<id>.prefab, shown on dropped piles by DroppedItems.UseArt. Added to the ArtSwapTests dropped-pile test (35/35 pass).
+- Long items (cattail 1.0 m, tall_grass 0.8 m) lie flat on the ground.

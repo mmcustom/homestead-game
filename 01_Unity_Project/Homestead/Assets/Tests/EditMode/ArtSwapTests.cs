@@ -685,4 +685,132 @@ public class ArtSwapTests
         Assert.That(source, Does.Contain("ash = artAsh.gameObject;"));
         Assert.That(source, Does.Contain("void Awake()\n    {\n        UseArt();").Or.Contain("void Awake()\r\n    {\r\n        UseArt();"));
     }
+
+    // Art Wave 4 (2026-11-16): a stump shows Resources/Art/world_stump, standing on the ground, widened with the trunk but not
+    // taller, while the hidden cylinder stays the collider the Shovel digs at.
+    [Test]
+    public void AStumpShowsItsArtWidenedWithTheTrunkOnTheGround()
+    {
+        Type wood = Find("WoodManager");
+        Assert.That(wood.GetField("StumpArtPath", Any).GetValue(null), Is.EqualTo("Art/world_stump"));
+        Assert.That(Resources.Load<GameObject>("Art/world_stump"), Is.Not.Null);
+        MethodInfo use = wood.GetMethod("UseStumpArt", Any);
+        var made = new List<GameObject>();
+        try
+        {
+            float lastWidth = 0f;
+            foreach (float radius in new[] { 0.12f, 0.27f, 0.5f })
+            {
+                // set up exactly as WoodManager.SpawnStump does
+                var stump = GameObject.CreatePrimitive(PrimitiveType.Cylinder); made.Add(stump);
+                const float height = 0.45f, sink = 0.05f;
+                var ground = new Vector3(10f, 3f, 4f);
+                stump.transform.position = ground + Vector3.up * (height / 2f - sink);
+                stump.transform.localScale = new Vector3(radius * 2.1f, height / 2f, radius * 2.1f);
+                stump.transform.rotation = Quaternion.Euler(0f, 30f, 0f);
+                use.Invoke(null, new object[] { stump, radius, height, sink });
+
+                Transform art = stump.transform.Find("Art");
+                Assert.That(art, Is.Not.Null, radius.ToString());
+                Assert.That(stump.GetComponent<MeshRenderer>().enabled, Is.False, "the cylinder stops drawing");
+                Assert.That(stump.GetComponent<Collider>(), Is.Not.Null, "the cylinder still takes the Shovel");
+                Assert.That(art.GetComponentsInChildren<Collider>(true), Is.Empty);
+                var drawn = new Bounds(); bool any = false;
+                foreach (Renderer r in art.GetComponentsInChildren<Renderer>())
+                {
+                    if (!any) { drawn = r.bounds; any = true; } else drawn.Encapsulate(r.bounds);
+                }
+                Assert.That(drawn.max.y - ground.y, Is.InRange(0.38f, 0.46f), radius + ": the cut is at stump height whatever the trunk");
+                Assert.That(drawn.min.y, Is.LessThan(ground.y).And.GreaterThan(ground.y - 0.12f), radius + ": the roots run just into the ground");
+                Assert.That(drawn.center.x, Is.EqualTo(ground.x).Within(0.12f * radius / 0.3f + 0.02f), radius + ": centred on the tree");
+                Assert.That(drawn.size.x, Is.GreaterThan(lastWidth), radius + ": a wider trunk leaves a wider stump");
+                lastWidth = drawn.size.x;
+            }
+        }
+        finally
+        {
+            foreach (GameObject g in made)
+                UnityEngine.Object.DestroyImmediate(g);
+        }
+    }
+
+    // Art Wave 4 (2026-11-16): a dropped pile of a raw material shows Resources/Art/item_<id> standing on the ground at real
+    // size; the cube stays as the pickup (hidden) with its collider fitted around the art; an item with no art keeps its cube.
+    [Test]
+    public void ADroppedPileShowsItsItemArtStandingOnTheGroundInsideItsCollider()
+    {
+        Type dropped = Find("DroppedItems");
+        Assert.That(dropped.GetField("ArtPrefix", Any).GetValue(null), Is.EqualTo("Art/item_"));
+        MethodInfo spawn = dropped.GetMethod("Spawn", Any);
+        MethodInfo get = Find("ItemDatabase").GetMethod("Get");
+        var made = new List<GameObject>();
+        try
+        {
+            foreach (string id in new[] { "logs", "branches", "firewood", "stone", "clay", "charcoal", "ash",
+                                           "sticks", "kindling_bundle", "lumber", "sand", "iron_ore", "iron_bar", "nails_box",
+                                           "clay_cup", "clay_bowl", "water_crock", "brick_batch", "dry_clay_cup", "dry_clay_bowl", "dry_water_crock",
+                                           "dry_brick_batch", "dry_clay_pot", "door_hinges", "hook_set",
+                                           "bass", "bluegill", "catfish", "crappie", "chicken_meat", "waterfowl_meat", "turkey_meat", "small_game_meat", "venison",
+                                           "cooked_bass", "cooked_bluegill", "cooked_catfish", "cooked_crappie", "cooked_chicken", "cooked_waterfowl",
+                                           "cooked_turkey", "cooked_small_game", "cooked_venison",
+                                           "chicken_eggs", "feathers", "deer_hide", "small_furs", "deer_antlers", "sinew", "goat_milk",
+            "blackberries", "raspberries", "chestnuts", "hickory_nuts", "walnuts", "wild_apples", "pawpaw", "morel", "oyster_mushroom", "dryads_saddle", "dandelion", "wild_onion", "cattail", "tall_grass", "axe", "fishing_rod", "shovel", "tarp", "bucket", "lantern" })
+            {
+                bool tool = Resources.Load<GameObject>("Art/item_" + id) == null;
+                Assert.That(Resources.Load<GameObject>(tool ? "Art/tool_" + id : "Art/item_" + id), Is.Not.Null, id);
+                object item = get.Invoke(null, new object[] { id });
+                Assert.That(item, Is.Not.Null, id);
+                var ground = new Vector3(5f, 2f, -3f);
+                // unturned (yaw 0), so the world-axis boxes measured below are the model's own
+                var pile = ((Component)spawn.Invoke(null, new object[] { item, 3, 10, ground, 0f, false })).gameObject;
+                made.Add(pile);
+                Transform art = pile.transform.Find("Art");
+                Assert.That(art, Is.Not.Null, id + ": the art is shown");
+                Assert.That(pile.GetComponent<MeshRenderer>().enabled, Is.False, id + ": the cube stops drawing");
+                Assert.That(art.GetComponentsInChildren<Collider>(true), Is.Empty, id + ": the cube's collider is the only one");
+                var drawn = new Bounds(); bool any = false;
+                foreach (Renderer r in art.GetComponentsInChildren<Renderer>(false))
+                {
+                    if (!any) { drawn = r.bounds; any = true; } else drawn.Encapsulate(r.bounds);
+                }
+                Assert.That(any, Is.True, id);
+                Assert.That(drawn.min.y, Is.EqualTo(ground.y).Within(0.006f), id + ": stands on the ground");
+                Assert.That(drawn.center.x, Is.EqualTo(ground.x).Within(0.006f), id + ": centred on the pile");
+                Assert.That(drawn.center.z, Is.EqualTo(ground.z).Within(0.006f), id + ": centred on the pile");
+                Physics.SyncTransforms();
+                Bounds box = pile.GetComponent<BoxCollider>().bounds;
+                box.Expand(0.01f);
+                Assert.That(box.Contains(drawn.min) && box.Contains(drawn.max), Is.True, id + ": the collider covers the whole model");
+                if (tool)
+                {
+                    bool upright = id == "bucket" || id == "lantern";
+                    foreach (Transform t in art.GetComponentsInChildren<Transform>(true))
+                        if (t.name == "State_Lit" || t.name == "Fill")
+                            Assert.That(t.gameObject.activeSelf, Is.False, id + ": dropped unlit and empty");
+                    Transform model = art.GetChild(0);
+                    if (upright)
+                        Assert.That(Quaternion.Angle(model.localRotation, Quaternion.identity), Is.EqualTo(0f).Within(0.1f), id + ": a carried container stands upright");
+                    else
+                        Assert.That(drawn.size.y, Is.LessThan(Mathf.Min(drawn.size.x, drawn.size.z) + 0.001f).Or.LessThan(0.1f), id + ": a tool lies down, its thin side up");
+                }
+            }
+
+            object plain = null;
+            foreach (object item in (IEnumerable)Find("ItemDatabase").GetProperty("All").GetValue(null))
+            {
+                string id = (string)item.GetType().GetProperty("Id").GetValue(item);
+                if (Resources.Load<GameObject>("Art/item_" + id) == null && Resources.Load<GameObject>("Art/tool_" + id) == null) { plain = item; break; }
+            }
+            Assert.That(plain, Is.Not.Null);
+            var cube = ((Component)spawn.Invoke(null, new object[] { plain, 1, 10, Vector3.zero, 0f, false })).gameObject;
+            made.Add(cube);
+            Assert.That(cube.transform.Find("Art"), Is.Null);
+            Assert.That(cube.GetComponent<MeshRenderer>().enabled, Is.True, "no art yet: the tinted cube still draws");
+        }
+        finally
+        {
+            foreach (GameObject g in made)
+                UnityEngine.Object.DestroyImmediate(g);
+        }
+    }
 }

@@ -221,6 +221,7 @@ public class DroppedItems : MonoBehaviour, ISaveable
         block.SetColor("_BaseColor", tint);
         block.SetColor("_Color", tint);
         go.GetComponent<Renderer>().SetPropertyBlock(block);
+        UseArt(go, item);
 
         Scene world = SceneManager.GetSceneByName(GameManager.WorldScene);
         if (world.IsValid() && world.isLoaded)
@@ -229,6 +230,110 @@ public class DroppedItems : MonoBehaviour, ISaveable
         var pickup = go.AddComponent<ItemPickup>();
         pickup.SetDropped(item, quantity, day);
         return pickup;
+    }
+
+    internal const string ArtPrefix = "Art/item_";
+
+    // Art Wave 4: when Resources/Art/item_<id> exists, the pile shows that model instead of the tinted cube. The cube
+    // stays as the pickup and the saved position (its renderer is hidden), the art stands on the cube's bottom face at
+    // its real size (the cube's scale is undone), and the cube's box collider is fitted to the art so the player can
+    // look at any part of it.
+    // A tool with no item_<id> art uses its hand art (Resources/Art/tool_<id>, Wave 1) laid on the ground: anything carried by a
+    // handle, bail, strap or cord (authored hanging below its grip) stands upright, everything else is rolled onto its side.
+    // Either way the model is moved so it rests on the ground, centred on the pile; a light is shown unlit and a container empty.
+    static void UseArt(GameObject pile, ItemDefinition item)
+    {
+        GameObject prefab = Resources.Load<GameObject>(ArtPrefix + item.Id);
+        bool tool = false;
+        if (prefab == null && ArtSwap.ToolSpecFor(item.Id) != null)
+        {
+            prefab = Resources.Load<GameObject>("Art/" + ArtSwap.ToolId(item.Id));
+            tool = prefab != null;
+        }
+        if (prefab == null)
+            return;
+        pile.GetComponent<Renderer>().enabled = false;
+        // "Art" undoes the cube's scale (unrotated, so nothing is sheared); the model inside it carries any roll.
+        var art = new GameObject("Art");
+        art.transform.SetParent(pile.transform, false);
+        Vector3 s = pile.transform.localScale;
+        art.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+        art.transform.localScale = new Vector3(1f / s.x, 1f / s.y, 1f / s.z);
+        GameObject model = Instantiate(prefab, art.transform, false);
+        model.name = prefab.name;
+        model.transform.localPosition = Vector3.zero;
+        model.transform.localRotation = tool && !StandsUpright(item.Id) ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.identity;
+        model.transform.localScale = Vector3.one;
+        foreach (Collider c in art.GetComponentsInChildren<Collider>(true))
+        {
+            if (Application.isPlaying)
+                Destroy(c);
+            else
+                DestroyImmediate(c);
+        }
+        if (tool)
+        {
+            Show(art.transform, ArtSwap.StateLit, false);
+            Show(art.transform, ArtSwap.StateUnlit, true);
+            Show(art.transform, "Fill", false);
+            // Rolled onto its side unless it already lies lower as authored (a shovel's blade, the folded tarp).
+            if (!StandsUpright(item.Id) && LocalBounds(pile.transform, art, out Bounds rolled))
+            {
+                model.transform.localRotation = Quaternion.identity;
+                if (LocalBounds(pile.transform, art, out Bounds asMade) && rolled.size.y * s.y < asMade.size.y * s.y)
+                    model.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+            }
+        }
+
+        if (!LocalBounds(pile.transform, art, out Bounds fit))
+            return;
+        // Rest it on the cube's bottom face, centred (item art is already authored this way, so this is a no-op for it).
+        Vector3 shift = new Vector3(-fit.center.x, -0.5f - fit.min.y, -fit.center.z);
+        art.transform.localPosition += shift;
+        fit.center += shift;
+
+        var box = pile.GetComponent<BoxCollider>();
+        if (box == null)
+            return;
+        box.center = fit.center;
+        box.size = Vector3.Max(fit.size, Vector3.one * 0.02f);
+    }
+
+    internal static bool StandsUpright(string itemId) =>
+        itemId == "clay_pot" || itemId == "lantern" || Array.IndexOf(ToolActionRules.HangingIds, itemId) >= 0;
+
+    static void Show(Transform root, string childName, bool on)
+    {
+        foreach (Transform t in root.GetComponentsInChildren<Transform>(true))
+            if (t.name == childName)
+                t.gameObject.SetActive(on);
+    }
+
+    // The art's shown meshes measured in the pile's own space (corners of each mesh's bounds, so no world-axis inflation).
+    static bool LocalBounds(Transform pile, GameObject art, out Bounds bounds)
+    {
+        bounds = new Bounds();
+        bool any = false;
+        foreach (MeshFilter filter in art.GetComponentsInChildren<MeshFilter>(false))
+        {
+            if (filter.sharedMesh == null)
+                continue;
+            Bounds m = filter.sharedMesh.bounds;
+            Matrix4x4 toPile = pile.worldToLocalMatrix * filter.transform.localToWorldMatrix;
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 corner = m.center + Vector3.Scale(m.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1));
+                Vector3 p = toPile.MultiplyPoint3x4(corner);
+                if (!any)
+                {
+                    bounds = new Bounds(p, Vector3.zero);
+                    any = true;
+                }
+                else
+                    bounds.Encapsulate(p);
+            }
+        }
+        return any;
     }
 
     internal static Color Tint(ItemCategory category) // also the colour of the placeholder in the player's hand (PlayerHands)

@@ -2356,7 +2356,37 @@ public class WoodManager : MonoBehaviour, ISaveable
         Material bark = BarkMaterial();
         if (bark != null)
             stump.GetComponent<MeshRenderer>().sharedMaterial = bark;
+        UseStumpArt(stump, radius, height, 0.05f);
         stumps.Add(stump);
+    }
+
+    // Art Wave 4 (2026-11-16): Resources/Art/world_stump, authored for a 0.30 m trunk with its pivot at ground level and its
+    // cut about 0.41 m up, is shown instead of the cylinder. It is widened with the trunk (a sapling's small stump, a big
+    // hardwood's wide one) but keeps its height. The cylinder stays as the collider the Shovel digs at, its renderer hidden.
+    internal const string StumpArtPath = "Art/world_stump";
+    internal const float StumpArtRadius = 0.30f;
+
+    internal static void UseStumpArt(GameObject stump, float radius, float height, float sink)
+    {
+        GameObject prefab = Resources.Load<GameObject>(StumpArtPath);
+        if (prefab == null)
+            return;
+        stump.GetComponent<MeshRenderer>().enabled = false;
+        GameObject art = Instantiate(prefab, stump.transform, false);
+        art.name = "Art";
+        foreach (Collider c in art.GetComponentsInChildren<Collider>(true))
+        {
+            if (Application.isPlaying)
+                Destroy(c);
+            else
+                DestroyImmediate(c);
+        }
+        // The cylinder's local units: radius*2.1 across, height/2 per unit up, centre (height/2 - sink) above the ground.
+        Vector3 s = stump.transform.localScale;
+        float widen = radius / StumpArtRadius;
+        art.transform.localRotation = Quaternion.identity;
+        art.transform.localScale = new Vector3(widen / s.x, 1f / s.y, widen / s.z);
+        art.transform.localPosition = new Vector3(0f, -(height / 2f - sink) / s.y, 0f);
     }
 
     Material bark;
