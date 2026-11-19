@@ -23,4 +23,23 @@ public static class ItemIcons
     }
 
     public static Sprite For(ItemDefinition item) => item != null ? For(item.Id) : null;
+
+    // The Build tab's entries (Mike, 2026-11-19): "pile:<Kind>" for a structure or its site, "campfire" and "tripod", as Icons/build_<key>,
+    // rendered by ItemIconRenderer.RenderBuild from the structure art. Null for anything else.
+    public const string BuildPrefix = "Icons/build_";
+
+    static readonly Dictionary<string, Sprite> buildCache = new Dictionary<string, Sprite>();
+
+    public static Sprite ForBuild(string entryKey)
+    {
+        if (string.IsNullOrEmpty(entryKey))
+            return null;
+        if (!buildCache.TryGetValue(entryKey, out Sprite sprite))
+        {
+            string name = entryKey.StartsWith("pile:") ? entryKey.Substring(5) : entryKey;
+            sprite = Resources.Load<Sprite>(BuildPrefix + name.ToLowerInvariant());
+            buildCache[entryKey] = sprite;
+        }
+        return sprite;
+    }
 }

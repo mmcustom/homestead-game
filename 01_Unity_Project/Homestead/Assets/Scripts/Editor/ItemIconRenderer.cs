@@ -31,7 +31,8 @@ public static class ItemIconRenderer
     public static void RenderAllFromMenu()
     {
         int made = RenderAll(out string report);
-        Debug.Log($"Item icons: {made} rendered to {Folder}.\n{report}");
+        int built = RenderBuild(out string buildReport);
+        Debug.Log($"Icons: {made} items and {built} Build entries rendered to {Folder}.\n{report}{buildReport}");
     }
 
     // Renders every item in the database that has art; returns how many were written.
@@ -43,10 +44,75 @@ public static class ItemIconRenderer
         return Render(ids, out report);
     }
 
+    struct Job
+    {
+        public string file;
+        public GameObject prefab;
+        public bool tool;
+        public float pitch; // 0: the usual view for its shape
+    }
+
+    // Item icons, Icons/item_<id>: the item's own art, or its tool art (unlit, empty) for a Tool with no item art.
     public static int Render(IEnumerable<string> ids, out string report)
     {
-        Directory.CreateDirectory(Folder);
         var log = new System.Text.StringBuilder();
+        var jobs = new List<Job>();
+        foreach (string id in ids)
+        {
+            GameObject prefab = Resources.Load<GameObject>("Art/item_" + id);
+            bool tool = prefab == null;
+            if (tool)
+                prefab = Resources.Load<GameObject>("Art/tool_" + id);
+            if (prefab == null)
+                log.Append($"{id}: no art, no icon\n");
+            else
+                jobs.Add(new Job { file = "item_" + id, prefab = prefab, tool = tool });
+        }
+        return RenderJobs(jobs, log, out report);
+    }
+
+    // Build tab icons (Mike, 2026-11-19), Icons/build_<key>: every structure kind from its art (a ... Site from the building it becomes, since that
+    // is what is being marked out), the Campfire from its art and the Tripod standing. ItemIcons.ForBuild(entry key) finds them.
+    public static int RenderBuild(out string report)
+    {
+        var log = new System.Text.StringBuilder();
+        var jobs = new List<Job>();
+        void Add(string key, string artId)
+        {
+            GameObject prefab = Resources.Load<GameObject>("Art/" + artId);
+            if (prefab == null)
+                log.Append($"{key}: no art ({artId}), no icon\n");
+            else
+                jobs.Add(new Job { file = ItemIcons.BuildPrefix.Substring("Icons/".Length) + key, prefab = prefab, tool = true, pitch = SteepRoof(artId) ? 58f : 0f });
+        }
+        foreach (PileKind kind in System.Enum.GetValues(typeof(PileKind)))
+        {
+            if (kind == PileKind.Felled)
+                continue;
+            Add(kind.ToString().ToLowerInvariant(), ArtSwap.StructureId(BuiltFrom(kind)));
+        }
+        Add("campfire", "effect_campfire");
+        Add("tripod", "structure_tripod");
+        return RenderJobs(jobs, log, out report);
+    }
+
+    // Shelters with one sloped roof read as bare poles from the usual angle (the roof is seen edge-on), so they are seen from higher up.
+    static bool SteepRoof(string artId) => artId == "structure_leanto" || artId == "structure_tarpshelter";
+
+    // The kind a site becomes (the Kitchen's roof stage is still the Kitchen); a finished kind is itself.
+    static PileKind BuiltFrom(PileKind kind)
+    {
+        string name = kind.ToString();
+        if (name == "KitchenRoofSite") return PileKind.Kitchen;
+        if (name == "PotterSite") return PileKind.PotterShed;
+        if (name.EndsWith("Site") && System.Enum.TryParse(name.Substring(0, name.Length - 4), out PileKind built))
+            return built;
+        return kind;
+    }
+
+    static int RenderJobs(List<Job> jobs, System.Text.StringBuilder log, out string report)
+    {
+        Directory.CreateDirectory(Folder);
         Scene scene = EditorSceneManager.NewPreviewScene();
         var written = new List<string>();
         RenderTexture rt = null;
@@ -82,17 +148,10 @@ public static class ItemIconRenderer
             rt = new RenderTexture(px, px, 24, RenderTextureFormat.ARGBHalf) { antiAliasing = 1 };
             cam.targetTexture = rt;
 
-            foreach (string id in ids)
+            foreach (Job job in jobs)
             {
-                GameObject prefab = Resources.Load<GameObject>("Art/item_" + id);
-                bool tool = prefab == null;
-                if (tool)
-                    prefab = Resources.Load<GameObject>("Art/tool_" + id);
-                if (prefab == null)
-                {
-                    log.Append($"{id}: no art, no icon\n");
-                    continue;
-                }
+                GameObject prefab = job.prefab;
+                bool tool = job.tool;
 
                 var model = (GameObject)Object.Instantiate(prefab);
                 model.name = prefab.name;
@@ -103,12 +162,12 @@ public static class ItemIconRenderer
                     Show(model.transform, ArtSwap.StateUnlit, true);
                     Show(model.transform, "Fill", false);
                 }
-                Pose(model, cam);
+                Pose(model, cam, job.pitch);
                 Color[] onBlack = Shoot(cam, hd, rt, Color.black);
                 Color[] onWhite = Shoot(cam, hd, rt, Color.white);
                 Object.DestroyImmediate(model);
 
-                string path = $"{Folder}/item_{id}.png";
+                string path = $"{Folder}/{job.file}.png";
                 File.WriteAllBytes(path, Matte(onBlack, onWhite, px).EncodeToPNG());
                 written.Add(path);
             }
@@ -176,7 +235,7 @@ public static class ItemIconRenderer
 
     // Long things (tools, arrows, poles, rolls) lie across the icon on a diagonal with their broad side to the camera; everything else is
     // seen from a three-quarter view above, steeper for flat piles. The camera is then fitted to the model's mesh bounds.
-    static void Pose(GameObject model, Camera cam)
+    static void Pose(GameObject model, Camera cam, float pitchOverride = 0f)
     {
         model.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
         Bounds local = MeshBounds(model.transform, Matrix4x4.identity);
@@ -200,7 +259,7 @@ public static class ItemIconRenderer
             // Art faces Unity +Z, so the camera looks back at it from the front-left. Open containers of liquid are seen steeply so the liquid shows
             // (it is all that tells the water grades and the sap apart); flat piles a little less; everything else at 34 degrees.
             bool flat = s.y < 0.35f * Mathf.Max(s.x, s.z);
-            float pitch = ShowsLiquid(model.name) ? 58f : flat ? 50f : 34f;
+            float pitch = pitchOverride > 0f ? pitchOverride : ShowsLiquid(model.name) ? 58f : flat ? 50f : 34f;
             cam.transform.rotation = Quaternion.Euler(pitch, 148f, 0f);
         }
 

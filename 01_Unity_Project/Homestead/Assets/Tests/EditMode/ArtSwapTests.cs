@@ -839,4 +839,24 @@ public class ArtSwapTests
         Assert.That(forId.Invoke(null, new object[] { "no_such_item" }), Is.Null);
         Assert.That(forId.Invoke(null, new object[] { "" }), Is.Null);
     }
+
+    // Build tab icons (2026-11-19): every structure kind (a ... Site shows the building it becomes), the Campfire and the Tripod have one in
+    // Resources/Icons/build_<key>, and ItemIcons.ForBuild finds it by the Build entry's key.
+    [Test]
+    public void EveryBuildEntryHasAnIcon()
+    {
+        MethodInfo forBuild = Find("ItemIcons").GetMethod("ForBuild");
+        var keys = new List<string> { "campfire", "tripod" };
+        foreach (object kind in Enum.GetValues(Find("PileKind")))
+            if (kind.ToString() != "Felled")
+                keys.Add("pile:" + kind);
+        foreach (string key in keys)
+        {
+            var sprite = (Sprite)forBuild.Invoke(null, new object[] { key });
+            Assert.That(sprite, Is.Not.Null, key + ": has an icon");
+            Assert.That(sprite.texture.width, Is.EqualTo(128), key);
+        }
+        Assert.That(keys.Count, Is.GreaterThan(40));
+        Assert.That(forBuild.Invoke(null, new object[] { "pile:NoSuchKind" }), Is.Null);
+    }
 }

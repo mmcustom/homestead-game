@@ -58,11 +58,94 @@ public class Animal : MonoBehaviour
         return Vector3.Distance(closest, vitals.position) <= vitalsRadius;
     }
 
+    // Wave 5 animal art (2026-11-19), the same for every species so more can be added for other regions and climates without new code:
+    // Resources/Art/animal_<speciesId> holds Pose_Alive (standing) and Pose_Dead (the carcass), a Vitals empty and optional parts such as
+    // Antlers inside each pose. When it exists the primitive renderers under Model stop drawing, the art goes under Model, Vitals moves to the
+    // art's, the body capsule is fitted to the standing pose, and the Antlers in the standing pose become the ones a buck shows.
+    public const string ArtPrefix = "Art/animal_";
+    Transform artAlive, artDead;
+
+    void UseArt()
+    {
+        if (model == null)
+            return;
+        GameObject prefab = Resources.Load<GameObject>(ArtPrefix + speciesId);
+        if (prefab == null)
+            return;
+        Transform alive = prefab.transform.Find("Pose_Alive");
+        if (alive == null)
+            return;
+        foreach (Renderer r in model.GetComponentsInChildren<Renderer>(true))
+            r.enabled = false;
+        GameObject art = Instantiate(prefab, model, false);
+        art.name = "Art";
+        foreach (Collider c in art.GetComponentsInChildren<Collider>(true))
+            Destroy(c);
+        artAlive = art.transform.Find("Pose_Alive");
+        artDead = art.transform.Find("Pose_Dead");
+        if (artDead != null)
+            artDead.gameObject.SetActive(false);
+        Transform artVitals = art.transform.Find("Vitals");
+        if (vitals != null && artVitals != null)
+            vitals.position = artVitals.position;
+        Transform artAntlers = PartOf(artAlive, "Antlers");
+        if (artAntlers != null)
+            antlers = artAntlers.gameObject;
+        FitBody(artAlive);
+    }
+
+    // Shows the carcass pose (its antlers matching the standing ones) and fits the body capsule to it, so the carcass is what is aimed at
+    // and dressed. False when this species has no art.
+    bool ShowDeadPose()
+    {
+        if (artAlive == null || artDead == null)
+            return false;
+        bool buck = IsBuck;
+        artAlive.gameObject.SetActive(false);
+        artDead.gameObject.SetActive(true);
+        Transform deadAntlers = PartOf(artDead, "Antlers");
+        if (deadAntlers != null)
+            deadAntlers.gameObject.SetActive(buck);
+        FitBody(artDead);
+        return true;
+    }
+
+    // A pose's part by name; the dead pose's copies are exported as Dead_<name>.
+    static Transform PartOf(Transform pose, string part)
+    {
+        if (pose == null)
+            return null;
+        foreach (Transform t in pose)
+            if (t.name == part || t.name.EndsWith("_" + part))
+                return t;
+        return null;
+    }
+
+    // The capsule the shots and the interaction ray hit, around the pose's "Body" mesh (in the model's space; the long axis is Z).
+    void FitBody(Transform pose)
+    {
+        Transform body = PartOf(pose, "Body");
+        var capsule = model.GetComponentInChildren<CapsuleCollider>(true);
+        var filter = body != null ? body.GetComponent<MeshFilter>() : null;
+        if (capsule == null || filter == null || filter.sharedMesh == null)
+            return;
+        Bounds mb = filter.sharedMesh.bounds;
+        Matrix4x4 toCapsule = capsule.transform.worldToLocalMatrix * body.localToWorldMatrix;
+        var b = new Bounds(toCapsule.MultiplyPoint3x4(mb.center), Vector3.zero);
+        for (int i = 0; i < 8; i++)
+            b.Encapsulate(toCapsule.MultiplyPoint3x4(mb.center + Vector3.Scale(mb.extents, new Vector3((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1))));
+        capsule.direction = 2;
+        capsule.center = b.center;
+        capsule.radius = Mathf.Max(0.05f, Mathf.Min(b.size.x, b.size.y) * 0.5f);
+        capsule.height = Mathf.Max(b.size.z, capsule.radius * 2f);
+    }
+
     void Awake()
     {
         terrain = Terrain.activeTerrain;
         waterMask = 1 << LayerMask.NameToLayer("Water");
         home = transform.position;
+        UseArt();
         if (antlers != null)
             antlers.SetActive(Random.value < 0.5f);
         EnterIdle();
@@ -300,8 +383,8 @@ public class Animal : MonoBehaviour
     void Die(bool reducedHarvest)
     {
         state = State.Dead;
-        if (model != null)
-            model.localRotation = Quaternion.Euler(0f, 0f, 85f) * model.localRotation; // fallen on its side
+        if (!ShowDeadPose() && model != null)
+            model.localRotation = Quaternion.Euler(0f, 0f, 85f) * model.localRotation; // fallen on its side (a species with no art yet)
 
         if (swims)
         {

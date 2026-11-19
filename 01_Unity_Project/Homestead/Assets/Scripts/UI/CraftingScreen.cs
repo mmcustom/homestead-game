@@ -28,8 +28,10 @@ public class CraftingScreen : GameScreen
         { "Tools", "Weapons and Ammo", "Fire and Light", "Traps and Fishing", "Containers and Storage", "Materials" };
     static readonly string[] BuildCategories = { "Shelter", "Storage and Piles", "Other" };
 
-    const float RowHeight = 56f;
-    const float RowIconSize = 48f, RowIconPad = 4f; // the item picture in a list row
+    // Two lines per row (2026-11-19): the name and its HAVE / SHORT / NEED marker on top, the cost below (it wraps to a second line), so long
+    // names no longer run into the cost; the picture (item or structure) down the left.
+    const float RowHeight = 74f;
+    const float RowIconSize = 62f, RowIconPad = 6f;
     const float RefreshSeconds = 0.25f;
     static readonly Color Good = new Color(0.56f, 0.82f, 0.42f);
     static readonly Color Bad = new Color(0.9f, 0.45f, 0.3f);
@@ -336,7 +338,8 @@ public class CraftingScreen : GameScreen
             // The item's picture at the row's left, its name on hover (ItemIcons, HoverTip; Mike, 2026-11-19). Only entries that are items have one
             // (every Craft recipe, the Tripod); the Campfire and the piles keep the plain row. A click on the picture selects the row as before.
             float inset = 12f;
-            Sprite icon = ItemIcons.For(entry.key);
+            // Build entries show the structure (ItemIcons.ForBuild: the building, the Campfire, the Tripod standing); Craft entries the item.
+            Sprite icon = mode == Mode.Build ? ItemIcons.ForBuild(entry.key) ?? ItemIcons.For(entry.key) : ItemIcons.For(entry.key);
             if (icon != null)
             {
                 Image picture = UiKit.Image(rt, "Icon", Color.white);
@@ -353,14 +356,16 @@ public class CraftingScreen : GameScreen
             }
             Text nameText = UiKit.Text(rt, "Name", entry.name + MarkerText(entry.marker), 22, UiKit.Cream, TextAnchor.MiddleLeft);
             nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
-            nameText.rectTransform.anchorMin = Vector2.zero;
-            nameText.rectTransform.anchorMax = new Vector2(0.52f, 1f);
+            nameText.rectTransform.anchorMin = new Vector2(0f, 0.56f);
+            nameText.rectTransform.anchorMax = Vector2.one;
             nameText.rectTransform.offsetMin = new Vector2(inset, 0f);
-            nameText.rectTransform.offsetMax = Vector2.zero;
-            Text costText = UiKit.Text(rt, "Cost", entry.cost, 15, UiKit.Muted, TextAnchor.MiddleRight);
-            costText.rectTransform.anchorMin = new Vector2(0.4f, 0f);
-            costText.rectTransform.anchorMax = Vector2.one;
-            costText.rectTransform.offsetMin = Vector2.zero;
+            nameText.rectTransform.offsetMax = new Vector2(-12f, -2f);
+            Text costText = UiKit.Text(rt, "Cost", entry.cost, 15, UiKit.Muted, TextAnchor.UpperLeft);
+            costText.horizontalOverflow = HorizontalWrapMode.Wrap;
+            costText.verticalOverflow = VerticalWrapMode.Truncate;
+            costText.rectTransform.anchorMin = Vector2.zero;
+            costText.rectTransform.anchorMax = new Vector2(1f, 0.56f);
+            costText.rectTransform.offsetMin = new Vector2(inset, 4f);
             costText.rectTransform.offsetMax = new Vector2(-12f, 0f);
             SetAvailable(row, entry.can);
 

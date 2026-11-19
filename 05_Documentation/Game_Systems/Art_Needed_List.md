@@ -156,7 +156,7 @@ Items today are one tinted cube sized by weight (DroppedItems.Spawn) and have no
 | Item icons (2D) | One icon per item for inventory and market | 128 x 128 px, transparent PNG | Done 2026-11-19 (see Wave 4 item icons below): rendered from the item art, shown in the Inventory rows. | Medium |
 | Map icons (2D) | Map markers for structures and places | 64 x 64 px | Built in code today (UI/MapIcons.cs). | Low |
 | Stump | Tree stump left after felling | trunk radius (confirm) | Pivot at ground, cut face up. | Medium |
-| Carcass | Dead animal on the ground | by species | Carcass visuals not yet reviewed in code. | Low |
+| Carcass | Dead animal on the ground | by species | Moved to Wave 5 (Mike, 2026-11-19): there is no separate carcass in code; Animal.Die tips the animal's own model 85 degrees onto its side. Made with each animal. | none |
 | Placement ghost | Uses the structure prefabs themselves | as each kind | No separate art. | none |
 
 Tanning rack and tanning tools (references saved: tanning rack.png, tanning tools.png) are future features; no code or ids exist yet, so they are not listed as rows.
@@ -167,15 +167,24 @@ Tanning rack and tanning tools (references saved: tanning rack.png, tanning tool
 
 Animals are prefabs already (Prefabs/Wildlife/*.prefab, built from capsules and spheres), so these swap through the existing prefab slots, not ArtSwap. Real art needs the shape and a simple rig or at least separate head, body and legs so the code can bob, turn and stun. Stunned and startled states exist for fists (M0e-1), so the animal needs a clear "stunned" pose reading from a single body tilt, not a full animation.
 
+### Animal art conventions (Mike, 2026-11-19: more animals will come later for other regions and climates, so every animal follows one pattern)
+- What the code does today: animals are not animated. Animal moves the whole object; it reads only its serialized `model` (tipped 85 degrees on death), `vitals` (heart-lung point for clean kills) and `antlers` (shown on bucks). The prefabs are built by Phase2Builder from primitives.
+- One art hook for every species (planned with the deer): Animal loads Resources/Art/animal_<speciesId>. When it exists, the primitive renderers under Model are hidden, the art goes under Model, Vitals moves to the art's `Vitals` empty and the Body capsule is fitted to the art. A new species then needs only its art and its Animal prefab or builder entry; no per-species code.
+- Inside every animal_<id> prefab: `Pose_Alive` (standing) and `Pose_Dead` (lying, the carcass) as siblings, a `Vitals` empty, and optional parts by name inside each pose (`Antlers` for deer; others later, e.g. horns or a winter coat) that the code switches by name. On death the hook shows Pose_Dead instead of tipping the model.
+- Sources: one Art/Blender_Work/animal_<id> folder each. Bodies come from a joint table (position and thickness per joint) through Blender's Skin modifier and two levels of smoothing, so a new four-legged animal is mostly a new joint table plus its coat colours, and the dead pose is the same joints re-posed. Ears, eyes and antlers are added on and seated on the body by casting onto its surface.
+- Real-world size (a white-tailed deer is about 1.0 m at the shoulder; the primitive deer is oversized). Front faces Blender -Y (Unity +Z), ground at z = 0, budget about 15,000 tris per pose.
+- Regional variants (e.g. a mule deer, an elk, a desert or northern subspecies) should reuse the nearest joint table with changed proportions and coat, not start from scratch.
+
 | Animal | Approx. size (m) | Notes | Priority |
 |---|---|---|---|
-| Deer (white-tailed) | 1.7 long x 1.0 shoulder | Head up and head down poses; large target, must read at 40 m. | Medium |
+| Deer (white-tailed) | 1.7 long x 1.0 shoulder | Approved 2026-11-19 (animal_deer, standing and carcass; see its section). Head-down grazing pose later needs a code change. | Medium |
 | Turkey | 0.9 long x 0.6 tall | Wild turkey. | Medium |
 | Rabbit (cottontail) | 0.4 long | Hops. | Medium |
 | Squirrel (grey or fox) | 0.45 long incl. tail | Small, fast. | Low |
 | Duck (mallard) | 0.55 long | Floats on water. | Low |
 | Fish (creek species) | 0.2 to 0.5 long | Seen on the line and in the Fish Trap. | Low |
 | Bobber | 0.04 | Floats; part of the fishing rod. | Low |
+| Carcass (each species) | as the animal | Moved from Wave 4 (Mike, 2026-11-19). Today Animal.Die tips the live model 85 degrees on its side (Carcass.cs has the dressing logic and no visuals). Make the dead pose from each animal's own model so the body that falls matches the live animal; a field-dressed look is optional (Carcass has a dressed flag, nothing visual yet). | with each animal |
 | Rabbit Snare, Box Trap, Fish Trap (world versions) | see tools table | Done 2026-11-15 from the tool_ art (see the trap_ notes). | Low |
 
 ---
@@ -542,7 +551,7 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 | 1 | The 30 tools | 30 | 30 (tool_knife, tool_torch, tool_bucket, tool_hammer, tool_shovel, tool_iron_shovel, tool_stone_pick_axe, tool_iron_pick_axe, tool_fishing_rod, tool_cane_pole, tool_lantern, tool_primitive_bow, tool_recurve_bow, tool_bolt_action_rifle, tool_bow_drill, tool_sap_bucket, tool_canteen, tool_spile, tool_box_trap, tool_fish_trap, tool_rabbit_snare, tool_primitive_axe, tool_wood_saw, tool_flint_and_steel, tool_pouch, tool_clay_pot, tool_cooking_pot, tool_potash_kettle, tool_tarp and tool_axe (rebuilt), realistic, approved in game by Mike 2026-11-14/15; the rifle "ok for now") | 0 | 0 |
 | 2 | Shelter and main structures | 15 | 15 (structure_kiln, structure_cabin, structure_tent, structure_tarpshelter, structure_leanto approved 2026-11-15; structure_well, structure_outhouse, structure_workshop, structure_pottershed, structure_charcoalpit, structure_bloomery, structure_smithy, structure_leachhopper, structure_kitchen and the kitchen add-ons approved 2026-11-16; WAVE 2 COMPLETE) | 0 | 0 |
 | 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 12 (structure_tap 2026-11-15; wood pile, rock pile, both barrels, food cache, storage bin, tool rack, shelving, wood shed, hand cart, campfire, tripod approved 2026-11-16) | 0 | 0 |
-| 4 | World items, icons, stump, carcass | 9 groups | 2 (batch 1 raw materials: logs, branches, firewood, stone, clay, charcoal, ash; batch 2: sticks, kindling bundle, lumber, sand, iron ore, iron bar, box of nails; dropped tools use their Wave 1 art; approved by Mike 2026-11-16; batch 3: pottery raw and fired, door hinges, hook set, approved 2026-11-16) | 3 (world_stump; batch 4 fish and meat, raw and cooked; batch 5 animal goods; batch 6 forage; batch 7 furniture and crafted parts; batch 8 liquids and supplies; all in Unity, awaiting Mike's check 2026-11-19. Every item in the database now has dropped art and an icon (icons in the Inventory rows with the hover name, approved in game by Mike 2026-11-19); left in Wave 4: the carcass) | 3 |
+| 4 | World items, icons, stump, carcass | 9 groups | 2 (batch 1 raw materials: logs, branches, firewood, stone, clay, charcoal, ash; batch 2: sticks, kindling bundle, lumber, sand, iron ore, iron bar, box of nails; dropped tools use their Wave 1 art; approved by Mike 2026-11-16; batch 3: pottery raw and fired, door hinges, hook set, approved 2026-11-16) | 3 (world_stump; batch 4 fish and meat, raw and cooked; batch 5 animal goods; batch 6 forage; batch 7 furniture and crafted parts; batch 8 liquids and supplies; all approved in game by Mike 2026-11-19. Every item in the database now has dropped art and an icon (icons in the Inventory rows with the hover name, approved in game by Mike 2026-11-19); Wave 4 complete 2026-11-19; the carcass moved to Wave 5, to be made with each animal) | 3 |
 | 5 | Animals and traps | 8 | 0 | 0 | 8 |
 | 6 | Trees, terrain, water, weather, effects | 11 groups | 0 | 0 | 11 |
 | 7 | UI and screens (new) | see below | 0 | 0 | all |
@@ -848,7 +857,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - structure_handcart: plank bed with two-board sides and front, cross battens, an axle and two spoked wheels (12 felloes, 8 spokes, hub), handles to the back, a rest leg. 1,556 tris. The handle collider (CartHandle) stays the code's.
 - structure_tripod: three poles crossing at 1.6 m, a rope lashing, an iron chain of alternating links to a hook at the chain's end. The hung vessel uses the approved tool art.
 - effect_campfire: Stones (10 stones, r 0.55), Ash (a low lumpy bed), Logs (a teepee of five charred logs). 1,876 tris.
-- All: Assets/Resources/Art/<id>.prefab. In Unity, awaiting Mike's batch check.
+- All: Assets/Resources/Art/<id>.prefab. Approved in game by Mike.
 
 ## Wave 3 fixes after Mike's check (2026-11-16)
 
@@ -866,7 +875,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Code, DroppedItems.cs: Spawn calls UseArt(go, item). When Resources/Art/item_<id> exists the tinted cube's renderer is hidden, the art stands on the cube's bottom face at real size (the cube's scale is undone) and the cube's box collider is fitted to the art, so the whole model can be looked at and picked up. The cube stays as the pickup and the saved position, so saves are unchanged. Items with no art keep their cube.
 - Test (ArtSwapTests): ADroppedPileShowsItsItemArtStandingOnTheGroundInsideItsCollider. ArtSwapTests 34/34, HandsTests 62/62.
 - Not covered yet: an item held in the hands is still the tinted placeholder (PlayerHands); a pile of 10 logs still shows one log. Both are later steps.
-- All: Assets/Resources/Art/item_<id>.prefab. In Unity, awaiting Mike's batch check (drop each item from the inventory).
+- All: Assets/Resources/Art/item_<id>.prefab. Approved in game by Mike.
 
 ## Dropped tools use their hand art (2026-11-16)
 
@@ -878,7 +887,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Pieces (Art\Blender_Work\item_wave4b\item_wave4b.blend, one FBX per item): item_sticks (three small dry sticks about 0.4 m), item_kindling_bundle (about 30 thin split sticks, 0.42 m, tied twice with cord), item_lumber (three rough-sawn boards 1.2 m x 0.14 x 0.022, stacked a little askew), item_sand (a tan heap with dark grains), item_iron_ore (a 3 kg rusty brown-black pitted lump), item_iron_bar (a hammered wrought-iron bar 0.42 x 0.026 m, scale and rust), item_nails_box (an open pine box with 34 nails inside and three lying on top). Tris 36 to 1,540 each.
 - Materials: 9, baked at 1024; item_iron_bar_iron and item_nails_box_iron are metal (mask R = 1, _Metallic 1).
 - Shared helpers now in Art\Blender_Work\item_util.py (shapes, the bark, grain and lump materials, a bake that handles objects with more than one material, masks, per-item FBX export, review renders).
-- ArtSwapTests 34/34 (the dropped-pile test covers all 14 items). In Unity, awaiting Mike's check (drop each item).
+- ArtSwapTests 34/34 (the dropped-pile test covers all 14 items). Approved in game by Mike.
 - Approved 2026-11-16: Mike checked batches 1 and 2 and the dropped tools in game ("look good, carry on").
 
 ## Wave 4 batch 3: pottery (raw and fired) and the last Smithy goods (2026-11-16, one run)
@@ -887,7 +896,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Materials: fired terracotta (bricks rougher and redder), raw clay pale grey-tan and matte, forged iron with rust (metal) and twine; 12 in all, baked at 1024.
 - Note: tool_clay_pot is authored upright (mouth up, Unity +Y); its extra length along Z is the strap handle. DroppedItems stands it upright as authored, which is right.
 - item_util.py gained tube() (one seamless tube along a path, for handles, hooks and wire) and revolve() (a lathe from a profile, for pottery).
-- ArtSwapTests 34/34 (the dropped-pile test covers all 25 items). In Unity, awaiting Mike's check (drop each item).
+- ArtSwapTests 34/34 (the dropped-pile test covers all 25 items). Approved in game by Mike.
 - Approved 2026-11-16: Mike checked batch 3 in game ("looks great, continue").
 
 ## world_stump (2026-11-16): the stump a felled hardwood leaves
@@ -896,29 +905,29 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - The bark is tinted to the trees' current placeholder bark (RGB 0.27, 0.20, 0.14) so stump and trunk don't clash; revisit when the trees get real art (Wave 6).
 - Code, WoodManager.SpawnStump calls UseStumpArt: the cylinder's renderer is hidden and the art sits at ground level, widened by trunkRadius / 0.30 (so a sapling's stump is small and a big hardwood's wide) but never taller. The cylinder stays the MeshCollider the Shovel digs at; swallowing and digging out are unchanged (they destroy the whole stump).
 - Test: ArtSwapTests.AStumpShowsItsArtWidenedWithTheTrunkOnTheGround (radii 0.12, 0.27, 0.5). ArtSwap, Regrow, Setbacks, Workshop 204/204.
-- In Unity, awaiting Mike's check (fell a hardwood, look at the stump, dig one out).
+- Approved in game by Mike.
 
 ## Wave 4 batch 4: fish and meat, raw and cooked (2026-11-16, one run)
 
 - Pieces (Art\Blender_Work\item_wave4d\item_wave4d.blend, one FBX per item, 18 in all; materials built by item_wave4d\mats.py): four fish lying on their sides with tail, dorsal, anal and pectoral fins, an eye and a gill line: item_bass (33 cm, olive with a dark blotchy side stripe), item_bluegill (21 cm, deep-bodied, dark bars, orange chest, dark ear flap), item_catfish (40 cm, flat head, four barbels, blue-grey with dark speckles), item_crappie (27 cm, silvery with black spots); item_chicken_meat and item_waterfowl_meat (whole plucked trussed birds, goose-pimpled skin), item_turkey_meat (two big drumsticks with the bone ends showing), item_small_game_meat (two skinned rabbit hind legs, red with silvery membrane), item_venison (a 2.5 kg roast, dark red with membrane and fat). Each has a cooked twin of the same shape: cooked fish browned with faint grill marks and a white cooked eye; roast chicken golden, roast duck mahogany, turkey legs golden with browned bone ends, rabbit legs and venison seared dark brown.
 - 22 materials (non-metal), baked at 1024. Tris 556 to 2,160 each.
 - The meats are portions, not whole animals: whole carcasses stay with the Carcass row.
-- ArtSwapTests 35/35 (the dropped-pile test covers all 43 items). In Unity, awaiting Mike's check (drop each raw and cooked item).
+- ArtSwapTests 35/35 (the dropped-pile test covers all 43 items). Approved in game by Mike.
 
 ## Wave 4 batch 5: animal goods (2026-11-16, one run)
 
 - Pieces (Art\Blender_Work\item_wave4e\item_wave4e.blend, one FBX per item): item_chicken_eggs (two brown eggs lying down), item_feathers (seven barred brown and cream feathers with quills), item_deer_hide (a rolled hide, 0.46 m, fur outside, leather at the ends, tied with two thongs), item_small_furs (two flat pelts with leg flaps, grey-brown fur, leather underneath), item_deer_antlers (a shed pair, three tines each, grooved bone paling to polished tips), item_sinew (a looped hank of amber strands, tied), item_goat_milk (a salt-glazed stoneware jar with the milk showing at the neck). Tris 320 to 4,832 each.
 - 13 materials (non-metal), baked at 1024. Material helpers for fur and feathers are in item_wave4e (fur stretched hair, barred vanes).
 - Watch in game: the rolled deer hide may read more like a tan tube than fur; darken or rough it up if so.
-- ArtSwapTests 35/35 (the dropped-pile test covers all 50 items). In Unity, awaiting Mike's check.
+- ArtSwapTests 35/35 (the dropped-pile test covers all 50 items). Approved in game by Mike.
 
-### Wave 4 batch 6: forage (in Unity, awaiting in-game check, 2026-11-19)
+### Wave 4 batch 6: forage (approved in game by Mike, 2026-11-19)
 - Ids: blackberries, raspberries, chestnuts, hickory_nuts, walnuts, wild_apples, pawpaw, morel, oyster_mushroom, dryads_saddle, dandelion, wild_onion, cattail, tall_grass.
 - Sources: Art\Blender_Work\item_wave4f (geo.py helpers). 14 FBX, 24 materials, 1024 px bakes.
 - Unity: Assets/Resources/Art/item_<id>.prefab, shown on dropped piles by DroppedItems.UseArt. Added to the ArtSwapTests dropped-pile test (35/35 pass).
 - Long items (cattail 1.0 m, tall_grass 0.8 m) lie flat on the ground.
 
-### Wave 4 batch 7: furniture and crafted parts (in Unity, awaiting in-game check, 2026-11-19)
+### Wave 4 batch 7: furniture and crafted parts (approved in game by Mike, 2026-11-19)
 - Ids and what each is, per its recipe:
   - rough_stool: split slab seat (0.38 x 0.29) on three splayed bark branch legs, tenons showing through the top, 0.47 tall.
   - end_table: three-plank top 0.46 square on cleats, four branch legs, a low two-plank shelf on stretchers, 0.60 tall.
@@ -931,7 +940,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Sources: Art\Blender_Work\item_wave4g (geo7.py shapes, mats7.py materials). 8 FBX, 18 materials, 1024 bakes (the table 2048). 350 to 5,000 tris each.
 - Unity: Assets/Resources/Art/item_<id>.prefab. Item art is placed as authored (only tool art is rolled), so the furniture stands upright. Added to the ArtSwapTests dropped-pile test (35/35 pass).
 
-### Wave 4 batch 8: liquids and supplies (in Unity, awaiting in-game check, 2026-11-19)
+### Wave 4 batch 8: liquids and supplies (approved in game by Mike, 2026-11-19)
 - Ids and what each is:
   - water, water_excellent, water_good, water_questionable, water_unsafe, maple_sap: one buff clay jar (13 x 16 cm, about 1 L) shared by all six (same mesh and UVs, one material item_water_jar_clay). The open jars show the liquid inside: dark and clear (Excellent), clear (Good), cloudy green (Questionable), muddy brown (Unsafe), pale and watery (sap). Purified water is the same jar with a cork in it.
   - maple_syrup: a small two-tone stoneware jug (dark brown dipped top, tan bottom) with a handle and a cork.
@@ -956,4 +965,14 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Game code: Assets/Scripts/Inventory/ItemIcons.cs, ItemIcons.For(id) loads and caches Icons/item_<id> (null when there is none). InventoryScreen.AddRow shows it as a 72 px picture down the left of each row; the name line, the stepper and the info text start after it.
 - Test: ArtSwapTests.EveryItemHasAnIconTheInventoryCanFind (every item in ItemDatabase has a 128 px icon; unknown ids give null). ArtSwapTests 36/36, ClayPotTests 16/16.
 - Hover (Mike, 2026-11-19): hovering an icon shows the item's name beside the pointer (Assets/Scripts/UI/HoverTip.cs, a reusable component: HoverTip.Add(graphic, text, onClick)). One shared label per canvas, 22 px cream on a dark panel, drawn on top and kept on screen; a click on the icon still does the row's action; scrolling passes through. Test: HoverTipTests (the test assembly now references UnityEngine.UI).
-- Other screens (Mike, 2026-11-19): the Trading Post (buy and sell rows) and Storage rows show the icon with its hover name through QuantityRowUi.SetIcon(itemId, name) (72 px, same layout as the Inventory); the Craft and Build list rows show a 48 px icon for every entry that is an item (every Craft recipe and the Tripod; the Campfire and the piles have none). A click on an icon does what clicking its row does. Test: HoverTipTests.ATradeOrStorageRowShowsTheItemsIconAndNameOnHover. Awaiting Mike's check.
+- Other screens (Mike, 2026-11-19): the Trading Post (buy and sell rows) and Storage rows show the icon with its hover name through QuantityRowUi.SetIcon(itemId, name) (72 px, same layout as the Inventory); the Craft and Build list rows show a 48 px icon for every entry that is an item (every Craft recipe and the Tripod; the Campfire and the piles have none). A click on an icon does what clicking its row does. Test: HoverTipTests.ATradeOrStorageRowShowsTheItemsIconAndNameOnHover. Approved in game by Mike 2026-11-19.
+- Build tab (Mike, 2026-11-19): 46 icons at Icons/build_<key> (ItemIconRenderer.RenderBuild, also run by the menu item): every structure kind from its art, each ... Site showing the building it becomes, the Campfire from effect_campfire and the Tripod standing (structure_tripod). The Lean-To and Tarp Shelter are seen from 58 degrees so their roofs show. ItemIcons.ForBuild(entry key) finds them. The Craft and Build list rows became two lines (74 px: name and marker on top, the cost below, wrapping) with a 62 px icon, which also fixed long Build names running into the cost text. Test: ArtSwapTests.EveryBuildEntryHasAnIcon. ArtSwapTests and HoverTipTests 39/39; Cart, CharcoalPit, Smithy and SmithyTool 175/175. Approved in game by Mike 2026-11-19 (with the Trading Post and Storage icons).
+
+## animal_deer (2026-11-19): white-tailed buck and its carcass, the first Wave 5 animal (approved in game by Mike, 2026-11-19)
+- Real size: about 1.0 m at the shoulder, 1.29 m to the top of the head, 1.74 m nose to tail (the primitive deer was oversized). A grey-brown coat with a darker spine, white belly line, inner legs, throat patch, chin and under the tail, lighter lower legs, black nose and hooves, glossy eyes; a 10-point rack.
+- Mike's shaping note (2026-11-19): a bigger rump and upper hind legs so the rear doesn't come to a point; the tail hangs down.
+- Pose_Alive: Body (8,160 tris), Ears (with the eyes), Antlers. Pose_Dead: the same three, made by deforming the standing deer (rolled onto its side, legs sagged to the ground, neck and head laid down), so it shares the standing UVs and textures. Vitals empty low in the chest behind the front leg (0.66 m up).
+- Sources: Art\Blender_Work\animal_deer (deer_geo.py: the joint table, skin_body, seat, dead_point; deer_mats.py: the coat by body region and facing). Materials animal_deer_coat (2048), _ear, _eye, _antler (1024).
+- Code (Animal.cs): UseArt() in Awake loads Art/animal_<speciesId> for any species; hides the primitive renderers, puts the art under Model, moves Vitals, makes the art's Antlers the buck/doe switch and fits the body capsule to the standing Body. Die shows Pose_Dead (antlers matching) and refits the capsule to the carcass; a species with no art still tips over as before.
+- Tests: AnimalArtTests (3); Fists, Knife, MeleePrompts, CreekBank and KnowHow 131/131.
+- To check in game: a buck and a doe at grazing distance and up close, a clean kill (the vitals are now in the real chest), and the carcass (aim at it and field dress).
