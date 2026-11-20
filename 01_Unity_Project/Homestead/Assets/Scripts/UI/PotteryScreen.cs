@@ -98,18 +98,18 @@ public class PotteryScreen : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        Text title = UiKit.Text(panel, "Title", "Potter's Shed", TitleSize, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text title = UiKit.Heading(panel, "Title", "Potter's Shed", TitleSize, TextAnchor.MiddleLeft);
         Place(title.rectTransform, 32f, 14f, 600f, 60f);
         Button close = UiKit.Button(panel, "Close", "Close", CloseSize, () => Hide(true));
         Place((RectTransform)close.transform, PanelWidth - 32f - 190f, 16f, 190f, 56f);
 
-        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.2f));
         Place(rule.rectTransform, 24f, 84f, PanelWidth - 48f, 2f);
 
         // Across the top: the shed's status, then what the pack carries.
-        statusLabel = UiKit.Text(panel, "Status", "", StatusSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        statusLabel = UiKit.Text(panel, "Status", "", StatusSize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(statusLabel.rectTransform, 32f, 94f, PanelWidth - 64f, 48f);
-        packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(packLabel.rectTransform, 32f, 142f, PanelWidth - 64f, 48f);
 
         // The list: five rows, each a button holding the name and, under it, the shaping hours and the drying days.
@@ -122,23 +122,23 @@ public class PotteryScreen : MonoBehaviour
             rowNames[i].fontStyle = FontStyle.Bold;
             rowNames[i].alignment = TextAnchor.MiddleLeft;
             Place(rowNames[i].rectTransform, 18f, 4f, ListWidth - 36f, 44f);
-            rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Cream, TextAnchor.MiddleLeft);
+            rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Ink, TextAnchor.MiddleLeft);
             Place(rowDetails[i].rectTransform, 18f, 48f, ListWidth - 36f, 42f);
             rows[i] = row;
         }
 
         // Under the list: why the stock button is off (or what it just did), then the button.
         float listEnd = ListY + rows.Length * RowHeight + (rows.Length - 1) * RowGap;
-        stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
+        stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Ink, TextAnchor.UpperLeft);
         Place(stockReasonLabel.rectTransform, ListX, listEnd + 12f, ListWidth, 72f);
         stockButton = UiKit.Button(panel, "Stock", PotteryRules.StockButtonText, StockSize, StockClicked);
         Place((RectTransform)stockButton.transform, ListX, listEnd + 12f + 72f + 8f, ListWidth, StockButtonHeight);
         stockButton.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
 
         // The chosen piece.
-        detailName = UiKit.Text(panel, "Piece", "", DetailNameSize, UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
+        detailName = UiKit.Text(panel, "Piece", "", DetailNameSize, UiKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
         Place(detailName.rectTransform, DetailX, ListY, DetailWidth, 60f);
-        detailLine = UiKit.Text(panel, "Piece Line", "", BodySize, UiKit.Cream, TextAnchor.MiddleLeft);
+        detailLine = UiKit.Text(panel, "Piece Line", "", BodySize, UiKit.Ink, TextAnchor.MiddleLeft);
         detailLine.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(detailLine.rectTransform, DetailX, ListY + 62f, DetailWidth, 44f);
 
@@ -146,26 +146,26 @@ public class PotteryScreen : MonoBehaviour
         minusButton = UiKit.Button(panel, "Count Minus", "-", StepSize, () => ChangeCount(-1));
         Place((RectTransform)minusButton.transform, DetailX, ListY + 114f, StepButtonSize, StepButtonSize);
         minusButton.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
-        countLabel = UiKit.Text(panel, "Count Label", "", CountSize, UiKit.Cream, TextAnchor.MiddleCenter, FontStyle.Bold);
+        countLabel = UiKit.Text(panel, "Count Label", "", CountSize, UiKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
         Place(countLabel.rectTransform, DetailX + StepButtonSize + 12f, ListY + 114f, 380f, StepButtonSize);
         plusButton = UiKit.Button(panel, "Count Plus", "+", StepSize, () => ChangeCount(1));
         Place((RectTransform)plusButton.transform, DetailX + StepButtonSize + 12f + 380f + 12f, ListY + 114f, StepButtonSize, StepButtonSize);
         plusButton.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
 
-        needsHeading = UiKit.Text(panel, "Needs Heading", "It needs", BodySize, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        needsHeading = UiKit.Heading(panel, "Needs Heading", "It needs", BodySize, TextAnchor.MiddleLeft);
         Place(needsHeading.rectTransform, DetailX, ListY + 204f, DetailWidth, 44f);
         for (int i = 0; i < needLabels.Length; i++)
         {
-            needLabels[i] = UiKit.Text(panel, "Need " + i, "", BodySize, UiKit.Cream, TextAnchor.MiddleLeft);
+            needLabels[i] = UiKit.Text(panel, "Need " + i, "", BodySize, UiKit.Ink, TextAnchor.MiddleLeft);
             needLabels[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(needLabels[i].rectTransform, DetailX, ListY + 248f + i * 44f, DetailWidth, 44f);
         }
 
-        totalLabel = UiKit.Text(panel, "Total", "", BodySize, UiKit.Cream, TextAnchor.MiddleLeft);
+        totalLabel = UiKit.Text(panel, "Total", "", BodySize, UiKit.Ink, TextAnchor.MiddleLeft);
         totalLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(totalLabel.rectTransform, DetailX, ListY + 340f, DetailWidth, 44f);
 
-        reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
+        reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Ink, TextAnchor.UpperLeft);
         Place(reasonLabel.rectTransform, DetailX, ListY + 388f, DetailWidth, 72f);
 
         startButton = UiKit.Button(panel, "Start", "", StartSize, StartClicked);
@@ -175,18 +175,18 @@ public class PotteryScreen : MonoBehaviour
 
         // The shelf, under Start: the space used, then what is drying and what is ready.
         float shelfY = ListY + 468f + StartHeight + 12f;
-        shelfHeading = UiKit.Text(panel, "Shelf Heading", "", ShelfSize, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        shelfHeading = UiKit.Heading(panel, "Shelf Heading", "", ShelfSize, TextAnchor.MiddleLeft);
         shelfHeading.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(shelfHeading.rectTransform, DetailX, shelfY, DetailWidth, 44f);
         for (int i = 0; i < shelfLabels.Length; i++)
         {
-            shelfLabels[i] = UiKit.Text(panel, "Shelf " + i, "", ShelfSize, UiKit.Cream, TextAnchor.MiddleLeft);
+            shelfLabels[i] = UiKit.Text(panel, "Shelf " + i, "", ShelfSize, UiKit.Ink, TextAnchor.MiddleLeft);
             shelfLabels[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(shelfLabels[i].rectTransform, DetailX, shelfY + 44f + i * 40f, DetailWidth, 40f);
         }
 
         // One line of keys along the bottom.
-        Text hint = UiKit.Text(panel, "Hint", PotteryRules.KeyHint, HintSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        Text hint = UiKit.Text(panel, "Hint", PotteryRules.KeyHint, HintSize, UiKit.Ink, TextAnchor.MiddleLeft);
         hint.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(hint.rectTransform, 32f, PanelHeight - 54f, PanelWidth - 64f, 44f);
 
@@ -406,7 +406,7 @@ public class PotteryScreen : MonoBehaviour
         int clay = state.Count(PotteryRules.ClayId), sand = state.Count(PotteryRules.SandId);
         bool working = shed.PotteryRunning(out PotteryRules.Recipe made, out int madeCount);
         statusLabel.text = PotteryRules.StatusLine(working, made, madeCount, state.jobHours, clay, sand);
-        statusLabel.color = working ? UiKit.Accent : UiKit.Cream;
+        statusLabel.color = working ? UiKit.InkAccent : UiKit.Ink;
 
         InventoryManager inventory = InventoryManager.Instance;
         int packClay = inventory != null ? inventory.Player.Count(PotteryRules.ClayId) : 0;
@@ -420,8 +420,8 @@ public class PotteryScreen : MonoBehaviour
             rowNames[i].text = lines[0];
             rowDetails[i].text = lines[1];
             bool covered = clay >= recipe.clay && sand >= recipe.sand;
-            rowNames[i].color = covered ? UiKit.Cream : UiKit.Muted;
-            rowDetails[i].color = covered ? UiKit.Cream : UiKit.Muted;
+            rowNames[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
+            rowDetails[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
             UiKit.SetSelected(rows[i], i == selected);
         }
 
@@ -437,7 +437,7 @@ public class PotteryScreen : MonoBehaviour
         for (int i = 0; i < needLabels.Length; i++)
         {
             needLabels[i].text = needs[i].Text;
-            needLabels[i].color = needs[i].enough ? UiKit.Cream : UiKit.Warning;
+            needLabels[i].color = needs[i].enough ? UiKit.Ink : UiKit.InkWarning;
         }
         totalLabel.text = PotteryRules.TotalLine(chosen, count);
 
@@ -448,7 +448,7 @@ public class PotteryScreen : MonoBehaviour
         startButton.interactable = gate == PotteryRules.Gate.Ok;
         string reason = PotteryRules.ReasonText(gate, chosen, count, clay, sand, free, state.jobHours, made, madeCount);
         reasonLabel.text = !string.IsNullOrEmpty(notice) ? notice : reason;
-        reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.Accent : gate == PotteryRules.Gate.Ok ? UiKit.Cream : UiKit.Warning;
+        reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.InkAccent : gate == PotteryRules.Gate.Ok ? UiKit.Ink : UiKit.InkWarning;
 
         shelfHeading.text = PotteryRules.SpaceLine(PotteryRules.SpaceUsed(shelf));
         string[] shelfLines = PotteryRules.ShelfLines(shelf, WellsAndOuthouses.PotteryNow(), ShelfLineCount);
@@ -463,6 +463,6 @@ public class PotteryScreen : MonoBehaviour
         PotteryRules.StockGate stock = shed.PotteryStockGateNow();
         stockButton.interactable = stock == PotteryRules.StockGate.Can;
         stockReasonLabel.text = !string.IsNullOrEmpty(stockNotice) ? stockNotice : PotteryRules.StockReason(stock);
-        stockReasonLabel.color = !string.IsNullOrEmpty(stockNotice) && stockNoticeGood ? UiKit.Accent : UiKit.Warning;
+        stockReasonLabel.color = !string.IsNullOrEmpty(stockNotice) && stockNoticeGood ? UiKit.InkAccent : UiKit.InkWarning;
     }
 }

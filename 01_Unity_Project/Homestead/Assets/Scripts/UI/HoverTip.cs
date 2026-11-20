@@ -95,12 +95,12 @@ public class HoverTip : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             else
                 DestroyImmediate(box.gameObject);
         }
-        Image panel = UiKit.Image(canvas.transform, "Hover Tip", new Color(0.05f, 0.07f, 0.05f, 0.94f));
+        Image panel = UiKit.Card(canvas.transform, "Hover Tip", UiKit.HoverColor);
         panel.raycastTarget = false;
         box = panel.rectTransform;
         box.anchorMin = box.anchorMax = new Vector2(0.5f, 0.5f);
         box.pivot = new Vector2(0f, 1f);
-        label = UiKit.Text(box, "Label", "", FontSize, UiKit.Cream, TextAnchor.MiddleCenter);
+        label = UiKit.Text(box, "Label", "", FontSize, UiKit.Ink, TextAnchor.MiddleCenter);
         label.raycastTarget = false;
         label.horizontalOverflow = HorizontalWrapMode.Overflow;
         label.rectTransform.Fill();

@@ -40,7 +40,7 @@ public class StorageTransferScreen : GameScreen
 
     public override void Build(RectTransform area)
     {
-        statusLabel = UiKit.Text(area, "Status", "", 17, UiKit.Muted, TextAnchor.MiddleLeft);
+        statusLabel = UiKit.Text(area, "Status", "", 17, UiKit.InkMuted, TextAnchor.MiddleLeft);
         statusLabel.rectTransform.anchorMin = Vector2.zero;
         statusLabel.rectTransform.anchorMax = new Vector2(0.62f, 0f);
         statusLabel.rectTransform.offsetMin = new Vector2(6f, 0f);
@@ -68,10 +68,10 @@ public class StorageTransferScreen : GameScreen
     static void BuildPanel(RectTransform panel, string heading, out RectTransform list, out Text readout, out Button shortcut,
                            UnityEngine.Events.UnityAction shortcutClick)
     {
-        Text title = UiKit.Text(panel, "Heading", heading, 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text title = UiKit.Heading(panel, "Heading", heading, 26, TextAnchor.MiddleLeft);
         Top(title.rectTransform, 0f, 34f);
 
-        readout = UiKit.Text(panel, "Readout", "", 19, UiKit.Cream, TextAnchor.MiddleLeft);
+        readout = UiKit.Text(panel, "Readout", "", 19, UiKit.Ink, TextAnchor.MiddleLeft);
         Top(readout.rectTransform, 34f, 28f);
 
         shortcut = UiKit.Button(panel, "Shortcut", "", 18, shortcutClick);
@@ -96,7 +96,7 @@ public class StorageTransferScreen : GameScreen
         else
             structurePanel.Region(0.505f, 0f, 1f, 1f);
         statusLabel.rectTransform.anchorMax = new Vector2(takeOnly ? 1f : 0.62f, 0f);
-        statusLabel.color = UiKit.Muted;
+        statusLabel.color = UiKit.InkMuted;
         structureHeading.text = takeOnly ? "In the pile" : "In the structure";
     }
 
@@ -134,7 +134,7 @@ public class StorageTransferScreen : GameScreen
             removeButton.gameObject.SetActive(false);
             packWeight.text = structureWeight.text = "";
             if (takeOnly)
-                UiKit.Height(UiKit.Text(structureList, "Empty", "The pile is empty and has gone.", 20, UiKit.Muted), 50f);
+                UiKit.Height(UiKit.Text(structureList, "Empty", "The pile is empty and has gone.", 20, UiKit.InkMuted), 50f);
             return;
         }
 
@@ -174,7 +174,7 @@ public class StorageTransferScreen : GameScreen
                                $"   ·   you are carrying {inventory.CarriedWeightKg:0.0} / {inventory.MaxCarryWeightKg:0} kg";
         if (state.IsEmpty)
         {
-            UiKit.Height(UiKit.Text(structureList, "Empty", "The pile is empty and has gone.", 20, UiKit.Muted), 50f);
+            UiKit.Height(UiKit.Text(structureList, "Empty", "The pile is empty and has gone.", 20, UiKit.InkMuted), 50f);
             return;
         }
 
@@ -208,7 +208,7 @@ public class StorageTransferScreen : GameScreen
         storeAllButton.interactable = target.AnythingToStore();
         if (ids.Count == 0)
         {
-            UiKit.Height(UiKit.Text(packList, "Empty", $"Nothing you're carrying fits in here. {Holds(state.kind)}", 19, UiKit.Muted), 70f);
+            UiKit.Height(UiKit.Text(packList, "Empty", $"Nothing you're carrying fits in here. {Holds(state.kind)}", 19, UiKit.InkMuted), 70f);
             return;
         }
 
@@ -234,7 +234,7 @@ public class StorageTransferScreen : GameScreen
         takeAllButton.interactable = !state.IsEmpty;
         if (state.IsEmpty)
         {
-            UiKit.Height(UiKit.Text(structureList, "Empty", "Nothing in here.", 20, UiKit.Muted), 50f);
+            UiKit.Height(UiKit.Text(structureList, "Empty", "Nothing in here.", 20, UiKit.InkMuted), 50f);
             return;
         }
 
@@ -310,7 +310,7 @@ public class StorageTransferScreen : GameScreen
         row = QuantityRowUi.Create(list, action, false, amounts.TryGetValue(itemId, out int chosen) ? chosen : 1, max,
                                    shift => onMove(row.Stepper.Amount, shift));
         string detail = whyNot != null ? $"{unit} — {whyNot}" : unit;
-        row.Name.text = $"{NameOf(itemId)}  <size=16><color=#EDE3C799>{detail}</color></size>";
+        row.Name.text = $"{NameOf(itemId)}  <size=18><color=#6B5538>{detail}</color></size>";
         row.SetIcon(itemId, NameOf(itemId));
         row.SetActionEnabled(max > 0);
 
@@ -365,7 +365,7 @@ public class StorageTransferScreen : GameScreen
     void Report(string message, bool ok)
     {
         statusLabel.text = message;
-        statusLabel.color = ok ? UiKit.Cream : UiKit.Warning;
+        statusLabel.color = ok ? UiKit.Ink : UiKit.InkWarning;
         if (ok && AudioManager.Instance != null)
             AudioManager.Instance.Play(SoundCue.UiClick);
     }

@@ -102,18 +102,18 @@ public class SmithyScreen : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        Text title = UiKit.Text(panel, "Title", "Smithy", TitleSize, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text title = UiKit.Heading(panel, "Title", "Smithy", TitleSize, TextAnchor.MiddleLeft);
         Place(title.rectTransform, 32f, 14f, 600f, 60f);
         Button close = UiKit.Button(panel, "Close", "Close", CloseSize, () => Hide(true));
         Place((RectTransform)close.transform, PanelWidth - 32f - 190f, 16f, 190f, 56f);
 
-        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.2f));
         Place(rule.rectTransform, 24f, 84f, PanelWidth - 48f, 2f);
 
         // Across the top: the forge's status, then what the pack carries.
-        statusLabel = UiKit.Text(panel, "Status", "", StatusSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        statusLabel = UiKit.Text(panel, "Status", "", StatusSize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(statusLabel.rectTransform, 32f, 94f, PanelWidth - 64f, 48f);
-        packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(packLabel.rectTransform, 32f, 142f, PanelWidth - 64f, 48f);
 
         // The list: five rows, each a button holding the name and, under it, the hours and the price (or "own use").
@@ -126,34 +126,34 @@ public class SmithyScreen : MonoBehaviour
             rowNames[i].fontStyle = FontStyle.Bold;
             rowNames[i].alignment = TextAnchor.MiddleLeft;
             Place(rowNames[i].rectTransform, 18f, 3f, ListWidth - 36f, 42f);
-            rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Cream, TextAnchor.MiddleLeft);
+            rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Ink, TextAnchor.MiddleLeft);
             Place(rowDetails[i].rectTransform, 18f, 45f, ListWidth - 36f, 40f);
             rows[i] = row;
         }
 
         // Under the list: why the stock button is off (or what it just did), then the button.
         float listEnd = ListY + rows.Length * RowHeight + (rows.Length - 1) * RowGap;
-        stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
+        stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Ink, TextAnchor.UpperLeft);
         Place(stockReasonLabel.rectTransform, ListX, listEnd + 8f, ListWidth, 72f);
         stockButton = UiKit.Button(panel, "Stock", SmithyRules.StockButtonText, StockSize, StockClicked);
         Place((RectTransform)stockButton.transform, ListX, listEnd + 8f + 72f + 6f, ListWidth, StockButtonHeight);
         stockButton.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
 
         // The chosen good.
-        detailName = UiKit.Text(panel, "Piece", "", DetailNameSize, UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
+        detailName = UiKit.Text(panel, "Piece", "", DetailNameSize, UiKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
         Place(detailName.rectTransform, DetailX, ListY, DetailWidth, 60f);
-        detailLine = UiKit.Text(panel, "Piece Line", "", BodySize, UiKit.Cream, TextAnchor.MiddleLeft);
+        detailLine = UiKit.Text(panel, "Piece Line", "", BodySize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(detailLine.rectTransform, DetailX, ListY + 66f, DetailWidth, 44f);
-        needsHeading = UiKit.Text(panel, "Needs Heading", "It needs", BodySize, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        needsHeading = UiKit.Heading(panel, "Needs Heading", "It needs", BodySize, TextAnchor.MiddleLeft);
         Place(needsHeading.rectTransform, DetailX, ListY + 128f, DetailWidth, 44f);
         for (int i = 0; i < needLabels.Length; i++)
         {
-            needLabels[i] = UiKit.Text(panel, "Need " + i, "", BodySize, UiKit.Cream, TextAnchor.MiddleLeft);
+            needLabels[i] = UiKit.Text(panel, "Need " + i, "", BodySize, UiKit.Ink, TextAnchor.MiddleLeft);
             needLabels[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(needLabels[i].rectTransform, DetailX, ListY + 176f + i * 48f, DetailWidth, 44f);
         }
 
-        reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
+        reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Ink, TextAnchor.UpperLeft);
         Place(reasonLabel.rectTransform, DetailX, ListY + 372f, DetailWidth, 72f);
 
         startButton = UiKit.Button(panel, "Start", "", StartSize, StartClicked);
@@ -162,7 +162,7 @@ public class SmithyScreen : MonoBehaviour
         startLabel.fontStyle = FontStyle.Bold;
 
         // One line of keys along the bottom.
-        Text hint = UiKit.Text(panel, "Hint", SmithyRules.KeyHint, HintSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        Text hint = UiKit.Text(panel, "Hint", SmithyRules.KeyHint, HintSize, UiKit.Ink, TextAnchor.MiddleLeft);
         hint.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(hint.rectTransform, 32f, PanelHeight - 60f, PanelWidth - 64f, 44f);
 
@@ -367,7 +367,7 @@ public class SmithyScreen : MonoBehaviour
         bool working = smithy.SmithyRunning(out SmithyRules.Recipe made);
         bool waiting = smithy.SmithyWaiting(out SmithyRules.Recipe waitingGood);
         statusLabel.text = SmithyRules.ForgeLine(working, made, state.jobHours, waiting, waitingGood, bars, charcoal, sticks, cordage);
-        statusLabel.color = working || waiting ? UiKit.Accent : UiKit.Cream;
+        statusLabel.color = working || waiting ? UiKit.InkAccent : UiKit.Ink;
 
         // What the pack carries of the four stock materials.
         InventoryManager inventory = InventoryManager.Instance;
@@ -385,8 +385,8 @@ public class SmithyScreen : MonoBehaviour
             rowNames[i].text = lines[0];
             rowDetails[i].text = lines[1];
             bool covered = SmithyRules.Covers(recipe, bars, charcoal, sticks, cordage);
-            rowNames[i].color = covered ? UiKit.Cream : UiKit.Muted;
-            rowDetails[i].color = covered ? UiKit.Cream : UiKit.Muted;
+            rowNames[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
+            rowDetails[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
             UiKit.SetSelected(rows[i], i == selected);
         }
 
@@ -400,7 +400,7 @@ public class SmithyScreen : MonoBehaviour
             if (i < needs.Length)
             {
                 needLabels[i].text = needs[i].Text;
-                needLabels[i].color = needs[i].enough ? UiKit.Cream : UiKit.Warning;
+                needLabels[i].color = needs[i].enough ? UiKit.Ink : UiKit.InkWarning;
             }
         }
 
@@ -409,12 +409,12 @@ public class SmithyScreen : MonoBehaviour
         startButton.interactable = gate == SmithyRules.Gate.Ok;
         string reason = SmithyRules.ReasonText(gate, chosen, made, bars, charcoal, state.jobHours, sticks, cordage);
         reasonLabel.text = !string.IsNullOrEmpty(notice) ? notice : reason;
-        reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.Accent : gate == SmithyRules.Gate.Ok ? UiKit.Cream : UiKit.Warning;
+        reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.InkAccent : gate == SmithyRules.Gate.Ok ? UiKit.Ink : UiKit.InkWarning;
 
         // The stock button: on when the pack has something the forge has room for; otherwise greyed with the reason. A message from the last click shows until something else is done.
         SmithyRules.StockGate stock = smithy.ForgeStockGateNow();
         stockButton.interactable = stock == SmithyRules.StockGate.Can;
         stockReasonLabel.text = !string.IsNullOrEmpty(stockNotice) ? stockNotice : SmithyRules.StockReason(stock);
-        stockReasonLabel.color = !string.IsNullOrEmpty(stockNotice) && stockNoticeGood ? UiKit.Accent : UiKit.Warning;
+        stockReasonLabel.color = !string.IsNullOrEmpty(stockNotice) && stockNoticeGood ? UiKit.InkAccent : UiKit.InkWarning;
     }
 }

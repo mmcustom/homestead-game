@@ -206,9 +206,9 @@ public class MainMenuController : MonoBehaviour
         p.anchorMin = p.anchorMax = new Vector2(0.5f, 0.5f);
         p.sizeDelta = new Vector2(1100f, 600f);
 
-        Text title = UiKit.Text(p, "Title", "Choose how you start", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text title = UiKit.Heading(p, "Title", "Choose how you start", 34, TextAnchor.MiddleLeft);
         Place(title.rectTransform, 32f, 24f, 700f, 50f);
-        Text lockNote = UiKit.Text(p, "Lock", "Locked in for this save", 18, UiKit.Muted, TextAnchor.MiddleRight);
+        Text lockNote = UiKit.Text(p, "Lock", "Locked in for this save", 18, UiKit.InkMuted, TextAnchor.MiddleRight);
         Place(lockNote.rectTransform, 700f, 24f, 368f, 50f);
 
         string[] names = { "Homesteader", "Settler", "Pioneer" };
@@ -216,16 +216,16 @@ public class MainMenuController : MonoBehaviour
         for (int i = 0; i < names.Length; i++)
         {
             var tier = (Difficulty)i;
-            Button tierButton = UiKit.Button(p, names[i], $"{names[i]}\n<size=16><color=#EDE3C799>{subtitles[i]}</color></size>", 26,
+            Button tierButton = UiKit.Button(p, names[i], $"{names[i]}\n<size=18><color=#6B5538>{subtitles[i]}</color></size>", 26,
                                              () => { ChooseTier(tier); PlaySound(SoundCue.UiClick); });
             Place((RectTransform)tierButton.transform, 32f, 100f + i * 104f, 300f, 92f);
             tierButtons[i] = tierButton;
         }
 
-        blurbLabel = UiKit.Text(p, "Blurb", "", 22, UiKit.Cream, TextAnchor.UpperLeft);
+        blurbLabel = UiKit.Text(p, "Blurb", "", 22, UiKit.Ink, TextAnchor.UpperLeft);
         Place(blurbLabel.rectTransform, 364f, 104f, 700f, 290f);
 
-        noteLabel = UiKit.Text(p, "Note", "", 22, UiKit.Accent, TextAnchor.MiddleLeft);
+        noteLabel = UiKit.Text(p, "Note", "", 22, UiKit.InkAccent, TextAnchor.MiddleLeft);
         Place(noteLabel.rectTransform, 32f, 440f, 1036f, 56f);
 
         backButton = UiKit.Button(p, "Back", "Back", 24, () => { HideDifficulty(); PlaySound(SoundCue.UiBack); });

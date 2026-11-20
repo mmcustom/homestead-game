@@ -41,7 +41,7 @@ public class CompassHud : MonoBehaviour
             {
                 string text = Labels[bearing / 45];
                 bool cardinal = bearing % 90 == 0;
-                AddLabel(bearing, text, cardinal ? 26 : 19, bearing == 0 ? northColor : labelColor, cardinal);
+                AddLabel(bearing, text, cardinal ? 28 : 22, bearing == 0 ? northColor : labelColor, cardinal);
             }
             else
             {
@@ -100,10 +100,11 @@ public class CompassHud : MonoBehaviour
         rt.anchoredPosition = new Vector2(0f, 2f);
 
         var label = go.GetComponent<Text>();
-        label.font = font != null ? font : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        // The Ledger fonts (Wave 7); a font set in the Inspector still wins if one is given.
+        label.font = font != null ? font : bold ? UiKit.BoldFont : UiKit.Font;
         label.text = text;
         label.fontSize = size;
-        label.fontStyle = bold ? FontStyle.Bold : FontStyle.Normal;
+        label.fontStyle = font != null && bold ? FontStyle.Bold : FontStyle.Normal;
         label.color = color;
         label.alignment = TextAnchor.MiddleCenter;
         label.raycastTarget = false;

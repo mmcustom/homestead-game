@@ -138,8 +138,8 @@ public class JournalScreen : GameScreen
             }
 
             string label = JournalManager.SectionName(Sections[i]);
-            string counts = count > 0 ? $"  <color=#EDE3C799>{count}</color>" : "";
-            string dot = unread > 0 ? "  <color=#C7D68C>●</color>" : "";
+            string counts = count > 0 ? $"  <color=#6B5538>{count}</color>" : "";
+            string dot = unread > 0 ? "  <color=#2E6121>●</color>" : "";
             sectionTabs[i].GetComponentInChildren<Text>().text = label + counts + dot;
             UiKit.SetSelected(sectionTabs[i], Sections[i] == section);
         }
@@ -172,15 +172,15 @@ public class JournalScreen : GameScreen
         if (entries.Count == 0)
         {
             string empty = section == JournalSection.Notes ? "No notes yet." : "Nothing recorded here yet.";
-            UiKit.Height(UiKit.Text(entryList, "Empty", empty, 20, UiKit.Muted), 48f);
+            UiKit.Height(UiKit.Text(entryList, "Empty", empty, 20, UiKit.InkMuted), 48f);
         }
 
         foreach (JournalEntry entry in entries)
         {
             int id = entry.id;
             string title = string.IsNullOrEmpty(entry.title) ? "Untitled" : entry.title;
-            string unread = entry.isRead ? "" : "<color=#C7D68C>●</color> ";
-            string label = $"{unread}{title}\n<size=16><color=#EDE3C799>{FormatDay(entry.day)}{DormantNote(entry)}</color></size>";
+            string unread = entry.isRead ? "" : "<color=#2E6121>●</color> ";
+            string label = $"{unread}{title}\n<size=18><color=#6B5538>{FormatDay(entry.day)}{DormantNote(entry)}</color></size>";
             Button row = UiKit.Height(UiKit.Button(entryList, title, label, 20, () => Select(id), TextAnchor.MiddleLeft), 62f);
             UiKit.SetSelected(row, id == selectedId);
         }
@@ -197,7 +197,7 @@ public class JournalScreen : GameScreen
 
         if (unlocked.Count == 0)
         {
-            UiKit.Height(UiKit.Text(entryList, "Empty", "Nothing here yet. An entry appears the first time you find the item, or build the thing, that it explains.", 20, UiKit.Muted), 100f);
+            UiKit.Height(UiKit.Text(entryList, "Empty", "Nothing here yet. An entry appears the first time you find the item, or build the thing, that it explains.", 20, UiKit.InkMuted), 100f);
             return;
         }
 
@@ -206,8 +206,8 @@ public class JournalScreen : GameScreen
             if (!KnowHowRules.TryGet(unlock.id, out KnowHowRules.Entry entry))
                 continue;
             string id = unlock.id;
-            string unread = unlock.read ? "" : "<color=#C7D68C>●</color> ";
-            string label = $"{unread}{entry.title}\n<size=16><color=#EDE3C799>{FormatDay(unlock.day)}</color></size>";
+            string unread = unlock.read ? "" : "<color=#2E6121>●</color> ";
+            string label = $"{unread}{entry.title}\n<size=18><color=#6B5538>{FormatDay(unlock.day)}</color></size>";
             Button row = UiKit.Height(UiKit.Button(entryList, entry.title, label, 20, () => SelectKnowHow(id), TextAnchor.MiddleLeft), 62f);
             UiKit.SetSelected(row, id == selectedKnowHow);
         }
@@ -238,11 +238,11 @@ public class JournalScreen : GameScreen
         if (entry == null || entry.section != section)
         {
             string prompt = SectionEntries().Count > 0 ? "Select an entry to read it." : "";
-            UiKit.Text(detail, "Prompt", prompt, 21, UiKit.Muted, TextAnchor.UpperLeft).rectTransform.Fill(8f, 0f, 0f, 8f);
+            UiKit.Text(detail, "Prompt", prompt, 21, UiKit.InkMuted, TextAnchor.UpperLeft).rectTransform.Fill(8f, 0f, 0f, 8f);
             return;
         }
 
-        Text meta = UiKit.Text(detail, "Meta", $"{FormatDay(entry.day)}  ·  {TypeName(entry.type)}{DormantNote(entry)}", 18, UiKit.Muted);
+        Text meta = UiKit.Text(detail, "Meta", $"{FormatDay(entry.day)}  ·  {TypeName(entry.type)}{DormantNote(entry)}", 18, UiKit.InkMuted);
         Top(meta.rectTransform, 0f, 28f);
 
         if (entry.IsPlayerNote)
@@ -251,13 +251,13 @@ public class JournalScreen : GameScreen
             return;
         }
 
-        Text title = UiKit.Text(detail, "Title", entry.title, 30, UiKit.Cream, TextAnchor.UpperLeft, FontStyle.Bold);
+        Text title = UiKit.Text(detail, "Title", entry.title, 30, UiKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
         Top(title.rectTransform, 32f, 80f);
 
         RectTransform body = UiKit.ScrollList(detail, "Body");
         ((RectTransform)body.parent).Fill(0f, 0f, 0f, 120f);
-        string text = string.IsNullOrEmpty(entry.body) ? "<color=#EDE3C799>No further details.</color>" : entry.body;
-        Text bodyText = UiKit.Text(body, "Text", text, 22, UiKit.Cream, TextAnchor.UpperLeft);
+        string text = string.IsNullOrEmpty(entry.body) ? "<color=#6B5538>No further details.</color>" : entry.body;
+        Text bodyText = UiKit.Text(body, "Text", text, 22, UiKit.Ink, TextAnchor.UpperLeft);
         bodyText.verticalOverflow = VerticalWrapMode.Overflow;
     }
 
@@ -269,19 +269,19 @@ public class JournalScreen : GameScreen
         if (unlock == null || !KnowHowRules.TryGet(unlock.id, out KnowHowRules.Entry entry))
         {
             string prompt = journal != null && journal.KnowHow.Count > 0 ? "Select an entry to read it." : "";
-            UiKit.Text(detail, "Prompt", prompt, 21, UiKit.Muted, TextAnchor.UpperLeft).rectTransform.Fill(8f, 0f, 0f, 8f);
+            UiKit.Text(detail, "Prompt", prompt, 21, UiKit.InkMuted, TextAnchor.UpperLeft).rectTransform.Fill(8f, 0f, 0f, 8f);
             return;
         }
 
-        Text meta = UiKit.Text(detail, "Meta", $"{FormatDay(unlock.day)}  ·  Know-how", 18, UiKit.Muted);
+        Text meta = UiKit.Text(detail, "Meta", $"{FormatDay(unlock.day)}  ·  Know-how", 18, UiKit.InkMuted);
         Top(meta.rectTransform, 0f, 28f);
 
-        Text title = UiKit.Text(detail, "Title", entry.title, 30, UiKit.Cream, TextAnchor.UpperLeft, FontStyle.Bold);
+        Text title = UiKit.Text(detail, "Title", entry.title, 30, UiKit.Ink, TextAnchor.UpperLeft, FontStyle.Bold);
         Top(title.rectTransform, 32f, 80f);
 
         RectTransform body = UiKit.ScrollList(detail, "Body");
         ((RectTransform)body.parent).Fill(0f, 0f, 0f, 120f);
-        Text bodyText = UiKit.Text(body, "Text", entry.body, 22, UiKit.Cream, TextAnchor.UpperLeft);
+        Text bodyText = UiKit.Text(body, "Text", entry.body, 22, UiKit.Ink, TextAnchor.UpperLeft);
         bodyText.verticalOverflow = VerticalWrapMode.Overflow;
     }
 
@@ -303,7 +303,7 @@ public class JournalScreen : GameScreen
         rt.sizeDelta = new Vector2(220f, 48f);
         rt.anchoredPosition = Vector2.zero;
 
-        Text saved = UiKit.Text(detail, "Saved", "Saved when you click away or close the journal.", 18, UiKit.Muted);
+        Text saved = UiKit.Text(detail, "Saved", "Saved when you click away or close the journal.", 18, UiKit.InkMuted);
         saved.rectTransform.anchorMin = new Vector2(0f, 0f);
         saved.rectTransform.anchorMax = new Vector2(0.6f, 0f);
         saved.rectTransform.offsetMin = Vector2.zero;

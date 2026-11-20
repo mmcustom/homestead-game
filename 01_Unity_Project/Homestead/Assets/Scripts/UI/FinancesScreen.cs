@@ -96,18 +96,18 @@ public class FinancesScreen : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        titleLabel = UiKit.Text(panel, "Title", "Land Loan", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        titleLabel = UiKit.Heading(panel, "Title", "Land Loan", 34, TextAnchor.MiddleLeft);
         Place(titleLabel.rectTransform, 32f, 14f, 400f, 54f);
         loanTabButton = UiKit.Button(panel, "Loan Tab", "Loan", 22, () => ShowTab(Tab.Loan));
         Place((RectTransform)loanTabButton.transform, 440f, 18f, 190f, 46f);
         statementTabButton = UiKit.Button(panel, "Statement Tab", "Statement", 22, () => ShowTab(Tab.Statement));
         Place((RectTransform)statementTabButton.transform, 640f, 18f, 190f, 46f);
-        cashLabel = UiKit.Text(panel, "Cash", "", 28, UiKit.Cream, TextAnchor.MiddleRight);
+        cashLabel = UiKit.Text(panel, "Cash", "", 28, UiKit.Ink, TextAnchor.MiddleRight);
         Place(cashLabel.rectTransform, 860f, 14f, 400f, 54f);
         Button close = UiKit.Button(panel, "Close", "Close  [L]", 20, () => Hide(true));
         Place((RectTransform)close.transform, PanelWidth - 32f - 170f, 18f, 170f, 46f);
 
-        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.2f));
         Place(rule.rectTransform, 24f, 80f, PanelWidth - 48f, 2f);
 
         loanRoot = UiKit.Rect("Loan", panel);
@@ -116,34 +116,34 @@ public class FinancesScreen : MonoBehaviour
         const float rowTop = 100f, rowStep = 40f;
         for (int i = 0; i < Labels.Length; i++)
         {
-            Text label = UiKit.Text(loanRoot, Labels[i], Labels[i], 22, UiKit.Muted, TextAnchor.MiddleLeft);
+            Text label = UiKit.Text(loanRoot, Labels[i], Labels[i], 22, UiKit.InkMuted, TextAnchor.MiddleLeft);
             Place(label.rectTransform, 40f, rowTop + i * rowStep, 330f, rowStep);
-            values[i] = UiKit.Text(loanRoot, Labels[i] + " Value", "", 22, UiKit.Cream, TextAnchor.MiddleLeft);
+            values[i] = UiKit.Text(loanRoot, Labels[i] + " Value", "", 22, UiKit.Ink, TextAnchor.MiddleLeft);
             values[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(values[i].rectTransform, 380f, rowTop + i * rowStep, 360f, rowStep);
         }
 
-        openHeading = UiKit.Text(loanRoot, "Open Heading", "Open payments", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        openHeading = UiKit.Heading(loanRoot, "Open Heading", "Open payments", 26, TextAnchor.MiddleLeft);
         Place(openHeading.rectTransform, 780f, 98f, 600f, 40f);
         openList = UiKit.ScrollList(loanRoot, "Open Payments", 4f, true);
         Place((RectTransform)openList.parent, 780f, 144f, PanelWidth - 780f - 40f, 290f);
 
-        termsHeading = UiKit.Text(loanRoot, "Terms Heading", "Terms of this game", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        termsHeading = UiKit.Heading(loanRoot, "Terms Heading", "Terms of this game", 26, TextAnchor.MiddleLeft);
         Place(termsHeading.rectTransform, 780f, 450f, 600f, 40f);
-        termsLabel = UiKit.Text(loanRoot, "Terms", "", 22, UiKit.Cream, TextAnchor.UpperLeft);
+        termsLabel = UiKit.Text(loanRoot, "Terms", "", 22, UiKit.Ink, TextAnchor.UpperLeft);
         termsLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(termsLabel.rectTransform, 780f, 494f, PanelWidth - 780f - 40f, 130f);
 
-        warningLabel = UiKit.Text(loanRoot, "Warning", "", 24, UiKit.Warning, TextAnchor.MiddleLeft, FontStyle.Bold);
+        warningLabel = UiKit.Text(loanRoot, "Warning", "", 24, UiKit.InkWarning, TextAnchor.MiddleLeft, FontStyle.Bold);
         Place(warningLabel.rectTransform, 40f, 640f, PanelWidth - 80f, 44f);
 
-        Image rule2 = UiKit.Image(loanRoot, "Rule 2", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule2 = UiKit.Image(loanRoot, "Rule 2", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.2f));
         Place(rule2.rectTransform, 24f, 696f, PanelWidth - 48f, 2f);
 
         payDueButton = UiKit.Button(loanRoot, "Pay Due", "Pay what is due", 22, PayDue);
         Place((RectTransform)payDueButton.transform, 40f, 720f, 280f, 56f);
 
-        Text amountLabel = UiKit.Text(loanRoot, "Amount Label", "Any amount:", 22, UiKit.Muted, TextAnchor.MiddleRight);
+        Text amountLabel = UiKit.Text(loanRoot, "Amount Label", "Any amount:", 22, UiKit.InkMuted, TextAnchor.MiddleRight);
         Place(amountLabel.rectTransform, 340f, 720f, 170f, 56f);
         amountField = UiKit.Input(loanRoot, "Amount", "$0.00", 24, false);
         amountField.characterLimit = 20;
@@ -151,14 +151,14 @@ public class FinancesScreen : MonoBehaviour
         payAmountButton = UiKit.Button(loanRoot, "Pay Amount", "Pay amount", 22, PayAmount);
         Place((RectTransform)payAmountButton.transform, 820f, 720f, 220f, 56f);
 
-        Text hint = UiKit.Text(loanRoot, "Hint", "Extra money goes straight to the balance and lowers the interest. Esc or L closes.", 18, UiKit.Muted, TextAnchor.MiddleLeft);
+        Text hint = UiKit.Text(loanRoot, "Hint", "Extra money goes straight to the balance and lowers the interest. Esc or L closes.", 18, UiKit.InkMuted, TextAnchor.MiddleLeft);
         Place(hint.rectTransform, 40f, 790f, PanelWidth - 80f, 34f);
-        statusLabel = UiKit.Text(loanRoot, "Status", "", 22, UiKit.Cream, TextAnchor.MiddleLeft);
+        statusLabel = UiKit.Text(loanRoot, "Status", "", 22, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(statusLabel.rectTransform, 40f, 826f, PanelWidth - 80f, 40f);
 
 
         noLoanLabel = UiKit.Text(panel, "No Loan", "There is no land loan in this game.\nThe Statement tab shows your income and expenses season by season.",
-                                 26, UiKit.Muted, TextAnchor.MiddleCenter);
+                                 26, UiKit.InkMuted, TextAnchor.MiddleCenter);
         Place(noLoanLabel.rectTransform, 100f, 300f, PanelWidth - 200f, 140f);
 
         statement = new StatementPanel();
@@ -321,15 +321,15 @@ public class FinancesScreen : MonoBehaviour
         for (int i = 0; i < values.Length; i++)
         {
             values[i].text = texts[i];
-            values[i].color = UiKit.Cream;
+            values[i].color = UiKit.Ink;
         }
         const int missedRow = 7, owedRow = 6, feesRow = 8;
         if (missed > 0)
-            values[missedRow].color = UiKit.Warning;
+            values[missedRow].color = UiKit.InkWarning;
         if (loan.OwedNow > 0)
-            values[owedRow].color = UiKit.Warning;
+            values[owedRow].color = UiKit.InkWarning;
         if (loan.FeesOwed > 0)
-            values[feesRow].color = UiKit.Warning;
+            values[feesRow].color = UiKit.InkWarning;
 
         // The loan's own rate and late fee (frozen when it was made), and the tier's loss threshold and sell share now.
         TierTerms tierNow = money.Tier;
@@ -356,7 +356,7 @@ public class FinancesScreen : MonoBehaviour
         openHeading.text = loan.open.Count == 0 ? "Open payments: none" : $"Open payments ({loan.open.Count})";
         if (loan.open.Count == 0)
         {
-            UiKit.Height(UiKit.Text(openList, "None", loan.IsPaidOff ? "The land is paid off." : "Nothing is due right now.", 20, UiKit.Muted), 50f);
+            UiKit.Height(UiKit.Text(openList, "None", loan.IsPaidOff ? "The land is paid off." : "Nothing is due right now.", 20, UiKit.InkMuted), 50f);
             return;
         }
 
@@ -365,18 +365,18 @@ public class FinancesScreen : MonoBehaviour
             Image row = UiKit.Image(openList, "Payment " + p.number, UiKit.RaisedColor);
             UiKit.Height(row.rectTransform, 74f);
             string due = time != null ? time.FormatDate(p.dueDay) : "day " + p.dueDay;
-            Text head = UiKit.Text(row.rectTransform, "Head", $"Payment {p.number}  ·  due {due}", 21, UiKit.Cream, TextAnchor.UpperLeft);
+            Text head = UiKit.Text(row.rectTransform, "Head", $"Payment {p.number}  ·  due {due}", 21, UiKit.Ink, TextAnchor.UpperLeft);
             head.rectTransform.anchorMin = new Vector2(0f, 0.5f);
             head.rectTransform.anchorMax = Vector2.one;
             head.rectTransform.offsetMin = new Vector2(12f, 0f);
             head.rectTransform.offsetMax = new Vector2(-150f, -6f);
-            Text state = UiKit.Text(row.rectTransform, "State", p.missed ? "MISSED" : "owed", 20, p.missed ? UiKit.Warning : UiKit.Muted, TextAnchor.UpperRight, FontStyle.Bold);
+            Text state = UiKit.Text(row.rectTransform, "State", p.missed ? "MISSED" : "owed", 20, p.missed ? UiKit.InkWarning : UiKit.InkMuted, TextAnchor.UpperRight, FontStyle.Bold);
             state.rectTransform.anchorMin = new Vector2(0.6f, 0.5f);
             state.rectTransform.anchorMax = Vector2.one;
             state.rectTransform.offsetMin = Vector2.zero;
             state.rectTransform.offsetMax = new Vector2(-12f, -6f);
             string parts = $"Late fee {Money.Format(p.fee)}  ·  Interest {Money.Format(p.interest)}  ·  Principal {Money.Format(p.principal)}";
-            Text detail = UiKit.Text(row.rectTransform, "Detail", $"{parts}   =  {Money.Format(p.Owed)}", 18, p.missed ? UiKit.Warning : UiKit.Muted, TextAnchor.LowerLeft);
+            Text detail = UiKit.Text(row.rectTransform, "Detail", $"{parts}   =  {Money.Format(p.Owed)}", 18, p.missed ? UiKit.InkWarning : UiKit.InkMuted, TextAnchor.LowerLeft);
             detail.rectTransform.anchorMin = Vector2.zero;
             detail.rectTransform.anchorMax = new Vector2(1f, 0.5f);
             detail.rectTransform.offsetMin = new Vector2(12f, 6f);
@@ -460,7 +460,7 @@ public class FinancesScreen : MonoBehaviour
 
     void Say(string message, bool problem)
     {
-        statusLabel.color = problem ? UiKit.Warning : UiKit.Cream;
+        statusLabel.color = problem ? UiKit.InkWarning : UiKit.Ink;
         statusLabel.text = message;
     }
 }

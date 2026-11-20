@@ -95,18 +95,18 @@ public class WorkshopScreen : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        Text title = UiKit.Text(panel, "Title", "Workshop", TitleSize, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text title = UiKit.Heading(panel, "Title", "Workshop", TitleSize, TextAnchor.MiddleLeft);
         Place(title.rectTransform, 32f, 14f, 600f, 60f);
         Button close = UiKit.Button(panel, "Close", "Close", CloseSize, () => Hide(true));
         Place((RectTransform)close.transform, PanelWidth - 32f - 190f, 16f, 190f, 56f);
 
-        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.2f));
         Place(rule.rectTransform, 24f, 84f, PanelWidth - 48f, 2f);
 
         // Across the top: the bench's status, then what the pack carries.
-        statusLabel = UiKit.Text(panel, "Status", "", StatusSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        statusLabel = UiKit.Text(panel, "Status", "", StatusSize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(statusLabel.rectTransform, 32f, 94f, PanelWidth - 64f, 48f);
-        packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(packLabel.rectTransform, 32f, 142f, PanelWidth - 64f, 48f);
 
         // The list: four rows, each a button holding the name and, under it, the hours and the price.
@@ -119,34 +119,34 @@ public class WorkshopScreen : MonoBehaviour
             rowNames[i].fontStyle = FontStyle.Bold;
             rowNames[i].alignment = TextAnchor.MiddleLeft;
             Place(rowNames[i].rectTransform, 18f, 6f, ListWidth - 36f, 46f);
-            rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Cream, TextAnchor.MiddleLeft);
+            rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Ink, TextAnchor.MiddleLeft);
             Place(rowDetails[i].rectTransform, 18f, 52f, ListWidth - 36f, 44f);
             rows[i] = row;
         }
 
         // Under the list: why the stock button is off (or what it just did), then the button.
         float listEnd = ListY + rows.Length * RowHeight + (rows.Length - 1) * RowGap;
-        stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
+        stockReasonLabel = UiKit.Text(panel, "Stock Reason", "", BodySize, UiKit.Ink, TextAnchor.UpperLeft);
         Place(stockReasonLabel.rectTransform, ListX, listEnd + 12f, ListWidth, 72f);
         stockButton = UiKit.Button(panel, "Stock", WorkshopRules.StockButtonText, StockSize, StockClicked);
         Place((RectTransform)stockButton.transform, ListX, listEnd + 12f + 72f + 8f, ListWidth, StockButtonHeight);
         stockButton.GetComponentInChildren<Text>().fontStyle = FontStyle.Bold;
 
         // The chosen piece.
-        detailName = UiKit.Text(panel, "Piece", "", DetailNameSize, UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
+        detailName = UiKit.Text(panel, "Piece", "", DetailNameSize, UiKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
         Place(detailName.rectTransform, DetailX, ListY, DetailWidth, 60f);
-        detailLine = UiKit.Text(panel, "Piece Line", "", BodySize, UiKit.Cream, TextAnchor.MiddleLeft);
+        detailLine = UiKit.Text(panel, "Piece Line", "", BodySize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(detailLine.rectTransform, DetailX, ListY + 66f, DetailWidth, 44f);
-        needsHeading = UiKit.Text(panel, "Needs Heading", "It needs", BodySize, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        needsHeading = UiKit.Heading(panel, "Needs Heading", "It needs", BodySize, TextAnchor.MiddleLeft);
         Place(needsHeading.rectTransform, DetailX, ListY + 128f, DetailWidth, 44f);
         for (int i = 0; i < needLabels.Length; i++)
         {
-            needLabels[i] = UiKit.Text(panel, "Need " + i, "", BodySize, UiKit.Cream, TextAnchor.MiddleLeft);
+            needLabels[i] = UiKit.Text(panel, "Need " + i, "", BodySize, UiKit.Ink, TextAnchor.MiddleLeft);
             needLabels[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(needLabels[i].rectTransform, DetailX, ListY + 176f + i * 48f, DetailWidth, 44f);
         }
 
-        reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Cream, TextAnchor.UpperLeft);
+        reasonLabel = UiKit.Text(panel, "Reason", "", BodySize, UiKit.Ink, TextAnchor.UpperLeft);
         Place(reasonLabel.rectTransform, DetailX, ListY + 330f, DetailWidth, 72f);
 
         startButton = UiKit.Button(panel, "Start", "", StartSize, StartClicked);
@@ -155,7 +155,7 @@ public class WorkshopScreen : MonoBehaviour
         startLabel.fontStyle = FontStyle.Bold;
 
         // One line of keys along the bottom.
-        Text hint = UiKit.Text(panel, "Hint", WorkshopRules.KeyHint, HintSize, UiKit.Cream, TextAnchor.MiddleLeft);
+        Text hint = UiKit.Text(panel, "Hint", WorkshopRules.KeyHint, HintSize, UiKit.Ink, TextAnchor.MiddleLeft);
         hint.horizontalOverflow = HorizontalWrapMode.Overflow;
         Place(hint.rectTransform, 32f, PanelHeight - 60f, PanelWidth - 64f, 44f);
 
@@ -357,7 +357,7 @@ public class WorkshopScreen : MonoBehaviour
         bool working = bench.WorkshopRunning(out WorkshopRules.Recipe made);
         bool waiting = bench.WorkshopWaiting(out WorkshopRules.Recipe waitingPiece);
         statusLabel.text = WorkshopRules.BenchLine(working, made, state.jobHours, waiting, waitingPiece, logs, branches, cordage);
-        statusLabel.color = working || waiting ? UiKit.Accent : UiKit.Cream;
+        statusLabel.color = working || waiting ? UiKit.InkAccent : UiKit.Ink;
 
         // What the pack carries, all of a kind together whatever its wet or dry day.
         InventoryManager inventory = InventoryManager.Instance;
@@ -374,8 +374,8 @@ public class WorkshopScreen : MonoBehaviour
             rowNames[i].text = lines[0];
             rowDetails[i].text = lines[1];
             bool covered = WorkshopRules.Covers(recipe, logs, branches, cordage);
-            rowNames[i].color = covered ? UiKit.Cream : UiKit.Muted;
-            rowDetails[i].color = covered ? UiKit.Cream : UiKit.Muted;
+            rowNames[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
+            rowDetails[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
             UiKit.SetSelected(rows[i], i == selected);
         }
 
@@ -389,7 +389,7 @@ public class WorkshopScreen : MonoBehaviour
             if (i < needs.Length)
             {
                 needLabels[i].text = needs[i].Text;
-                needLabels[i].color = needs[i].enough ? UiKit.Cream : UiKit.Warning;
+                needLabels[i].color = needs[i].enough ? UiKit.Ink : UiKit.InkWarning;
             }
         }
 
@@ -398,12 +398,12 @@ public class WorkshopScreen : MonoBehaviour
         startButton.interactable = gate == WorkshopRules.Gate.Ok;
         string reason = WorkshopRules.ReasonText(gate, chosen, made, logs, branches, cordage, state.jobHours);
         reasonLabel.text = !string.IsNullOrEmpty(notice) ? notice : reason;
-        reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.Accent : gate == WorkshopRules.Gate.Ok ? UiKit.Cream : UiKit.Warning;
+        reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.InkAccent : gate == WorkshopRules.Gate.Ok ? UiKit.Ink : UiKit.InkWarning;
 
         // The stock button: on when the pack has something the bench has room for; otherwise greyed with the reason. A message from the last click shows until something else is done.
         WorkshopRules.StockGate stock = bench.StockGateNow();
         stockButton.interactable = stock == WorkshopRules.StockGate.Can;
         stockReasonLabel.text = !string.IsNullOrEmpty(stockNotice) ? stockNotice : WorkshopRules.StockReason(stock);
-        stockReasonLabel.color = !string.IsNullOrEmpty(stockNotice) && stockNoticeGood ? UiKit.Accent : UiKit.Warning;
+        stockReasonLabel.color = !string.IsNullOrEmpty(stockNotice) && stockNoticeGood ? UiKit.InkAccent : UiKit.InkWarning;
     }
 }

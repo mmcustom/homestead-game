@@ -710,14 +710,29 @@ The game has about 30 UI scripts and no UI art at all: Assets/UI is empty, there
 
 | Group | What | Notes | Priority |
 |---|---|---|---|
-| UI theme and kit | Panel, button, tab, slider, bar, scroll, checkbox, tooltip and toast styles; the colour palette; the border and paper or wood look | One kit that UiKit applies everywhere. Decide the look once. | High |
-| Fonts | One body font and one display font, with a licence that allows a sold game | Large and readable; check the licence before adding. | High |
+| UI theme and kit | Panel, button, tab, slider, bar, scroll, checkbox, tooltip and toast styles; the colour palette; the border and paper or wood look | Mike chose the "Ledger" look 2026-11-20 (parchment in a dark wood frame, brown ink). Screens approved by Mike 2026-11-20. HUD, Pause Menu, Main Menu and toasts approved by Mike 2026-11-20 (see ui_ledger below). | High |
+| Fonts | One body font and one display font, with a licence that allows a sold game | Alegreya Sans (body, regular and bold) and Alegreya Bold (titles), SIL Open Font Licence (sold games allowed; no Reserved Font Name). In Unity 2026-11-20 with the OFL files beside them. | High |
 | HUD | Survival bars (Health, Stamina, Body temperature, Hydration, Hunger, Load), compass strip, minimap frame and north marker, crosshair, the interaction prompt line, the tool status line, the equipped-tool name fade, the weather HUD line, discovery toasts and screen banners | These are on screen all day. Crosshair and the status line matter most. | High |
 | Item icons | One 128 x 128 icon per item (already a Wave 4 row) | Render from the item prefab when possible so the style matches. | Medium |
 | Menus and screens | Main Menu, Pause Menu, New Game (difficulty and land picker, Land Purchase panel), Save and Load slot panel, Loss screen ("Mother Nature beat you" banner and restart or load choice) | The Loss screen needs its own art. | Medium |
 | Management screens | Inventory, Crafting and Build, Storage Transfer, Trading Post, Workshop, Smithy, Potter's screen, Finances and Statement, Journal (Know-how and discovery pages), Weather screen, Quantity Stepper | Share the UI kit; Journal and Finances can have paper or ledger styling. | Medium |
 | Map art | World Map, Minimap terrain colours and map icons (64 x 64) | MapIcons.cs exists; the map icons row in Wave 4 covers the sprites. | Low |
 | Scenes | Bootstrap, Loading, MainMenu and World scenes: the Loading screen and Main Menu background art | Needs a title picture (see Wave 10). | Medium |
+
+## ui_ledger (2026-11-20, Wave 7 theme)
+
+- Mike picked direction A, "Ledger", from three mockups (Ledger, Field Kit, Woodsmoke) on 2026-11-20.
+- Sources: Art/Blender_Work/ui_ledger holds gen_ui_kit.py (makes the sprites with numpy and PIL, no Blender), mockups.py and the three mockup images. Sprites: Assets/Resources/Art/ui_panel.png (1024 px, parchment in a 26 px wood frame, 9-slice border 72, drawn at 1/1.4 so the frame is about 19 px), ui_card.png (96 px, border 14), ui_button.png (96 x 64, border 16), ui_track.png (64 x 32, border 10; not used yet). Card, button and track are near-white and tinted by UiKit's colours.
+- Fonts: Assets/Resources/Fonts/AlegreyaSans-Regular.ttf, AlegreyaSans-Bold.ttf, Alegreya-Bold.ttf (a static 700 instance of the variable Alegreya), OFL_alegreya.txt, OFL_alegreyasans.txt. The digits in all three were remapped to Alegreya's lining tabular figures (one.tf and so on), because the default old-style figures sit low and are harder to read; the OFL allows the change (no Reserved Font Name).
+- UiKit (code): Ink, InkMuted, InkAccent (green ink), InkWarning (red ink) and HeadingColor for text on the parchment; Cream, Muted, Accent and Warning kept for text over the world. Images given PanelColor get the framed parchment and Raised/Hover/Selected the paper card; new helpers Heading, Card, LabelColor. Text under 26 is raised 12% (never past 26); 26 and up were already agreed with Mike and are left alone. Bold text uses the real bold face.
+- Screens switched to ink (20 scripts): GameScreens, Inventory, Crafting, Journal, Trading Post, Weather, World Map (map labels stay cream, now clipped to the map), Storage, Finances, Workshop, Smithy, Potter, Wait, Loss, Slot panel, Land Purchase, the difficulty panel of the Main Menu, Quantity Stepper, Hover Tip. Rich-text colours in the screens moved to ink equivalents; unavailable recipes dim to 72% instead of 45%.
+- Tests: UiThemeTests (17). Full EditMode suite 2286/2286 passed 2026-11-20.
+- HUD and menus (2026-11-20, after Mike approved the screens): the scene-built UI is restyled by Editor/LedgerUiApplier.cs (menu Homestead/UI/Apply Ledger Look, safe to re-run; it saved World and MainMenu). HUD text keeps light letters on dark-brown paper plates (ui_card tinted), the bars have rounded tracks (ui_track), the compass is a wood strip (new ui_wood.png, 512 x 64, border 16) with its letters in Alegreya (CompassHud uses UiKit's fonts), the minimap rim is wood-coloured, discovery and Journal toasts are paper notes in ink with an Alegreya Bold heading. Pause Menu and Main Menu: paper buttons with bold ink labels, Alegreya Bold titles, the New Game confirm dialog on the parchment panel, a dark-brown menu background. The "Account statement ready" line moved under the compass (ToolHud, Mike's report). UiThemeTests now 19 (adds a scene check); full EditMode 2288/2288.
+- Finished 2026-11-20 (Mike asked for Wave 7 then Wave 10):
+  - Loss screen: Resources/Art/loss_background.png (1920 x 1080), the player's own homestead in a snowy winter dusk, graded from an in-game 4K capture (the Small Cabin left, snow added). LossScreen shows it behind a right-hand parchment panel; the title is Alegreya Bold.
+  - Warning banners (ScreenBanner and the ToolHud notice): a parchment slip with a red-ink rim and red heading (UiKit.NoticeSlip, NoticeRed, NoticePaper). The HUD notice now sits under the compass instead of over it.
+  - Loading scene: it was empty (black). New LoadingScreen.cs, added to Loading.unity by the applier: the title picture, the logo, and a parchment slip with "Loading your homestead..." and a bar on GameManager.LoadProgress.
+- Wave 7 is complete.
 
 ## Wave 8: screen effects, particles and sky (new)
 
@@ -759,9 +774,9 @@ Nothing exists. The 07_Marketing and 03_Concept_Art folders are empty. This wave
 
 | Item | What | Notes |
 |---|---|---|
-| Game logo | "Homestead" wordmark, plus the motto "Survive. Prepare. Build. Prosper." as an optional lockup | One logo used everywhere. Original work only (no stock or look-alike marks). |
-| App icon | Windows executable icon in the standard sizes (16 to 256 px) | Made from the logo. |
-| Title and Loading art | A key painting or a rendered view of the finished homestead for the Main Menu and the Loading scene | Can be a render from the game once real art exists. |
+| Game logo | "Homestead" wordmark, plus the motto "Survive. Prepare. Build. Prosper." as an optional lockup | Done 2026-11-20 (brand_logo below): a round wood-rimmed badge with an ink log cabin, pines, chimney smoke and a rising sun, plus a lockup with HOMESTEAD in Alegreya Bold and the motto. Original work. Awaiting Mike's check. |
+| App icon | Windows executable icon in the standard sizes (16 to 256 px) | Done 2026-11-20: the badge as homestead_icon.ico (16 to 256) and Assets/Art/Branding/app_icon.png, set as the default icon in Player Settings. |
+| Title and Loading art | A key painting or a rendered view of the finished homestead for the Main Menu and the Loading scene | Done 2026-11-20: an in-game 4K render of the homestead at autumn dusk, graded warm (title_background; menu_background is the same with the left side darkened for the logo and buttons). Redo from a new capture when the structures get their final art. |
 | Store page art | Capsule and header images, a short and a long description, screenshots (needs a screenshot-friendly lit scene) | Sizes depend on the store chosen. |
 | Trailer | A capture-based trailer | Needs real art in the world first. |
 | Press kit | Logo files, screenshots, fact sheet | Later. |
@@ -769,6 +784,14 @@ Nothing exists. The 07_Marketing and 03_Concept_Art folders are empty. This wave
 ## Audio note
 
 Audio is a separate list (Audio_System.md): the 22 original files plus thunder are sourced and wired. Known audio gaps: the Knife has no sound of its own (the blow borrows the item-drop cue, a hit plays the first 0.35 s of the Bow Release recording), and the fists have only their original punch sound.
+
+## brand_logo (2026-11-20, Wave 10)
+
+- Sources in Art/Blender_Work/brand_logo: gen_title_art.py (numpy and PIL; draws the badge and lockup with the Alegreya fonts and grades the two captures), title_raw.png and loss_raw2.png (4K captures from the World scene with a temporary camera; the time, weather and snow were set for the shot, then the player's saves were restored from a backup), and every output.
+- Outputs: logo_emblem.png (1024), logo_lockup.png (2000 x 780, cream on transparent with a soft shadow), homestead_icon.ico, app_icon.png, title_background.png, menu_background.png, loss_background.png.
+- In Unity: Resources/Art/title_background, menu_background (Sprite), loss_background, logo_lockup (Sprite); Assets/Art/Branding/app_icon.png (Player Settings default icon). All 1920-class textures use BC7 (CompressedHQ) to keep the dusk sky free of banding.
+- Main Menu (LedgerUiApplier): the picture fills the screen (envelope fit), the logo and the buttons stand in a column on the darkened left, the cabin sits on the right; the old title text is kept, hidden.
+- Tests: UiThemeTests 24 (adds the title art, the Main Menu logo and the Loading screen). Full EditMode 2293/2293.
 
 ## Suggested order from here
 

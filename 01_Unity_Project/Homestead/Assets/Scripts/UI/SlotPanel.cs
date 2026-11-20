@@ -20,8 +20,8 @@ public class SlotPanel : MonoBehaviour
     const float PanelWidth = 1500f;
     const float RowHeight = 52f;
     const float RowGap = 4f;
-    static readonly Color CurrentTint = new Color(0.3f, 0.38f, 0.22f, 0.6f);
-    static readonly Color SelectedTint = new Color(0.45f, 0.4f, 0.25f, 0.55f);
+    static readonly Color CurrentTint = new Color(0.84f, 0.88f, 0.70f, 1f);   // a green-washed card
+    static readonly Color SelectedTint = UiKit.SelectedColor;
     const float HeaderHeight = 120f;
     const float FooterHeight = 76f;
     const int RowCount = SaveManager.ManualSlotCount + 1; // the manual slots and the Autosave
@@ -33,7 +33,7 @@ public class SlotPanel : MonoBehaviour
     const float ColSlot = 12f, ColName = 52f, NameWidth = 140f;
     const float ColBadge = 196f, BadgeWidth = 176f;
     const float ColInGame = 378f, InGameWidth = 282f;
-    static readonly Color LegacyColor = new Color(0.95f, 0.72f, 0.35f); // "old calendar": amber, the colour of a warning
+    static readonly Color LegacyColor = new Color(0.66f, 0.38f, 0.04f); // "old calendar": amber, the colour of a warning
     const float ColDifficulty = 666f, DifficultyWidth = 145f;
     const float ColSaved = 816f, SavedWidth = 174f;
     const float ButtonWidth = 90f, ButtonGap = 6f, ButtonMargin = 8f;
@@ -125,13 +125,13 @@ public class SlotPanel : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, HeaderHeight + RowCount * (RowHeight + RowGap) + FooterHeight);
 
-        titleLabel = UiKit.Text(panel, "Title", "", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        titleLabel = UiKit.Heading(panel, "Title", "", 34, TextAnchor.MiddleLeft);
         Place(titleLabel.rectTransform, 32f, 14f, 800f, 54f);
 
         string[] heads = { "Slot", "Name", "In game", "Difficulty", "Saved" };
         float[] xs = { 32f + ColSlot, 32f + ColName, 32f + ColInGame, 32f + ColDifficulty, 32f + ColSaved };
         for (int i = 0; i < heads.Length; i++)
-            Place(UiKit.Text(panel, heads[i], heads[i], 18, UiKit.Muted, TextAnchor.MiddleLeft).rectTransform, xs[i], 82f, 300f, 30f);
+            Place(UiKit.Text(panel, heads[i], heads[i], 18, UiKit.InkMuted, TextAnchor.MiddleLeft).rectTransform, xs[i], 82f, 300f, 30f);
 
         rowsHost = UiKit.Rect("Rows", panel);
         Place(rowsHost, 32f, HeaderHeight, InnerWidth, RowCount * (RowHeight + RowGap));
@@ -139,7 +139,7 @@ public class SlotPanel : MonoBehaviour
         float footerY = panel.sizeDelta.y - FooterHeight + 12f;
         Button back = UiKit.Button(panel, "Back", "Back", 24, () => { Play(SoundCue.UiBack); Close(true); });
         Place((RectTransform)back.transform, 32f, footerY, 200f, 52f);
-        messageLabel = UiKit.Text(panel, "Message", "", 22, UiKit.Cream, TextAnchor.MiddleLeft);
+        messageLabel = UiKit.Text(panel, "Message", "", 22, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(messageLabel.rectTransform, 256f, footerY, PanelWidth - 288f, 52f);
     }
 
@@ -208,27 +208,27 @@ public class SlotPanel : MonoBehaviour
         bool isSource = copying && info.Id == copySource;
         bool isCurrent = inGame && (info.IsAutosave ? SlotRules.AutosaveIsCurrent(true, current) : info.Id == current);
         bool isSelected = !copying && info.Id == selectedId;
-        Color tint = isSource ? new Color(0.3f, 0.36f, 0.24f, 0.5f) : isCurrent ? CurrentTint : isSelected ? SelectedTint : new Color(0f, 0f, 0f, 0.25f);
-        Image row = UiKit.Image(rowsHost, info.Id + " Row", tint);
+        Color tint = isSource ? CurrentTint : isCurrent ? CurrentTint : isSelected ? SelectedTint : UiKit.RaisedColor;
+        Image row = UiKit.Card(rowsHost, info.Id + " Row", tint);
         Place(row.rectTransform, 0f, y, InnerWidth, RowHeight);
 
-        Color nameColor = info.Exists ? UiKit.Cream : UiKit.Muted;
+        Color nameColor = info.Exists ? UiKit.Ink : UiKit.InkMuted;
         string badge = isCurrent ? (info.IsAutosave ? "[CURRENT GAME]" : "[CURRENT]") : "";
-        AddCell(row, info.IsAutosave ? "A" : SaveManager.SlotNumber(info.Id).ToString(), ColSlot, 36f, UiKit.Muted);
+        AddCell(row, info.IsAutosave ? "A" : SaveManager.SlotNumber(info.Id).ToString(), ColSlot, 36f, UiKit.InkMuted);
         Text nameCell = AddCell(row, info.Name, ColName, NameWidth, nameColor);
         nameCell.horizontalOverflow = HorizontalWrapMode.Wrap; // a long name wraps and clips inside its column
         nameCell.verticalOverflow = VerticalWrapMode.Truncate;
         if (badge.Length > 0)
-            AddCell(row, badge, ColBadge, BadgeWidth, new Color(0.78f, 0.84f, 0.55f), 18);
+            AddCell(row, badge, ColBadge, BadgeWidth, UiKit.InkAccent, 18);
         if (info.Exists)
         {
-            AddCell(row, info.DateColumn, ColInGame, InGameWidth, info.IsLegacy ? LegacyColor : UiKit.Cream);
-            AddCell(row, info.Difficulty, ColDifficulty, DifficultyWidth, UiKit.Cream);
-            AddCell(row, info.SavedAtLocal, ColSaved, SavedWidth, UiKit.Cream);
+            AddCell(row, info.DateColumn, ColInGame, InGameWidth, info.IsLegacy ? LegacyColor : UiKit.Ink);
+            AddCell(row, info.Difficulty, ColDifficulty, DifficultyWidth, UiKit.Ink);
+            AddCell(row, info.SavedAtLocal, ColSaved, SavedWidth, UiKit.Ink);
         }
         else
         {
-            AddCell(row, "Empty", ColInGame, InGameWidth, UiKit.Muted);
+            AddCell(row, "Empty", ColInGame, InGameWidth, UiKit.InkMuted);
         }
 
         // Buttons, right to left: Delete, Copy, Load (or Select), Save. All on this one row, inside the panel.
@@ -371,7 +371,7 @@ public class SlotPanel : MonoBehaviour
         string sourceName = SaveManager.Instance.GetSlotInfo(copySource).Name;
         bool ok = SaveManager.Instance.CopySlot(copySource, target.Id, out string error);
         view = View.Browse;
-        messageLabel.color = ok ? UiKit.Cream : UiKit.Warning;
+        messageLabel.color = ok ? UiKit.Ink : UiKit.InkWarning;
         messageLabel.text = ok ? $"Copied {sourceName} to {target.Name}." : error;
         Refresh();
     }
@@ -382,7 +382,7 @@ public class SlotPanel : MonoBehaviour
         Confirm($"Delete {info.Name}?\nThis can't be undone.", () =>
         {
             bool ok = SaveManager.Instance.DeleteSave(info.Id);
-            messageLabel.color = ok ? UiKit.Cream : UiKit.Warning;
+            messageLabel.color = ok ? UiKit.Ink : UiKit.InkWarning;
             messageLabel.text = ok ? $"Deleted {info.Name}." : "Couldn't delete it. Details are in the log.";
             Refresh();
         });
@@ -422,7 +422,7 @@ public class SlotPanel : MonoBehaviour
         b.anchorMin = b.anchorMax = new Vector2(0.5f, 0.5f);
         b.sizeDelta = new Vector2(760f, 260f);
 
-        Text text = UiKit.Text(b, "Message", message, 26, UiKit.Cream, TextAnchor.MiddleCenter);
+        Text text = UiKit.Text(b, "Message", message, 26, UiKit.Ink, TextAnchor.MiddleCenter);
         Place(text.rectTransform, 30f, 24f, 700f, 130f);
         Button yesButton = UiKit.Button(b, "Yes", "Yes", 24, () =>
         {

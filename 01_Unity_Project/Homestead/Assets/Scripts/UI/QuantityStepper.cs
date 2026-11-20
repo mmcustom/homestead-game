@@ -17,7 +17,7 @@ public sealed class QuantityStepper
     public const float Height = 34f;
 
     // The buttons stand out from the row behind them (the row and UiKit's buttons share one colour).
-    static readonly Color ControlColor = new Color(0.25f, 0.32f, 0.21f, 1f);
+    static readonly Color ControlColor = UiKit.ButtonColor;
 
     public RectTransform Root { get; private set; }
 
@@ -117,7 +117,7 @@ public sealed class QuantityStepper
         button.interactable = enabled;
         Text label = button.GetComponentInChildren<Text>();
         if (label != null)
-            label.color = enabled ? UiKit.Cream : UiKit.Muted;
+            label.color = UiKit.LabelColor(button, enabled);
     }
 
     static void Place(RectTransform rt, float x, float width)
@@ -216,15 +216,15 @@ public sealed class QuantityRowUi
         UiKit.Height(row, RowHeight);
         ui.Row = row;
 
-        ui.Name = UiKit.Text(row, "Name", "", 20, UiKit.Cream, TextAnchor.MiddleLeft);
+        ui.Name = UiKit.Text(row, "Name", "", 20, UiKit.Ink, TextAnchor.MiddleLeft);
         ui.Name.horizontalOverflow = HorizontalWrapMode.Overflow;
         Region(ui.Name.rectTransform, 0f, 0.5f, withPrice ? 0.62f : 1f, 1f, 12f, 0f);
 
         if (withPrice)
         {
-            ui.Trend = UiKit.Text(row, "Trend", "", 26, UiKit.Cream, TextAnchor.MiddleCenter, FontStyle.Bold);
+            ui.Trend = UiKit.Text(row, "Trend", "", 26, UiKit.Ink, TextAnchor.MiddleCenter, FontStyle.Bold);
             Region(ui.Trend.rectTransform, 0.62f, 0.5f, 0.68f, 1f, 0f, 0f);
-            ui.Price = UiKit.Text(row, "Price", "", 20, UiKit.Cream, TextAnchor.MiddleRight);
+            ui.Price = UiKit.Text(row, "Price", "", 20, UiKit.Ink, TextAnchor.MiddleRight);
             Region(ui.Price.rectTransform, 0.68f, 0.5f, 1f, 1f, 0f, 12f);
         }
 
@@ -233,7 +233,7 @@ public sealed class QuantityRowUi
         stepperRt.anchorMin = stepperRt.anchorMax = stepperRt.pivot = new Vector2(0f, 0f);
         stepperRt.anchoredPosition = new Vector2(12f, 5f);
 
-        ui.Total = UiKit.Text(row, "Total", "", 18, UiKit.Cream, TextAnchor.MiddleLeft);
+        ui.Total = UiKit.Text(row, "Total", "", 18, UiKit.Ink, TextAnchor.MiddleLeft);
         ui.Total.horizontalOverflow = HorizontalWrapMode.Overflow;
         Region(ui.Total.rectTransform, 0f, 0f, 1f, 0.5f, 254f, 130f);
 

@@ -7,8 +7,9 @@ using UnityEngine.UI;
 // you." with a line under it, a short summary of the run taken at the moment of the loss (days survived, seasons completed, income and
 // expenses since the start from the ledger, the loan still owed, the due days of the missed payments, the cash at the end) and three
 // buttons: Restart (a new game at once with the same difficulty, weapon, parcel and savings split), Load Save (the slot panel in load
-// mode, greyed when there are no saves) and Main Menu. Nothing here saves anything: a lost game is never written. Built in code in the
-// game's dark UI look, on its own canvas like the Finances screen.
+// mode, greyed when there are no saves) and Main Menu. Nothing here saves anything: a lost game is never written. Built in code on its
+// own canvas like the Finances screen. Wave 7 (2026-11-20): the parchment panel sits to the right over its own picture, the homestead
+// in a snowy winter dusk (Resources/Art/loss_background, graded from an in-game capture), with the cabin left in view.
 public class LossScreen : MonoBehaviour
 {
     static LossScreen instance;
@@ -17,6 +18,7 @@ public class LossScreen : MonoBehaviour
 
     const float PanelWidth = 1200f, PanelHeight = 930f;
     const float RowHeight = 46f, DatesHeight = 112f, RowsTop = 240f;
+    public const string BackgroundPath = "Art/loss_background";
 
     GameObject root;
     Text titleLabel, lineLabel, statusLabel;
@@ -72,32 +74,49 @@ public class LossScreen : MonoBehaviour
         root.AddComponent<GraphicRaycaster>();
 
         var rootRect = (RectTransform)root.transform;
-        Image dim = UiKit.Image(rootRect, "Dim", new Color(0f, 0f, 0f, 0.97f));
+        Texture2D picture = Resources.Load<Texture2D>(BackgroundPath);
+        Image dim = UiKit.Image(rootRect, "Dim", new Color(0f, 0f, 0f, picture != null ? 1f : 0.97f));
         dim.rectTransform.Fill();
         dim.raycastTarget = true;
+        if (picture != null)
+        {
+            // The picture is 16:9; it covers the screen, cropped rather than stretched on other shapes.
+            var background = UiKit.Rect("Background", rootRect).gameObject.AddComponent<RawImage>();
+            background.texture = picture;
+            background.raycastTarget = false;
+            var fitter = background.gameObject.AddComponent<AspectRatioFitter>();
+            fitter.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+            fitter.aspectRatio = (float)picture.width / picture.height;
+        }
 
         Color solid = UiKit.PanelColor;
         solid.a = 1f;
         Image panelImage = UiKit.Image(rootRect, "Panel", solid);
         panelImage.raycastTarget = true;
         RectTransform panel = panelImage.rectTransform;
-        panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
+        if (picture != null)
+        {
+            panel.anchorMin = panel.anchorMax = panel.pivot = new Vector2(1f, 0.5f);
+            panel.anchoredPosition = new Vector2(-48f, 0f);
+        }
+        else
+            panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        titleLabel = UiKit.Text(panel, "Title", "Mother Nature beat you.", 76, UiKit.Cream, TextAnchor.MiddleCenter, FontStyle.Bold);
+        titleLabel = UiKit.Heading(panel, "Title", "Mother Nature beat you.", 76, TextAnchor.MiddleCenter);
         Place(titleLabel.rectTransform, 40f, 40f, PanelWidth - 80f, 110f);
-        lineLabel = UiKit.Text(panel, "Line", "", 34, UiKit.Muted, TextAnchor.MiddleCenter);
+        lineLabel = UiKit.Text(panel, "Line", "", 34, UiKit.InkMuted, TextAnchor.MiddleCenter);
         Place(lineLabel.rectTransform, 40f, 150f, PanelWidth - 80f, 56f);
 
-        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.25f));
+        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.25f));
         Place(rule.rectTransform, 100f, 224f, PanelWidth - 200f, 2f);
 
         // Rows are placed in Show (Cash left only appears when the debt could not take all the cash).
         for (int i = 0; i < Labels.Length; i++)
         {
             bool dates = i == DatesRow;
-            Text label = UiKit.Text(panel, Labels[i], Labels[i], 28, UiKit.Muted, dates ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft);
-            Text value = UiKit.Text(panel, Labels[i] + " Value", "", 28, UiKit.Cream, dates ? TextAnchor.UpperRight : TextAnchor.MiddleRight);
+            Text label = UiKit.Text(panel, Labels[i], Labels[i], 28, UiKit.InkMuted, dates ? TextAnchor.UpperLeft : TextAnchor.MiddleLeft);
+            Text value = UiKit.Text(panel, Labels[i] + " Value", "", 28, UiKit.Ink, dates ? TextAnchor.UpperRight : TextAnchor.MiddleRight);
             value.horizontalOverflow = HorizontalWrapMode.Wrap;
             labels.Add(label);
             values.Add(value);
@@ -111,7 +130,7 @@ public class LossScreen : MonoBehaviour
         menuButton = UiKit.Button(panel, "Main Menu", "Main Menu", 30, OnMainMenu);
         Place((RectTransform)menuButton.transform, 800f, 790f, 320f, 72f);
 
-        statusLabel = UiKit.Text(panel, "Status", "", 22, UiKit.Muted, TextAnchor.MiddleCenter);
+        statusLabel = UiKit.Text(panel, "Status", "", 22, UiKit.InkMuted, TextAnchor.MiddleCenter);
         Place(statusLabel.rectTransform, 80f, 872f, PanelWidth - 160f, 40f);
 
         root.SetActive(false);
@@ -207,7 +226,7 @@ public class LossScreen : MonoBehaviour
     {
         Text label = button.GetComponentInChildren<Text>();
         if (label != null)
-            label.color = enabled ? UiKit.Cream : UiKit.Muted;
+            label.color = enabled ? UiKit.Ink : UiKit.InkMuted;
     }
 
     void Subscribe()

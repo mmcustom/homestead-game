@@ -162,7 +162,7 @@ public class LandPurchasePanel : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        titleLabel = UiKit.Text(panel, "Title", "", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        titleLabel = UiKit.Heading(panel, "Title", "", 34, TextAnchor.MiddleLeft);
         Place(titleLabel.rectTransform, 40f, 20f, PanelWidth - 80f, 54f);
 
         landGroup = Group(panel, "Land");
@@ -176,7 +176,7 @@ public class LandPurchasePanel : MonoBehaviour
         Place((RectTransform)backButton.transform, 40f, PanelHeight - 80f, 200f, 56f);
         nextButton = UiKit.Button(panel, "Next", "Next", 26, () => { Play(SoundCue.UiClick); Next(); });
         Place((RectTransform)nextButton.transform, PanelWidth - 40f - 240f, PanelHeight - 80f, 240f, 56f);
-        noteLabel = UiKit.Text(panel, "Note", "", 20, UiKit.Muted, TextAnchor.MiddleLeft);
+        noteLabel = UiKit.Text(panel, "Note", "", 20, UiKit.InkMuted, TextAnchor.MiddleLeft);
         Place(noteLabel.rectTransform, 270f, PanelHeight - 80f, PanelWidth - 270f - 300f, 56f);
     }
 
@@ -199,13 +199,13 @@ public class LandPurchasePanel : MonoBehaviour
 
     void BuildSplit()
     {
-        savingsText = UiKit.Text(splitGroup, "Savings", "", 28, UiKit.Cream, TextAnchor.MiddleLeft);
+        savingsText = UiKit.Text(splitGroup, "Savings", "", 28, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(savingsText.rectTransform, 40f, 96f, PanelWidth - 80f, 44f);
 
-        Text prompt = UiKit.Text(splitGroup, "Prompt", "How much goes to the down payment? The rest is your cash reserve.", 22, UiKit.Muted, TextAnchor.MiddleLeft);
+        Text prompt = UiKit.Text(splitGroup, "Prompt", "How much goes to the down payment? The rest is your cash reserve.", 22, UiKit.InkMuted, TextAnchor.MiddleLeft);
         Place(prompt.rectTransform, 40f, 150f, PanelWidth - 80f, 36f);
 
-        Text amountLabel = UiKit.Text(splitGroup, "Down Label", "Down payment:", 24, UiKit.Cream, TextAnchor.MiddleLeft);
+        Text amountLabel = UiKit.Text(splitGroup, "Down Label", "Down payment:", 24, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(amountLabel.rectTransform, 40f, 200f, 220f, 56f);
         downField = UiKit.Input(splitGroup, "Down", "0.00", 26, false);
         downField.characterLimit = 20;
@@ -220,15 +220,15 @@ public class LandPurchasePanel : MonoBehaviour
             Place((RectTransform)b.transform, 560f + i * 190f, 200f, 180f, 56f);
         }
 
-        splitProblem = UiKit.Text(splitGroup, "Problem", "", 22, UiKit.Warning, TextAnchor.MiddleLeft);
+        splitProblem = UiKit.Text(splitGroup, "Problem", "", 22, UiKit.InkWarning, TextAnchor.MiddleLeft);
         Place(splitProblem.rectTransform, 40f, 268f, PanelWidth - 80f, 36f);
 
         string[] labels = { "Down payment", "Cash reserve", "Loan amount", LoanScheduleText.PaymentEvery(terms) };
         for (int i = 0; i < labels.Length; i++)
         {
-            Text label = UiKit.Text(splitGroup, labels[i], labels[i], 24, UiKit.Muted, TextAnchor.MiddleLeft);
+            Text label = UiKit.Text(splitGroup, labels[i], labels[i], 24, UiKit.InkMuted, TextAnchor.MiddleLeft);
             Place(label.rectTransform, 40f, 330f + i * 52f, 380f, 48f);
-            splitValues[i] = UiKit.Text(splitGroup, labels[i] + " Value", "", 26, UiKit.Cream, TextAnchor.MiddleLeft);
+            splitValues[i] = UiKit.Text(splitGroup, labels[i] + " Value", "", 26, UiKit.Ink, TextAnchor.MiddleLeft);
             splitValues[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(splitValues[i].rectTransform, 440f, 330f + i * 52f, 400f, 48f);
         }
@@ -238,9 +238,9 @@ public class LandPurchasePanel : MonoBehaviour
     {
         for (int i = 0; i < SummaryLabels.Length; i++)
         {
-            Text label = UiKit.Text(summaryGroup, SummaryLabels[i], SummaryLabels[i], 24, UiKit.Muted, TextAnchor.MiddleLeft);
+            Text label = UiKit.Text(summaryGroup, SummaryLabels[i], SummaryLabels[i], 24, UiKit.InkMuted, TextAnchor.MiddleLeft);
             Place(label.rectTransform, 40f, 96f + i * 42f, 520f, 40f);
-            summaryValues[i] = UiKit.Text(summaryGroup, SummaryLabels[i] + " Value", "", 26, UiKit.Cream, TextAnchor.MiddleLeft);
+            summaryValues[i] = UiKit.Text(summaryGroup, SummaryLabels[i] + " Value", "", 26, UiKit.Ink, TextAnchor.MiddleLeft);
             summaryValues[i].horizontalOverflow = HorizontalWrapMode.Overflow;
             Place(summaryValues[i].rectTransform, 580f, 96f + i * 42f, 580f, 40f);
         }
@@ -365,7 +365,7 @@ public class LandPurchasePanel : MonoBehaviour
                     text += "\n(Shift-click: dev unlock)";
             }
             label.text = text;
-            label.color = locked ? UiKit.Muted : UiKit.Cream;
+            label.color = locked ? UiKit.InkMuted : UiKit.Ink;
             UiKit.SetSelected(cards[i], i == parcel);
             if (locked && i != parcel)
             {

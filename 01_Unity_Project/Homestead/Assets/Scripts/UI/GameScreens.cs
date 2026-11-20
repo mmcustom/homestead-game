@@ -203,7 +203,7 @@ public class GameScreens : MonoBehaviour
         panel.raycastTarget = true;
         RectTransform p = panel.rectTransform;
 
-        titleLabel = UiKit.Text(p, "Title", "", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        titleLabel = UiKit.Heading(p, "Title", "", 34, TextAnchor.MiddleLeft);
         titleLabel.rectTransform.anchorMin = new Vector2(0f, 1f);
         titleLabel.rectTransform.anchorMax = new Vector2(0.5f, 1f);
         titleLabel.rectTransform.pivot = new Vector2(0f, 1f);
@@ -232,17 +232,17 @@ public class GameScreens : MonoBehaviour
         closeRect.sizeDelta = new Vector2(46f, 46f);
         closeRect.anchoredPosition = new Vector2(-24f, -18f);
 
-        Image rule = UiKit.Image(p, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule = UiKit.Image(p, "Rule", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.2f));
         rule.rectTransform.anchorMin = new Vector2(0f, 1f);
         rule.rectTransform.anchorMax = new Vector2(1f, 1f);
         rule.rectTransform.offsetMin = new Vector2(24f, -82f);
         rule.rectTransform.offsetMax = new Vector2(-24f, -80f);
 
-        Text hint = UiKit.Text(p, "Hint", "Esc to close", 18, UiKit.Muted, TextAnchor.MiddleRight);
+        Text hint = UiKit.Text(p, "Hint", "Esc to close", 18, UiKit.InkMuted, TextAnchor.MiddleRight);
         hint.rectTransform.anchorMin = new Vector2(0.5f, 0f);
         hint.rectTransform.anchorMax = new Vector2(1f, 0f);
-        hint.rectTransform.offsetMin = new Vector2(0f, 8f);
-        hint.rectTransform.offsetMax = new Vector2(-32f, 40f);
+        hint.rectTransform.offsetMin = new Vector2(0f, 20f);
+        hint.rectTransform.offsetMax = new Vector2(-36f, 50f);
 
         screens[(int)Kind.Map] = CreateScreen<WorldMapScreen>(p, "World Map");
         screens[(int)Kind.Inventory] = CreateScreen<InventoryScreen>(p, "Inventory");

@@ -62,16 +62,16 @@ public class WeatherScreen : GameScreen
 
     static Text Row(RectTransform column, string label)
     {
-        Image row = UiKit.Image(column, label + " Row", new Color(0f, 0f, 0f, 0.2f));
+        Image row = UiKit.Card(column, label + " Row", UiKit.RaisedColor);
         UiKit.Height(row, RowHeight);
 
-        Text name = UiKit.Text(row.transform, "Label", label, 24, UiKit.Muted, TextAnchor.MiddleLeft);
+        Text name = UiKit.Text(row.transform, "Label", label, 24, UiKit.InkMuted, TextAnchor.MiddleLeft);
         name.rectTransform.anchorMin = Vector2.zero;
         name.rectTransform.anchorMax = new Vector2(0.28f, 1f);
         name.rectTransform.offsetMin = new Vector2(20f, 0f);
         name.rectTransform.offsetMax = Vector2.zero;
 
-        Text value = UiKit.Text(row.transform, "Value", "", 28, UiKit.Cream, TextAnchor.MiddleLeft);
+        Text value = UiKit.Text(row.transform, "Value", "", 28, UiKit.Ink, TextAnchor.MiddleLeft);
         value.rectTransform.anchorMin = new Vector2(0.28f, 0f);
         value.rectTransform.anchorMax = Vector2.one;
         value.rectTransform.offsetMin = Vector2.zero;

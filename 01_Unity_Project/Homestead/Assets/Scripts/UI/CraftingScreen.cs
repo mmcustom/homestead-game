@@ -33,8 +33,8 @@ public class CraftingScreen : GameScreen
     const float RowHeight = 74f;
     const float RowIconSize = 62f, RowIconPad = 6f;
     const float RefreshSeconds = 0.25f;
-    static readonly Color Good = new Color(0.56f, 0.82f, 0.42f);
-    static readonly Color Bad = new Color(0.9f, 0.45f, 0.3f);
+    static readonly Color Good = UiKit.InkAccent;   // green ink on the parchment
+    static readonly Color Bad = UiKit.InkWarning;
 
     // A staged site counts as "placed nearby" for the have / need lines when it is this close to the player (metres). Display only.
     const float NearbySiteMetres = 30f;
@@ -133,15 +133,15 @@ public class CraftingScreen : GameScreen
         ((RectTransform)list.parent).Fill(0f, 0f, 0f, 108f);
 
         // The selected entry.
-        nameLabel = UiKit.Text(right, "Name", "", 36, UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
+        nameLabel = UiKit.Text(right, "Name", "", 36, UiKit.Ink, TextAnchor.MiddleLeft, FontStyle.Bold);
         Top(nameLabel.rectTransform, 0f, 46f);
-        helpLabel = UiKit.Text(right, "Description", "", 20, UiKit.Cream, TextAnchor.UpperLeft);
+        helpLabel = UiKit.Text(right, "Description", "", 20, UiKit.Ink, TextAnchor.UpperLeft);
         Top(helpLabel.rectTransform, 50f, 84f);
-        infoLabel = UiKit.Text(right, "Info", "", 19, UiKit.Muted, TextAnchor.MiddleLeft);
+        infoLabel = UiKit.Text(right, "Info", "", 19, UiKit.InkMuted, TextAnchor.MiddleLeft);
         Top(infoLabel.rectTransform, 136f, 28f);
-        reqHeading = UiKit.Text(right, "Needs Heading", "", 24, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        reqHeading = UiKit.Heading(right, "Needs Heading", "", 24, TextAnchor.MiddleLeft);
         Top(reqHeading.rectTransform, 172f, 32f);
-        reqLabel = UiKit.Text(right, "Needs", "", 23, UiKit.Cream, TextAnchor.UpperLeft);
+        reqLabel = UiKit.Text(right, "Needs", "", 23, UiKit.Ink, TextAnchor.UpperLeft);
         reqLabel.lineSpacing = 1.1f;
         // Down to just above the reason line, so a long list (the Covered Kitchen's two stages) has room without a smaller font.
         reqLabel.rectTransform.anchorMin = Vector2.zero;
@@ -150,7 +150,7 @@ public class CraftingScreen : GameScreen
         reqLabel.rectTransform.offsetMax = new Vector2(0f, -208f);
 
         // Reason or notice, the quantity row and the action button, from the bottom.
-        reasonLabel = UiKit.Text(right, "Reason", "", 19, UiKit.Muted, TextAnchor.LowerLeft);
+        reasonLabel = UiKit.Text(right, "Reason", "", 19, UiKit.InkMuted, TextAnchor.LowerLeft);
         reasonLabel.rectTransform.anchorMin = Vector2.zero;
         reasonLabel.rectTransform.anchorMax = new Vector2(1f, 0f);
         reasonLabel.rectTransform.pivot = new Vector2(0.5f, 0f);
@@ -291,7 +291,7 @@ public class CraftingScreen : GameScreen
             foreach (Entry e in allEntries)
                 if (e.category == categories[i] && e.can)
                     ready++;
-            categoryLabels[i].text = ready > 0 ? $"{categories[i]}  <color=#C7D68C>({ready})</color>" : categories[i];
+            categoryLabels[i].text = ready > 0 ? $"{categories[i]}  <color=#2E6121>({ready})</color>" : categories[i];
             UiKit.SetSelected(categoryButtons[i], i == categoryIndex[m]);
         }
         for (int i = 0; i < modeButtons.Length; i++)
@@ -327,7 +327,7 @@ public class CraftingScreen : GameScreen
         rows.Clear();
         hoverKey = null;
         if (shown.Count == 0)
-            UiKit.Height(UiKit.Text(list, "Empty", "Nothing here.", 21, UiKit.Muted), 50f);
+            UiKit.Height(UiKit.Text(list, "Empty", "Nothing here.", 21, UiKit.InkMuted), 50f);
         foreach (Entry entry in shown)
         {
             Entry captured = entry;
@@ -354,13 +354,13 @@ public class CraftingScreen : GameScreen
                 HoverTip.Add(picture, entry.name, () => Select(captured.key));
                 inset = RowIconPad + RowIconSize + 8f;
             }
-            Text nameText = UiKit.Text(rt, "Name", entry.name + MarkerText(entry.marker), 22, UiKit.Cream, TextAnchor.MiddleLeft);
+            Text nameText = UiKit.Text(rt, "Name", entry.name + MarkerText(entry.marker), 22, UiKit.Ink, TextAnchor.MiddleLeft);
             nameText.horizontalOverflow = HorizontalWrapMode.Overflow;
             nameText.rectTransform.anchorMin = new Vector2(0f, 0.56f);
             nameText.rectTransform.anchorMax = Vector2.one;
             nameText.rectTransform.offsetMin = new Vector2(inset, 0f);
             nameText.rectTransform.offsetMax = new Vector2(-12f, -2f);
-            Text costText = UiKit.Text(rt, "Cost", entry.cost, 15, UiKit.Muted, TextAnchor.UpperLeft);
+            Text costText = UiKit.Text(rt, "Cost", entry.cost, 15, UiKit.InkMuted, TextAnchor.UpperLeft);
             costText.horizontalOverflow = HorizontalWrapMode.Wrap;
             costText.verticalOverflow = VerticalWrapMode.Truncate;
             costText.rectTransform.anchorMin = Vector2.zero;
@@ -447,7 +447,7 @@ public class CraftingScreen : GameScreen
 
         string message = Notice;
         if (message == null && e != null && mode == Mode.Build && !e.can && !string.IsNullOrEmpty(e.reason))
-            message = $"<color=#E67350>{e.reason}</color>";
+            message = $"<color=#AD2E14>{e.reason}</color>";
         reasonLabel.text = message ?? "";
 
         // The action works on the selected entry (hovering another only previews it).
@@ -500,11 +500,11 @@ public class CraftingScreen : GameScreen
     {
         if (string.IsNullOrEmpty(marker))
             return "";
-        string color = marker == "HAVE" ? "#8FD16A" : marker == "SHORT" ? "#E8B84A" : "#E67350";
+        string color = marker == "HAVE" ? "#2E6121" : marker == "SHORT" ? "#8A5A06" : "#AD2E14";
         return $"  <color={color}><b>{marker}</b></color>";
     }
 
-    static string StatusColor(MaterialStatus status) => status == MaterialStatus.Have ? "#8FD16A" : status == MaterialStatus.Short ? "#E8B84A" : "#E67350";
+    static string StatusColor(MaterialStatus status) => status == MaterialStatus.Have ? "#2E6121" : status == MaterialStatus.Short ? "#8A5A06" : "#AD2E14";
 
     // "Missing: 2 of 5 materials" for the closest way to make it (or the whole list for a build in stages); "Needs" when there are only notes.
     static string RequirementsHeading(Entry e)
@@ -530,7 +530,7 @@ public class CraftingScreen : GameScreen
             // Stage by stage, the lines still missing first within each.
             foreach ((string title, List<MaterialLine> lines) in e.stages)
             {
-                text.Append($"<color=#EDE3C7CC>{title}</color>\n");
+                text.Append($"<color=#4A3720>{title}</color>\n");
                 foreach (MaterialLine l in MaterialCheckRules.MissingFirst(lines))
                     text.Append(LineText(l));
             }
@@ -545,7 +545,7 @@ public class CraftingScreen : GameScreen
                     string tag = "";
                     if (s == closest)
                         tag = MaterialCheckRules.Covered(e.sets[s]) ? "  -  " + MaterialCheckRules.CanMakeWithThisSet : "  -  closest set";
-                    text.Append($"<color={(s == closest && tag.Length > 0 && MaterialCheckRules.Covered(e.sets[s]) ? "#8FD16A" : "#EDE3C7CC")}>{(s == 0 ? "Either" : "or")}{tag}</color>\n");
+                    text.Append($"<color={(s == closest && tag.Length > 0 && MaterialCheckRules.Covered(e.sets[s]) ? "#2E6121" : "#4A3720")}>{(s == 0 ? "Either" : "or")}{tag}</color>\n");
                 }
                 foreach (MaterialLine l in MaterialCheckRules.MissingFirst(e.sets[s]))
                     text.Append(LineText(l));
@@ -553,7 +553,7 @@ public class CraftingScreen : GameScreen
         }
         foreach ((string note, int state) in e.notes)
         {
-            string color = state == 1 ? "#8FD16A" : state == 2 ? "#E67350" : "#EDE3C799";
+            string color = state == 1 ? "#2E6121" : state == 2 ? "#AD2E14" : "#6B5538";
             text.Append($"<color={color}>{note}</color>\n");
         }
         return text.ToString().TrimEnd('\n');
@@ -567,7 +567,7 @@ public class CraftingScreen : GameScreen
         CanvasGroup group = button.GetComponent<CanvasGroup>();
         if (group == null)
             group = button.gameObject.AddComponent<CanvasGroup>();
-        group.alpha = available ? 1f : 0.45f;
+        group.alpha = available ? 1f : 0.72f; // dimmed, but still readable on the parchment
     }
 
     // --- Craft entries ---
@@ -698,7 +698,7 @@ public class CraftingScreen : GameScreen
         string text = total == 1 ? $"Made a {itemName}." : $"Made {total} {itemName}.";
         if (Crafting.LeftOnGround > 0)
             text += $" {Crafting.LeftOnGround} left on the ground — no room in the pack.";
-        Tell($"<color=#C7D68C>{text}</color>");
+        Tell($"<color=#2E6121>{text}</color>");
         Refresh();
     }
 

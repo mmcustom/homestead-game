@@ -6,11 +6,9 @@ using UnityEngine.UI;
 // Missing-Materials Notice): a banner across the top of the screen in large type on a solid panel — Mike found the small
 // line hard to read (2026-10-04). A missing-materials refusal lists one material per line, quantity first, and stays up
 // long enough to read; it doesn't block clicks. A screen builds one, calls Tick() every frame and Hide() when it closes.
+// Wave 7 "Ledger" look (2026-11-20): a parchment slip with a red-ink rim and heading, bold ink lines.
 public class ScreenBanner
 {
-    static readonly Color BannerBorder = new Color(0.96f, 0.72f, 0.30f, 1f);
-    static readonly Color BannerFill = new Color(0.36f, 0.07f, 0.06f, 1f);
-
     RectTransform rect;
     Text text;
     float until;
@@ -18,7 +16,7 @@ public class ScreenBanner
     // Build it last, so it draws over everything else on the screen.
     public void Build(RectTransform area)
     {
-        Image border = UiKit.Image(area, "Notice Banner", BannerBorder);
+        Image border = UiKit.NoticeSlip(area, "Notice Banner", out RectTransform panel);
         rect = border.rectTransform;
         rect.anchorMin = new Vector2(0f, 1f);
         rect.anchorMax = new Vector2(1f, 1f);
@@ -26,9 +24,7 @@ public class ScreenBanner
         rect.anchoredPosition = new Vector2(0f, -6f);
         rect.sizeDelta = new Vector2(-40f, 100f);
 
-        Image panel = UiKit.Image(rect, "Panel", BannerFill);
-        panel.rectTransform.Fill(4f, 4f, 4f, 4f);
-        text = UiKit.Text(panel.rectTransform, "Text", "", 30, UiKit.Cream, TextAnchor.UpperLeft);
+        text = UiKit.Text(panel, "Text", "", 30, UiKit.Ink, TextAnchor.UpperLeft);
         text.rectTransform.Fill(22f, 8f, 22f, 8f);
         text.verticalOverflow = VerticalWrapMode.Overflow;
         rect.gameObject.SetActive(false);
@@ -51,9 +47,9 @@ public class ScreenBanner
     public void Show(string heading, string subheading, List<string> lines)
     {
         var builder = new System.Text.StringBuilder();
-        builder.Append($"<size=34><b><color=#FFE2BC>{heading}</color></b></size>");
+        builder.Append($"<size=34><b><color={UiKit.NoticeHeadingHex}>{heading}</color></b></size>");
         if (subheading != null)
-            builder.Append($"\n<size=27><color=#F6CFA3>{subheading}</color></size>");
+            builder.Append($"\n<size=27><color=#6B5538>{subheading}</color></size>");
         foreach (string line in lines)
             builder.Append($"\n<size=40><b>{line}</b></size>");
         text.text = builder.ToString();

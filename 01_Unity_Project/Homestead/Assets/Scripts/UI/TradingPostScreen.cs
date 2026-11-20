@@ -25,18 +25,18 @@ public class TradingPostScreen : GameScreen
     readonly Dictionary<string, int> buyAmounts = new Dictionary<string, int>();
     readonly Dictionary<string, int> sellAmounts = new Dictionary<string, int>();
 
-    const string UpColor = "#C7D68C", DownColor = "#E07A6A";
+    const string UpColor = "#2E6121", DownColor = "#AD2E14";
 
     public override string Title => "Trading Post";
 
     public override void Build(RectTransform area)
     {
-        moneyLabel = UiKit.Text(area, "Money", "", 30, UiKit.Cream, TextAnchor.MiddleLeft);
+        moneyLabel = UiKit.Text(area, "Money", "", 30, UiKit.Ink, TextAnchor.MiddleLeft);
         Top(moneyLabel.rectTransform, 0f, 40f, 0f, 1f);
-        statusLabel = UiKit.Text(area, "Status", "", 18, UiKit.Muted, TextAnchor.MiddleRight);
+        statusLabel = UiKit.Text(area, "Status", "", 18, UiKit.InkMuted, TextAnchor.MiddleRight);
         Top(statusLabel.rectTransform, 0f, 40f, 0.4f, 1f);
 
-        marketLabel = UiKit.Text(area, "Market", "", 16, UiKit.Muted, TextAnchor.MiddleLeft);
+        marketLabel = UiKit.Text(area, "Market", "", 16, UiKit.InkMuted, TextAnchor.MiddleLeft);
         Top(marketLabel.rectTransform, 40f, 24f, 0f, 1f);
 
         buyList = Column(area, "Buy", 0f, 0.485f);
@@ -47,10 +47,10 @@ public class TradingPostScreen : GameScreen
     {
         RectTransform column = UiKit.Rect(heading, area).Region(xMin, 0f, xMax, 1f);
         column.offsetMax = new Vector2(0f, -78f);
-        Text label = UiKit.Text(column, "Heading", heading == "Buy" ? "Buy" : "Sell", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text label = UiKit.Heading(column, "Heading", heading == "Buy" ? "Buy" : "Sell", 26, TextAnchor.MiddleLeft);
         Top(label.rectTransform, 0f, 36f, 0f, 1f);
         Text sub = UiKit.Text(column, "Sub", heading == "Buy" ? "What the store has    (Shift-click: 10)" : "What you carry that it'll take    (Shift-click: the lot)",
-                              16, UiKit.Muted, TextAnchor.MiddleRight);
+                              16, UiKit.InkMuted, TextAnchor.MiddleRight);
         Top(sub.rectTransform, 0f, 36f, 0.3f, 1f);
         RectTransform list = UiKit.ScrollList(column, "List");
         ((RectTransform)list.parent).Fill(0f, 0f, 0f, 42f);
@@ -102,7 +102,7 @@ public class TradingPostScreen : GameScreen
         TradingPost post = TradingPost.Instance;
         InventoryManager inventory = InventoryManager.Instance;
         moneyLabel.text = post != null
-            ? $"{Money.Format(post.Cents)}   <size=18><color=#EDE3C799>{DifficultyManager.Name(DifficultyManager.Tier)}</color></size>"
+            ? $"{Money.Format(post.Cents)}   <size=20><color=#6B5538>{DifficultyManager.Name(DifficultyManager.Tier)}</color></size>"
             : "";
 
         MarketManager market = MarketManager.Instance;
@@ -138,7 +138,7 @@ public class TradingPostScreen : GameScreen
             return byBase != 0 ? byBase : string.CompareOrdinal(a.item.DisplayName, b.item.DisplayName);
         });
         if (carried.Count == 0)
-            UiKit.Height(UiKit.Text(sellList, "Empty", "Nothing you're carrying that the store buys. Hides, furs, meat, fish, forage, firewood, logs and stone all sell.", 18, UiKit.Muted), 60f);
+            UiKit.Height(UiKit.Text(sellList, "Empty", "Nothing you're carrying that the store buys. Hides, furs, meat, fish, forage, firewood, logs and stone all sell.", 18, UiKit.InkMuted), 60f);
         foreach ((ItemDefinition item, int count, long baseCents) in carried)
             SellRow(inventory, market, item, count);
     }
@@ -148,8 +148,8 @@ public class TradingPostScreen : GameScreen
     {
         int max = Money.BuyCount(post.Cents, price, QuantityRules.MaxAmount, inventory.Player.SpaceFor(definition));
         int carriedCount = inventory.Player.Count(item);
-        string have = carriedCount > 0 ? $"  <size=16><color=#C7D68C>have {carriedCount}</color></size>" : "";
-        string why = max > 0 ? "" : post.Cents < price ? "  <size=16><color=#E07A6A>can't afford</color></size>" : "  <size=16><color=#E07A6A>too heavy to carry more</color></size>";
+        string have = carriedCount > 0 ? $"  <size=18><color=#2E6121>have {carriedCount}</color></size>" : "";
+        string why = max > 0 ? "" : post.Cents < price ? "  <size=18><color=#AD2E14>can't afford</color></size>" : "  <size=18><color=#AD2E14>too heavy to carry more</color></size>";
 
         QuantityRowUi row = null;
         row = QuantityRowUi.Create(buyList, "Buy", true, buyAmounts.TryGetValue(item, out int chosen) ? chosen : 1, max,
@@ -157,7 +157,7 @@ public class TradingPostScreen : GameScreen
         row.Name.text = $"{definition.DisplayName}{have}{why}";
         row.SetIcon(item, definition.DisplayName);
         row.Price.text = Money.Format(price);
-        row.Price.color = max > 0 ? UiKit.Cream : UiKit.Muted;
+        row.Price.color = max > 0 ? UiKit.Ink : UiKit.InkMuted;
         row.SetActionEnabled(max > 0);
 
         void ShowTotal() => row.Total.text = max > 0 ? $"{row.Stepper.Amount} -> {Money.Format(Money.Mul(price, row.Stepper.Amount))}" : "";
@@ -173,22 +173,22 @@ public class TradingPostScreen : GameScreen
     void SellRow(InventoryManager inventory, MarketManager market, ItemDefinition item, int count)
     {
         bool equipped = inventory.EquippedTool == item;
-        string note = equipped ? "  <size=15><color=#C7D68C>equipped</color></size>" : "";
+        string note = equipped ? "  <size=17><color=#2E6121>equipped</color></size>" : "";
         int percent = MarketRules.PercentOfNormal(market.Multiplier(item.Id));
-        string normal = percent != 100 ? $"  <size=16><color=#EDE3C799>· {percent}% of normal</color></size>" : "";
+        string normal = percent != 100 ? $"  <size=18><color=#6B5538>· {percent}% of normal</color></size>" : "";
 
         string trend;
         switch (market.Trend(item.Id))
         {
             case MarketTrend.Up: trend = $"<color={UpColor}>+</color>"; break;
             case MarketTrend.Down: trend = $"<color={DownColor}>-</color>"; break;
-            default: trend = "<color=#EDE3C766>=</color>"; break;
+            default: trend = "<color=#8C7759>=</color>"; break;
         }
 
         QuantityRowUi row = null;
         row = QuantityRowUi.Create(sellList, "Sell", true, sellAmounts.TryGetValue(item.Id, out int chosen) ? chosen : 1, count,
                                    shift => Sell(item, shift ? inventory.Player.Count(item.Id) : row.Stepper.Amount));
-        row.Name.text = $"{item.DisplayName}  <size=16><color=#EDE3C799>×{count}</color></size>{note}{normal}";
+        row.Name.text = $"{item.DisplayName}  <size=18><color=#6B5538>×{count}</color></size>{note}{normal}";
         row.SetIcon(item.Id, item.DisplayName);
         row.Trend.text = trend;
         row.Price.text = Money.Format(market.SellPrice(item.Id));

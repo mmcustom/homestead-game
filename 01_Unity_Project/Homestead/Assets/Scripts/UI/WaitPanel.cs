@@ -83,12 +83,12 @@ public class WaitPanel : MonoBehaviour
         panel.anchorMin = panel.anchorMax = new Vector2(0.5f, 0.5f);
         panel.sizeDelta = new Vector2(PanelWidth, PanelHeight);
 
-        Text title = UiKit.Text(panel, "Title", "Wait", 34, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text title = UiKit.Heading(panel, "Title", "Wait", 34, TextAnchor.MiddleLeft);
         Place(title.rectTransform, 32f, 14f, 200f, 54f);
-        clockLabel = UiKit.Text(panel, "Clock", "", 24, UiKit.Cream, TextAnchor.MiddleRight);
+        clockLabel = UiKit.Text(panel, "Clock", "", 24, UiKit.Ink, TextAnchor.MiddleRight);
         Place(clockLabel.rectTransform, 240f, 14f, PanelWidth - 240f - 32f, 54f);
 
-        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.2f));
+        Image rule = UiKit.Image(panel, "Rule", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.2f));
         Place(rule.rectTransform, 24f, 80f, PanelWidth - 48f, 2f);
 
         for (int i = 0; i < TimeControlRules.Kinds.Length; i++)
@@ -100,7 +100,7 @@ public class WaitPanel : MonoBehaviour
             buttonLabels[i] = button.GetComponentInChildren<Text>();
         }
 
-        noteLabel = UiKit.Text(panel, "Note", "", 22, UiKit.Muted, TextAnchor.UpperLeft);
+        noteLabel = UiKit.Text(panel, "Note", "", 22, UiKit.InkMuted, TextAnchor.UpperLeft);
         Place(noteLabel.rectTransform, 40f, 462f, PanelWidth - 80f, 70f);
 
         Button close = UiKit.Button(panel, "Close", "Close  [Z]", 20, () => Hide(true));

@@ -70,9 +70,9 @@ public class InventoryScreen : GameScreen
         header.anchorMax = new Vector2(1f, 1f);
         header.offsetMin = new Vector2(0f, -36f);
         header.offsetMax = Vector2.zero;
-        Column(header, "Item", 0f, 0.62f, TextAnchor.MiddleLeft, UiKit.Muted, 19, 18f);
-        Column(header, "Qty", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Muted, 19, 0f);
-        Column(header, "Weight", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Muted, 19, 0f, 8f);
+        Column(header, "Item", 0f, 0.62f, TextAnchor.MiddleLeft, UiKit.InkMuted, 19, 18f);
+        Column(header, "Qty", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.InkMuted, 19, 0f);
+        Column(header, "Weight", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.InkMuted, 19, 0f, 8f);
 
         list = UiKit.ScrollList(left, "List");
         ((RectTransform)list.parent).Fill(0f, 0f, 0f, 40f);
@@ -81,7 +81,7 @@ public class InventoryScreen : GameScreen
         RectTransform right = UiKit.Rect("Carrying", area).Region(0.63f, 0f, 1f, 1f);
 
         Heading(right, "Carrying", 0f);
-        weightLabel = UiKit.Text(right, "Weight", "", 34, UiKit.Cream);
+        weightLabel = UiKit.Text(right, "Weight", "", 34, UiKit.Ink);
         Top(weightLabel.rectTransform, 44f, 48f);
 
         RectTransform bar = UiKit.Image(right, "Bar", new Color(0f, 0f, 0f, 0.5f)).rectTransform;
@@ -92,30 +92,30 @@ public class InventoryScreen : GameScreen
         barFill.anchorMax = new Vector2(0f, 1f);
         barFill.offsetMin = barFill.offsetMax = Vector2.zero;
 
-        encumberedTick = UiKit.Image(bar, "Encumbered Tick", UiKit.Cream).rectTransform;
+        encumberedTick = UiKit.Image(bar, "Encumbered Tick", UiKit.Ink).rectTransform;
         encumberedTick.anchorMin = encumberedTick.anchorMax = new Vector2(0f, 0.5f);
         encumberedTick.sizeDelta = new Vector2(3f, 32f);
-        encumberedTickLabel = UiKit.Text(encumberedTick, "Label", "", 16, UiKit.Muted, TextAnchor.UpperCenter);
+        encumberedTickLabel = UiKit.Text(encumberedTick, "Label", "", 16, UiKit.InkMuted, TextAnchor.UpperCenter);
         encumberedTickLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
         encumberedTickLabel.rectTransform.anchorMin = encumberedTickLabel.rectTransform.anchorMax = new Vector2(0.5f, 0f);
         encumberedTickLabel.rectTransform.pivot = new Vector2(0.5f, 1f);
         encumberedTickLabel.rectTransform.sizeDelta = new Vector2(160f, 22f);
         encumberedTickLabel.rectTransform.anchoredPosition = new Vector2(0f, -2f);
 
-        statusLabel = UiKit.Text(right, "Status", "", 21, UiKit.Cream);
+        statusLabel = UiKit.Text(right, "Status", "", 21, UiKit.Ink);
         Top(statusLabel.rectTransform, 148f, 52f);
 
         Heading(right, "Equipped Tool", 204f);
-        equippedLabel = UiKit.Text(right, "Equipped", "", 26, UiKit.Cream);
+        equippedLabel = UiKit.Text(right, "Equipped", "", 26, UiKit.Ink);
         Top(equippedLabel.rectTransform, 242f, 34f);
 
-        hintLabel = UiKit.Text(right, "Hint", "", 16, UiKit.Muted);
+        hintLabel = UiKit.Text(right, "Hint", "", 16, UiKit.InkMuted);
         Top(hintLabel.rectTransform, 278f, 124f);
 
         // Building and crafting live on their own screen now.
         craftButton = UiKit.Button(right, "Craft and Build", "Craft and Build  [B]", 22, OpenCrafting);
         Top((RectTransform)craftButton.transform, 408f, 52f);
-        noticeLabel = UiKit.Text(right, "Notice", "", 18, UiKit.Muted);
+        noticeLabel = UiKit.Text(right, "Notice", "", 18, UiKit.InkMuted);
         Top(noticeLabel.rectTransform, 470f, 56f);
 
         banner.Build(area); // last, so it draws over everything else
@@ -242,7 +242,7 @@ public class InventoryScreen : GameScreen
             : string.CompareOrdinal(a.item.DisplayName, b.item.DisplayName));
 
         if (stacks.Count == 0)
-            UiKit.Height(UiKit.Text(list, "Empty", "You're not carrying anything.", 21, UiKit.Muted), 50f);
+            UiKit.Height(UiKit.Text(list, "Empty", "You're not carrying anything.", 21, UiKit.InkMuted), 50f);
 
         ItemDefinition equipped = inventory.EquippedTool;
         PlayerController player = FindAnyObjectByType<PlayerController>();
@@ -251,27 +251,27 @@ public class InventoryScreen : GameScreen
             AddRow(item, quantity, item == equipped, atFire, player);
 
         hintLabel.text = "Click a tool to equip it, food or water to use one. Set an amount with - / + / Max or type it; Shift-click Drop: the stack. Point at a tool, press 1-9/0: hotkey. " +
-                         (atFire ? "<color=#C7D68C>At the fire: Cook; Boil water or sap (Pot) or Lye (Kettle), hung on a tripod.</color>"
+                         (atFire ? "<color=#2E6121>At the fire: Cook; Boil water or sap (Pot) or Lye (Kettle), hung on a tripod.</color>"
                                  : "Cook at a burning campfire; split Logs and Branches with the Axe.");
 
         // Weight against the thresholds.
         float carried = inventory.CarriedWeightKg, max = inventory.MaxCarryWeightKg, limit = inventory.EncumberedWeightKg;
-        weightLabel.text = $"{carried:0.0} kg <size=24><color=#EDE3C799>/ {max:0} kg  ({carried * KgToLb:0} / {max * KgToLb:0} lb)</color></size>";
+        weightLabel.text = $"{carried:0.0} kg <size=27><color=#6B5538>/ {max:0} kg  ({carried * KgToLb:0} / {max * KgToLb:0} lb)</color></size>";
         float fill = max > 0f ? Mathf.Clamp01(carried / max) : 0f;
         barFill.anchorMax = new Vector2(fill, 1f);
-        barFillImage.color = inventory.IsEncumbered ? (fill >= 0.999f ? UiKit.Warning : BarEncumbered) : BarNormal;
+        barFillImage.color = inventory.IsEncumbered ? (fill >= 0.999f ? UiKit.InkWarning : BarEncumbered) : BarNormal;
         float tick = max > 0f ? limit / max : 0f;
         encumberedTick.anchorMin = encumberedTick.anchorMax = new Vector2(tick, 0.5f);
         encumberedTickLabel.text = $"Encumbered {limit:0} kg";
 
         if (carried >= max - 0.001f)
-            statusLabel.text = "<color=#E67350>At your carrying limit.</color> Nothing more can be picked up.";
+            statusLabel.text = "<color=#AD2E14>At your carrying limit.</color> Nothing more can be picked up.";
         else if (inventory.IsEncumbered)
-            statusLabel.text = $"<color=#D6A04D>Encumbered</color> — moving slower and can't sprint at the limit. {max - carried:0.0} kg of room left.";
+            statusLabel.text = $"<color=#8A5A06>Encumbered</color> — moving slower and can't sprint at the limit. {max - carried:0.0} kg of room left.";
         else
             statusLabel.text = $"Unencumbered. {limit - carried:0.0} kg before you slow down.";
 
-        equippedLabel.text = equipped != null ? equipped.DisplayName : "<color=#EDE3C799>None</color>";
+        equippedLabel.text = equipped != null ? equipped.DisplayName : "<color=#6B5538>None</color>";
         RefreshNotice();
     }
 
@@ -388,15 +388,15 @@ public class InventoryScreen : GameScreen
         }
 
         string detail = item.IsFood ? FoodDetail(item) : CategoryName(item.Category);
-        string tag = equipped ? "  <color=#C7D68C>• Equipped</color>" : "";
+        string tag = equipped ? "  <color=#2E6121>• Equipped</color>" : "";
         PortableLight light = PortableLight.Instance;
         if (light != null && item.Id == PortableLight.TorchId && light.TorchHoursLeft > 0f)
-            tag += $"  <size=16><color=#E6A050>{light.TorchHoursLeft:0.0} h</color></size>";
+            tag += $"  <size=18><color=#94520E>{light.TorchHoursLeft:0.0} h</color></size>";
         else if (light != null && item.Id == PortableLight.LanternId)
-            tag += $"  <size=16><color=#E6A050>{light.LanternFuelHours:0.0} h</color></size>";
+            tag += $"  <size=18><color=#94520E>{light.LanternFuelHours:0.0} h</color></size>";
         string risk = Food.RiskTag(item);
         if (risk != null)
-            tag += $"  <size=16><color=#E6A050>{risk}</color></size>";
+            tag += $"  <size=18><color=#94520E>{risk}</color></size>";
 
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
         bool sapBoil = Cooking.IsSapBoil(item.Id); // Maple Sap boils down to Syrup in 10 L batches
@@ -408,8 +408,8 @@ public class InventoryScreen : GameScreen
         bool hotkeyable = isTool && !InventoryManager.IsCarriedOnly(item.Id);
 
         // Line one: name, the hotkey button, quantity, weight.
-        Column(rt, $"{item.DisplayName}  <size=16><color=#EDE3C799>{detail}</color></size>{tag}", 0f, hotkeyable ? 0.36f : QtyMin,
-               TextAnchor.MiddleLeft, UiKit.Cream, 21, inset, 0f, 0.5f);
+        Column(rt, $"{item.DisplayName}  <size=18><color=#6B5538>{detail}</color></size>{tag}", 0f, hotkeyable ? 0.36f : QtyMin,
+               TextAnchor.MiddleLeft, UiKit.Ink, 21, inset, 0f, 0.5f);
         // Tool Hotkeys (Inventory_System.md): the number key that equips this Tool. Click cycles 1-9, 0, none;
         // or point at the row and press a number key.
         if (hotkeyable)
@@ -425,8 +425,8 @@ public class InventoryScreen : GameScreen
             keyRt.offsetMin = new Vector2(0f, 4f);
             keyRt.offsetMax = new Vector2(0f, -4f);
         }
-        Column(rt, $"×{quantity}", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 0f, 0.5f);
-        Column(rt, $"{item.WeightKg * quantity:0.0} kg", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Cream, 21, 0f, 8f, 0.5f);
+        Column(rt, $"×{quantity}", QtyMin, QtyMax, TextAnchor.MiddleRight, UiKit.Ink, 21, 0f, 0f, 0.5f);
+        Column(rt, $"{item.WeightKg * quantity:0.0} kg", QtyMax, WeightMax, TextAnchor.MiddleRight, UiKit.Ink, 21, 0f, 8f, 0.5f);
 
         // Line two: the stepper (the most is what is carried), what the row's queue is doing, then the buttons from the right.
         QuantityStepper stepper = QuantityStepper.Create(rt, amounts.TryGetValue(item.Id, out int chosen) ? chosen : 1, quantity);
@@ -510,11 +510,12 @@ public class InventoryScreen : GameScreen
             brownColors.selectedColor = brownColors.normalColor;
             brownColors.highlightedColor = new Color(0.5f, 0.34f, 0.16f, 1f);
             action.colors = brownColors;
+            actionLabel.color = UiKit.LabelColor(action, action.interactable); // cream on the brown
             actionLabel.text = actionText();
         }
 
         // Wraps onto the row's second line instead of running under the buttons, with a margin before the first one.
-        Text info = UiKit.Text(rt, "Info", idleInfo, 16, UiKit.Muted, TextAnchor.MiddleLeft);
+        Text info = UiKit.Text(rt, "Info", idleInfo, 16, UiKit.InkMuted, TextAnchor.MiddleLeft);
         info.horizontalOverflow = HorizontalWrapMode.Wrap;
         info.verticalOverflow = VerticalWrapMode.Truncate;
         info.rectTransform.anchorMin = Vector2.zero;
@@ -723,7 +724,7 @@ public class InventoryScreen : GameScreen
 
     static void Heading(RectTransform parent, string text, float top)
     {
-        Text label = UiKit.Text(parent, text, text, 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text label = UiKit.Heading(parent, text, text, 26, TextAnchor.MiddleLeft);
         Top(label.rectTransform, top, 36f);
     }
 

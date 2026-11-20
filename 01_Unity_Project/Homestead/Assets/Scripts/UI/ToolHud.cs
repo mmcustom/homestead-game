@@ -12,6 +12,9 @@ using UnityEngine.UI;
 // its heart and lungs (the clean-kill zone) — with the range and, past the weapon's effective range, a warning.
 public class ToolHud : MonoBehaviour
 {
+    // The compass strip runs from 20 to 64 px below the top of the 1080-tall HUD, with its pointer just under it; the statement line goes below both.
+    const float StatementTop = 76f;
+
     [SerializeField] Graphic crosshair;
     [SerializeField] Text statusLabel;
     [SerializeField] RectTransform bar;
@@ -228,26 +231,24 @@ public class ToolHud : MonoBehaviour
         scopeRoot.gameObject.SetActive(false);
         readout.enabled = false;
 
-        // The large notice banner (ToolStatus.Banner): the same amber-on-red look as the Inventory screen's refusals.
-        Image border = UiKit.Image(root, "Notice Banner", new Color(0.96f, 0.72f, 0.30f, 1f));
+        // The large notice banner (ToolStatus.Banner): the same red-rimmed parchment slip as the Inventory screen's refusals.
+        Image border = UiKit.NoticeSlip(root, "Notice Banner", out RectTransform panel);
         bannerRoot = border.rectTransform;
         bannerRoot.anchorMin = bannerRoot.anchorMax = new Vector2(0.5f, 1f);
         bannerRoot.pivot = new Vector2(0.5f, 1f);
-        bannerRoot.anchoredPosition = new Vector2(0f, -40f);
+        bannerRoot.anchoredPosition = new Vector2(0f, -(StatementTop + 6f)); // under the compass strip, which it used to cover
         bannerRoot.sizeDelta = new Vector2(1300f, 130f);
-        Image panel = UiKit.Image(bannerRoot, "Panel", new Color(0.36f, 0.07f, 0.06f, 1f));
-        panel.rectTransform.Fill(4f, 4f, 4f, 4f);
-        bannerLabel = UiKit.Text(panel.rectTransform, "Text", "", 36, UiKit.Cream, TextAnchor.MiddleCenter);
+        bannerLabel = UiKit.Text(panel, "Text", "", 36, UiKit.NoticeRed, TextAnchor.MiddleCenter, FontStyle.Bold);
         bannerLabel.rectTransform.Fill(22f, 8f, 22f, 8f);
-        bannerLabel.fontStyle = FontStyle.Bold;
         bannerRoot.gameObject.SetActive(false);
 
-        // A small line at the top until the player has opened the new account statement.
-        statementLabel = UiKit.Text(root, "Statement Ready", "Account statement ready: press L", 20, new Color(0.96f, 0.72f, 0.30f, 1f), TextAnchor.UpperCenter);
+        // A line at the top until the player has opened the new account statement, just under the compass strip
+        // (it used to sit on top of the strip's letters).
+        statementLabel = UiKit.Text(root, "Statement Ready", "Account statement ready: press L", 22, new Color(0.96f, 0.72f, 0.30f, 1f), TextAnchor.UpperCenter);
         statementLabel.rectTransform.anchorMin = statementLabel.rectTransform.anchorMax = new Vector2(0.5f, 1f);
         statementLabel.rectTransform.pivot = new Vector2(0.5f, 1f);
-        statementLabel.rectTransform.sizeDelta = new Vector2(600f, 28f);
-        statementLabel.rectTransform.anchoredPosition = new Vector2(0f, -8f);
+        statementLabel.rectTransform.sizeDelta = new Vector2(600f, 32f);
+        statementLabel.rectTransform.anchoredPosition = new Vector2(0f, -StatementTop);
         statementLabel.horizontalOverflow = HorizontalWrapMode.Overflow;
         statementLabel.gameObject.AddComponent<Shadow>().effectColor = new Color(0f, 0f, 0f, 0.9f);
         statementLabel.enabled = false;

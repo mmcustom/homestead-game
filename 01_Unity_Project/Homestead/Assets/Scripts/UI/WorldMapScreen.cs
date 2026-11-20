@@ -34,7 +34,7 @@ public class WorldMapScreen : GameScreen
         mapArea.sizeDelta = new Vector2(740f, 0f);
         mapArea.anchoredPosition = Vector2.zero; // the area is 740 tall, so this is square
 
-        UiKit.Image(mapArea, "Frame", new Color(UiKit.Cream.r, UiKit.Cream.g, UiKit.Cream.b, 0.35f)).rectTransform.Fill(-3f, -3f, -3f, -3f);
+        UiKit.Image(mapArea, "Frame", new Color(UiKit.Ink.r, UiKit.Ink.g, UiKit.Ink.b, 0.35f)).rectTransform.Fill(-3f, -3f, -3f, -3f);
         UiKit.Image(mapArea, "Unexplored", Color.black).rectTransform.Fill();
 
         terrainImage = UiKit.Rect("Terrain", mapArea).Fill().gameObject.AddComponent<RawImage>();
@@ -43,6 +43,7 @@ public class WorldMapScreen : GameScreen
         fogImage.color = Color.black;
         fogImage.raycastTarget = false;
         markerLayer = UiKit.Rect("Markers", mapArea).Fill();
+        markerLayer.gameObject.AddComponent<RectMask2D>(); // labels near the edge stop at the map instead of running over the list
 
         // The player: a larger arrow than the minimap's, over a pulsing halo so it stands out even on a marker.
         playerArrow = UiKit.Rect("Player", mapArea);
@@ -55,7 +56,7 @@ public class WorldMapScreen : GameScreen
         pointer.sprite = MapIcons.Arrow;
         pointer.rectTransform.Fill(10f, 10f, 10f, 10f);
 
-        Text north = UiKit.Text(mapArea, "North", "N", 22, UiKit.Cream, TextAnchor.UpperRight, FontStyle.Bold);
+        Text north = UiKit.Text(mapArea, "North", "N", 22, UiKit.Ink, TextAnchor.UpperRight, FontStyle.Bold);
         north.rectTransform.Fill(0f, 0f, 12f, 8f);
 
         // Legend on the right.
@@ -65,13 +66,13 @@ public class WorldMapScreen : GameScreen
         side.offsetMin = new Vector2(780f, 0f);
         side.offsetMax = Vector2.zero;
 
-        Text heading = UiKit.Text(side, "Heading", "Discovered", 26, UiKit.Accent, TextAnchor.MiddleLeft, FontStyle.Italic);
+        Text heading = UiKit.Heading(side, "Heading", "Discovered", 26, TextAnchor.MiddleLeft);
         heading.rectTransform.anchorMin = new Vector2(0f, 1f);
         heading.rectTransform.anchorMax = new Vector2(1f, 1f);
         heading.rectTransform.offsetMin = new Vector2(0f, -40f);
         heading.rectTransform.offsetMax = Vector2.zero;
 
-        exploredLabel = UiKit.Text(side, "Explored", "", 20, UiKit.Muted);
+        exploredLabel = UiKit.Text(side, "Explored", "", 20, UiKit.InkMuted);
         exploredLabel.rectTransform.anchorMin = new Vector2(0f, 0f);
         exploredLabel.rectTransform.anchorMax = new Vector2(1f, 0f);
         exploredLabel.rectTransform.offsetMin = Vector2.zero;
@@ -127,7 +128,7 @@ public class WorldMapScreen : GameScreen
         if (discovery == null || discovery.Records.Count == 0)
         {
             UiKit.Height(UiKit.Text(siteList, "Empty", "Nothing found yet. Explore the property to fill in the map.",
-                                    20, UiKit.Muted), 60f);
+                                    20, UiKit.InkMuted), 60f);
             return;
         }
 
@@ -150,8 +151,8 @@ public class WorldMapScreen : GameScreen
             icon.rectTransform.pivot = new Vector2(0f, 0.5f);
             icon.rectTransform.sizeDelta = new Vector2(32f, 32f);
             icon.rectTransform.anchoredPosition = new Vector2(4f, 0f);
-            Text name = UiKit.Text(row, "Name", $"{record.displayName}  <color=#EDE3C799>{DiscoveryCategoryNames.Of(record.category)}{returnNote}</color>",
-                                   21, dormant ? UiKit.Muted : UiKit.Cream);
+            Text name = UiKit.Text(row, "Name", $"{record.displayName}  <color=#6B5538>{DiscoveryCategoryNames.Of(record.category)}{returnNote}</color>",
+                                   21, dormant ? UiKit.InkMuted : UiKit.Ink);
             name.rectTransform.Fill(48f, 0f, 0f, 0f);
         }
         playerArrow.SetAsLastSibling();
@@ -172,7 +173,7 @@ public class WorldMapScreen : GameScreen
             icon.color = DormantTint;
         icon.rectTransform.Fill();
 
-        Text label = UiKit.Text(marker, "Label", record.displayName + returnNote, 17, dormant ? UiKit.Muted : UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold);
+        Text label = UiKit.Text(marker, "Label", record.displayName + returnNote, 17, dormant ? UiKit.Muted : UiKit.Cream, TextAnchor.MiddleLeft, FontStyle.Bold); // light, over the map
         label.horizontalOverflow = HorizontalWrapMode.Overflow;
         label.rectTransform.anchorMin = label.rectTransform.anchorMax = new Vector2(1f, 0.5f);
         label.rectTransform.pivot = new Vector2(0f, 0.5f);
