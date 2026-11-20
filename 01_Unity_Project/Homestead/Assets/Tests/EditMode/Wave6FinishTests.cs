@@ -27,6 +27,14 @@ public class Wave6FinishTests
     {
         var rain = Load<Texture2D>("Assets/Art/Weather/Raindrop.png");
         Assert.That(rain.height, Is.GreaterThanOrEqualTo(128), "the longer, sharper streak");
+        // Rain particles are only 2 cm wide: a faint or thin streak falls below a pixel and the rain vanishes (2026-11-20).
+        var png = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
+        png.LoadImage(System.IO.File.ReadAllBytes("Assets/Art/Weather/Raindrop.png"));
+        Color32[] pixels = png.GetPixels32();
+        double alpha = 0;
+        foreach (Color32 p in pixels) alpha += p.a;
+        UnityEngine.Object.DestroyImmediate(png);
+        Assert.That(alpha / pixels.Length / 255.0, Is.GreaterThan(0.15), "the drop must cover about as much of its sprite as the original did (0.22)");
         Assert.That(Load<Material>("Assets/Art/Weather/Rain.mat").GetTexture("_UnlitColorMap"), Is.EqualTo(rain));
         Assert.That(Load<Material>("Assets/Art/Weather/Snow.mat").GetTexture("_UnlitColorMap"), Is.EqualTo(Load<Texture2D>("Assets/Art/Weather/Snowflake.png")));
         var bolt = Load<Material>("Assets/Art/Weather/Lightning Bolt.mat");

@@ -22,13 +22,14 @@ def noise(h, w, sigma, seed):
     return n / (n.std() + 1e-9)
 
 def raindrop():
+    # As wide and as solid as the drop it replaced (16x64, alpha mean about 0.22): rain particles are only 2 cm across,
+    # so a thin streak inside the sprite falls below a pixel and the rain disappears.
     h, w = 128, 32
     yy, xx = np.mgrid[0:h, 0:w].astype(float)
     t = yy / (h - 1)                                   # 0 top (tail) .. 1 bottom (head)
-    width = 1.2 + 2.2 * t ** 2
-    across = np.exp(-((xx - w / 2 + 0.5) / width) ** 2)
-    along = np.clip(t * 1.4, 0, 1) * np.clip((1 - t) * 12, 0, 1)
-    a = across * along * (0.55 + 0.45 * t)
+    across = np.exp(-((xx - w / 2 + 0.5) / (w * 0.2)) ** 2)
+    along = np.clip(t * 4, 0, 1) * np.clip((1 - t) * 6, 0, 1)
+    a = across * along * (0.75 + 0.25 * t)
     rgb = np.dstack([np.ones_like(a) * 0.92, np.ones_like(a) * 0.95, np.ones_like(a)])
     rgba("Raindrop", rgb, a)
 

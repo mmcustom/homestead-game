@@ -36,6 +36,13 @@ public static class MapIcons
         if (markers.TryGetValue(key, out Sprite sprite) && sprite != null)
             return sprite;
 
+        sprite = ArtMarker(category, icon);
+        if (sprite != null)
+        {
+            markers[key] = sprite;
+            return sprite;
+        }
+
         Func<float, float, bool> glyph = GlyphFor(icon) ?? GlyphFor(category);
         Color fill = CategoryColor(category);
         sprite = Draw($"Marker {category}", IconSize, (x, y) =>
@@ -47,6 +54,24 @@ public static class MapIcons
             return glyph(x / 0.62f, y / 0.62f) ? Glyph : fill;
         });
         markers[key] = sprite;
+        return sprite;
+    }
+
+    // Wave 4 map icons (Art_Needed_List.md, 2026-11-20): the drawn markers as art, Resources/Art/map_marker_<category>[_<icon>]
+    // (128 px, same colours and layout as the code's). An icon without its own art uses its category's, as GlyphFor does;
+    // without any art the marker is drawn as before. Sized to match the drawn 64 px sprites.
+    static Sprite ArtMarker(DiscoveryCategory category, string icon)
+    {
+        Texture2D texture = null;
+        if (!string.IsNullOrEmpty(icon) && icon != "berry")
+            texture = Resources.Load<Texture2D>($"Art/map_marker_{category}_{icon}");
+        if (texture == null)
+            texture = Resources.Load<Texture2D>($"Art/map_marker_{category}");
+        if (texture == null)
+            return null;
+        var sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f * texture.width / IconSize);
+        sprite.name = $"Marker {category}";
+        sprite.hideFlags = HideFlags.DontSave;
         return sprite;
     }
 

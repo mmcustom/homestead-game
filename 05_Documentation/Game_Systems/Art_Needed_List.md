@@ -154,7 +154,7 @@ Items today are one tinted cube sized by weight (DroppedItems.Spawn) and have no
 | item_<id> for hides, pelts, meat, fish, eggs, forage | Food and animal goods | 0.1 to 0.4 | Hides pair with the tanning rack reference (tanning not in code yet). | Medium |
 | item_<id> for pottery (pots, jars, bricks) | Fired and unfired clay goods | 0.1 to 0.3 | Dry versus fired colour difference matters. | Medium |
 | Item icons (2D) | One icon per item for inventory and market | 128 x 128 px, transparent PNG | Done 2026-11-19 (see Wave 4 item icons below): rendered from the item art, shown in the Inventory rows. | Medium |
-| Map icons (2D) | Map markers for structures and places | 64 x 64 px | Built in code today (UI/MapIcons.cs). | Low |
+| Map icons (2D) | Map markers for structures and places | 64 x 64 px | In Unity 2026-11-20 (ui_map_markers; see its section): the nine discovery markers as 128 px art, used by MapIcons.Marker; the player arrow and the maple droplet and pail stay drawn in code (the HUD tints them). Awaiting Mike's check. | Low |
 | Stump | Tree stump left after felling | trunk radius (confirm) | Pivot at ground, cut face up. | Medium |
 | Carcass | Dead animal on the ground | by species | Moved to Wave 5 (Mike, 2026-11-19): there is no separate carcass in code; Animal.Die tips the animal's own model 85 degrees onto its side. Made with each animal. | none |
 | Placement ghost | Uses the structure prefabs themselves | as each kind | No separate art. | none |
@@ -187,7 +187,7 @@ Animals are prefabs already (Prefabs/Wildlife/*.prefab, built from capsules and 
 | Squirrel (grey or fox) | 0.45 long incl. tail | Approved 2026-11-19 (animal_squirrel, on all fours with the tail up, and carcass; see its section). | Low |
 | Duck (mallard) | 0.55 long | Approved 2026-11-19 (animal_waterfowl, drake and hen, floating and carcass; see its section). | Low |
 | Fish (creek species) | 0.2 to 0.5 long | Art exists (2026-11-19 check): the four species (bluegill, crappie, bass, catfish) are the Wave 4 item_ fish, and the Fish Trap's art has fish in its Catch. The rod shows no fish on the line today: a catch goes straight to the pack (FishingRod). Showing the landed fish is a code feature, not art. Counted done by Mike, 2026-11-19 (no fish on the line for now). | Low |
-| Bobber | 0.07 | In Unity 2026-11-19 (fishing_bobber; see its section). | Low |
+| Bobber | 0.07 | Approved by Mike 2026-11-20 (fishing_bobber; see its section). | Low |
 | Carcass (each species) | as the animal | Moved from Wave 4 (Mike, 2026-11-19). Today Animal.Die tips the live model 85 degrees on its side (Carcass.cs has the dressing logic and no visuals). Make the dead pose from each animal's own model so the body that falls matches the live animal; a field-dressed look is optional (Carcass has a dressed flag, nothing visual yet). | with each animal |
 | Rabbit Snare, Box Trap, Fish Trap (world versions) | see tools table | Done 2026-11-15 from the tool_ art (see the trap_ notes). | Low |
 
@@ -199,17 +199,17 @@ These set the look of every screen, so they decide whether the realistic style h
 
 | Group | What | Notes | Reference image | Priority |
 |---|---|---|---|---|
-| Trees | Hardwood Broad, Hardwood Tall, Understory Shrub, plus tall and short fall-colour variants | Sugar maple, sycamore, oak, hickory, beech; up to about 25,000 triangles each in the realistic style (leaf cards count); also a low-detail version later. FallingTree tips the same prefab over. | fall sugar maple, sugar maple, winter sugar maple, sycamore (reference only) | High. All three in Unity 2026-11-19 (Hardwood Broad = sugar maple, Hardwood Tall = tulip poplar, Understory Shrub = viburnum), look approved by Mike 2026-11-19, Play Mode frame-rate and season check still to do (see world_trees). Fall variety done 2026-11-19: a share of each kind turns a second fall colour (golden-orange maples, russet poplars, purple viburnums), chosen per tree in the leaf shader. |
+| Trees | Hardwood Broad, Hardwood Tall, Understory Shrub, plus tall and short fall-colour variants | Sugar maple, sycamore, oak, hickory, beech; up to about 25,000 triangles each in the realistic style (leaf cards count); also a low-detail version later. FallingTree tips the same prefab over. | fall sugar maple, sugar maple, winter sugar maple, sycamore (reference only) | High. All three in Unity 2026-11-19 (Hardwood Broad = sugar maple, Hardwood Tall = tulip poplar, Understory Shrub = viburnum), approved by Mike in Play Mode 2026-11-20 (see world_trees). Fall variety done 2026-11-19: a share of each kind turns a second fall colour (golden-orange maples, russet poplars, purple viburnums), chosen per tree in the leaf shader. |
 | Rocks | Rock A, B, C and the South Ridge outcrop | Approved 2026-11-19 (world_rocks: weathered limestone; see its section). | none (procedural) | Medium |
 | Sticks and branches | Ground wood variants | Approved 2026-11-19 (world_ground_wood: three stick bundles and three fallen branches; see its section). | none (procedural) | Medium |
 | Tall grass | Grass clump | Approved 2026-11-19 (world_tall_grass; see its section). Sways in the wind (see Wind sway). | none (procedural) | Medium |
-| Forage | One simple shape and one material per species | Done 2026-11-19 (world_forage): one shape per crop in Resources/Art/forage_crop_model.fbx, used by ForagePlacer; fruit and berries now sit on the art trees' real leaves. Awaiting Mike's Play Mode check. | none yet | Low |
+| Forage | One simple shape and one material per species | Done 2026-11-19 (world_forage): one shape per crop in Resources/Art/forage_crop_model.fbx, used by ForagePlacer; fruit and berries now sit on the art trees' real leaves. Approved by Mike 2026-11-20. | none yet | Low |
 | Clay patches | Wet clay surface decals | Done 2026-11-19 (world_ground): Resources/Art/world_clay_patch.prefab, an HDRP decal of wet clay, ready to place; none placed (the creek banks already show clay through the terrain layer). | none yet | Low |
 | Water | Creek and pond surface material | Approved 2026-11-19 (world_water: see-through, flowing, shore foam; see its section). | none (procedural) | High |
-| Terrain | Three terrain layers: Dirt, Grass, Gravel (albedo, normal, mask) | Approved 2026-11-19 (world_terrain; see its section). Runtime snow, leaf litter, wet clay and creek sand layers have art 2026-11-19 (world_ground), awaiting Mike's Play Mode check. | none (procedural) | High |
-| Weather | Rain, snow, lightning particle sprites | Done 2026-11-19 (world_fx): new Raindrop and Snowflake sprites in place, a glowing Lightning Bolt texture. Awaiting Mike's Play Mode check. | none yet | Medium |
-| Smoke and fire | KilnSmoke material and texture, campfire flame sprites | Done 2026-11-19 (world_fx): a 16-frame flame sheet on the campfire's Flames and Core, a billowy kiln smoke puff. Awaiting Mike's Play Mode check. | none yet | Medium |
-| Sky | Skybox or HDRI | Done 2026-11-19 (world_sky): HDRP Physically Based Sky (sun, dawn, dusk) plus stars and a faint Milky Way at night and a textured moon that waxes and wanes over 29.5 days; clouds stay HDRP's cloud layer driven by DayNightCycle. Awaiting Mike's Play Mode check. | none yet | Medium |
+| Terrain | Three terrain layers: Dirt, Grass, Gravel (albedo, normal, mask) | Approved 2026-11-19 (world_terrain; see its section). Runtime snow, leaf litter, wet clay and creek sand layers have art 2026-11-19 (world_ground), approved by Mike 2026-11-20. | none (procedural) | High |
+| Weather | Rain, snow, lightning particle sprites | Done 2026-11-19 (world_fx): new Raindrop and Snowflake sprites in place, a glowing Lightning Bolt texture. Approved by Mike 2026-11-20. | none yet | Medium |
+| Smoke and fire | KilnSmoke material and texture, campfire flame sprites | Done 2026-11-19 (world_fx): a 16-frame flame sheet on the campfire's Flames and Core, a billowy kiln smoke puff. Approved by Mike 2026-11-20. | none yet | Medium |
+| Sky | Skybox or HDRI | Done 2026-11-19 (world_sky): HDRP Physically Based Sky (sun, dawn, dusk) plus stars and a faint Milky Way at night and a textured moon that waxes and wanes over 29.5 days; clouds stay HDRP's cloud layer driven by DayNightCycle. Approved by Mike 2026-11-20. | none yet | Medium |
 
 ---
 
@@ -555,9 +555,9 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 | 1 | The 30 tools | 30 | 30 (tool_knife, tool_torch, tool_bucket, tool_hammer, tool_shovel, tool_iron_shovel, tool_stone_pick_axe, tool_iron_pick_axe, tool_fishing_rod, tool_cane_pole, tool_lantern, tool_primitive_bow, tool_recurve_bow, tool_bolt_action_rifle, tool_bow_drill, tool_sap_bucket, tool_canteen, tool_spile, tool_box_trap, tool_fish_trap, tool_rabbit_snare, tool_primitive_axe, tool_wood_saw, tool_flint_and_steel, tool_pouch, tool_clay_pot, tool_cooking_pot, tool_potash_kettle, tool_tarp and tool_axe (rebuilt), realistic, approved in game by Mike 2026-11-14/15; the rifle "ok for now") | 0 | 0 |
 | 2 | Shelter and main structures | 15 | 15 (structure_kiln, structure_cabin, structure_tent, structure_tarpshelter, structure_leanto approved 2026-11-15; structure_well, structure_outhouse, structure_workshop, structure_pottershed, structure_charcoalpit, structure_bloomery, structure_smithy, structure_leachhopper, structure_kitchen and the kitchen add-ons approved 2026-11-16; WAVE 2 COMPLETE) | 0 | 0 |
 | 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 12 (structure_tap 2026-11-15; wood pile, rock pile, both barrels, food cache, storage bin, tool rack, shelving, wood shed, hand cart, campfire, tripod approved 2026-11-16) | 0 | 0 |
-| 4 | World items, icons, stump, carcass | 9 groups | 2 (batch 1 raw materials: logs, branches, firewood, stone, clay, charcoal, ash; batch 2: sticks, kindling bundle, lumber, sand, iron ore, iron bar, box of nails; dropped tools use their Wave 1 art; approved by Mike 2026-11-16; batch 3: pottery raw and fired, door hinges, hook set, approved 2026-11-16) | 3 (world_stump; batch 4 fish and meat, raw and cooked; batch 5 animal goods; batch 6 forage; batch 7 furniture and crafted parts; batch 8 liquids and supplies; all approved in game by Mike 2026-11-19. Every item in the database now has dropped art and an icon (icons in the Inventory rows with the hover name, approved in game by Mike 2026-11-19); Wave 4 complete 2026-11-19; the carcass moved to Wave 5, to be made with each animal) | 3 |
-| 5 | Animals and traps | 8 | 7 (deer, turkey, duck, rabbit, squirrel, each with its carcass, approved by Mike 2026-11-19; fish counted done by Mike 2026-11-19: the Wave 4 item fish and the Fish Trap's catch; traps done 2026-11-15) | 1 (fishing_bobber, in Unity 2026-11-19, awaiting the in-game check) | 0 |
-| 6 | Trees, terrain, water, weather, effects | 11 groups | 0 | 0 | 11 |
+| 4 | World items, icons, stump, carcass | 9 groups | 7 (raw materials, metal goods, food and animal goods, pottery, item icons, stump: approved by Mike 2026-11-16 to 2026-11-19, every item in the database has dropped art and an icon; map icons in Unity 2026-11-20, awaiting Mike's check) | 0 | 0 (the other 2 need no art: the carcass moved to Wave 5 and was made with each animal; the placement ghost uses the structure prefabs) |
+| 5 | Animals and traps | 8 | 8 (deer, turkey, duck, rabbit, squirrel, each with its carcass, approved by Mike 2026-11-19; fish counted done by Mike 2026-11-19: the Wave 4 item fish and the Fish Trap's catch; traps done 2026-11-15; fishing_bobber approved by Mike 2026-11-20) | 0 | 0 |
+| 6 | Trees, terrain, water, weather, effects | 11 groups | 11 (all approved by Mike 2026-11-20 in Play Mode: trees with fall variety, rocks, sticks, tall grass, forage, clay patch decal, water, terrain and the runtime ground layers, weather, smoke and fire, sky) | 0 | 0 |
 | 7 | UI and screens (new) | see below | 0 | 0 | all |
 | 8 | Screen effects, particles, sky (new) | see below | 0 | 0 | all |
 | 9 | Art for designed-but-not-built systems (new) | see below | 0 | 0 | all |
@@ -1021,7 +1021,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Every wildlife prefab now has art. The no-art test gives a squirrel a made-up species id, so it keeps covering an animal added before its art.
 - To check in game: squirrels moving about, shooting one and its carcass.
 
-## fishing_bobber (2026-11-19): the round float on the fishing line (in Unity, awaiting Mike's check)
+## fishing_bobber (2026-11-19): the round float on the fishing line (approved by Mike 2026-11-20)
 - The classic round bobber, 6.6 cm across: glossy red top, white bottom with a slight seam lip, a white spring button with a wire clip on top and a wire line hook underneath.
 - Root on the water line like the Bobber prefab (FishingRod puts the bobber's root on the water surface): the ball's centre is 8 mm up, so most of the white half sits under water.
 - One mesh, materials fishing_bobber_red, _white, _wire (metal), 1024. About 2,400 tris.
@@ -1087,7 +1087,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - To check in game: the spring, the creek close and from the bank, the pond, at day, dusk and night, in rain; how clear the shallows are and how much foam.
 
 
-## world_trees (2026-11-19): sugar maple (Hardwood Broad), tulip poplar (Hardwood Tall), viburnum (Understory Shrub) (look approved by Mike 2026-11-19; Play Mode check of frame rate and seasons still to do)
+## world_trees (2026-11-19): sugar maple (Hardwood Broad), tulip poplar (Hardwood Tall), viburnum (Understory Shrub) (approved by Mike in Play Mode 2026-11-20)
 - Source: `Art/Blender_Work/world_trees/` (tree_geo.py generator, gen_tree_textures.py, world_trees.blend, textures/, review/).
 - One branching skeleton (trunk with flare, 5 scaffold limbs, ~60 branches, ~220 twigs) meshed at three detail levels:
   LOD0 10,140 tris, LOD1 2,830, LOD2 770 (old tree 432). Screen-height hand-overs 0.25 / 0.08 / 0.004 (about 40 m, 120 m).
@@ -1118,7 +1118,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
   regenerate identically.
 - Tests: TreeArtTests covers all three (9 tests). Full EditMode suite 2,247/2,247.
 
-## world_ground (2026-11-19): the runtime ground layers: snow, leaf litter, wet clay, creek sand (awaiting Mike's Play Mode check)
+## world_ground (2026-11-19): the runtime ground layers: snow, leaf litter, wet clay, creek sand (approved by Mike 2026-11-20)
 - Source: `Art/Blender_Work/world_ground/` (gen_ground_textures.py, textures/). Tileable 1024 maps per layer: basecolor, normal,
   mask (R 0, G AO, B height, A smoothness), in Resources/Art as ground_<id>_basecolor/_normal/_mask.
 - snow: soft drifts, faint blue in the hollows, a little sparkle; the highest layer (mask height about 0.55 to 0.95), so it sits
@@ -1132,7 +1132,17 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Tests: GroundLayerArtTests (4).
 - To check in Play Mode: snow (TimeDebugControls Ctrl+Home sets the snow), late-Fall leaf litter, and the creek banks.
 
-## world_fx (2026-11-19): rain, snow, lightning, campfire flames, kiln smoke (awaiting Mike's Play Mode check)
+## ui_map_markers (2026-11-20): the minimap and world map discovery markers (awaiting Mike's check)
+- Source: `Art/Blender_Work/ui_map_markers/` (gen_map_markers.py). Nine 128 px PNGs in Resources/Art: map_marker_WaterSource,
+  _Plant (berries), _Wildlife (hoof print), _Fishing, _PropertyFeature (cabin), _Plant_fruit, _Plant_nut, _Plant_greens,
+  _Plant_mushroom. Same colours and layout as MapIcons drew them (category colour disc, dark rim, cream glyph), with light
+  shading, a rim highlight, a soft glyph shadow and glyph detail (fish eye and fin, cabin door, window and chimney,
+  mushroom spots, leaf veins, berry and apple leaves).
+- MapIcons.Marker uses the art when present (an icon without its own art falls back to its category's), at the drawn
+  markers' size (pixels per unit scaled so 128 px art = the 64 px sprites). The arrow, droplet and pail stay drawn in code.
+- Tests: MapMarkerArtTests (11).
+
+## world_fx (2026-11-19): rain, snow, lightning, campfire flames, kiln smoke (approved by Mike 2026-11-20)
 - Source: `Art/Blender_Work/world_fx/` (gen_fx_textures.py, textures/). All white or grey, tinted by their materials.
 - Raindrop.png (32x128, a tapered streak) and Snowflake.png (64x64, a soft clump) replaced in place (same files, so Rain.mat,
   Snow.mat and Precipitation are unchanged). LightningBolt.png on Lightning Bolt.mat (now transparent, premultiplied): the
@@ -1142,8 +1152,9 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
   and both flame materials use it as their emissive map too: either mistake draws a square around every flame.
 - fx_smoke_puff.png (Resources/Art): KilnSmoke's puff when present (the generated disc otherwise).
 - Tests: Wave6FinishTests.
+- Fix 2026-11-20: rain had vanished. The new Raindrop drew a thin streak (alpha mean 0.06), below a pixel on the 2 cm rain particles; it now fills about half the sprite's width like the original (alpha mean about 0.25), and Wave6FinishTests checks its coverage.
 
-## world_forage (2026-11-19): forage crop shapes (awaiting Mike's Play Mode check)
+## world_forage (2026-11-19): forage crop shapes (approved by Mike 2026-11-20)
 - Source: `Art/Blender_Work/world_forage/` (forage_geo.py, world_forage.blend). 15 meshes in Resources/Art/forage_crop_model.fbx,
   each named for the ForagePlacer shape it replaces and fitted to that primitive's box (sphere 1x1x1, cylinder 1x2x1):
   blackberries, raspberries, wild_apples, pawpaw, hickory_nuts, walnuts, chestnuts (spiky burr), dandelion (flower head),
@@ -1154,7 +1165,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
   from their own sequence so every patch keeps its position. Homestead > Place Forage Patches re-run and the World scene
   saved 2026-11-19: all 21 patch ids and positions unchanged.
 
-## world_sky (2026-11-19): stars and the moon (awaiting Mike's Play Mode check)
+## world_sky (2026-11-19): stars and the moon (approved by Mike 2026-11-20)
 - Source: `Art/Blender_Work/world_sky/` (gen_sky_textures.py, textures/). Assets/Art/Sky: sky_stars.png (equirect 4096x2048,
   imported as a cubemap: about 7,000 stars and a faint Milky Way) and sky_moon_surface.png (maria and craters).
 - WorldSkyAndFog.asset: Physically Based Sky space emission = the stars (daylight hides them; checked).
