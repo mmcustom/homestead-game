@@ -10,7 +10,8 @@ using UnityEngine;
 // material's alpha. Raising the alpha cutoff hides faces one at a time, so crowns thin out and snow patches appear
 // gradually rather than all at once. The terrain's tree prototypes are swapped for play-time copies with their own
 // material instances (on RuntimeTerrain's copy of the terrain data), so no prefab or material asset is modified.
-// Material slots on the tree prefabs: 0 bark, 1 leaves, 2 snow on the crown, 3 snow on the branches.
+// Material slots on the tree prefabs: 0 bark, 1 leaves, 2 snow on the crown, 3 snow on the branches. Art trees keep their
+// renderers on LOD children; every renderer in the tree is given the same copies.
 public class SeasonalTrees : MonoBehaviour
 {
     // 0-1: how much of their leaves deciduous trees have right now (0 in Winter), for the sun's canopy shade
@@ -32,7 +33,8 @@ public class SeasonalTrees : MonoBehaviour
     sealed class Prototype
     {
         public SeasonalFoliage foliage;
-        public Material leaves, crownSnow, branchSnow;
+        // One copy per material per slot, shared by all of the tree's detail levels (art trees have three).
+        public readonly List<Material> leaves = new List<Material>(), crownSnow = new List<Material>(), branchSnow = new List<Material>();
     }
 
     readonly List<Prototype> prototypes = new List<Prototype>();
@@ -54,8 +56,10 @@ public class SeasonalTrees : MonoBehaviour
         for (int i = 0; i < treePrototypes.Length; i++)
         {
             GameObject prefab = treePrototypes[i].prefab;
-            if (prefab == null || !prefab.TryGetComponent(out SeasonalFoliage foliage) ||
-                !prefab.TryGetComponent(out MeshRenderer prefabRenderer) || prefabRenderer.sharedMaterials.Length < 4)
+            if (prefab == null || !prefab.TryGetComponent(out SeasonalFoliage foliage))
+                continue;
+            MeshRenderer prefabRenderer = prefab.GetComponentInChildren<MeshRenderer>();
+            if (prefabRenderer == null || prefabRenderer.sharedMaterials.Length < 4)
                 continue;
 
             // A hidden copy far below the world (the terrain only reads its mesh, materials and collider).
@@ -64,22 +68,38 @@ public class SeasonalTrees : MonoBehaviour
             copy.hideFlags = HideFlags.HideAndDontSave;
             created.Add(copy);
 
-            var renderer = copy.GetComponent<MeshRenderer>();
-            Material[] materials = renderer.sharedMaterials;
-            for (int m = 0; m < materials.Length; m++)
+            var prototype = new Prototype { foliage = copy.GetComponent<SeasonalFoliage>() };
+            // Copies are made per slot, so a material used in two slots (crown and branch snow) gets one copy for each.
+            var copies = new Dictionary<Material, Material>[4];
+            for (int m = 0; m < copies.Length; m++)
+                copies[m] = new Dictionary<Material, Material>();
+            foreach (MeshRenderer renderer in copy.GetComponentsInChildren<MeshRenderer>(true))
             {
-                materials[m] = new Material(materials[m]);
-                created.Add(materials[m]);
+                Material[] materials = renderer.sharedMaterials;
+                for (int m = 0; m < materials.Length; m++)
+                {
+                    if (materials[m] == null)
+                        continue;
+                    if (m >= copies.Length)
+                    {
+                        materials[m] = new Material(materials[m]);
+                        created.Add(materials[m]);
+                        continue;
+                    }
+                    if (!copies[m].TryGetValue(materials[m], out Material instance))
+                    {
+                        instance = new Material(materials[m]);
+                        created.Add(instance);
+                        copies[m][materials[m]] = instance;
+                        if (m == 1) prototype.leaves.Add(instance);
+                        else if (m == 2) prototype.crownSnow.Add(instance);
+                        else if (m == 3) prototype.branchSnow.Add(instance);
+                    }
+                    materials[m] = instance;
+                }
+                renderer.sharedMaterials = materials;
             }
-            renderer.sharedMaterials = materials;
-
-            prototypes.Add(new Prototype
-            {
-                foliage = copy.GetComponent<SeasonalFoliage>(),
-                leaves = materials[1],
-                crownSnow = materials[2],
-                branchSnow = materials[3],
-            });
+            prototypes.Add(prototype);
             treePrototypes[i] = new TreePrototype
             {
                 prefab = copy,
@@ -129,10 +149,15 @@ public class SeasonalTrees : MonoBehaviour
             // Crown snow only sits on leaves that are still there, covering `snow` of them.
             float crownCutoff = leafCutoff + (1f - leafCutoff) * (1f - snow);
 
-            prototype.leaves.SetColor("_BaseColor", colour);
-            prototype.leaves.SetFloat("_AlphaCutoff", leafCutoff);
-            prototype.crownSnow.SetFloat("_AlphaCutoff", leaves > 0f ? crownCutoff : 1f);
-            prototype.branchSnow.SetFloat("_AlphaCutoff", 1f - snow);
+            foreach (Material material in prototype.leaves)
+            {
+                material.SetColor("_BaseColor", colour);
+                material.SetFloat("_AlphaCutoff", leafCutoff);
+            }
+            foreach (Material material in prototype.crownSnow)
+                material.SetFloat("_AlphaCutoff", leaves > 0f ? crownCutoff : 1f);
+            foreach (Material material in prototype.branchSnow)
+                material.SetFloat("_AlphaCutoff", 1f - snow);
         }
     }
 

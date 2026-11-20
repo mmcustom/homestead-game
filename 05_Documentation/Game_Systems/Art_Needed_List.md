@@ -199,13 +199,13 @@ These set the look of every screen, so they decide whether the realistic style h
 
 | Group | What | Notes | Reference image | Priority |
 |---|---|---|---|---|
-| Trees | Hardwood Broad, Hardwood Tall, Understory Shrub, plus tall and short fall-colour variants | Sugar maple, sycamore, oak, hickory, beech; up to about 25,000 triangles each in the realistic style (leaf cards count); also a low-detail version later. FallingTree tips the same prefab over. | fall sugar maple, sugar maple, winter sugar maple, sycamore (reference only) | High |
+| Trees | Hardwood Broad, Hardwood Tall, Understory Shrub, plus tall and short fall-colour variants | Sugar maple, sycamore, oak, hickory, beech; up to about 25,000 triangles each in the realistic style (leaf cards count); also a low-detail version later. FallingTree tips the same prefab over. | fall sugar maple, sugar maple, winter sugar maple, sycamore (reference only) | High. All three in Unity 2026-11-19 (Hardwood Broad = sugar maple, Hardwood Tall = tulip poplar, Understory Shrub = viburnum), look approved by Mike 2026-11-19, Play Mode frame-rate and season check still to do (see world_trees). Fall-colour variants not done. |
 | Rocks | Rock A, B, C and the South Ridge outcrop | Approved 2026-11-19 (world_rocks: weathered limestone; see its section). | none (procedural) | Medium |
 | Sticks and branches | Ground wood variants | Approved 2026-11-19 (world_ground_wood: three stick bundles and three fallen branches; see its section). | none (procedural) | Medium |
 | Tall grass | Grass clump | Approved 2026-11-19 (world_tall_grass; see its section). Sways in the wind (see Wind sway). | none (procedural) | Medium |
 | Forage | One simple shape and one material per species | Low priority until foraging is expanded. | none yet | Low |
 | Clay patches | Wet clay surface decals | Optional; none placed yet. | none yet | Low |
-| Water | Creek and pond surface material | One flat mesh today; needs flow, shore foam, and clear shallow edge. | none yet | High |
+| Water | Creek and pond surface material | Approved 2026-11-19 (world_water: see-through, flowing, shore foam; see its section). | none (procedural) | High |
 | Terrain | Three terrain layers: Dirt, Grass, Gravel (albedo, normal, mask) | Approved 2026-11-19 (world_terrain; see its section). Runtime snow, leaf litter and creek-bank layers are still the code's own plain textures. | none (procedural) | High |
 | Weather | Rain, snow, lightning particle sprites | Small PNG sprites. | none yet | Medium |
 | Smoke and fire | KilnSmoke material and texture, campfire flame sprites | Particles built in code; art is just the sprite sheet. | none yet | Medium |
@@ -1076,3 +1076,44 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Tests: TerrainArtTests (new); with the wind and art tests 63/63, CreekBankTests 35/35.
 - To check in game: the meadow, a path or the cabin dirt, gravel areas, close and far (watch for the tile repeating), and snow and Fall leaf litter on top.
 
+## world_water (2026-11-19): the spring, creek and pond surface (approved by Mike, 2026-11-19)
+- Before: one flat mesh with an opaque, dark, glossy HDRP/Lit material; nothing seen through it, nothing moving. HDRP's own water system is off in this project and was left off (heavy, and built for oceans and large rivers).
+- Shader: Assets/Shaders/HomesteadWater.shadergraph (Homestead/HomesteadWater), a transparent HDRP Lit shader graph. It reads the scene depth behind the surface, so the water is clear in the shallows (the creek bed shows) and darker and more opaque with depth; ripples from a tileable normal map are carried downstream by the flow with two-phase flow mapping (no stretching), plus a slower cross ripple that drifts on still water; foam gathers where the water thins against the bank. Normal output in world space (the water mesh has no tangents).
+- Flow: stored in the water mesh's UV1 (x, z = direction on the ground, z = speed m/s) by PropertyTerrainBuilder.WaterFlow: the spring wells gently outward (0.12), the pond barely drifts (0.03), the creek runs downstream (0.5, gathering pace below the spring).
+- Material Water.mat (tunable): Shallow Colour, Deep Colour, Clarity (m, depth to full colour, 0.9), Foam Width (m, 0.12), Ripple Scale (m, 1.6), Ripple Strength (0.35), Flow Speed (1), Smoothness (0.95). Textures Assets/Art/Terrain/Textures/water_ripple_normal and water_foam (512, tileable; source Art\Blender_Work\world_water).
+- Builder: PropertyTerrainBuilder.WaterMesh writes the flow and UseWater puts the shader on (transparent) on a rebuild; new menu Homestead > Art > Apply Water Art (already run) did both for the water in the scene. Collider, Water layer and WaterSource unchanged.
+- Not covered: looking up from under the surface (it's one-sided, as before); no refraction or reflections beyond HDRP's sky and screen-space ones; floods don't raise the surface (they never did).
+- Tests: WaterArtTests (new); with the terrain, wind, creek bank and art-swap tests 87/87.
+- To check in game: the spring, the creek close and from the bank, the pond, at day, dusk and night, in rain; how clear the shallows are and how much foam.
+
+
+## world_trees (2026-11-19): sugar maple (Hardwood Broad), tulip poplar (Hardwood Tall), viburnum (Understory Shrub) (look approved by Mike 2026-11-19; Play Mode check of frame rate and seasons still to do)
+- Source: `Art/Blender_Work/world_trees/` (tree_geo.py generator, gen_tree_textures.py, world_trees.blend, textures/, review/).
+- One branching skeleton (trunk with flare, 5 scaffold limbs, ~60 branches, ~220 twigs) meshed at three detail levels:
+  LOD0 10,140 tris, LOD1 2,830, LOD2 770 (old tree 432). Screen-height hand-overs 0.25 / 0.08 / 0.004 (about 40 m, 120 m).
+  Middle and far levels use every other ring on branches (same skeleton, so the levels match).
+- Material slots kept for SeasonalTrees: 0 bark (world_tree_maple_bark: tileable grey ridged bark, normal, mask),
+  1 leaves (world_tree_maple_leaves: 2x2 atlas of maple-leaf clusters, alpha-clipped, normal map), 2 crown snow
+  (world_tree_maple_snow_leaves, same atlas, white), 3 branch snow (the existing Tree Snow, foliage-mask texels on upward bark faces).
+- Faces are written in slot order (bark, leaves + crown snow, branch snow last): Unity orders submeshes by each material's first face.
+- Leaf drop: each leaf card's random value is in UV1.x. HomesteadWindLit has a new `_UseFaceValue` switch (off by default,
+  so grass and the old trees are unchanged): when on, the clip alpha is the card's value where the texture shows a leaf, -1 elsewhere.
+- Unity: Resources/Art/world_tree_maple_model.fbx + textures + 3 materials. PropertyTerrainBuilder builds the prefab from the
+  art (LOD children); menu Homestead > Art > Apply Tree Art rebuilds Hardwood Broad in place (same prefab, so all 4,213 placed
+  trees changed). SeasonalTrees now copies materials across every renderer in the tree, per slot. Season colours x1.3 for the art
+  tree (its leaf texture is mid-toned). Trunk collider unchanged (r 0.3, h 6.5).
+- Tests: TreeArtTests (4). Full EditMode suite 2,242/2,242.
+- Known: leaf cards seen edge-on from directly underneath show as streaks.
+- Hardwood Tall = tulip poplar (2026-11-19): species "poplar" in tree_geo.py (clear trunk to about 6.8 m, 10 limbs that
+  shorten toward the top via scaf_taper, narrow crown, 17.2 m tall, 8.8 m wide). LOD0 14,108 tris, LOD1 4,038, LOD2 1,166;
+  hand-overs 0.35 / 0.11 / 0.004 (about 42 m, 135 m, per-kind TreeLodHeights). Four-lobed square-tipped leaf atlas and
+  interlacing-ridge bark from gen_tree_textures.py (now per species: `python gen_tree_textures.py <species> [leaves|bark]`).
+  Golden fall colour kept. Trunk collider unchanged (r 0.27, h 9.5).
+- Season colours on art trees are brightened in RGB only (alpha stays 1: it is the leaves' clip value).
+- Understory Shrub = viburnum (2026-11-19): species "viburnum" in tree_geo.py, multi-stem mode (7 stems from the ground, no
+  trunk; `stems` setting), a rounded mound 3.5 x 3.9 m, 3.3 m tall. LOD0 5,150 tris, LOD1 1,480, LOD2 460; hand-overs
+  0.12 / 0.03 / 0.006 (about 20 m, 80 m, gone past about 400 m). Broad oval finely toothed leaves (36 small leaves per
+  cluster), smooth grey-brown stems. Red-purple fall colour kept. Still no collider (walk-through).
+- The generator draws its random numbers in the same order as before for single-trunk trees, so the maple and poplar
+  regenerate identically.
+- Tests: TreeArtTests covers all three (9 tests). Full EditMode suite 2,247/2,247.

@@ -324,7 +324,7 @@ public static class PropertyTerrainBuilder
         water.transform.SetParent(root.transform);
         Mesh waterMesh = WaterMesh(creek, creekLevel, creekHalf, springLevel, pondLevel);
         water.AddComponent<MeshFilter>().sharedMesh = waterMesh;
-        water.AddComponent<MeshRenderer>().sharedMaterial = LitMaterial("Water", new Color(0.08f, 0.16f, 0.18f), 0.95f);
+        water.AddComponent<MeshRenderer>().sharedMaterial = UseWater(LitMaterial("Water", new Color(0.08f, 0.16f, 0.18f), 0.95f));
         // Drinkable (Core_Survival_System.md Hydration). The collider is only for looking at the water; the Water layer
         // is excluded from the player's CharacterController, so the player still wades in.
         water.layer = LayerMask.NameToLayer("Water");
@@ -584,7 +584,82 @@ public static class PropertyTerrainBuilder
         FaceUp(mesh);
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
+        WaterFlow(mesh);
         return SaveAsset(mesh, ArtFolder + "/PropertyWater.asset");
+    }
+
+    // The water art (Mike, 2026-11-19): Homestead/HomesteadWater, see-through water that clears in the shallows and darkens
+    // with depth, ripples carried by the flow, foam along the bank. The flow is stored in the mesh's UV1 (x, z = the
+    // direction on the ground, z = speed in m/s): the spring wells gently outward, the pond barely drifts, the creek runs
+    // downstream. The mesh is WaterMesh's layout: the spring disc, then the pond disc (centre + 64 edge vertices each), then
+    // the creek as pairs of bank vertices from the spring down to the pond.
+    public const string WaterShaderPath = "Assets/Shaders/HomesteadWater.shadergraph";
+    const int WaterDiscVertices = 65;
+    public const float SpringOutflow = 0.12f, PondDrift = 0.03f, CreekSpeed = 0.5f;
+
+    public static void WaterFlow(Mesh mesh)
+    {
+        Vector3[] v = mesh.vertices;
+        var flow = new Vector4[v.Length];
+        for (int i = 0; i < Mathf.Min(WaterDiscVertices, v.Length); i++)
+        {
+            Vector3 outward = v[i] - v[0];
+            var d = new Vector2(outward.x, outward.z);
+            d = d.sqrMagnitude > 1e-6f ? d.normalized : Vector2.zero;
+            flow[i] = new Vector4(d.x, d.y, SpringOutflow, 0f);
+        }
+        for (int i = WaterDiscVertices; i < Mathf.Min(WaterDiscVertices * 2, v.Length); i++)
+            flow[i] = new Vector4(0.8f, 0.6f, PondDrift, 0f);
+        int first = WaterDiscVertices * 2, pairs = (v.Length - first) / 2;
+        for (int k = 0; k < pairs; k++)
+        {
+            Vector3 before = Centre(v, first, Mathf.Max(k - 1, 0)), after = Centre(v, first, Mathf.Min(k + 1, pairs - 1));
+            var d = new Vector2(after.x - before.x, after.z - before.z);
+            d = d.sqrMagnitude > 1e-6f ? d.normalized : Vector2.zero;
+            float speed = CreekSpeed * Mathf.Clamp01(k / 4f + 0.3f);   // gathering pace below the spring
+            flow[first + k * 2] = flow[first + k * 2 + 1] = new Vector4(d.x, d.y, speed, 0f);
+        }
+        mesh.SetUVs(1, flow);
+    }
+
+    static Vector3 Centre(Vector3[] v, int first, int pair) => (v[first + pair * 2] + v[first + pair * 2 + 1]) * 0.5f;
+
+    static Material UseWater(Material material)
+    {
+        var shader = AssetDatabase.LoadAssetAtPath<Shader>(WaterShaderPath);
+        if (shader == null)
+            return material;
+        if (material.shader != shader)
+            material.shader = shader;
+        material.SetTexture("_RippleMap", AssetDatabase.LoadAssetAtPath<Texture2D>(ArtFolder + "/Textures/water_ripple_normal.png"));
+        material.SetTexture("_FoamMap", AssetDatabase.LoadAssetAtPath<Texture2D>(ArtFolder + "/Textures/water_foam.png"));
+        // HDRP keeps the surface type on the material: a material switched from the opaque Lit water must be made transparent.
+        material.SetFloat("_SurfaceType", 1f);
+        material.SetFloat("_BlendMode", 0f);
+        material.SetFloat("_RenderQueueType", 5f);
+        material.SetFloat("_AlphaCutoffEnable", 0f);
+        material.SetFloat("_DoubleSidedEnable", 0f);
+        material.renderQueue = -1;
+        HDMaterial.ValidateMaterial(material);
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    // The water art onto the water already in the scene, without a rebuild: flow into the existing mesh, the shader onto Water.mat.
+    [MenuItem("Homestead/Art/Apply Water Art")]
+    public static void ApplyWaterArt()
+    {
+        var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(ArtFolder + "/PropertyWater.asset");
+        if (mesh != null)
+        {
+            WaterFlow(mesh);
+            EditorUtility.SetDirty(mesh);
+        }
+        var material = AssetDatabase.LoadAssetAtPath<Material>(ArtFolder + "/Water.mat");
+        if (material != null)
+            UseWater(material);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[PropertyTerrainBuilder] Water art applied: flow in the water mesh, HomesteadWater on Water.mat.");
     }
 
     // Flips any triangle facing down, so winding mistakes can't make water invisible from above.
@@ -635,27 +710,34 @@ public static class PropertyTerrainBuilder
                 break;
         }
 
-        Mesh mesh = SaveAsset(builder.ToMesh(prefabName), $"{ArtFolder}/{prefabName}.asset");
         Color summer = kind == 2 ? new Color(0.2f, 0.28f, 0.11f) : new Color(0.19f, 0.33f, 0.12f);
         // The tree parts sway in the wind together (WindShaderDriver): the same bend on all of them, a flutter on the leaves and crown snow.
-        Material bark = UseWind(LitMaterial("Bark", new Color(0.27f, 0.2f, 0.14f), 0.1f), 0f);
-        Material leaves = UseWind(LitMaterial(kind == 2 ? "Shrub Leaves" : "Leaves", summer, 0.15f, foliageMask, alphaCutoff: 0f), TreeLeafFlutter);
         Material snow = UseWind(LitMaterial("Tree Snow", new Color(0.9f, 0.92f, 0.95f), 0.3f, foliageMask, alphaCutoff: 1f), TreeLeafFlutter);
-
         var go = new GameObject(prefabName);
-        go.AddComponent<MeshFilter>().sharedMesh = mesh;
-        var renderer = go.AddComponent<MeshRenderer>();
-        renderer.sharedMaterials = new[] { bark, leaves, snow, snow };
+        GameObject art = TreeArtModel(kind);
+        // Art trees' leaf textures are mid-toned, so their season colours are brighter to land on the same greens.
+        float tintBoost = art != null ? ArtLeafTintBoost : 1f;
+        if (art != null)
+            BuildArtTree(go, art, kind, Brighter(summer, tintBoost), snow);
+        else
+        {
+            Mesh mesh = SaveAsset(builder.ToMesh(prefabName), $"{ArtFolder}/{prefabName}.asset");
+            Material bark = UseWind(LitMaterial("Bark", new Color(0.27f, 0.2f, 0.14f), 0.1f), 0f);
+            Material leaves = UseWind(LitMaterial(kind == 2 ? "Shrub Leaves" : "Leaves", summer, 0.15f, foliageMask, alphaCutoff: 0f), TreeLeafFlutter);
+            go.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = go.AddComponent<MeshRenderer>();
+            renderer.sharedMaterials = new[] { bark, leaves, snow, snow };
+            // A LODGroup makes the terrain draw this as a plain mesh tree (no Soft Occlusion billboards).
+            go.AddComponent<LODGroup>().SetLODs(new[] { new LOD(0.004f, new Renderer[] { renderer }) });
+        }
 
         // Season_System.md's Fall colours: red-orange broad hardwoods, golden tall ones, red understory.
         var foliage = go.AddComponent<SeasonalFoliage>();
-        foliage.springColor = new Color(0.3f, 0.44f, 0.15f);
-        foliage.summerColor = summer;
-        foliage.fallColor = kind == 0 ? new Color(0.58f, 0.2f, 0.05f)
+        foliage.springColor = Brighter(new Color(0.3f, 0.44f, 0.15f), tintBoost);
+        foliage.summerColor = Brighter(summer, tintBoost);
+        foliage.fallColor = Brighter(kind == 0 ? new Color(0.58f, 0.2f, 0.05f)
                           : kind == 1 ? new Color(0.66f, 0.48f, 0.08f)
-                          : new Color(0.5f, 0.1f, 0.07f);
-        // A LODGroup makes the terrain draw this as a plain mesh tree (no Soft Occlusion billboards).
-        go.AddComponent<LODGroup>().SetLODs(new[] { new LOD(0.004f, new Renderer[] { renderer }) });
+                          : new Color(0.5f, 0.1f, 0.07f), tintBoost);
         if (kind != 2)
         {
             var trunk = go.AddComponent<CapsuleCollider>();
@@ -673,6 +755,110 @@ public static class PropertyTerrainBuilder
         // trees invisible even though the file on disk is correct.
         AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
         return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+    }
+
+    // --- Tree art (Art_Needed_List.md: world_trees) ---------------------------------------------------------
+    // A Blender tree model (Resources/Art/world_tree_<species>_model) with children *_LOD0..2, each mesh with the four
+    // tree material slots. UV0: bark tiles / leaf atlas / foliage-mask texel for branch snow. UV1.x: each leaf card's
+    // drop value, which the wind shader's _UseFaceValue reads so SeasonalTrees drops leaves a cluster at a time.
+    static readonly string[] TreeArt = { "maple", "poplar", "viburnum" };
+    const string TreeArtFolder = "Assets/Resources/Art";
+    const float ArtLeafTintBoost = 1.3f;
+    // Screen heights where each detail level hands over, per tree kind: the 11 m maple at about 40 m and 120 m,
+    // the 17 m poplar at about 42 m and 135 m, the 3 m viburnum shrub at about 20 m and 80 m (and gone past about 400 m).
+    static readonly float[][] TreeLodHeights = { new[] { 0.25f, 0.08f, 0.004f }, new[] { 0.35f, 0.11f, 0.004f }, new[] { 0.12f, 0.03f, 0.006f } };
+
+    // Brighter colour, same alpha (the leaves' alpha is their clip value).
+    static Color Brighter(Color c, float k) => new Color(c.r * k, c.g * k, c.b * k, c.a);
+
+    static GameObject TreeArtModel(int kind)
+    {
+        string species = kind < TreeArt.Length ? TreeArt[kind] : null;
+        return species == null ? null : AssetDatabase.LoadAssetAtPath<GameObject>($"{TreeArtFolder}/world_tree_{species}_model.fbx");
+    }
+
+    static void BuildArtTree(GameObject go, GameObject art, int kind, Color summer, Material branchSnow)
+    {
+        string species = TreeArt[kind];
+        string prefix = $"{TreeArtFolder}/world_tree_{species}";
+        Material bark = ArtTreeMaterial($"world_tree_{species}_bark", Color.white, 0.2f, -1f, false, 0f,
+            AssetDatabase.LoadAssetAtPath<Texture2D>(prefix + "_bark_basecolor.png"),
+            AssetDatabase.LoadAssetAtPath<Texture2D>(prefix + "_bark_normal.png"),
+            AssetDatabase.LoadAssetAtPath<Texture2D>(prefix + "_bark_mask.png"));
+        var leafMap = AssetDatabase.LoadAssetAtPath<Texture2D>(prefix + "_leaves_basecolor.png");
+        var leafNormal = AssetDatabase.LoadAssetAtPath<Texture2D>(prefix + "_leaves_normal.png");
+        Material leaves = ArtTreeMaterial($"world_tree_{species}_leaves", summer, 0.25f, 0f, true, TreeLeafFlutter, leafMap, leafNormal, null);
+        Material crownSnow = ArtTreeMaterial($"world_tree_{species}_snow_leaves", new Color(0.95f, 0.96f, 1f), 0.3f, 1f, true, TreeLeafFlutter, leafMap, leafNormal, null);
+
+        var parts = new List<Transform>();
+        foreach (Transform part in art.transform)
+            if (part.GetComponent<MeshFilter>() != null)
+                parts.Add(part);
+        parts.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+        var lods = new List<LOD>();
+        for (int i = 0; i < parts.Count; i++)
+        {
+            var child = new GameObject("LOD" + i);
+            child.transform.SetParent(go.transform, false);
+            child.AddComponent<MeshFilter>().sharedMesh = parts[i].GetComponent<MeshFilter>().sharedMesh;
+            var renderer = child.AddComponent<MeshRenderer>();
+            renderer.sharedMaterials = new[] { bark, leaves, crownSnow, branchSnow };
+            float[] heights = TreeLodHeights[kind];
+            lods.Add(new LOD(heights[Mathf.Min(i, heights.Length - 1)], new Renderer[] { renderer }));
+        }
+        var group = go.AddComponent<LODGroup>();
+        group.SetLODs(lods.ToArray());
+        group.RecalculateBounds();
+    }
+
+    static Material ArtTreeMaterial(string materialName, Color color, float smoothness, float alphaCutoff, bool faceValue,
+                                    float flutter, Texture2D baseMap, Texture2D normalMap, Texture2D maskMap)
+    {
+        string path = $"{TreeArtFolder}/{materialName}.mat";
+        var material = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (material == null)
+        {
+            material = new Material(AssetDatabase.LoadAssetAtPath<Shader>(WindShaderPath));
+            AssetDatabase.CreateAsset(material, path);
+        }
+        UseWind(material, flutter);
+        material.SetColor("_BaseColor", color);
+        material.SetFloat("_Smoothness", smoothness);
+        material.SetTexture("_BaseColorMap", baseMap);
+        material.SetTexture("_NormalMap", normalMap);
+        material.SetTexture("_MaskMap", maskMap);
+        material.SetFloat("_UseMask", maskMap != null ? 1f : 0f);
+        material.SetFloat("_UseFaceValue", faceValue ? 1f : 0f);
+        material.SetFloat("_AlphaCutoffEnable", alphaCutoff >= 0f ? 1f : 0f);
+        material.SetFloat("_AlphaCutoff", Mathf.Max(0f, alphaCutoff));
+        material.enableInstancing = true;
+        HDMaterial.ValidateMaterial(material);
+        EditorUtility.SetDirty(material);
+        return material;
+    }
+
+    // The tree art onto the existing tree prefabs, in place (same prefab files, so every placed tree swaps over).
+    [MenuItem("Homestead/Art/Apply Tree Art")]
+    public static void ApplyTreeArt()
+    {
+        var foliageMask = AssetDatabase.LoadAssetAtPath<Texture2D>(ArtFolder + "/Textures/Foliage Mask.png");
+        string[] names = { "Hardwood Broad", "Hardwood Tall", "Understory Shrub" };
+        int applied = 0;
+        for (int kind = 0; kind < names.Length; kind++)
+        {
+            if (TreeArtModel(kind) == null)
+                continue;
+            TreePrefab(names[kind], kind, foliageMask);
+            applied++;
+        }
+        var terrain = Terrain.activeTerrain;
+        if (terrain != null && terrain.terrainData != null)
+        {
+            terrain.terrainData.RefreshPrototypes();
+            EditorUtility.SetDirty(terrain.terrainData);
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log($"[PropertyTerrainBuilder] Tree art applied to {applied} tree prefab(s).");
     }
 
     sealed class MeshBuilder

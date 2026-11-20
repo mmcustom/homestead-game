@@ -35,6 +35,9 @@
         },
         {
             "m_Id": "21b31589a65449d88f250ca62b3fc5ac"
+        },
+        {
+            "m_Id": "6ad6fb65b08744d7bdb6f04d64ef91b6"
         }
     ],
     "m_Keywords": [],
@@ -125,6 +128,12 @@
         },
         {
             "m_Id": "bf5082b6950c4afd8df80e342c1dd903"
+        },
+        {
+            "m_Id": "497274289e2d44c185f42499420cdcb7"
+        },
+        {
+            "m_Id": "be16ef7f4cfe47b79f16ef0258f838ec"
         }
     ],
     "m_GroupDatas": [],
@@ -409,6 +418,34 @@
                 },
                 "m_SlotId": 0
             }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "be16ef7f4cfe47b79f16ef0258f838ec"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "bf5082b6950c4afd8df80e342c1dd903"
+                },
+                "m_SlotId": 13
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "497274289e2d44c185f42499420cdcb7"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "bf5082b6950c4afd8df80e342c1dd903"
+                },
+                "m_SlotId": 14
+            }
         }
     ],
     "m_VertexContext": {
@@ -635,6 +672,9 @@
         },
         {
             "m_Id": "21b31589a65449d88f250ca62b3fc5ac"
+        },
+        {
+            "m_Id": "6ad6fb65b08744d7bdb6f04d64ef91b6"
         }
     ]
 }
@@ -1609,6 +1649,12 @@
             "m_Id": "144c518b802842ea998bebb46359aaa7"
         },
         {
+            "m_Id": "c6f4ca7f62154d008740a3902c56146a"
+        },
+        {
+            "m_Id": "9ad0c4770ddb429487e5fc0ff46bc91e"
+        },
+        {
             "m_Id": "df41894f9dfd4a23b3781a26d52bc6c5"
         },
         {
@@ -1642,7 +1688,7 @@
     "m_FunctionName": "HomesteadWindSurface",
     "m_FunctionSource": "",
     "m_FunctionSourceUsePragmas": true,
-    "m_FunctionBody": "// The surface, sampled as HDRP's Lit does (same property names, so materials switched from HDRP/Lit keep their values).\nfloat2 uv = BaseMap.GetTransformedUV(UV);\nfloat4 c = SAMPLE_TEXTURE2D(BaseMap.tex, BaseMap.samplerstate, uv) * Tint;\nColor = c.rgb;\nAlpha = c.a;\nfloat4 pn = SAMPLE_TEXTURE2D(NormalMap.tex, NormalMap.samplerstate, uv);\npn.x *= pn.w;   // Unity's normal maps are stored either RG or AG: this reads both\nfloat2 nxy = pn.xy * 2.0 - 1.0;\nNormal = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));\nfloat4 m = SAMPLE_TEXTURE2D(MaskMap.tex, MaskMap.samplerstate, uv);\nMetal = m.r * UseMask;\nAO = lerp(1.0, m.g, UseMask);\nGloss = lerp(Smooth, m.a, UseMask);\n"
+    "m_FunctionBody": "// The surface, sampled as HDRP's Lit does (same property names, so materials switched from HDRP/Lit keep their values).\nfloat2 uv = BaseMap.GetTransformedUV(UV);\nfloat4 c = SAMPLE_TEXTURE2D(BaseMap.tex, BaseMap.samplerstate, uv) * Tint;\nColor = c.rgb;\nAlpha = c.a;\n// Tree leaf cards (world_trees): each card's own drop value from UV1, so SeasonalTrees' alpha cutoff drops whole\n// clusters; the texture's transparent parts get -1 so they stay clipped even at a cutoff of 0.\nAlpha = lerp(Alpha, c.a >= 0.5 ? FaceUV.x : -1.0, UseFace);\nfloat4 pn = SAMPLE_TEXTURE2D(NormalMap.tex, NormalMap.samplerstate, uv);\npn.x *= pn.w;   // Unity's normal maps are stored either RG or AG: this reads both\nfloat2 nxy = pn.xy * 2.0 - 1.0;\nNormal = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));\nfloat4 m = SAMPLE_TEXTURE2D(MaskMap.tex, MaskMap.samplerstate, uv);\nMetal = m.r * UseMask;\nAO = lerp(1.0, m.g, UseMask);\nGloss = lerp(Smooth, m.a, UseMask);\n"
 }
 
 {
@@ -2864,6 +2910,192 @@
     "m_SlotType": 1,
     "m_Hidden": false,
     "m_ShaderOutputName": "AO",
+    "m_StageCapability": 3,
+    "m_Value": 0.0,
+    "m_DefaultValue": 0.0,
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector1ShaderProperty",
+    "m_ObjectId": "6ad6fb65b08744d7bdb6f04d64ef91b6",
+    "m_Guid": {
+        "m_GuidSerialized": "6a29d721-dbf8-4fde-94f5-0a1711edda0e"
+    },
+    "m_Name": "Use Face Value",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Use Face Value",
+    "m_DefaultReferenceName": "_UseFaceValue",
+    "m_OverrideReferenceName": "_UseFaceValue",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": 0.0,
+    "m_FloatType": 1,
+    "m_RangeValues": {
+        "x": 0,
+        "y": 1
+    },
+    "m_SliderType": 0,
+    "m_SliderPower": 3.0,
+    "m_EnumType": 0,
+    "m_CSharpEnumString": "",
+    "m_EnumNames": [
+        "Default"
+    ],
+    "m_EnumValues": [
+        0
+    ]
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "497274289e2d44c185f42499420cdcb7",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -900,
+            "y": 760,
+            "width": 180,
+            "height": 80
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "47ee5de4f79444ab84c851cfca8eb0bb"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": false,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "6ad6fb65b08744d7bdb6f04d64ef91b6"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
+    "m_ObjectId": "47ee5de4f79444ab84c851cfca8eb0bb",
+    "m_Id": 0,
+    "m_DisplayName": "Use Face Value",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Use Face Value",
+    "m_StageCapability": 3,
+    "m_Value": 0.0,
+    "m_DefaultValue": 0.0,
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.UVNode",
+    "m_ObjectId": "be16ef7f4cfe47b79f16ef0258f838ec",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "UV",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -900,
+            "y": 860,
+            "width": 180,
+            "height": 80
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "ba64a249ea784c89a1cd8721f59a97e4"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": false,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_OutputChannel": 1
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "ba64a249ea784c89a1cd8721f59a97e4",
+    "m_Id": 0,
+    "m_DisplayName": "Out",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Out",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector2MaterialSlot",
+    "m_ObjectId": "c6f4ca7f62154d008740a3902c56146a",
+    "m_Id": 13,
+    "m_DisplayName": "FaceUV",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "FaceUV",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
+    "m_ObjectId": "9ad0c4770ddb429487e5fc0ff46bc91e",
+    "m_Id": 14,
+    "m_DisplayName": "UseFace",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "UseFace",
     "m_StageCapability": 3,
     "m_Value": 0.0,
     "m_DefaultValue": 0.0,

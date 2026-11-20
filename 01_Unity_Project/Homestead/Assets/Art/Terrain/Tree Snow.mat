@@ -263,6 +263,7 @@ Material:
     - _UVDetail: 0
     - _UVEmissive: 0
     - _UseEmissiveIntensity: 0
+    - _UseFaceValue: 0
     - _UseMask: 0
     - _UseShadowThreshold: 0
     - _WindFlutter: 0.04
