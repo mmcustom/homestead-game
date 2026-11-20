@@ -115,8 +115,8 @@ public class SeasonalGround : MonoBehaviour, ISaveable
         layers.CopyTo(withSeasonal, 0);
         litterLayer = layers.Length;
         snowLayer = layers.Length + 1;
-        withSeasonal[litterLayer] = litterLayerAsset = MakeLayer("Leaf Litter (runtime)", LitterColor, litterTileSize, 0.1f);
-        withSeasonal[snowLayer] = snowLayerAsset = MakeLayer("Snow (runtime)", SnowColor, snowTileSize, 0.35f);
+        withSeasonal[litterLayer] = litterLayerAsset = MakeLayer("Leaf Litter (runtime)", GroundLayerArt.LeafLitter, LitterColor, litterTileSize, 0.1f);
+        withSeasonal[snowLayer] = snowLayerAsset = MakeLayer("Snow (runtime)", GroundLayerArt.Snow, SnowColor, snowTileSize, 0.35f);
         data.terrainLayers = withSeasonal;
         slice = new float[RowsPerFrame, res, snowLayer + 1];
 
@@ -133,7 +133,8 @@ public class SeasonalGround : MonoBehaviour, ISaveable
         {
             if (layer == null)
                 continue;
-            Destroy(layer.diffuseTexture);
+            if (!GroundLayerArt.IsArt(layer.diffuseTexture))
+                Destroy(layer.diffuseTexture);
             Destroy(layer);
         }
     }
@@ -289,8 +290,13 @@ public class SeasonalGround : MonoBehaviour, ISaveable
         return color * (0.75f + 0.35f * (float)random.NextDouble());
     }
 
-    static TerrainLayer MakeLayer(string layerName, Func<System.Random, Color> paint, float tileSize, float smoothness)
+    // The layer's art when there is some (GroundLayerArt), otherwise a small generated texture of the paint's colours.
+    static TerrainLayer MakeLayer(string layerName, string artId, Func<System.Random, Color> paint, float tileSize, float smoothness)
     {
+        var layer = new TerrainLayer { name = layerName, tileSize = new Vector2(tileSize, tileSize), smoothness = smoothness };
+        if (GroundLayerArt.Apply(layer, artId))
+            return layer;
+
         const int Size = 128;
         var texture = new Texture2D(Size, Size, TextureFormat.RGB24, true) { wrapMode = TextureWrapMode.Repeat };
         var random = new System.Random(1851);
@@ -300,13 +306,8 @@ public class SeasonalGround : MonoBehaviour, ISaveable
         texture.SetPixels(pixels);
         texture.Apply(true);
 
-        return new TerrainLayer
-        {
-            name = layerName,
-            diffuseTexture = texture,
-            tileSize = new Vector2(tileSize, tileSize),
-            smoothness = smoothness,
-        };
+        layer.diffuseTexture = texture;
+        return layer;
     }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD

@@ -86,6 +86,7 @@ public static class ForagePlacer
 
         random = new System.Random(Seed);
         materials.Clear();
+        leafPoints.Clear();
 
         GameObject old = GameObject.Find(RootName);
         if (old != null)
@@ -368,7 +369,7 @@ public static class ForagePlacer
             {
                 Color berry = spec.item == "raspberries" ? new Color(0.7f, 0.08f, 0.12f) : new Color(0.12f, 0.04f, 0.1f);
                 for (int i = 0; i < 26; i++)
-                    Shape(PrimitiveType.Sphere, crop.transform, OnEllipsoid(canopy, 0.25f), Vector3.one * 0.07f, spec.item, berry);
+                    Shape(PrimitiveType.Sphere, crop.transform, OnFoliage(node, canopy, 0.25f), Vector3.one * 0.07f, spec.item, berry);
                 break;
             }
             case ForageLook.FruitTree:
@@ -377,7 +378,7 @@ public static class ForagePlacer
                 Color fruit = pawpaw ? new Color(0.55f, 0.6f, 0.2f) : new Color(0.72f, 0.12f, 0.08f);
                 Vector3 size = pawpaw ? new Vector3(0.1f, 0.16f, 0.1f) : Vector3.one * 0.12f;
                 for (int i = 0; i < 22; i++)
-                    Shape(PrimitiveType.Sphere, crop.transform, OnEllipsoid(canopy, -0.6f), size, spec.item, fruit);
+                    Shape(PrimitiveType.Sphere, crop.transform, OnFoliage(node, canopy, -0.6f), size, spec.item, fruit);
                 for (int i = 0; i < 5; i++)
                     Shape(PrimitiveType.Sphere, crop.transform, RingOnGround(0.8f, 2.5f) + Vector3.up * 0.05f, size, spec.item, fruit);
                 break;
@@ -428,7 +429,7 @@ public static class ForagePlacer
                 {
                     float x = Rand(-1.3f, 1.3f);
                     float side = random.NextDouble() < 0.5 ? -1f : 1f;
-                    Shape(PrimitiveType.Sphere, crop.transform, new Vector3(x, Rand(0.25f, 0.45f), side * 0.27f),
+                    Shape(PrimitiveType.Sphere, crop.transform, new Vector3(x, Rand(0.25f, 0.45f), side * 0.31f), // just proud of the log's bark
                           new Vector3(Rand(0.18f, 0.28f), 0.04f, Rand(0.14f, 0.2f)), spec.item, cap,
                           Quaternion.Euler(side * Rand(5f, 15f), Rand(0f, 360f), 0f));
                 }
@@ -459,6 +460,66 @@ public static class ForagePlacer
             first = false;
         }
         return bounds;
+    }
+
+    // A point among the plant's real leaves: the point OnEllipsoid picks (drawn from the shared random sequence exactly as
+    // before, so every later patch and crop stays where it was), moved to the nearest of a few leaf clusters of the plant's
+    // closest detail level (art trees and shrubs: leaf submesh 1 of LOD0). The irregular art crowns are not ellipsoids, so
+    // without this fruit could hang in the air between limbs. Plants without art leaves keep the ellipsoid point.
+    static readonly Dictionary<Transform, List<Vector3>> leafPoints = new Dictionary<Transform, List<Vector3>>();
+
+    static Vector3 OnFoliage(Transform node, Bounds canopy, float minY)
+    {
+        Vector3 wanted = OnEllipsoid(canopy, minY);
+        if (!leafPoints.TryGetValue(node, out List<Vector3> points))
+            leafPoints[node] = points = LeafPoints(node);
+        if (points.Count == 0)
+            return wanted;
+        var pick = new System.Random(StableHash(node.name) ^ (int)(wanted.x * 1000f) ^ (int)(wanted.z * 7919f));
+        Vector3 best = wanted;
+        float bestDistance = float.MaxValue;
+        for (int i = 0; i < 24; i++)
+        {
+            Vector3 candidate = points[pick.Next(points.Count)];
+            float distance = (candidate - wanted).sqrMagnitude;
+            if (distance < bestDistance) { bestDistance = distance; best = candidate; }
+        }
+        // just outside the leaf cluster, so the crop can be spotted (trees: about a hand's width more than bushes)
+        Vector3 outward = best - canopy.center;
+        outward.y *= 0.5f;
+        return best + outward.normalized * (canopy.size.y > 3f ? 0.35f : 0.12f);
+    }
+
+    static List<Vector3> LeafPoints(Transform node)
+    {
+        var points = new List<Vector3>();
+        Transform plant = node.Find("Plant");
+        if (plant == null)
+            return points;
+        foreach (MeshFilter filter in plant.GetComponentsInChildren<MeshFilter>())
+        {
+            Mesh mesh = filter.sharedMesh;
+            if (mesh == null || mesh.subMeshCount < 4 || filter.name != "LOD0")
+                continue;
+            Vector3[] vertices = mesh.vertices;
+            int[] leaves = mesh.GetTriangles(1);
+            for (int t = 0; t < leaves.Length; t += 6) // one point per leaf card (two triangles)
+            {
+                Vector3 centre = (vertices[leaves[t]] + vertices[leaves[t + 1]] + vertices[leaves[t + 2]]) / 3f;
+                points.Add(node.InverseTransformPoint(filter.transform.TransformPoint(centre)));
+            }
+        }
+        return points;
+    }
+
+    static int StableHash(string text)
+    {
+        unchecked
+        {
+            int hash = 17;
+            foreach (char c in text) hash = hash * 31 + c;
+            return hash;
+        }
     }
 
     // A point on the canopy's surface, in its upper part (minY -1..1 of the ellipsoid's height).
@@ -531,10 +592,31 @@ public static class ForagePlacer
         shape.transform.localPosition = localPosition;
         shape.transform.localRotation = rotation ?? Quaternion.Euler(0f, Rand(0f, 360f), 0f);
         shape.transform.localScale = scale;
+        Mesh art = ArtMesh(materialName);
+        if (art != null)
+            shape.GetComponent<MeshFilter>().sharedMesh = art;
         var renderer = shape.GetComponent<MeshRenderer>();
         renderer.sharedMaterial = MaterialFor(materialName, color);
         renderer.shadowCastingMode = scale.magnitude < 0.3f ? UnityEngine.Rendering.ShadowCastingMode.Off : UnityEngine.Rendering.ShadowCastingMode.On;
         return shape;
+    }
+
+    // Wave 6 art (Art_Needed_List.md: world_forage, 2026-11-19): one shape per crop in Resources/Art/forage_crop_model.fbx, a mesh
+    // named for the shape's material name ("blackberries", "Fallen Log", ...). Each fits the box of the primitive it replaces
+    // (sphere: 1 x 1 x 1; cylinder: 1 wide, 2 tall), so the sizes above still apply. Shapes without art stay primitives.
+    public const string ArtModel = "Assets/Resources/Art/forage_crop_model.fbx";
+    static Dictionary<string, Mesh> artMeshes;
+
+    public static Mesh ArtMesh(string name)
+    {
+        if (artMeshes == null)
+        {
+            artMeshes = new Dictionary<string, Mesh>();
+            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(ArtModel))
+                if (asset is Mesh mesh)
+                    artMeshes[mesh.name] = mesh;
+        }
+        return artMeshes.TryGetValue(name, out Mesh found) ? found : null;
     }
 
     // One HDRP Lit material per crop colour, saved under Assets/Art/Forage.
@@ -555,6 +637,18 @@ public static class ForagePlacer
             AssetDatabase.CreateAsset(material, path);
         }
         material.SetColor("_BaseColor", color);
+        if (name == "Fallen Log")
+        {
+            // the log takes the maple's bark (its art mesh has bark UVs)
+            var bark = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/Art/world_tree_maple_bark_basecolor.png");
+            if (bark != null)
+            {
+                material.SetTexture("_BaseColorMap", bark);
+                material.SetTexture("_NormalMap", AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Resources/Art/world_tree_maple_bark_normal.png"));
+                material.SetColor("_BaseColor", new Color(0.75f, 0.68f, 0.6f));
+                UnityEngine.Rendering.HighDefinition.HDMaterial.ValidateMaterial(material);
+            }
+        }
         if (material.HasProperty("_Smoothness"))
             material.SetFloat("_Smoothness", name.Contains("berr") || name.Contains("apple") ? 0.55f : 0.2f);
         EditorUtility.SetDirty(material);

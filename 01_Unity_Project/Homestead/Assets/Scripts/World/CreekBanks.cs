@@ -375,8 +375,8 @@ public class CreekBanks : MonoBehaviour
     // (Re)makes both textures and applies the tile sizes and smoothness from the fields above.
     void Restyle()
     {
-        Style(clayLayer, wetClayColour, wetClayTileMetres, wetClaySmoothness, Seed + 10);
-        Style(sandLayer, creekSandColour, creekSandTileMetres, creekSandSmoothness, Seed + 20);
+        Style(clayLayer, GroundLayerArt.WetClay, wetClayColour, wetClayTileMetres, wetClaySmoothness, Seed + 10);
+        Style(sandLayer, GroundLayerArt.CreekSand, creekSandColour, creekSandTileMetres, creekSandSmoothness, Seed + 20);
         if (builtData != null)
         {
             TerrainLayer[] layers = builtData.terrainLayers;
@@ -384,9 +384,17 @@ public class CreekBanks : MonoBehaviour
         }
     }
 
-    void Style(TerrainLayer layer, Color colour, float tileMetres, float smoothness, int seed)
+    // With the layer's art (GroundLayerArt) the tile size still comes from here, but the colour, smoothness and noise fields
+    // only apply to the generated texture used when there is no art.
+    void Style(TerrainLayer layer, string artId, Color colour, float tileMetres, float smoothness, int seed)
     {
-        Discard(layer.diffuseTexture);
+        if (!GroundLayerArt.IsArt(layer.diffuseTexture))
+            Discard(layer.diffuseTexture);
+        if (GroundLayerArt.Apply(layer, artId))
+        {
+            layer.tileSize = new Vector2(tileMetres, tileMetres);
+            return;
+        }
         layer.diffuseTexture = MakeTexture(colour, textureNoise, seed);
         layer.tileSize = new Vector2(tileMetres, tileMetres);
         layer.smoothness = smoothness;
@@ -424,7 +432,8 @@ public class CreekBanks : MonoBehaviour
         {
             if (layer == null)
                 continue;
-            Discard(layer.diffuseTexture);
+            if (!GroundLayerArt.IsArt(layer.diffuseTexture))
+                Discard(layer.diffuseTexture);
             Discard(layer);
         }
     }

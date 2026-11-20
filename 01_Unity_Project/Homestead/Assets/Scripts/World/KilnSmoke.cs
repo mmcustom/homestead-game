@@ -4,7 +4,8 @@ using UnityEngine;
 // (PlacedStructure.Rebuild redraws the shapes every game hour, which would restart a particle system built with them) and is switched by SetFiring: emission runs only while the
 // firing runs, and the last puffs finish rising after it ends.
 //
-// Look: the HDRP Unlit transparent material Resources/KilnSmoke.mat (the Snow material's settings, no texture) with a round soft-edged puff made here. No lit or glossy material.
+// Look: the HDRP Unlit transparent material Resources/KilnSmoke.mat (the Snow material's settings, no texture) with the billowy puff Resources/Art/fx_smoke_puff
+// (Wave 6 art), or without it a round soft-edged puff made here. No lit or glossy material.
 // The project had no smoke to reuse (the campfire is flame and ember sprites). HDRP Unlit ignores particle vertex colour, so the thinning at the end of a puff is done with its size
 // (a puff shrinks away) as well as the colour gradient; opacity is the material's alpha (opacity below).
 // Every number is a public field on the "Kiln Smoke" child, adjustable in the Inspector while the game runs (the Editor re-applies them every frame).
@@ -63,6 +64,10 @@ public class KilnSmoke : MonoBehaviour
     // A white disc with a soft round edge: alpha falls from the middle to nothing at the rim, so a puff has no edge.
     static Texture2D PuffTexture()
     {
+        if (puffTexture != null)
+            return puffTexture;
+        // Wave 6 art (2026-11-19): a billowy puff lit from above, Resources/Art/fx_smoke_puff. Without it, the soft disc below.
+        puffTexture = Resources.Load<Texture2D>("Art/fx_smoke_puff");
         if (puffTexture != null)
             return puffTexture;
         const int size = 64;

@@ -265,6 +265,8 @@ MonoBehaviour:
   summerColor: {r: 0.26, g: 0.364, b: 0.14299999, a: 1}
   fallColor: {r: 0.65, g: 0.13, b: 0.091, a: 1}
   deciduous: 1
+  fallAltColor: {r: 0.442, g: 0.091, b: 0.221, a: 1}
+  fallVariety: 1
 --- !u!1 &6797189189700755101
 GameObject:
   m_ObjectHideFlags: 0

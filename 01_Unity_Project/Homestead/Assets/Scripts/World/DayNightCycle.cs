@@ -46,6 +46,11 @@ public class DayNightCycle : MonoBehaviour
     [Tooltip("How quickly the light adjusts to a weather change, per in-game hour.")]
     [SerializeField, Min(0.01f)] float weatherBlendPerHour = 2f;
 
+    [Header("Moon")]
+    [Tooltip("Days from one full moon to the next. The moon (its Light's celestial body, set to Manual shading) waxes and wanes " +
+             "with the calendar: full on day 0, new halfway through.")]
+    [SerializeField, Min(1f)] float lunarCycleDays = 29.5f;
+
     [Header("Without a TimeManager")]
     [Tooltip("Used when World is played directly without Bootstrap.")]
     [SerializeField, Range(0f, 24f)] float fallbackHour = 12f;
@@ -115,6 +120,9 @@ public class DayNightCycle : MonoBehaviour
     }
 
     void Update() => Apply();
+
+    // HDRP's moon phase for a day count: 0 new, 0.5 full. Full on day 0 so a new game starts with a bright night.
+    public static float MoonPhase(float days, float cycleDays) => Mathf.Repeat(days / Mathf.Max(1f, cycleDays) + 0.5f, 1f);
 
     // Built-in values, for the Heat Wave entry a scene saved before it lacks (Inspector arrays never pick up C# defaults).
     static readonly float[] DefaultSunlight = { 1f, 0.5f, 0.35f, 0.2f, 0.15f, 0.8f, 0.35f, 0.9f, 1f };
@@ -217,6 +225,8 @@ public class DayNightCycle : MonoBehaviour
             moon.transform.rotation = Quaternion.Euler(-elevation, azimuth, 0f);
             moon.intensity = moonIntensity * (1f - daylight) * Mathf.Lerp(0.5f, 1f, weatherFactor);
             moon.enabled = daylight < 1f;
+            if (time != null && moon.TryGetComponent(out HDAdditionalLightData moonData))
+                moonData.moonPhase = MoonPhase(time.TotalDays + hour / 24f, lunarCycleDays);
         }
     }
 

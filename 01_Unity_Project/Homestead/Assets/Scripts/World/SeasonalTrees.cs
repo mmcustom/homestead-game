@@ -149,10 +149,14 @@ public class SeasonalTrees : MonoBehaviour
             // Crown snow only sits on leaves that are still there, covering `snow` of them.
             float crownCutoff = leafCutoff + (1f - leafCutoff) * (1f - snow);
 
+            float fallMix = FallMixFor(season, progress) * foliage.fallVariety;
+            Color alt = Color.Lerp(foliage.fallAltColor, brownLeaf, season == Season.Fall ? lateFallBrowning * Smooth(0.7f, 1f, progress) : 0f);
             foreach (Material material in prototype.leaves)
             {
                 material.SetColor("_BaseColor", colour);
                 material.SetFloat("_AlphaCutoff", leafCutoff);
+                material.SetColor("_FallAltColor", alt);
+                material.SetFloat("_FallMix", fallMix);
             }
             foreach (Material material in prototype.crownSnow)
                 material.SetFloat("_AlphaCutoff", leaves > 0f ? crownCutoff : 1f);
@@ -160,6 +164,10 @@ public class SeasonalTrees : MonoBehaviour
                 material.SetFloat("_AlphaCutoff", 1f - snow);
         }
     }
+
+    // How far the trees picked for the second fall colour have turned to it: with the main colour change in Fall, none otherwise.
+    float FallMixFor(Season season, float progress) =>
+        season == Season.Fall ? Smooth(colourChangeInFall.x, colourChangeInFall.y, progress) : 0f;
 
     float LeavesFor(Season season, float progress)
     {

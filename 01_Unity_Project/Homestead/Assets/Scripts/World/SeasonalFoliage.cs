@@ -11,4 +11,8 @@ public class SeasonalFoliage : MonoBehaviour
     public Color fallColor = new Color(0.55f, 0.22f, 0.06f);
     [Tooltip("Whether the leaves drop over late Fall and regrow in Spring.")]
     public bool deciduous = true;
+    // Fall variety (Wave 6 art, 2026-11-19): a share of this prototype's trees, picked per tree in the leaf shader from where it
+    // stands, turns this second colour instead of fallColor (yellow-orange maples among red ones, without extra prototypes).
+    public Color fallAltColor = new Color(0.8f, 0.52f, 0.08f);
+    [Range(0f, 1f)] public float fallVariety = 1f;
 }

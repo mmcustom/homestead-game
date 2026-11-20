@@ -738,6 +738,11 @@ public static class PropertyTerrainBuilder
         foliage.fallColor = Brighter(kind == 0 ? new Color(0.58f, 0.2f, 0.05f)
                           : kind == 1 ? new Color(0.66f, 0.48f, 0.08f)
                           : new Color(0.5f, 0.1f, 0.07f), tintBoost);
+        // The second fall colour a share of each kind's trees turns (SeasonalFoliage.fallAltColor): golden-orange maples,
+        // russet poplars, purple viburnums.
+        foliage.fallAltColor = Brighter(kind == 0 ? new Color(0.72f, 0.46f, 0.05f)
+                             : kind == 1 ? new Color(0.48f, 0.26f, 0.06f)
+                             : new Color(0.34f, 0.07f, 0.17f), tintBoost);
         if (kind != 2)
         {
             var trunk = go.AddComponent<CapsuleCollider>();

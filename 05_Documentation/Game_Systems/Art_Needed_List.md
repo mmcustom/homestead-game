@@ -199,17 +199,17 @@ These set the look of every screen, so they decide whether the realistic style h
 
 | Group | What | Notes | Reference image | Priority |
 |---|---|---|---|---|
-| Trees | Hardwood Broad, Hardwood Tall, Understory Shrub, plus tall and short fall-colour variants | Sugar maple, sycamore, oak, hickory, beech; up to about 25,000 triangles each in the realistic style (leaf cards count); also a low-detail version later. FallingTree tips the same prefab over. | fall sugar maple, sugar maple, winter sugar maple, sycamore (reference only) | High. All three in Unity 2026-11-19 (Hardwood Broad = sugar maple, Hardwood Tall = tulip poplar, Understory Shrub = viburnum), look approved by Mike 2026-11-19, Play Mode frame-rate and season check still to do (see world_trees). Fall-colour variants not done. |
+| Trees | Hardwood Broad, Hardwood Tall, Understory Shrub, plus tall and short fall-colour variants | Sugar maple, sycamore, oak, hickory, beech; up to about 25,000 triangles each in the realistic style (leaf cards count); also a low-detail version later. FallingTree tips the same prefab over. | fall sugar maple, sugar maple, winter sugar maple, sycamore (reference only) | High. All three in Unity 2026-11-19 (Hardwood Broad = sugar maple, Hardwood Tall = tulip poplar, Understory Shrub = viburnum), look approved by Mike 2026-11-19, Play Mode frame-rate and season check still to do (see world_trees). Fall variety done 2026-11-19: a share of each kind turns a second fall colour (golden-orange maples, russet poplars, purple viburnums), chosen per tree in the leaf shader. |
 | Rocks | Rock A, B, C and the South Ridge outcrop | Approved 2026-11-19 (world_rocks: weathered limestone; see its section). | none (procedural) | Medium |
 | Sticks and branches | Ground wood variants | Approved 2026-11-19 (world_ground_wood: three stick bundles and three fallen branches; see its section). | none (procedural) | Medium |
 | Tall grass | Grass clump | Approved 2026-11-19 (world_tall_grass; see its section). Sways in the wind (see Wind sway). | none (procedural) | Medium |
-| Forage | One simple shape and one material per species | Low priority until foraging is expanded. | none yet | Low |
-| Clay patches | Wet clay surface decals | Optional; none placed yet. | none yet | Low |
+| Forage | One simple shape and one material per species | Done 2026-11-19 (world_forage): one shape per crop in Resources/Art/forage_crop_model.fbx, used by ForagePlacer; fruit and berries now sit on the art trees' real leaves. Awaiting Mike's Play Mode check. | none yet | Low |
+| Clay patches | Wet clay surface decals | Done 2026-11-19 (world_ground): Resources/Art/world_clay_patch.prefab, an HDRP decal of wet clay, ready to place; none placed (the creek banks already show clay through the terrain layer). | none yet | Low |
 | Water | Creek and pond surface material | Approved 2026-11-19 (world_water: see-through, flowing, shore foam; see its section). | none (procedural) | High |
-| Terrain | Three terrain layers: Dirt, Grass, Gravel (albedo, normal, mask) | Approved 2026-11-19 (world_terrain; see its section). Runtime snow, leaf litter and creek-bank layers are still the code's own plain textures. | none (procedural) | High |
-| Weather | Rain, snow, lightning particle sprites | Small PNG sprites. | none yet | Medium |
-| Smoke and fire | KilnSmoke material and texture, campfire flame sprites | Particles built in code; art is just the sprite sheet. | none yet | Medium |
-| Sky | Skybox or HDRI | Not listed in the code inventory; confirm what the project uses. | none yet | Medium |
+| Terrain | Three terrain layers: Dirt, Grass, Gravel (albedo, normal, mask) | Approved 2026-11-19 (world_terrain; see its section). Runtime snow, leaf litter, wet clay and creek sand layers have art 2026-11-19 (world_ground), awaiting Mike's Play Mode check. | none (procedural) | High |
+| Weather | Rain, snow, lightning particle sprites | Done 2026-11-19 (world_fx): new Raindrop and Snowflake sprites in place, a glowing Lightning Bolt texture. Awaiting Mike's Play Mode check. | none yet | Medium |
+| Smoke and fire | KilnSmoke material and texture, campfire flame sprites | Done 2026-11-19 (world_fx): a 16-frame flame sheet on the campfire's Flames and Core, a billowy kiln smoke puff. Awaiting Mike's Play Mode check. | none yet | Medium |
+| Sky | Skybox or HDRI | Done 2026-11-19 (world_sky): HDRP Physically Based Sky (sun, dawn, dusk) plus stars and a faint Milky Way at night and a textured moon that waxes and wanes over 29.5 days; clouds stay HDRP's cloud layer driven by DayNightCycle. Awaiting Mike's Play Mode check. | none yet | Medium |
 
 ---
 
@@ -1117,3 +1117,52 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - The generator draws its random numbers in the same order as before for single-trunk trees, so the maple and poplar
   regenerate identically.
 - Tests: TreeArtTests covers all three (9 tests). Full EditMode suite 2,247/2,247.
+
+## world_ground (2026-11-19): the runtime ground layers: snow, leaf litter, wet clay, creek sand (awaiting Mike's Play Mode check)
+- Source: `Art/Blender_Work/world_ground/` (gen_ground_textures.py, textures/). Tileable 1024 maps per layer: basecolor, normal,
+  mask (R 0, G AO, B height, A smoothness), in Resources/Art as ground_<id>_basecolor/_normal/_mask.
+- snow: soft drifts, faint blue in the hollows, a little sparkle; the highest layer (mask height about 0.55 to 0.95), so it sits
+  over everything in the terrain's height blend. leaf_litter: about 900 fallen maple, poplar and viburnum leaves (the tree
+  leaf shapes) in browns, rust and dull orange over dark damp soil. wet_clay: red-brown and grey mottled clay with a wet
+  sheen and a few pressed-in pebbles. creek_sand: fine tan grains, faint water ripples, damp patches, small pebbles.
+- Code: GroundLayerArt (Assets/Scripts/World) puts the art on a TerrainLayer by id and keeps the caller's name and tile
+  size. SeasonalGround (snow, litter) and CreekBanks (clay, sand) use it, and fall back to their generated textures without
+  art; neither destroys the art textures. CreekBanks' tile sizes still apply; its colour, smoothness and noise fields now
+  only shape the fallback texture.
+- Tests: GroundLayerArtTests (4).
+- To check in Play Mode: snow (TimeDebugControls Ctrl+Home sets the snow), late-Fall leaf litter, and the creek banks.
+
+## world_fx (2026-11-19): rain, snow, lightning, campfire flames, kiln smoke (awaiting Mike's Play Mode check)
+- Source: `Art/Blender_Work/world_fx/` (gen_fx_textures.py, textures/). All white or grey, tinted by their materials.
+- Raindrop.png (32x128, a tapered streak) and Snowflake.png (64x64, a soft clump) replaced in place (same files, so Rain.mat,
+  Snow.mat and Precipitation are unchanged). LightningBolt.png on Lightning Bolt.mat (now transparent, premultiplied): the
+  LineRenderer's cross-section, a hot core with a glow.
+- Flame Sheet.png (Assets/Art/Fire, 4x4 frames, premultiplied alpha): the campfire's Flames and Core particle systems play it
+  (texture sheet animation 4x4, random start frame, sprites a little larger). Its importer keeps "alpha is transparency" OFF
+  and both flame materials use it as their emissive map too: either mistake draws a square around every flame.
+- fx_smoke_puff.png (Resources/Art): KilnSmoke's puff when present (the generated disc otherwise).
+- Tests: Wave6FinishTests.
+
+## world_forage (2026-11-19): forage crop shapes (awaiting Mike's Play Mode check)
+- Source: `Art/Blender_Work/world_forage/` (forage_geo.py, world_forage.blend). 15 meshes in Resources/Art/forage_crop_model.fbx,
+  each named for the ForagePlacer shape it replaces and fitted to that primitive's box (sphere 1x1x1, cylinder 1x2x1):
+  blackberries, raspberries, wild_apples, pawpaw, hickory_nuts, walnuts, chestnuts (spiky burr), dandelion (flower head),
+  Dandelion Leaves (toothed rosette), wild_onion (flower cluster), cattail (head), morel (ridged cap), dryads_saddle and
+  oyster_mushroom (shelves), Fallen Log (with the maple bark texture).
+- ForagePlacer.Shape uses the art mesh when one exists. Fruit and berries go on the plant's real leaf clusters (OnFoliage:
+  the old ellipsoid point moved to the nearest LOD0 leaf card, then set a little outward), with the extra random numbers
+  from their own sequence so every patch keeps its position. Homestead > Place Forage Patches re-run and the World scene
+  saved 2026-11-19: all 21 patch ids and positions unchanged.
+
+## world_sky (2026-11-19): stars and the moon (awaiting Mike's Play Mode check)
+- Source: `Art/Blender_Work/world_sky/` (gen_sky_textures.py, textures/). Assets/Art/Sky: sky_stars.png (equirect 4096x2048,
+  imported as a cubemap: about 7,000 stars and a faint Milky Way) and sky_moon_surface.png (maria and craters).
+- WorldSkyAndFog.asset: Physically Based Sky space emission = the stars (daylight hides them; checked).
+- World scene's Moon light: drawn in the sky (interactsWithSky), 1.2 degrees across (larger than life so it reads), surface
+  texture, tint 0.001 (a sunlit full moon is otherwise a white glare at night exposure), earthshine 0.08, Manual shading.
+  DayNightCycle sets its phase from the calendar (MoonPhase: full on day 0, new halfway, lunarCycleDays 29.5).
+
+## Fall variety (2026-11-19)
+- HomesteadWindLit: _FallAltColor and _FallMix. Each tree picks a random value from where it stands; past 0.35 its leaves
+  turn toward the second colour by _FallMix, which SeasonalTrees raises with the Fall colour change (0 outside Fall).
+- SeasonalFoliage.fallAltColor / fallVariety: golden-orange maples, russet poplars, purple viburnums (set by PropertyTerrainBuilder).

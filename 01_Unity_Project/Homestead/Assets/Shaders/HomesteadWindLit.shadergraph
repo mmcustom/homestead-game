@@ -38,6 +38,12 @@
         },
         {
             "m_Id": "6ad6fb65b08744d7bdb6f04d64ef91b6"
+        },
+        {
+            "m_Id": "437fde4d629e432eb738f760ac236544"
+        },
+        {
+            "m_Id": "0a3b70d874424a3e91f85b420b06e027"
         }
     ],
     "m_Keywords": [],
@@ -134,6 +140,12 @@
         },
         {
             "m_Id": "be16ef7f4cfe47b79f16ef0258f838ec"
+        },
+        {
+            "m_Id": "38d843eac4634c3fa532a636af1acb3a"
+        },
+        {
+            "m_Id": "ae808ba8585642d7a0ea48cc0ed145ce"
         }
     ],
     "m_GroupDatas": [],
@@ -446,6 +458,34 @@
                 },
                 "m_SlotId": 14
             }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "38d843eac4634c3fa532a636af1acb3a"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "bf5082b6950c4afd8df80e342c1dd903"
+                },
+                "m_SlotId": 15
+            }
+        },
+        {
+            "m_OutputSlot": {
+                "m_Node": {
+                    "m_Id": "ae808ba8585642d7a0ea48cc0ed145ce"
+                },
+                "m_SlotId": 0
+            },
+            "m_InputSlot": {
+                "m_Node": {
+                    "m_Id": "bf5082b6950c4afd8df80e342c1dd903"
+                },
+                "m_SlotId": 16
+            }
         }
     ],
     "m_VertexContext": {
@@ -675,6 +715,12 @@
         },
         {
             "m_Id": "6ad6fb65b08744d7bdb6f04d64ef91b6"
+        },
+        {
+            "m_Id": "437fde4d629e432eb738f760ac236544"
+        },
+        {
+            "m_Id": "0a3b70d874424a3e91f85b420b06e027"
         }
     ]
 }
@@ -1655,6 +1701,12 @@
             "m_Id": "9ad0c4770ddb429487e5fc0ff46bc91e"
         },
         {
+            "m_Id": "be3495dde16f4f56a256201fc0ada7f1"
+        },
+        {
+            "m_Id": "115a59d4dbe84f1495d680f90c15d8fc"
+        },
+        {
             "m_Id": "df41894f9dfd4a23b3781a26d52bc6c5"
         },
         {
@@ -1688,7 +1740,7 @@
     "m_FunctionName": "HomesteadWindSurface",
     "m_FunctionSource": "",
     "m_FunctionSourceUsePragmas": true,
-    "m_FunctionBody": "// The surface, sampled as HDRP's Lit does (same property names, so materials switched from HDRP/Lit keep their values).\nfloat2 uv = BaseMap.GetTransformedUV(UV);\nfloat4 c = SAMPLE_TEXTURE2D(BaseMap.tex, BaseMap.samplerstate, uv) * Tint;\nColor = c.rgb;\nAlpha = c.a;\n// Tree leaf cards (world_trees): each card's own drop value from UV1, so SeasonalTrees' alpha cutoff drops whole\n// clusters; the texture's transparent parts get -1 so they stay clipped even at a cutoff of 0.\nAlpha = lerp(Alpha, c.a >= 0.5 ? FaceUV.x : -1.0, UseFace);\nfloat4 pn = SAMPLE_TEXTURE2D(NormalMap.tex, NormalMap.samplerstate, uv);\npn.x *= pn.w;   // Unity's normal maps are stored either RG or AG: this reads both\nfloat2 nxy = pn.xy * 2.0 - 1.0;\nNormal = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));\nfloat4 m = SAMPLE_TEXTURE2D(MaskMap.tex, MaskMap.samplerstate, uv);\nMetal = m.r * UseMask;\nAO = lerp(1.0, m.g, UseMask);\nGloss = lerp(Smooth, m.a, UseMask);\n"
+    "m_FunctionBody": "// The surface, sampled as HDRP's Lit does (same property names, so materials switched from HDRP/Lit keep their values).\nfloat2 uv = BaseMap.GetTransformedUV(UV);\nfloat4 texel = SAMPLE_TEXTURE2D(BaseMap.tex, BaseMap.samplerstate, uv);\nfloat4 c = texel * Tint;\n// Fall variety (world_trees): each tree's own random value from where it stands; past 0.35 its leaves turn toward the\n// second fall colour, by SeasonalTrees' FallMix (0 outside Fall). Gives yellow maples among the red ones, without extra prototypes.\nfloat3 treeWS = GetAbsolutePositionWS(TransformObjectToWorld(float3(0, 0, 0)));\nfloat pick = frac(sin(dot(floor(treeWS.xz * 4.0), float2(12.9898, 78.233))) * 43758.5453);\nc.rgb = lerp(c.rgb, texel.rgb * FallAlt.rgb, saturate((pick - 0.35) * 3.0) * FallMix);\nColor = c.rgb;\nAlpha = c.a;\n// Tree leaf cards (world_trees): each card's own drop value from UV1, so SeasonalTrees' alpha cutoff drops whole\n// clusters; the texture's transparent parts get -1 so they stay clipped even at a cutoff of 0.\nAlpha = lerp(Alpha, c.a >= 0.5 ? FaceUV.x : -1.0, UseFace);\nfloat4 pn = SAMPLE_TEXTURE2D(NormalMap.tex, NormalMap.samplerstate, uv);\npn.x *= pn.w;   // Unity's normal maps are stored either RG or AG: this reads both\nfloat2 nxy = pn.xy * 2.0 - 1.0;\nNormal = float3(nxy, sqrt(saturate(1.0 - dot(nxy, nxy))));\nfloat4 m = SAMPLE_TEXTURE2D(MaskMap.tex, MaskMap.samplerstate, uv);\nMetal = m.r * UseMask;\nAO = lerp(1.0, m.g, UseMask);\nGloss = lerp(Smooth, m.a, UseMask);\n"
 }
 
 {
@@ -3096,6 +3148,229 @@
     "m_SlotType": 0,
     "m_Hidden": false,
     "m_ShaderOutputName": "UseFace",
+    "m_StageCapability": 3,
+    "m_Value": 0.0,
+    "m_DefaultValue": 0.0,
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 3,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.ColorShaderProperty",
+    "m_ObjectId": "437fde4d629e432eb738f760ac236544",
+    "m_Guid": {
+        "m_GuidSerialized": "eb20df01-81bd-41b4-9640-679d546cc53e"
+    },
+    "m_Name": "Fall Alt Color",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Fall Alt Color",
+    "m_DefaultReferenceName": "_FallAltColor",
+    "m_OverrideReferenceName": "_FallAltColor",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": {
+        "r": 0.85,
+        "g": 0.55,
+        "b": 0.08,
+        "a": 1.0
+    },
+    "m_ColorMode": 0
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "38d843eac4634c3fa532a636af1acb3a",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -900,
+            "y": 960,
+            "width": 180,
+            "height": 80
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "b6eea47c9a964d538d7071d5f1a43fbc"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": false,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "437fde4d629e432eb738f760ac236544"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "b6eea47c9a964d538d7071d5f1a43fbc",
+    "m_Id": 0,
+    "m_DisplayName": "Fall Alt Color",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Fall Alt Color",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector4MaterialSlot",
+    "m_ObjectId": "be3495dde16f4f56a256201fc0ada7f1",
+    "m_Id": 15,
+    "m_DisplayName": "FallAlt",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "FallAlt",
+    "m_StageCapability": 3,
+    "m_Value": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_DefaultValue": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "w": 0.0
+    },
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 1,
+    "m_Type": "UnityEditor.ShaderGraph.Internal.Vector1ShaderProperty",
+    "m_ObjectId": "0a3b70d874424a3e91f85b420b06e027",
+    "m_Guid": {
+        "m_GuidSerialized": "8642d1c0-791f-4784-bde3-8ebfaf078e24"
+    },
+    "m_Name": "Fall Mix",
+    "m_DefaultRefNameVersion": 1,
+    "m_RefNameGeneratedByDisplayName": "Fall Mix",
+    "m_DefaultReferenceName": "_FallMix",
+    "m_OverrideReferenceName": "_FallMix",
+    "m_GeneratePropertyBlock": true,
+    "m_UseCustomSlotLabel": false,
+    "m_CustomSlotLabel": "",
+    "m_DismissedVersion": 0,
+    "m_Precision": 0,
+    "overrideHLSLDeclaration": false,
+    "hlslDeclarationOverride": 0,
+    "m_Hidden": false,
+    "m_PerRendererData": false,
+    "m_customAttributes": [],
+    "m_Value": 0.0,
+    "m_FloatType": 1,
+    "m_RangeValues": {
+        "x": 0,
+        "y": 1
+    },
+    "m_SliderType": 0,
+    "m_SliderPower": 3.0,
+    "m_EnumType": 0,
+    "m_CSharpEnumString": "",
+    "m_EnumNames": [
+        "Default"
+    ],
+    "m_EnumValues": [
+        0
+    ]
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.PropertyNode",
+    "m_ObjectId": "ae808ba8585642d7a0ea48cc0ed145ce",
+    "m_Group": {
+        "m_Id": ""
+    },
+    "m_Name": "Property",
+    "m_DrawState": {
+        "m_Expanded": true,
+        "m_Position": {
+            "serializedVersion": "2",
+            "x": -900,
+            "y": 1060,
+            "width": 180,
+            "height": 80
+        }
+    },
+    "m_Slots": [
+        {
+            "m_Id": "2d05afa9f4c141fab11478852198edd0"
+        }
+    ],
+    "synonyms": [],
+    "m_Precision": 0,
+    "m_PreviewExpanded": false,
+    "m_DismissedVersion": 0,
+    "m_PreviewMode": 0,
+    "m_CustomColors": {
+        "m_SerializableColors": []
+    },
+    "m_Property": {
+        "m_Id": "0a3b70d874424a3e91f85b420b06e027"
+    }
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
+    "m_ObjectId": "2d05afa9f4c141fab11478852198edd0",
+    "m_Id": 0,
+    "m_DisplayName": "Fall Mix",
+    "m_SlotType": 1,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "Fall Mix",
+    "m_StageCapability": 3,
+    "m_Value": 0.0,
+    "m_DefaultValue": 0.0,
+    "m_Labels": []
+}
+
+{
+    "m_SGVersion": 0,
+    "m_Type": "UnityEditor.ShaderGraph.Vector1MaterialSlot",
+    "m_ObjectId": "115a59d4dbe84f1495d680f90c15d8fc",
+    "m_Id": 16,
+    "m_DisplayName": "FallMix",
+    "m_SlotType": 0,
+    "m_Hidden": false,
+    "m_ShaderOutputName": "FallMix",
     "m_StageCapability": 3,
     "m_Value": 0.0,
     "m_DefaultValue": 0.0,

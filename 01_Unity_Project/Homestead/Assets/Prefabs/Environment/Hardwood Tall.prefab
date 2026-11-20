@@ -266,6 +266,8 @@ MonoBehaviour:
   summerColor: {r: 0.247, g: 0.429, b: 0.15599999, a: 1}
   fallColor: {r: 0.858, g: 0.62399995, b: 0.103999995, a: 1}
   deciduous: 1
+  fallAltColor: {r: 0.62399995, g: 0.33799997, b: 0.077999994, a: 1}
+  fallVariety: 1
 --- !u!136 &2118369906113559721
 CapsuleCollider:
   m_ObjectHideFlags: 0
