@@ -14,6 +14,9 @@ using UnityEngine.Rendering.HighDefinition;
 // Assets/Art/Wood, in a lighter weathered-wood material than the bark so they read against leaf litter and grass.
 // Re-running replaces the previous set, with the same layout (fixed seed) and so the same ids — but this layout differs
 // from the first, smaller one, so ids saved against that one point at different pieces.
+// The art (Mike, 2026-11-19): when Resources/Art/world_stick_bundle_a..c, world_fallen_branch_a..c and world_ground_wood exist,
+// their meshes are copied into the six mesh assets and their material into Ground Wood.mat, so pieces already placed
+// take the art without moving (Homestead > Art > Apply Ground Wood Art), and a re-run keeps it.
 // Counts and distances are first-pass numbers for Mike to tune by feel.
 public static class GroundWoodPlacer
 {
@@ -216,6 +219,56 @@ public static class GroundWoodPlacer
         }
     }
 
+    public const string ArtPrefix = "Art/world_";
+    public const string ArtMaterial = "Art/world_ground_wood";
+
+    // The Blender ground wood into the pieces already in the scene, without re-placing them: the six mesh assets and
+    // Ground Wood.mat are updated in place.
+    [MenuItem("Homestead/Art/Apply Ground Wood Art")]
+    public static void ApplyGroundWoodArt()
+    {
+        if (!AssetDatabase.IsValidFolder(ArtFolder))
+            AssetDatabase.CreateFolder("Assets/Art", "Wood");
+        foreach (string letter in new[] { "A", "B", "C" })
+        {
+            BundleMesh("Stick Bundle " + letter, 0);
+            BranchMesh("Fallen Branch " + letter, 0);
+        }
+        WoodMaterial();
+        AssetDatabase.SaveAssets();
+        Debug.Log("[GroundWoodPlacer] Ground wood art applied to the stick bundles, fallen branches and Ground Wood.mat.");
+    }
+
+    // "Stick Bundle A" is Resources/Art/world_stick_bundle_a_model; null when there isn't one.
+    static Mesh ArtMesh(string name)
+    {
+        var art = Resources.Load<GameObject>(ArtPrefix + name.ToLowerInvariant().Replace(' ', '_') + "_model");
+        var filter = art != null ? art.GetComponentInChildren<MeshFilter>() : null;
+        return filter != null ? filter.sharedMesh : null;
+    }
+
+    static Mesh SaveArtMesh(string name, Mesh source)
+    {
+        string path = $"{ArtFolder}/{name}.asset";
+        var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+        bool created = mesh == null;
+        if (created)
+            mesh = new Mesh();
+        mesh.Clear();
+        mesh.name = name;
+        mesh.vertices = source.vertices;
+        mesh.normals = source.normals;
+        mesh.tangents = source.tangents;
+        mesh.uv = source.uv;
+        mesh.triangles = source.triangles;
+        mesh.RecalculateBounds();
+        if (created)
+            AssetDatabase.CreateAsset(mesh, path);
+        else
+            EditorUtility.SetDirty(mesh);
+        return mesh;
+    }
+
     // Weathered, lighter wood, so a stick on dark leaf litter or green grass is easy to pick out.
     static Material WoodMaterial()
     {
@@ -226,8 +279,17 @@ public static class GroundWoodPlacer
             material = new Material(Shader.Find("HDRP/Lit"));
             AssetDatabase.CreateAsset(material, path);
         }
-        material.SetColor("_BaseColor", new Color(0.58f, 0.45f, 0.3f));
-        material.SetFloat("_Smoothness", 0.12f);
+        var art = Resources.Load<Material>(ArtMaterial);
+        if (art != null)
+        {
+            material.shader = art.shader;
+            material.CopyPropertiesFromMaterial(art);
+        }
+        else
+        {
+            material.SetColor("_BaseColor", new Color(0.58f, 0.45f, 0.3f));
+            material.SetFloat("_Smoothness", 0.12f);
+        }
         material.enableInstancing = true;
         HDMaterial.ValidateMaterial(material);
         EditorUtility.SetDirty(material);
@@ -238,6 +300,9 @@ public static class GroundWoodPlacer
     // so they show from a few metres away.
     static Mesh BundleMesh(string name, int seed)
     {
+        Mesh art = ArtMesh(name);
+        if (art != null)
+            return SaveArtMesh(name, art);
         var random = new System.Random(Seed + seed);
         var verts = new List<Vector3>();
         var tris = new List<int>();
@@ -256,6 +321,9 @@ public static class GroundWoodPlacer
     // One long branch along X, tapering, with a couple of side twigs.
     static Mesh BranchMesh(string name, int seed)
     {
+        Mesh art = ArtMesh(name);
+        if (art != null)
+            return SaveArtMesh(name, art);
         var random = new System.Random(Seed + 100 + seed);
         var verts = new List<Vector3>();
         var tris = new List<int>();

@@ -9,7 +9,10 @@ using UnityEngine;
 //   creek and pond banks, each a hand-pickup LooseStone worth one Stone, with a stable id for the save.
 //   South Ridge's rock outcrop — a cluster of big boulders on the steepest ground of the ridge's south face, clear of
 //   the cabin site, the new-game spawn point and trees, carrying RockDeposit (mined with the Stone Pick Axe), with a scatter of loose stones at its foot.
-// Rock shapes are generated low-poly meshes saved under Assets/Art/Rocks. Re-running replaces the previous set, with
+// Rock shapes are generated low-poly meshes saved under Assets/Art/Rocks, or (Mike, 2026-11-19) the Blender rocks when
+// Resources/Art/world_rock_a, _b, _c and world_rock_stone exist: their mesh data is copied into Rock A, B, C and their material
+// into Stone.mat, so stones already placed take the art without moving (Homestead > Art > Apply Rock Art).
+// Re-running replaces the previous set, with
 // the same layout (fixed seed) and so the same ids. The original layout (150 scattered, 90 along the water, the
 // outcrop's 10) comes first with its ids, and the 2026-10-07 density increase (Stone_Gathering_System.md) adds a second
 // batch after it with ids from 1001 (scatter) and 2001 (water), so a save made before it still hides the right stones.
@@ -273,9 +276,59 @@ public static class StonePlacer
         go.AddComponent<LooseStone>().SetId(id);
     }
 
+    public const string ArtPrefix = "Art/world_rock_";
+    public const string ArtMaterial = "Art/world_rock_stone";
+
+    // The Blender rocks into the stones already in the scene, without re-placing them: Rock A, B, C and Stone.mat are
+    // updated in place, so every loose stone and outcrop boulder that uses them changes at once.
+    [MenuItem("Homestead/Art/Apply Rock Art")]
+    public static void ApplyRockArt()
+    {
+        if (!AssetDatabase.IsValidFolder(ArtFolder))
+            AssetDatabase.CreateFolder("Assets/Art", "Rocks");
+        RockMesh("Rock A", 1);
+        RockMesh("Rock B", 2);
+        RockMesh("Rock C", 3);
+        StoneMaterial();
+        AssetDatabase.SaveAssets();
+        Debug.Log("[StonePlacer] Rock art applied to Rock A, B, C and Stone.mat.");
+    }
+
+    // The art mesh for "Rock A" is Resources/Art/world_rock_a (its FBX's mesh); null when there isn't one.
+    static Mesh ArtMesh(string name)
+    {
+        var art = Resources.Load<GameObject>(ArtPrefix + name.Substring(name.Length - 1).ToLowerInvariant() + "_model");
+        var filter = art != null ? art.GetComponentInChildren<MeshFilter>() : null;
+        return filter != null ? filter.sharedMesh : null;
+    }
+
+    static Mesh SaveRockMesh(string path, string name, Mesh source)
+    {
+        var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+        bool created = mesh == null;
+        if (created)
+            mesh = new Mesh();
+        mesh.Clear();
+        mesh.name = name;
+        mesh.vertices = source.vertices;
+        mesh.normals = source.normals;
+        mesh.tangents = source.tangents;
+        mesh.uv = source.uv;
+        mesh.triangles = source.triangles;
+        mesh.RecalculateBounds();
+        if (created)
+            AssetDatabase.CreateAsset(mesh, path);
+        else
+            EditorUtility.SetDirty(mesh);
+        return mesh;
+    }
+
     // A lumpy low-poly rock: a subdivided octahedron pushed in and out by a seeded noise, flat-shaded.
     static Mesh RockMesh(string name, int seed)
     {
+        Mesh art = ArtMesh(name);
+        if (art != null)
+            return SaveRockMesh($"{ArtFolder}/{name}.asset", name, art);
         string path = $"{ArtFolder}/{name}.asset";
         var random = new System.Random(Seed + seed);
         var verts = new List<Vector3> { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
@@ -345,8 +398,17 @@ public static class StonePlacer
             material = new Material(Shader.Find("HDRP/Lit"));
             AssetDatabase.CreateAsset(material, path);
         }
-        material.SetColor("_BaseColor", new Color(0.46f, 0.45f, 0.42f));
-        material.SetFloat("_Smoothness", 0.15f);
+        var art = Resources.Load<Material>(ArtMaterial);
+        if (art != null)
+        {
+            material.shader = art.shader;
+            material.CopyPropertiesFromMaterial(art);
+        }
+        else
+        {
+            material.SetColor("_BaseColor", new Color(0.46f, 0.45f, 0.42f));
+            material.SetFloat("_Smoothness", 0.15f);
+        }
         material.enableInstancing = true;
         HDMaterial.ValidateMaterial(material);
         EditorUtility.SetDirty(material);

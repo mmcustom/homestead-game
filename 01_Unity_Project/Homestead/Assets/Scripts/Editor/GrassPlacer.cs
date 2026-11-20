@@ -10,6 +10,9 @@ using UnityEngine.Rendering.HighDefinition;
 // with the same layout (fixed seed) and ids. The first 90 clumps are the original layout, with ids 1-90; the 2026-10-07
 // density increase (Trapping_System.md) adds more after them with ids from 1001, so a save made before it still hides
 // the right clumps.
+// The art (Mike, 2026-11-19): when Resources/Art/world_tall_grass_model and world_tall_grass exist, the clump mesh and the
+// material are copied from them in place (Homestead > Art > Apply Tall Grass Art), so clumps already placed change without
+// moving, and a re-run keeps the art.
 public static class GrassPlacer
 {
     const string RootName = "Tall Grass";
@@ -122,11 +125,50 @@ public static class GrassPlacer
         return false;
     }
 
+    public const string ArtMesh = "Art/world_tall_grass_model";
+    public const string ArtMaterial = "Art/world_tall_grass";
+
+    [MenuItem("Homestead/Art/Apply Tall Grass Art")]
+    public static void ApplyTallGrassArt()
+    {
+        if (!AssetDatabase.IsValidFolder(ArtFolder))
+            AssetDatabase.CreateFolder("Assets/Art", "Grass");
+        ClumpMesh();
+        GrassMaterial();
+        AssetDatabase.SaveAssets();
+        Debug.Log("[GrassPlacer] Tall grass art applied to the clump mesh and Tall Grass.mat.");
+    }
+
+    static Mesh CopyMesh(string path, Mesh source)
+    {
+        var mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
+        bool created = mesh == null;
+        if (created)
+            mesh = new Mesh();
+        mesh.Clear();
+        mesh.name = "Tall Grass Clump";
+        mesh.vertices = source.vertices;
+        mesh.normals = source.normals;
+        mesh.tangents = source.tangents;
+        mesh.uv = source.uv;
+        mesh.triangles = source.triangles;
+        mesh.RecalculateBounds();
+        if (created)
+            AssetDatabase.CreateAsset(mesh, path);
+        else
+            EditorUtility.SetDirty(mesh);
+        return mesh;
+    }
+
     // Tapered blades leaning out from the centre: each a thin four-sided spike, faced both ways so it reads from any
     // side without a double-sided material.
     static Mesh ClumpMesh()
     {
         string path = $"{ArtFolder}/Tall Grass Clump.asset";
+        var art = Resources.Load<GameObject>(ArtMesh);
+        var artFilter = art != null ? art.GetComponentInChildren<MeshFilter>() : null;
+        if (artFilter != null)
+            return CopyMesh(path, artFilter.sharedMesh);
         var random = new System.Random(Seed);
         var verts = new List<Vector3>();
         var tris = new List<int>();
@@ -186,8 +228,17 @@ public static class GrassPlacer
             material = new Material(Shader.Find("HDRP/Lit"));
             AssetDatabase.CreateAsset(material, path);
         }
-        material.SetColor("_BaseColor", new Color(0.52f, 0.52f, 0.28f)); // a dry, straw-green meadow grass
-        material.SetFloat("_Smoothness", 0.1f);
+        var art = Resources.Load<Material>(ArtMaterial);
+        if (art != null)
+        {
+            material.shader = art.shader;
+            material.CopyPropertiesFromMaterial(art);   // double-sided: each blade is one ribbon
+        }
+        else
+        {
+            material.SetColor("_BaseColor", new Color(0.52f, 0.52f, 0.28f)); // a dry, straw-green meadow grass
+            material.SetFloat("_Smoothness", 0.1f);
+        }
         material.enableInstancing = true;
         HDMaterial.ValidateMaterial(material);
         EditorUtility.SetDirty(material);

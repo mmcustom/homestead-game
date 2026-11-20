@@ -42,6 +42,7 @@ public class Animal : MonoBehaviour
     public GameTier Tier => tier;
     public bool IsDead => state == State.Dead;
     public bool IsBuck => antlers != null && antlers.activeSelf;
+    public bool IsMale { get; private set; }
     public bool Swims => swims;
 
     // Whether a shot along this line passes through the vitals (they sit inside the body, so the body collider is
@@ -103,6 +104,7 @@ public class Animal : MonoBehaviour
         bool buck = IsBuck;
         artAlive.gameObject.SetActive(false);
         artDead.gameObject.SetActive(true);
+        ShowSex(artDead);
         Transform deadAntlers = PartOf(artDead, "Antlers");
         if (deadAntlers != null)
             deadAntlers.gameObject.SetActive(buck);
@@ -110,15 +112,37 @@ public class Animal : MonoBehaviour
         return true;
     }
 
-    // A pose's part by name; the dead pose's copies are exported as Dead_<name>.
+    // A pose's part by name, anywhere under it and among the parts shown (a tom's Body, not the hidden hen's); the dead pose's copies are
+    // exported as Dead_<name>.
     static Transform PartOf(Transform pose, string part)
     {
         if (pose == null)
             return null;
-        foreach (Transform t in pose)
-            if (t.name == part || t.name.EndsWith("_" + part))
+        Transform hidden = null;
+        foreach (Transform t in pose.GetComponentsInChildren<Transform>(true))
+        {
+            if (t == pose || !(t.name == part || t.name.EndsWith("_" + part)))
+                continue;
+            if (t.gameObject.activeInHierarchy || !pose.gameObject.activeInHierarchy && t.gameObject.activeSelf && (t.parent == pose || t.parent.gameObject.activeSelf))
                 return t;
-        return null;
+            hidden = hidden ?? t;
+        }
+        return hidden;
+    }
+
+    // A species drawn differently by sex (a tom's fan, a hen's folded tail) keeps each look in a Male and a Female group in each pose
+    // (Dead_Male, Dead_Female in the carcass); only the animal's own is shown. Species without the groups are unchanged.
+    void ShowSex(Transform pose)
+    {
+        if (pose == null)
+            return;
+        foreach (Transform t in pose)
+        {
+            if (t.name == "Male" || t.name.EndsWith("_Male"))
+                t.gameObject.SetActive(IsMale);
+            else if (t.name == "Female" || t.name.EndsWith("_Female"))
+                t.gameObject.SetActive(!IsMale);
+        }
     }
 
     // The capsule the shots and the interaction ray hit, around the pose's "Body" mesh (in the model's space; the long axis is Z).
@@ -148,6 +172,11 @@ public class Animal : MonoBehaviour
         UseArt();
         if (antlers != null)
             antlers.SetActive(Random.value < 0.5f);
+        // Male or female: a deer's antlers decide it (a buck); any other species is an even chance. The art shows its Male or Female parts.
+        IsMale = antlers != null ? antlers.activeSelf : Random.value < 0.5f;
+        ShowSex(artAlive);
+        if (artAlive != null)
+            FitBody(artAlive);
         EnterIdle();
     }
 

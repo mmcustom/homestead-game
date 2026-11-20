@@ -73,6 +73,40 @@ public class AnimalArtTests
         }
     }
 
+    // Every species whose art exists, checked the same way, so each new animal is covered by adding its prefab name here.
+    [TestCase("Deer")]
+    [TestCase("Turkey")]
+    [TestCase("Duck")]
+    [TestCase("Rabbit")]
+    [TestCase("Squirrel")]
+    public void ASpeciesWithArtShowsItAndFallsAsItsCarcass(string prefab)
+    {
+        GameObject go = Spawn(prefab);
+        try
+        {
+            Component animal = go.GetComponent(Find("Animal"));
+            var model = (Transform)Field(animal, "model");
+            Call(animal, "UseArt");
+            Transform art = model.Find("Art");
+            Assert.That(art, Is.Not.Null, prefab + ": its art is shown");
+            foreach (Renderer r in model.GetComponentsInChildren<Renderer>(true))
+                if (!r.transform.IsChildOf(art))
+                    Assert.That(r.enabled, Is.False, r.name);
+            var vitals = (Transform)Field(animal, "vitals");
+            Assert.That(Vector3.Distance(vitals.position, art.Find("Vitals").position), Is.LessThan(0.001f));
+            var capsule = model.GetComponentInChildren<CapsuleCollider>(true);
+            float standingY = capsule.center.y;
+            Assert.That((bool)Call(animal, "ShowDeadPose"), Is.True);
+            Assert.That(art.Find("Pose_Alive").gameObject.activeSelf, Is.False);
+            Assert.That(art.Find("Pose_Dead").gameObject.activeSelf, Is.True);
+            Assert.That(capsule.center.y, Is.LessThan(standingY), "the capsule comes down with the carcass");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+    }
+
     [Test]
     public void ADoesCarcassHasNoAntlers()
     {
@@ -95,11 +129,14 @@ public class AnimalArtTests
     [Test]
     public void ASpeciesWithNoArtYetKeepsItsPrimitivesAndTipsOverAsBefore()
     {
-        Assert.That(Resources.Load<GameObject>("Art/animal_turkey"), Is.Null, "pick a species without art");
-        GameObject turkey = Spawn("Turkey");
+        // every wildlife species has art since 2026-11-19, so give one a made-up species id (a future animal added before its art)
+        GameObject squirrel = Spawn("Squirrel");
+        Component c0 = squirrel.GetComponent(Find("Animal"));
+        c0.GetType().GetField("speciesId", Any).SetValue(c0, "test_species_without_art");
+        Assert.That(Resources.Load<GameObject>("Art/animal_test_species_without_art"), Is.Null);
         try
         {
-            Component animal = turkey.GetComponent(Find("Animal"));
+            Component animal = squirrel.GetComponent(Find("Animal"));
             var model = (Transform)Field(animal, "model");
             Call(animal, "UseArt");
             Assert.That(model.Find("Art"), Is.Null);
@@ -109,7 +146,36 @@ public class AnimalArtTests
         }
         finally
         {
-            UnityEngine.Object.DestroyImmediate(turkey);
+            UnityEngine.Object.DestroyImmediate(squirrel);
+        }
+    }
+
+    // Toms and hens (Mike, 2026-11-19): a species drawn by sex keeps each look in a Male and a Female group; only the animal's own shows,
+    // standing and as its carcass (a tom's fan, a hen's folded tail).
+    [TestCase(true)]
+    [TestCase(false)]
+    public void ATomAndAHenEachShowTheirOwnLook(bool male)
+    {
+        GameObject go = Spawn("Turkey");
+        try
+        {
+            Component animal = go.GetComponent(Find("Animal"));
+            var model = (Transform)Field(animal, "model");
+            Call(animal, "UseArt");
+            animal.GetType().GetProperty("IsMale", Any).GetSetMethod(true).Invoke(animal, new object[] { male });
+            Transform art = model.Find("Art"), alive = art.Find("Pose_Alive"), dead = art.Find("Pose_Dead");
+            animal.GetType().GetMethod("ShowSex", Any).Invoke(animal, new object[] { alive });
+            Assert.That(alive.Find("Male").gameObject.activeSelf, Is.EqualTo(male), "the tom's look");
+            Assert.That(alive.Find("Female").gameObject.activeSelf, Is.EqualTo(!male), "the hen's look");
+            Assert.That((bool)Call(animal, "ShowDeadPose"), Is.True);
+            Assert.That(dead.Find("Dead_Male").gameObject.activeSelf, Is.EqualTo(male), "a tom falls as a tom");
+            Assert.That(dead.Find("Dead_Female").gameObject.activeSelf, Is.EqualTo(!male));
+            var capsule = model.GetComponentInChildren<CapsuleCollider>(true);
+            Assert.That(capsule.height, Is.InRange(male ? 0.52f : 0.43f, male ? 0.62f : 0.53f), "the capsule fits the shown body, breast to tail: a tom's 0.57 m, a hen's 0.49 m");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(go);
         }
     }
 }

@@ -141,6 +141,7 @@ public class FishingRod : MonoBehaviour
         {
             bobber = Instantiate(bobberPrefab, bobberRest, Quaternion.identity);
             line = bobber.GetComponentInChildren<LineRenderer>();
+            UseBobberArt(bobber);
         }
         PlaySound(a => a.Splash, bobberRest);
         ToolEvents.RaiseCast(cane ? CaneId : RodId); // the line went out (Hands M0c-1)
@@ -384,5 +385,25 @@ public class FishingRod : MonoBehaviour
         // Loop only the audible stretch of the recording, skipping its silent ends.
         if (reelSource.isPlaying && sound.loopEnd > sound.startTime && reelSource.time >= sound.loopEnd)
             reelSource.time = sound.startTime;
+    }
+
+    // The bobber's art (Mike, 2026-11-19): Resources/Art/fishing_bobber, authored with its root on the water line like the prefab,
+    // replaces the prefab's primitive spheres; the Line stays the prefab's own. Without the art nothing changes.
+    public const string BobberArt = "Art/fishing_bobber";
+
+    public static bool UseBobberArt(GameObject bobber)
+    {
+        if (bobber == null)
+            return false;
+        GameObject art = Resources.Load<GameObject>(BobberArt);
+        if (art == null)
+            return false;
+        foreach (MeshRenderer r in bobber.GetComponentsInChildren<MeshRenderer>())
+            r.enabled = false;
+        GameObject shown = Instantiate(art, bobber.transform);
+        shown.name = "Art";
+        shown.transform.localPosition = Vector3.zero;
+        shown.transform.localRotation = Quaternion.identity;
+        return true;
     }
 }

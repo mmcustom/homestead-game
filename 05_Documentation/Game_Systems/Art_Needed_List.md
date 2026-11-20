@@ -174,16 +174,20 @@ Animals are prefabs already (Prefabs/Wildlife/*.prefab, built from capsules and 
 - Sources: one Art/Blender_Work/animal_<id> folder each. Bodies come from a joint table (position and thickness per joint) through Blender's Skin modifier and two levels of smoothing, so a new four-legged animal is mostly a new joint table plus its coat colours, and the dead pose is the same joints re-posed. Ears, eyes and antlers are added on and seated on the body by casting onto its surface.
 - Real-world size (a white-tailed deer is about 1.0 m at the shoulder; the primitive deer is oversized). Front faces Blender -Y (Unity +Z), ground at z = 0, budget about 15,000 tris per pose.
 - Regional variants (e.g. a mule deer, an elk, a desert or northern subspecies) should reuse the nearest joint table with changed proportions and coat, not start from scratch.
+- Shared helpers (2026-11-19): Art/Blender_Work/animal_util.py has skin_body (joint table to smooth body), seat (put a part on the real surface), build_dead / dead_point (the carcass deformation, set per species by a small table: centre height, resting radius, belly and neck heights, head drop, and an optional tail_y / tail_rest that lays a flat tail down), the coat-region shader helpers and export_animal. A species script is its joint table, its parts and its coat.
+- Tests: AnimalArtTests.ASpeciesWithArtShowsItAndFallsAsItsCarcass runs for every species listed in it; add each new animal's prefab name there.
+- Male and female (Mike, 2026-11-19): every Animal is male or female (IsMale: a deer's antlers decide it, any other species is an even chance). A species drawn differently by sex puts each look in a `Male` and a `Female` group inside each pose (`Dead_Male` and `Dead_Female` in the carcass); the hook shows only the animal's own and fits the body capsule to it. Species without the groups are unchanged. export_animal writes the groups when given {"Male": {...}, "Female": {...}}.
+- Import rule: Blender's FBX export gives meshes inside two levels of grouping an extra 90-degree tilt; animal meshes are authored in place, so the prefab build resets every mesh's local transform.
 
 | Animal | Approx. size (m) | Notes | Priority |
 |---|---|---|---|
 | Deer (white-tailed) | 1.7 long x 1.0 shoulder | Approved 2026-11-19 (animal_deer, standing and carcass; see its section). Head-down grazing pose later needs a code change. | Medium |
-| Turkey | 0.9 long x 0.6 tall | Wild turkey. | Medium |
-| Rabbit (cottontail) | 0.4 long | Hops. | Medium |
-| Squirrel (grey or fox) | 0.45 long incl. tail | Small, fast. | Low |
-| Duck (mallard) | 0.55 long | Floats on water. | Low |
-| Fish (creek species) | 0.2 to 0.5 long | Seen on the line and in the Fish Trap. | Low |
-| Bobber | 0.04 | Floats; part of the fishing rod. | Low |
+| Turkey | 0.9 long x 0.6 tall | Approved 2026-11-19 (animal_turkey, standing and carcass; see its section). | Medium |
+| Rabbit (cottontail) | 0.4 long | Approved 2026-11-19 (animal_rabbit, crouched and carcass; see its section). Hops by moving the whole animal (Animal.hops). | Medium |
+| Squirrel (grey or fox) | 0.45 long incl. tail | Approved 2026-11-19 (animal_squirrel, on all fours with the tail up, and carcass; see its section). | Low |
+| Duck (mallard) | 0.55 long | Approved 2026-11-19 (animal_waterfowl, drake and hen, floating and carcass; see its section). | Low |
+| Fish (creek species) | 0.2 to 0.5 long | Art exists (2026-11-19 check): the four species (bluegill, crappie, bass, catfish) are the Wave 4 item_ fish, and the Fish Trap's art has fish in its Catch. The rod shows no fish on the line today: a catch goes straight to the pack (FishingRod). Showing the landed fish is a code feature, not art. Counted done by Mike, 2026-11-19 (no fish on the line for now). | Low |
+| Bobber | 0.07 | In Unity 2026-11-19 (fishing_bobber; see its section). | Low |
 | Carcass (each species) | as the animal | Moved from Wave 4 (Mike, 2026-11-19). Today Animal.Die tips the live model 85 degrees on its side (Carcass.cs has the dressing logic and no visuals). Make the dead pose from each animal's own model so the body that falls matches the live animal; a field-dressed look is optional (Carcass has a dressed flag, nothing visual yet). | with each animal |
 | Rabbit Snare, Box Trap, Fish Trap (world versions) | see tools table | Done 2026-11-15 from the tool_ art (see the trap_ notes). | Low |
 
@@ -196,13 +200,13 @@ These set the look of every screen, so they decide whether the realistic style h
 | Group | What | Notes | Reference image | Priority |
 |---|---|---|---|---|
 | Trees | Hardwood Broad, Hardwood Tall, Understory Shrub, plus tall and short fall-colour variants | Sugar maple, sycamore, oak, hickory, beech; up to about 25,000 triangles each in the realistic style (leaf cards count); also a low-detail version later. FallingTree tips the same prefab over. | fall sugar maple, sugar maple, winter sugar maple, sycamore (reference only) | High |
-| Rocks | Rock A, B, C and the South Ridge outcrop | Weathered limestone and sandstone for southern Ohio (confirm). | none yet | Medium |
-| Sticks and branches | Ground wood variants | Several sizes. | none yet | Medium |
-| Tall grass | Grass clump | Tapered blades, sways. | none yet | Medium |
+| Rocks | Rock A, B, C and the South Ridge outcrop | Approved 2026-11-19 (world_rocks: weathered limestone; see its section). | none (procedural) | Medium |
+| Sticks and branches | Ground wood variants | Approved 2026-11-19 (world_ground_wood: three stick bundles and three fallen branches; see its section). | none (procedural) | Medium |
+| Tall grass | Grass clump | Approved 2026-11-19 (world_tall_grass; see its section). Sways in the wind (see Wind sway). | none (procedural) | Medium |
 | Forage | One simple shape and one material per species | Low priority until foraging is expanded. | none yet | Low |
 | Clay patches | Wet clay surface decals | Optional; none placed yet. | none yet | Low |
 | Water | Creek and pond surface material | One flat mesh today; needs flow, shore foam, and clear shallow edge. | none yet | High |
-| Terrain | Three terrain layers: Dirt, Grass, Gravel (albedo, normal, mask) | Plus runtime snow, leaf litter and creek banks painted by code. | none yet | High |
+| Terrain | Three terrain layers: Dirt, Grass, Gravel (albedo, normal, mask) | Approved 2026-11-19 (world_terrain; see its section). Runtime snow, leaf litter and creek-bank layers are still the code's own plain textures. | none (procedural) | High |
 | Weather | Rain, snow, lightning particle sprites | Small PNG sprites. | none yet | Medium |
 | Smoke and fire | KilnSmoke material and texture, campfire flame sprites | Particles built in code; art is just the sprite sheet. | none yet | Medium |
 | Sky | Skybox or HDRI | Not listed in the code inventory; confirm what the project uses. | none yet | Medium |
@@ -552,7 +556,7 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 | 2 | Shelter and main structures | 15 | 15 (structure_kiln, structure_cabin, structure_tent, structure_tarpshelter, structure_leanto approved 2026-11-15; structure_well, structure_outhouse, structure_workshop, structure_pottershed, structure_charcoalpit, structure_bloomery, structure_smithy, structure_leachhopper, structure_kitchen and the kitchen add-ons approved 2026-11-16; WAVE 2 COMPLETE) | 0 | 0 |
 | 3 | Storage, piles, workshop furniture, hand cart, tripod, tap, campfire | 12 | 12 (structure_tap 2026-11-15; wood pile, rock pile, both barrels, food cache, storage bin, tool rack, shelving, wood shed, hand cart, campfire, tripod approved 2026-11-16) | 0 | 0 |
 | 4 | World items, icons, stump, carcass | 9 groups | 2 (batch 1 raw materials: logs, branches, firewood, stone, clay, charcoal, ash; batch 2: sticks, kindling bundle, lumber, sand, iron ore, iron bar, box of nails; dropped tools use their Wave 1 art; approved by Mike 2026-11-16; batch 3: pottery raw and fired, door hinges, hook set, approved 2026-11-16) | 3 (world_stump; batch 4 fish and meat, raw and cooked; batch 5 animal goods; batch 6 forage; batch 7 furniture and crafted parts; batch 8 liquids and supplies; all approved in game by Mike 2026-11-19. Every item in the database now has dropped art and an icon (icons in the Inventory rows with the hover name, approved in game by Mike 2026-11-19); Wave 4 complete 2026-11-19; the carcass moved to Wave 5, to be made with each animal) | 3 |
-| 5 | Animals and traps | 8 | 0 | 0 | 8 |
+| 5 | Animals and traps | 8 | 7 (deer, turkey, duck, rabbit, squirrel, each with its carcass, approved by Mike 2026-11-19; fish counted done by Mike 2026-11-19: the Wave 4 item fish and the Fish Trap's catch; traps done 2026-11-15) | 1 (fishing_bobber, in Unity 2026-11-19, awaiting the in-game check) | 0 |
 | 6 | Trees, terrain, water, weather, effects | 11 groups | 0 | 0 | 11 |
 | 7 | UI and screens (new) | see below | 0 | 0 | all |
 | 8 | Screen effects, particles, sky (new) | see below | 0 | 0 | all |
@@ -976,3 +980,99 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Code (Animal.cs): UseArt() in Awake loads Art/animal_<speciesId> for any species; hides the primitive renderers, puts the art under Model, moves Vitals, makes the art's Antlers the buck/doe switch and fits the body capsule to the standing Body. Die shows Pose_Dead (antlers matching) and refits the capsule to the carcass; a species with no art still tips over as before.
 - Tests: AnimalArtTests (3); Fists, Knife, MeleePrompts, CreekBank and KnowHow 131/131.
 - To check in game: a buck and a doe at grazing distance and up close, a clean kill (the vitals are now in the real chest), and the carcass (aim at it and field dress).
+
+## animal_turkey (2026-11-19): wild turkey toms and hens and their carcasses (approved by Mike, 2026-11-19)
+- Mike, 2026-11-19: male and female models; toms carry the big fan like the traditional turkey picture.
+- Tom (Male): about 0.93 m to the head, the fan standing up and tilted back behind him (0.91 m across; finely barred, a dark band near the edge, chestnut and buff tips, dark lines between feathers), dark bronze plumage in fine scales, bare red head with a pale blue face, snood, wattle, beard, barred wing feathers.
+- Hen (Female): 86% of a tom, duller brown feathers with pale tips, a greyish partly feathered head, small snood, no beard, the folded tail with its chestnut tip.
+- Pose_Alive/Male: Body, Wings, Fan, Parts; Pose_Alive/Female: Hen_Body, Hen_Wings, Hen_Tail, Hen_Parts. Pose_Dead/Dead_Male and Dead_Female: the same through the shared carcass deformation (tail laid flat; the tom's whole fan laid flat by lay_fan_flat). Vitals in the chest, 0.51 m up.
+- Materials (14): animal_turkey_coat, _wing, _fan, _skin, _beard, _eye, _leg and the hen's _hen_coat, _hen_wing, _tail, _hen_skin, _hen_beard, _hen_eye, _hen_leg. Bodies 2048, the rest 1024.
+- Sources: Art\Blender_Work\animal_turkey (turkey_geo.py). Code: Animal.IsMale and ShowSex (general, for any species).
+- Tests: AnimalArtTests 7/7 (a tom and a hen each show their own look and carcass); Fists, Knife, MeleePrompts pass.
+- To check in game: toms and hens at distance and close, shooting each and its carcass.
+## animal_waterfowl (2026-11-19): mallard drakes and hens and their carcasses (approved by Mike, 2026-11-19)
+- The Duck prefab's species id is "waterfowl", so the art is Art/animal_waterfowl (not animal_duck).
+- Drake (Male): about 0.58 m bill to tail, glossy green head, white collar, chestnut breast, grey flanks with fine wavy lines, brown-grey back, black rump with the two curled tail feathers, pale tail tip, yellow bill, orange feet.
+- Hen (Female): 93% of a drake, mottled brown with buff-edged feathers, buff face with a dark crown and eye line, orange-brown bill. Both show the blue speculum edged in white on the folded wing.
+- Floats: the origin is the water line (the game keeps the duck's root on the water). Pose_Alive is lowered 0.035 m in the prefab so the hull sits in the water; feet hang under it, paddling.
+- Pose_Alive/Male: Drake_Body, Drake_Wings, Drake_Parts (bill, eyes, feet, curl); Pose_Alive/Female: Hen_Body, Hen_Wings, Hen_Parts. Pose_Dead/Dead_Male and Dead_Female: the shared carcass deformation (on its side, neck laid down, feet out), then slumped to 78% height. Vitals in the chest, 0.09 m up.
+- Materials (12, all 1024): animal_waterfowl_drake_coat, _drake_wing, _drake_bill, _drake_eye, _drake_foot, _drake_curl and the hen's _hen_coat, _hen_wing, _hen_bill, _hen_eye, _hen_foot, _hen_curl. About 6,300 tris per sex.
+- Sources: Art\Blender_Work\animal_waterfowl (duck_geo.py: build_all() builds, unwraps, makes materials and carcasses). Note for later animals: in skin_body keep joints further apart than their radii, or the skin folds over itself.
+- Tests: AnimalArtTests (Duck added to the species-with-art cases; the no-art case is now the rabbit, read by its species id) and ArtSwapTests, 45/45.
+- To check in game: drakes and hens on the pond, how deep they sit, shooting one and its carcass at the bank.
+
+## animal_rabbit (2026-11-19): eastern cottontail and its carcass (approved by Mike, 2026-11-19)
+- One model: bucks and does look alike, so there are no Male/Female groups (IsMale is still set at random; nothing shows by it).
+- Crouched, ready to hop: about 0.42 m nose to tail, 0.29 m to the ear tips. Big haunches folded under, long hind feet flat on the ground, short front legs.
+- Coat: agouti grey-brown in fine streaks lying back, pale belly, chin and feet, a rusty nape patch, a pale ring round the eye. Long cupped ears with paler insides and dark tips; the cotton tail is white beneath, brown on top.
+- Pose_Alive: Body, Legs, Parts (ears, eyes, tail). Pose_Dead: Dead_Body, Dead_Legs, Dead_Parts by the shared carcass deformation, with the ears folded back and draped onto the ground (lay_ears_back). Vitals in the chest, 0.11 m up.
+- Materials (5, all 1024): animal_rabbit_coat, _legs, _ear, _eye, _tail. About 5,900 tris.
+- Sources: Art\Blender_Work\animal_rabbit (rabbit_geo.py: build_all()).
+- Tests: AnimalArtTests (Rabbit added to the species-with-art cases; the no-art case is now the squirrel) and ArtSwapTests, 46/46.
+- To check in game: rabbits hopping at distance and close, shooting one and its carcass.
+
+## animal_squirrel (2026-11-19): eastern gray squirrel and its carcass (approved by Mike, 2026-11-19)
+- One model: males and females look alike.
+- On all fours, alert, the bushy tail rising in an S over the back: about 0.25 m nose to rump, the tail to 0.31 m. Small rounded ears, big dark eyes.
+- Coat: grizzled grey with a brownish wash on the back and head, white belly, chin and eye ring. Tail: long grizzled hairs, dark inside, frosted pale at the edges.
+- Pose_Alive: Body, Legs, Tail, Parts (ears, eyes). Pose_Dead: Dead_Body, Dead_Legs, Dead_Tail, Dead_Parts by the shared carcass deformation; the tail is swung back to trail out behind on the ground (lay_tail_back). Vitals in the chest, 0.09 m up.
+- Materials (5, all 1024): animal_squirrel_coat, _legs, _tail, _ear, _eye. About 8,000 tris (the tail is half).
+- Sources: Art\Blender_Work\animal_squirrel (squirrel_geo.py: build_all()).
+- Every wildlife prefab now has art. The no-art test gives a squirrel a made-up species id, so it keeps covering an animal added before its art.
+- To check in game: squirrels moving about, shooting one and its carcass.
+
+## fishing_bobber (2026-11-19): the round float on the fishing line (in Unity, awaiting Mike's check)
+- The classic round bobber, 6.6 cm across: glossy red top, white bottom with a slight seam lip, a white spring button with a wire clip on top and a wire line hook underneath.
+- Root on the water line like the Bobber prefab (FishingRod puts the bobber's root on the water surface): the ball's centre is 8 mm up, so most of the white half sits under water.
+- One mesh, materials fishing_bobber_red, _white, _wire (metal), 1024. About 2,400 tris.
+- Code: FishingRod.UseBobberArt (called right after the bobber is cast) hides the prefab's primitive spheres and puts the art under the bobber; the Line stays the prefab's own. Without the art nothing changes.
+- Sources: Art\Blender_Work\fishing_bobber (bobber_geo.py). Tests: FishingArtTests (new); EquipNameFade and RodsAndLightsInHand still pass.
+- To check in game: casting, the bobber floating and dipping on a bite, at day and night.
+
+## world_rocks (2026-11-19): Rock A, B, C for every loose stone and the South Ridge outcrop (approved by Mike, 2026-11-19)
+- How the game uses rocks: StonePlacer (Homestead > Place Stone) put 490 loose stones and the outcrop's 8 boulders into the World scene, all sharing three mesh assets (Assets/Art/Rocks/Rock A, B, C) and one material (Stone.mat), scaled from 0.25 m stones up to 3.2 m boulders sunk 30% into the slope.
+- The art: three weathered grey limestone rocks about 1 unit across, flat bottom at -0.17, top near 0.5 like the old meshes; flat broken faces along bedding and joints, rounded weathering, thin bedding lines, a buff tint in places, grey-green lichen on top. About 820 tris each.
+- All three share one 2048 texture set (unwrapped and baked together), so the single Stone material still covers every stone. Material instanced.
+- Unity: Resources/Art/world_rock_a, _b, _c (FBX) and world_rock_stone.mat. StonePlacer copies the art into Rock A, B, C and Stone.mat in place (new menu Homestead > Art > Apply Rock Art, already run), so the placed stones changed without moving and their save ids are untouched; a later Place Stone keeps the art. The boulders' mesh colliders follow the new shapes.
+- Sources: Art\Blender_Work\world_rocks (rocks_geo.py: build, stone_mat, unwrap_together, bake_together, raise_to_game_height).
+- Sandstone variant not made (the list said limestone and sandstone, confirm): one set of rocks covers the property today.
+- Tests: RockArtTests (new), with ArtSwapTests 41/41.
+- To check in game: loose stones close up and at distance, and the outcrop boulders on South Ridge.
+
+## world_ground_wood (2026-11-19): the ground stick bundles and fallen branches (approved by Mike, 2026-11-19)
+- How the game uses them: GroundWoodPlacer (Homestead > Place Sticks and Branches) put hand-pickup GroundWood pieces under the hardwoods and in the meadow, sharing six mesh assets (Assets/Art/Wood/Stick Bundle A-C, Fallen Branch A-C) and one material (Ground Wood.mat).
+- The art keeps the old sizes (chunkier than life on purpose, so sticks show from a few metres): a bundle is six bent, knobbly sticks 3-4 cm thick, about 1 m across, crossed and stacked; a branch lies along X (its pickup box runs that way), 1.6-2.2 m, tapering, with 2-3 side twigs, some forked. 460-720 tris each.
+- Material: weathered fallen wood, mid grey-brown rough bark, peeled in places to pale silvered wood, pale broken ends, a little moss on top; lighter than the leaf litter so it still stands out. One 2048 texture set for all six (baked together), instanced.
+- Unity: Resources/Art/world_stick_bundle_a..c, world_fallen_branch_a..c (FBX) and world_ground_wood.mat. GroundWoodPlacer copies them into the six mesh assets and Ground Wood.mat in place (new menu Homestead > Art > Apply Ground Wood Art, already run): pieces already placed changed without moving, save ids untouched; a re-run keeps the art.
+- Sources: Art\Blender_Work\world_ground_wood (ground_wood_geo.py). Tests: GroundWoodArtTests (new); with RockArtTests and ArtSwapTests 48/48.
+- To check in game: bundles and branches under the trees and in the meadow, close and from a few metres.
+
+## world_tall_grass (2026-11-19): the tall meadow grass clump cut for Cordage (approved by Mike, 2026-11-19)
+- How the game uses it: GrassPlacer (Homestead > Place Tall Grass) put about 200 TallGrass clumps in the open meadow and pasture, sharing one mesh (Assets/Art/Grass/Tall Grass Clump) and one material (Tall Grass.mat).
+- The art: 70 thin curved ribbon blades from a 0.25 m tuft, arching outward, some drooping at the tip, 0.75-1.35 m tall, plus 9 thinner stems carrying timothy-like seed heads. About 1,360 tris.
+- Texture painted in code (not baked): 14 colour strips for blades, green at the base fading to straw at the tips, some greener and some drier all the way down, fine lengthwise streaks and a paler midrib; a brown strip for the seed heads. The normal map folds each blade down its middle. 256 x 1024.
+- Material: double-sided (each blade is one ribbon), instanced. Unity: Resources/Art/world_tall_grass_model (FBX) and world_tall_grass.mat; GrassPlacer copies them into the clump mesh and Tall Grass.mat in place (new menu Homestead > Art > Apply Tall Grass Art, already run), so clumps already placed changed without moving; a re-run keeps the art.
+- Sways in the wind since 2026-11-19 (see Wind sway below).
+- Sources: Art\Blender_Work\world_tall_grass (grass_geo.py: build, paint_textures). Tests: TallGrassArtTests (new); with the rock, ground wood and art-swap tests 50/50.
+- To check in game: clumps in the meadow from close and from across a field, at day and dusk.
+
+## Wind sway (2026-11-19): the tall grass and the trees move in the wind (approved by Mike, 2026-11-19)
+- Mike, 2026-11-19: "it would be really neato if the tall grass and trees swayed in the wind".
+- Shader: Assets/Shaders/HomesteadWindLit.shadergraph (shader Homestead/HomesteadWindLit), an HDRP Lit shader graph with alpha clipping, built from Unity's FoliageWind sample setup. It bends each plant downwind in object space, more with height (height squared, so the base stays planted), in slow gusting waves whose phase changes across the land so neighbours don't move in step, leaning harder and moving faster as the wind rises; leaves add a small quick flutter.
+- Same property names as HDRP/Lit (_BaseColor, _BaseColorMap, _NormalMap, _MaskMap, _AlphaCutoff, _Smoothness), so switching a material kept its values and SeasonalTrees still recolours leaves and thins leaves and snow by alpha cutoff. Per material: _WindSway (metres at _WindHeight), _WindHeight, _WindFlutter, _UseMask (0 for materials without a mask map).
+- On: Tall Grass.mat and world_tall_grass.mat (height 1.3, sway 0.18, flutter 0.015); Bark, Leaves, Shrub Leaves, Tree Snow (one bend for every tree part, height 15, sway 0.45, so leaves, snow and branches stay together; flutter 0.04 on leaves and crown snow, none on bark). Shrubs move mostly by flutter (they are short against the 15 m bend).
+- Driver: Assets/Scripts/World/WindShaderDriver.cs sets the global _HomesteadWind every frame from WeatherManager.WindDirection (the bearing it blows FROM, 0 = north = +Z) and WindStrength, eased over about 4 s so a change of weather builds up; a light westerly breeze (0.25) with no weather and in the editor.
+- Builders: PropertyTerrainBuilder.UseWind keeps the tree materials on the wind shader if the trees are rebuilt; GrassPlacer already copies the shader from the grass art material.
+- Not covered: any other plant (forage, crops) is still plain HDRP/Lit; the terrain's grass texture doesn't move.
+- Tests: WindSwayTests (new; the shader compiles with the Lit names, every plant material sways, tree parts bend together and keep alpha clipping, the wind direction and easing); with the art tests 59/59.
+- To check in game: calm and windy weather (the debug weather controls), trees near and far, grass, and Fall and Winter (leaf colour, leaf drop and snow still right).
+
+## world_terrain (2026-11-19): the Grass, Dirt and Gravel terrain layers (approved by Mike, 2026-11-19)
+- Before: each layer was a flat 512 colour texture with no normal or mask map.
+- Now: tileable 1024 colour, normal and mask maps for each layer, generated in code (Art\Blender_Work\world_terrain\gen_terrain_textures.py: periodic noise, wrapped Voronoi, blades and pebbles drawn round the edges, so nothing seams). Mask: R metallic 0, G AO, B height (for blending), A smoothness.
+- Grass (4 m tile): short turf drawn blade by blade, greener and drier patches, dark soil between. Dirt (3 m tile): brown silt-loam with clods, drier high spots, a few small pebbles and dark organic specks. Gravel (2 m tile): rounded limestone-grey pebbles with some buff and a few rusty ones, soil between.
+- Unity: Assets/Art/Terrain/Textures/terrain_<layer>_basecolor, _normal, _mask on Grass, Dirt and Gravel.terrainlayer (tile sizes kept). Property Terrain.mat: normal and mask maps on, and height-based blending (transition 0.15), so grass and dirt meet along the textures' bumps instead of a soft smear. PropertyTerrainBuilder.MakeLayer uses these maps when they exist, so a rebuild keeps them.
+- Not changed: the runtime layers SeasonalGround (snow, leaf litter) and CreekBanks (clay, sand) paint from their own code-made textures; they could get the same treatment later.
+- Tests: TerrainArtTests (new); with the wind and art tests 63/63, CreekBankTests 35/35.
+- To check in game: the meadow, a path or the cabin dirt, gravel areas, close and far (watch for the tile repeating), and snow and Fall leaf litter on top.
+

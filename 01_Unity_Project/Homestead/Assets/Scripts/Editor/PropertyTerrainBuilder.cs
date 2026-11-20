@@ -637,9 +637,10 @@ public static class PropertyTerrainBuilder
 
         Mesh mesh = SaveAsset(builder.ToMesh(prefabName), $"{ArtFolder}/{prefabName}.asset");
         Color summer = kind == 2 ? new Color(0.2f, 0.28f, 0.11f) : new Color(0.19f, 0.33f, 0.12f);
-        Material bark = LitMaterial("Bark", new Color(0.27f, 0.2f, 0.14f), 0.1f);
-        Material leaves = LitMaterial(kind == 2 ? "Shrub Leaves" : "Leaves", summer, 0.15f, foliageMask, alphaCutoff: 0f);
-        Material snow = LitMaterial("Tree Snow", new Color(0.9f, 0.92f, 0.95f), 0.3f, foliageMask, alphaCutoff: 1f);
+        // The tree parts sway in the wind together (WindShaderDriver): the same bend on all of them, a flutter on the leaves and crown snow.
+        Material bark = UseWind(LitMaterial("Bark", new Color(0.27f, 0.2f, 0.14f), 0.1f), 0f);
+        Material leaves = UseWind(LitMaterial(kind == 2 ? "Shrub Leaves" : "Leaves", summer, 0.15f, foliageMask, alphaCutoff: 0f), TreeLeafFlutter);
+        Material snow = UseWind(LitMaterial("Tree Snow", new Color(0.9f, 0.92f, 0.95f), 0.3f, foliageMask, alphaCutoff: 1f), TreeLeafFlutter);
 
         var go = new GameObject(prefabName);
         go.AddComponent<MeshFilter>().sharedMesh = mesh;
@@ -945,6 +946,20 @@ public static class PropertyTerrainBuilder
         layer.tileSize = new Vector2(tileSize, tileSize);
         layer.smoothness = 0f;
         layer.metallic = 0f;
+        // The terrain art (Mike, 2026-11-19): when Textures/terrain_<layer>_basecolor, _normal and _mask exist (made by
+        // Art/Blender_Work/world_terrain/gen_terrain_textures.py), the layer uses them instead of the plain generated colour.
+        string art = $"{ArtFolder}/Textures/terrain_{layerName.ToLowerInvariant()}_";
+        var artColour = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "basecolor.png");
+        if (artColour != null)
+        {
+            layer.diffuseTexture = artColour;
+            layer.normalMapTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "normal.png");
+            layer.maskMapTexture = AssetDatabase.LoadAssetAtPath<Texture2D>(art + "mask.png");
+            layer.normalScale = 1f;
+            layer.smoothness = 1f;
+            layer.maskMapRemapMin = Vector4.zero;
+            layer.maskMapRemapMax = Vector4.one;
+        }
         EditorUtility.SetDirty(layer);
         return layer;
     }
@@ -959,6 +974,28 @@ public static class PropertyTerrainBuilder
             material = new Material(GraphicsSettings.defaultRenderPipeline.defaultTerrainMaterial);
             AssetDatabase.CreateAsset(material, path);
         }
+        return material;
+    }
+
+    // Plants that sway (Mike, 2026-11-19): the wind shader graph takes the same property names as HDRP/Lit, so a tree material
+    // keeps its colour, map and alpha cutoff (which SeasonalTrees drives). Every tree part uses one bend, measured against a
+    // 15 m tree, so branches, leaves and snow stay together; leaves and crown snow add a small flutter.
+    public const string WindShaderPath = "Assets/Shaders/HomesteadWindLit.shadergraph";
+    public const float TreeWindHeight = 15f, TreeWindSway = 0.45f, TreeLeafFlutter = 0.04f;
+
+    static Material UseWind(Material material, float flutter)
+    {
+        var wind = AssetDatabase.LoadAssetAtPath<Shader>(WindShaderPath);
+        if (wind == null)
+            return material;
+        if (material.shader != wind)
+            material.shader = wind;   // same-named properties carry over
+        material.SetFloat("_WindHeight", TreeWindHeight);
+        material.SetFloat("_WindSway", TreeWindSway);
+        material.SetFloat("_WindFlutter", flutter);
+        material.SetFloat("_UseMask", 0f);
+        HDMaterial.ValidateMaterial(material);
+        EditorUtility.SetDirty(material);
         return material;
     }
 
