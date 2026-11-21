@@ -59,6 +59,7 @@ public class PlayerAudio : MonoBehaviour
     {
         controller = GetComponent<PlayerController>();
         CurrentSurface = defaultSurface;
+        WorldFx.Ensure(); // the Wave 8 effects live with the player's scene
         for (int i = 0; i < stepSources.Length; i++)
         {
             stepSources[i] = CreateSource("Footstep " + (i + 1));
@@ -107,6 +108,7 @@ public class PlayerAudio : MonoBehaviour
             {
                 strideProgress -= 1f;
                 PlayStep(audio);
+                WorldFx.Footstep(transform.position, transform.eulerAngles.y, CurrentSurface); // prints in snow and mud, splashes in water (Wave 8)
             }
         }
         else

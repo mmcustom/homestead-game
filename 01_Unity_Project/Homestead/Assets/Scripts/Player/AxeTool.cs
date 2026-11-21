@@ -644,6 +644,7 @@ public class AxeTool : MonoBehaviour
             sound(point);
         else if (AudioManager.Instance != null)
             AudioManager.Instance.PlayChop(point);
+        WorldFx.Blow(Equipped, point, transform.position); // chips, stone, dirt or dust where it landed (Wave 8)
         return true;
     }
 

@@ -154,7 +154,7 @@ Items today are one tinted cube sized by weight (DroppedItems.Spawn) and have no
 | item_<id> for hides, pelts, meat, fish, eggs, forage | Food and animal goods | 0.1 to 0.4 | Hides pair with the tanning rack reference (tanning not in code yet). | Medium |
 | item_<id> for pottery (pots, jars, bricks) | Fired and unfired clay goods | 0.1 to 0.3 | Dry versus fired colour difference matters. | Medium |
 | Item icons (2D) | One icon per item for inventory and market | 128 x 128 px, transparent PNG | Done 2026-11-19 (see Wave 4 item icons below): rendered from the item art, shown in the Inventory rows. | Medium |
-| Map icons (2D) | Map markers for structures and places | 64 x 64 px | In Unity 2026-11-20 (ui_map_markers; see its section): the nine discovery markers as 128 px art, used by MapIcons.Marker; the player arrow and the maple droplet and pail stay drawn in code (the HUD tints them). Awaiting Mike's check. | Low |
+| Map icons (2D) | Map markers for structures and places | 64 x 64 px | In Unity 2026-11-20 (ui_map_markers; see its section): the nine discovery markers as 128 px art, used by MapIcons.Marker; the player arrow and the maple droplet and pail stay drawn in code (the HUD tints them). Approved by Mike 2026-11-20. | Low |
 | Stump | Tree stump left after felling | trunk radius (confirm) | Pivot at ground, cut face up. | Medium |
 | Carcass | Dead animal on the ground | by species | Moved to Wave 5 (Mike, 2026-11-19): there is no separate carcass in code; Animal.Die tips the animal's own model 85 degrees onto its side. Made with each animal. | none |
 | Placement ghost | Uses the structure prefabs themselves | as each kind | No separate art. | none |
@@ -558,10 +558,10 @@ Project folders checked: 02_Blender_Assets, 03_Concept_Art, 04_Audio and 07_Mark
 | 4 | World items, icons, stump, carcass | 9 groups | 7 (raw materials, metal goods, food and animal goods, pottery, item icons, stump: approved by Mike 2026-11-16 to 2026-11-19, every item in the database has dropped art and an icon; map icons in Unity 2026-11-20, awaiting Mike's check) | 0 | 0 (the other 2 need no art: the carcass moved to Wave 5 and was made with each animal; the placement ghost uses the structure prefabs) |
 | 5 | Animals and traps | 8 | 8 (deer, turkey, duck, rabbit, squirrel, each with its carcass, approved by Mike 2026-11-19; fish counted done by Mike 2026-11-19: the Wave 4 item fish and the Fish Trap's catch; traps done 2026-11-15; fishing_bobber approved by Mike 2026-11-20) | 0 | 0 |
 | 6 | Trees, terrain, water, weather, effects | 11 groups | 11 (all approved by Mike 2026-11-20 in Play Mode: trees with fall variety, rocks, sticks, tall grass, forage, clay patch decal, water, terrain and the runtime ground layers, weather, smoke and fire, sky) | 0 | 0 |
-| 7 | UI and screens (new) | see below | 0 | 0 | all |
-| 8 | Screen effects, particles, sky (new) | see below | 0 | 0 | all |
+| 7 | UI and screens (new) | 8 groups | 8 (Ledger theme, fonts, HUD, menus, Loss and Loading screens, management screens, map art, warning banners: approved by Mike 2026-11-20; WAVE 7 COMPLETE) | 0 | 0 |
+| 8 | Screen effects, particles, sky (new) | 8 groups | 8 (all approved by Mike in Play Mode 2026-11-20, see wave8_fx below; the sky itself was done in Wave 6; WAVE 8 COMPLETE) | 0 | 0 |
 | 9 | Art for designed-but-not-built systems (new) | see below | 0 | 0 | all |
-| 10 | Branding, store and marketing (new) | see below | 0 | 0 | all |
+| 10 | Branding, store and marketing (new) | 6 | 6 (logo, app icon, title and loading art approved 2026-11-20; Steam store art, teaser, press kit approved 2026-11-21; WAVE 10 COMPLETE) | 0 | 0 |
 
 Plain reading: in-game art so far is the hands and nothing else. The tool, structure and world art waves are all still primitive shapes. The swap-point system (ArtSwap) exists so each piece can arrive one at a time.
 
@@ -774,12 +774,12 @@ Nothing exists. The 07_Marketing and 03_Concept_Art folders are empty. This wave
 
 | Item | What | Notes |
 |---|---|---|
-| Game logo | "Homestead" wordmark, plus the motto "Survive. Prepare. Build. Prosper." as an optional lockup | Done 2026-11-20 (brand_logo below): a round wood-rimmed badge with an ink log cabin, pines, chimney smoke and a rising sun, plus a lockup with HOMESTEAD in Alegreya Bold and the motto. Original work. Awaiting Mike's check. |
+| Game logo | "Homestead" wordmark, plus the motto "Survive. Prepare. Build. Prosper." as an optional lockup | Done 2026-11-20 (brand_logo below): a round wood-rimmed badge with an ink log cabin, pines, chimney smoke and a rising sun, plus a lockup with HOMESTEAD in Alegreya Bold and the motto. Original work. Approved by Mike 2026-11-20. |
 | App icon | Windows executable icon in the standard sizes (16 to 256 px) | Done 2026-11-20: the badge as homestead_icon.ico (16 to 256) and Assets/Art/Branding/app_icon.png, set as the default icon in Player Settings. |
 | Title and Loading art | A key painting or a rendered view of the finished homestead for the Main Menu and the Loading scene | Done 2026-11-20: an in-game 4K render of the homestead at autumn dusk, graded warm (title_background; menu_background is the same with the left side darkened for the logo and buttons). Redo from a new capture when the structures get their final art. |
-| Store page art | Capsule and header images, a short and a long description, screenshots (needs a screenshot-friendly lit scene) | Sizes depend on the store chosen. |
-| Trailer | A capture-based trailer | Needs real art in the world first. |
-| Press kit | Logo files, screenshots, fact sheet | Later. |
+| Store page art | Capsule and header images, a short and a long description, screenshots (needs a screenshot-friendly lit scene) | Made 2026-11-20 for Steam (Mike's choice): every store and library capsule, hero, logo, page background, icons, 7 screenshots and the store text, in 07_Marketing/Steam and Press_Kit. Approved by Mike 2026-11-21. |
+| Trailer | A capture-based trailer | A 26 s teaser made 2026-11-20 (07_Marketing/Trailer): five in-game camera moves with the motto, the logo end card, the Main Menu theme. Remake with MarketingCamera and make_teaser.py when the world looks better. Approved by Mike 2026-11-21. |
+| Press kit | Logo files, screenshots, fact sheet | Fact sheet and descriptions drafted 2026-11-20 (07_Marketing/Press_Kit/Store_Page_and_Press_Kit.md); release date, price, website and contact are TBA. Approved by Mike 2026-11-21. |
 
 ## Audio note
 
@@ -793,16 +793,39 @@ Audio is a separate list (Audio_System.md): the 22 original files plus thunder a
 - Main Menu (LedgerUiApplier): the picture fills the screen (envelope fit), the logo and the buttons stand in a column on the darkened left, the cabin sits on the right; the old title text is kept, hidden.
 - Tests: UiThemeTests 24 (adds the title art, the Main Menu logo and the Loading screen). Full EditMode 2293/2293.
 
-## Suggested order from here
+## wave8_fx (2026-11-20): action particles, body-state screen effects, water, breath, fire glow, footprints (approved by Mike 2026-11-20)
 
-1. Wave 7 UI theme, fonts and the HUD (small to make, on screen constantly, and it removes the debug look immediately).
-2. Wave 1 tools, in the order they are used most (axe, knife, torch, bucket, hammer, shovel, bow and rifle), then the rifle seat fix.
-3. Wave 2 structures: Small Cabin first, then tent and shelters, Well, Outhouse, Workshop.
-4. Wave 8 sky, because it changes every screenshot.
-5. Wave 6 trees, terrain and water, in step with the structures so the style holds together.
-6. Wave 4 items and icons, then Wave 5 animals.
-7. Wave 10 logo and icon any time, since they are small; the rest when the game is shown to others.
-8. Wave 9 only as each system is built.
+- Code: World/WorldFx.cs (one hidden "World FX" object made by PlayerAudio.Awake; holds the particle systems and footprint decals), World/BodyStateFx.cs (a priority-20 global volume on the same object: Vignette, Color Adjustments, Lens Distortion), World/StructureGlow.cs (a persistent "Fire Glow" child switched by PlacedStructure.Rebuild).
+- Hooks (one line each): AxeTool.Swing -> WorldFx.Blow; CampfireCooking.Update -> WorldFx.Steam; PlayerAudio stride -> WorldFx.Footstep; FishingRod cast, bite, reeling and while the bobber floats -> Splash / Ripple; PlacedStructure.Rebuild -> StructureGlow.Drive for the Kiln, Charcoal Pit, Bloomery and Smithy.
+- Action particles: axes throw wood chips (lit cubes that tumble, bounce and shrink); the pick throws stone chips and dust, with sparks and a flash half the time; the shovel throws dirt clods and dust; the hammer gives a small flash, chips and dust.
+- Steam over a boiling pot (and a wisp over cooking), drifting with the wind.
+- Body states: cold = blue tint, less colour, a blue-edged vignette that throbs with shivering; heat = warm tint and a slow lens waver; low stamina (under 30%) = darker edges and drained colour in time with breathing; after a collapse = grey, dark, swimming view clearing over 30 s; weakened = slightly grey.
+- Water: drops and a ripple ring when wading (every stride in water), at the cast, at a bite and while a fish thrashes; rings from the floating bobber; a fish jumps on deep water near the player every 20-60 s.
+- Breath: puffs in front of the face below 4 C, more and bigger the colder it is, quicker when sprinting or tired.
+- Footprints: HDRP decals (left and right) in snow (snow cover 0.3 and up) and in mud (Dirt on a rainy or same-day-wet ground), 48 at most, fading over 3 minutes.
+- Fire glow: a flickering point light (Kiln 90 cd, Bloomery 120, Smithy 110, Charcoal Pit 30; the Campfire is 150) and rising embers at the mouth (Anchor_Mouth of the art); the Bloomery and Smithy swell and puff sparks every 3.5-7 s like bellows.
+- Textures: Resources/Art/fx_ripple, fx_spark, fx_droplet, fx_footprint (gen_fx_wave8.py in Art/Blender_Work/world_fx); dust, steam and breath reuse fx_smoke_puff.
+- Tests: Wave8EffectsTests (13).
+- Note from testing: with snow at dusk the night is nearly black even near a lit fire (the auto exposure stops at its minimum); that is the existing Wave 6 lighting, not this wave, and worth a look later.
+
+## store_marketing (2026-11-20, Wave 10 finish): Steam art, teaser, press kit (approved by Mike 2026-11-21)
+
+- Mike's choices: Steam, a short teaser now, developer and publisher MM Custom.
+- Captures: Assets/Scripts/Debug/MarketingCamera.cs (Editor only, Play Mode): sets day, hour, weather, snow and the fire glows per shot, its own camera with the HUD hidden and the hands not drawn; stills at 4K, teaser shots as one MJPEG file per shot. The game autosaves while it runs: the saves were backed up first and restored after (Temp/SaveBackup_W8).
+- Steam (07_Marketing/Steam): header 920x430, small 462x174, main 1232x706, vertical 748x896, library capsule 600x900, library hero 3840x1240 (no text), library logo 1280x720, page background 1438x810, community icon 184x184 JPG, client icon 32x32, 7 screenshots 1920x1080. Capsules carry only the emblem and HOMESTEAD (Steam allows no taglines), from the autumn-dusk homestead capture graded like the title art. Source: Art/Blender_Work/brand_logo/gen_store_art.py.
+- Teaser (07_Marketing/Trailer/homestead_teaser_1080p.mp4, 26.5 s, 1080p30, H.264 with AAC): spring "Survive.", fall "Prepare.", winter yard "Build.", snowfall at dusk "Endure.", autumn dusk "Prosper.", then the logo, "In development for Windows PC" and MM Custom; the Main Menu theme under it. A chopping close-up was recorded but dropped (the chips hid inside the trunk). Source: make_teaser.py.
+- Store text and fact sheet: 07_Marketing/Press_Kit/Store_Page_and_Press_Kit.md (short description 255 characters, long description, features, tags, fact sheet, the asset checklist). Release date, price, website, press contact and PC specs are TBA.
+- Noticed while capturing: seen from above, the spring pool's water reads as a black disc; the "SHORT" tag on the crafting screen is a pale amber that is hard to read on parchment.
+
+## Suggested order from here (updated 2026-11-20)
+
+Waves 1 to 7 are complete, and Wave 10's logo, icon and title art are done. What is left:
+
+1. Wave 8 effects (the sky itself was finished in Wave 6): action particles (chips, dirt, sparks, steam), body-state screen overlays (cold, heat, collapse, tired), water splashes and ripples, cold breath, fire ash and embers, footprints.
+2. Hands polish backlog (Wave 1 follow-up).
+3. Re-render the Main Menu, Loading and Loss pictures whenever the homestead looks notably better.
+4. Wave 10 store art, trailer and press kit when the game is shown to others.
+5. Wave 9 only as each system is built.
 
 ## structure_kiln (2026-11-15, Wave 2 pilot)
 
@@ -1155,7 +1178,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Tests: GroundLayerArtTests (4).
 - To check in Play Mode: snow (TimeDebugControls Ctrl+Home sets the snow), late-Fall leaf litter, and the creek banks.
 
-## ui_map_markers (2026-11-20): the minimap and world map discovery markers (awaiting Mike's check)
+## ui_map_markers (2026-11-20): the minimap and world map discovery markers (approved by Mike 2026-11-20)
 - Source: `Art/Blender_Work/ui_map_markers/` (gen_map_markers.py). Nine 128 px PNGs in Resources/Art: map_marker_WaterSource,
   _Plant (berries), _Wildlife (hoof print), _Fishing, _PropertyFeature (cabin), _Plant_fruit, _Plant_nut, _Plant_greens,
   _Plant_mushroom. Same colours and layout as MapIcons drew them (category colour disc, dark rim, cream glyph), with light

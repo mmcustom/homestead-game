@@ -90,7 +90,15 @@ public class FishingRod : MonoBehaviour
             line.SetPosition(0, RodTip);
             line.SetPosition(1, bobber.transform.position);
         }
+        // Wave 8: rings spread from the bobber now and then while it floats.
+        if (bobber != null && Time.time >= nextRipple)
+        {
+            nextRipple = Time.time + Random.Range(1.8f, 3f);
+            WorldFx.Ripple(new Vector3(bobber.transform.position.x, bobberRest.y, bobber.transform.position.z), state == State.Bite ? 0.7f : 0.4f);
+        }
     }
+
+    float nextRipple;
 
     Vector3 RodTip
     {
@@ -144,6 +152,7 @@ public class FishingRod : MonoBehaviour
             UseBobberArt(bobber);
         }
         PlaySound(a => a.Splash, bobberRest);
+        WorldFx.Splash(bobberRest, 0.35f); // Wave 8
         ToolEvents.RaiseCast(cane ? CaneId : RodId); // the line went out (Hands M0c-1)
         StartWaiting();
     }
@@ -192,6 +201,7 @@ public class FishingRod : MonoBehaviour
         state = State.Bite;
         stateUntil = Time.time + (cane ? caneBiteWindow : biteWindow);
         PlaySound(a => a.FishBite, bobberRest);
+        WorldFx.Splash(bobberRest, 0.25f); // Wave 8
         ToolEvents.RaiseBite(cane ? CaneId : RodId); // a fish took it (Hands M0c-1)
     }
 
@@ -271,6 +281,8 @@ public class FishingRod : MonoBehaviour
         {
             Vector3 toward = Vector3.Lerp(bobberRest, new Vector3(player.transform.position.x, bobberRest.y, player.transform.position.z), reelProgress * 0.7f);
             bobber.transform.position = toward + (running ? Random.insideUnitSphere * 0.08f : Vector3.zero);
+            if (running && Random.value < 0.12f)
+                WorldFx.Splash(new Vector3(toward.x, bobberRest.y, toward.z), 0.3f); // the fish thrashes (Wave 8)
         }
 
         int tension = Mathf.RoundToInt(strain / snapStrain * 100f);

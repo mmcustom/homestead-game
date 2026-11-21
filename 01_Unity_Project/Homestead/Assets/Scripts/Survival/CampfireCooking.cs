@@ -164,6 +164,7 @@ public class CampfireCooking : MonoBehaviour
     void Update()
     {
         int sound = Tick();
+        WorldFx.Steam(sound != NoSound, sizzleAt, sound == BoilSound); // steam over the pot, a wisp over cooking (Wave 8)
         AudioManager audio = AudioManager.Instance;
         UpdateSizzle(audio == null || sound == NoSound ? null : sound == BoilSound ? audio.Boiling : audio.CookingSizzle);
     }

@@ -995,6 +995,15 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             }
             smithySmoke.SetFiring(SmithyWorking);
         }
+        // Wave 8: a flickering glow and embers in the mouth while it burns (the Smithy's and Bloomery's breathe with the bellows).
+        if (state.kind == PileKind.Kiln)
+            StructureGlow.Drive(transform, state.kind, WellsAndOuthouses.KilnPhaseOf(state) == PotteryRules.KilnPhase.Firing);
+        else if (state.kind == PileKind.CharcoalPit)
+            StructureGlow.Drive(transform, state.kind, state.PitBurning);
+        else if (state.kind == PileKind.Bloomery)
+            StructureGlow.Drive(transform, state.kind, state.SmeltRunning);
+        else if (state.kind == PileKind.Smithy)
+            StructureGlow.Drive(transform, state.kind, SmithyWorking);
         box.center = center;
         box.size = size;
         // The finished kitchen has no interaction box (it would be a solid block to walk into): its roof, posts and table are the colliders,
