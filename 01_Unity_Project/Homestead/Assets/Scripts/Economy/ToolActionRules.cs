@@ -31,11 +31,11 @@ public static class ToolActionRules
     public static bool IsTrap(string toolId) => toolId == "box_trap" || toolId == "fish_trap" || toolId == "rabbit_snare";
 
     // Everything carried by a handle, bail, strap or cord (M0c-2 fix): the hand grips it at the top and the body hangs straight down in the view. The Lantern hangs the same way but is a light and
-    // keeps its own sway; the Rabbit Snare is carried by its stake, so it is not in this list.
-    public static readonly string[] HangingIds = { "bucket", "sap_bucket", "canteen", "cooking_pot", "potash_kettle", "pouch", "fish_trap", "box_trap" };
+    // keeps its own sway; the Rabbit Snare is carried by its stake, so it is not in this list. The tarp joined it with Hands v6 (Mike, 2026-11-22: "rope loop, hangs"): the bundle now has a rope carry loop.
+    public static readonly string[] HangingIds = { "bucket", "sap_bucket", "canteen", "cooking_pot", "potash_kettle", "pouch", "fish_trap", "box_trap", "tarp" };
     public static bool IsHanging(string toolId) => toolId != null && Array.IndexOf(HangingIds, toolId) >= 0;
 
-    // The tools whose pose this class drives (everything else keeps the plain neutral hold: the Clay Pot, the tarp, Flint and Steel; the Knife has its own KnifeState in PlayerHands).
+    // The tools whose pose this class drives (everything else keeps the plain neutral hold: the Clay Pot, Flint and Steel; the Knife has its own KnifeState in PlayerHands).
     public static bool Handles(string toolId) => IsRod(toolId) || IsLight(toolId) || IsBow(toolId) || IsRifle(toolId) || IsDrill(toolId) || IsContainer(toolId) || IsSpile(toolId) || IsTrap(toolId) || IsHanging(toolId);
 
     static HandPose P(float x, float y, float z, float pitch, float yaw = 0f, float roll = 0f) =>
@@ -61,7 +61,7 @@ public static class ToolActionRules
             case "bow_drill": return P(0f, 0.01f, 0.02f, -6f);
             // The carry pose of everything that hangs (M0c-2 fix): the hand is out, forward and up, so the body hangs below it in plain view instead of behind the sleeve or off the bottom of the screen.
             // The taller the hanging body, the higher the hand. No pitch: the forearm keeps its natural angle and the tool hangs by gravity (PlayerHands.AlignHanging).
-            case "bucket": case "sap_bucket": case "canteen": case "cooking_pot": case "potash_kettle": case "pouch": case "fish_trap": case "box_trap": return HangCarry;
+            case "bucket": case "sap_bucket": case "canteen": case "cooking_pot": case "potash_kettle": case "pouch": case "fish_trap": case "box_trap": case "tarp": return HangCarry;
             case "spile": return P(0f, 0.01f, 0.01f, -8f);
             case "rabbit_snare": return P(0f, 0.09f, 0.02f, 2f);
             default: return Zero;

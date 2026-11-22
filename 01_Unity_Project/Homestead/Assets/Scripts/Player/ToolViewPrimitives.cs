@@ -95,7 +95,7 @@ public static class ToolViewPrimitives
             case "clay_pot": return new Layout { twoHanded = false, holdPitch = -6f, tip = new Vector3(0f, 0.04f, 0.10f) };
             case "cooking_pot": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.14f, 0f) };
             case "potash_kettle": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.16f, 0f) };
-            case "tarp": return new Layout { twoHanded = false, holdPitch = -8f, tip = new Vector3(0f, 0f, 0.14f) };
+            case "tarp": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.235f, 0f) }; // Hands v6: hangs from its rope loop
             default: return new Layout { twoHanded = false, holdPitch = -12f, gripLeft = Vector3.zero, tip = Vector3.zero };
         }
     }
@@ -319,9 +319,13 @@ public static class ToolViewPrimitives
                 Part(root.transform, PrimitiveType.Cube, "Spout", new Vector3(0f, -0.10f, 0.12f), new Vector3(0.03f, 0.03f, 0.09f), Steel, new Vector3(-20f, 0f, 0f));
                 break;
             case "tarp":
-                Part(root.transform, PrimitiveType.Cube, "Bundle", new Vector3(0f, 0f, 0.10f), new Vector3(0.20f, 0.07f, 0.15f), TarpGreen);
-                Part(root.transform, PrimitiveType.Cube, "Band", new Vector3(0f, 0f, 0.10f), new Vector3(0.205f, 0.075f, 0.022f), Rope);
-                Part(root.transform, PrimitiveType.Cube, "Band 2", new Vector3(0f, 0f, 0.16f), new Vector3(0.205f, 0.075f, 0.022f), Rope);
+                // Hands v6 (2026-11-22): carried by a rope loop, the folded bundle hanging below the hand like a bag, its width across the view's depth.
+                Part(root.transform, PrimitiveType.Cube, "Bundle", new Vector3(0f, -0.155f, 0f), new Vector3(0.07f, 0.16f, 0.20f), TarpGreen);
+                Part(root.transform, PrimitiveType.Cube, "Band", new Vector3(0f, -0.11f, 0f), new Vector3(0.075f, 0.022f, 0.205f), Rope);
+                Part(root.transform, PrimitiveType.Cube, "Band 2", new Vector3(0f, -0.20f, 0f), new Vector3(0.075f, 0.022f, 0.205f), Rope);
+                Part(root.transform, PrimitiveType.Cylinder, "Loop", new Vector3(0f, 0f, 0f), new Vector3(0.007f, 0.035f, 0.007f), Rope, new Vector3(90f, 0f, 0f));
+                foreach (float side in new[] { -0.035f, 0.035f })
+                    Part(root.transform, PrimitiveType.Cylinder, "Loop Side", new Vector3(0f, -0.04f, side), new Vector3(0.007f, 0.04f, 0.007f), Rope);
                 break;
         }
 

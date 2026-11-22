@@ -302,12 +302,12 @@ public class RestOfToolsInHandTests
     [Test]
     public void TheClassHandlesTheNewToolsAndLeavesTheKnifeAndThePotsNeutral()
     {
-        foreach (string id in new[] { "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile", "box_trap", "fish_trap", "rabbit_snare", "pouch", "cooking_pot", "potash_kettle" })
+        foreach (string id in new[] { "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile", "box_trap", "fish_trap", "rabbit_snare", "pouch", "cooking_pot", "potash_kettle", "tarp" })
         {
             Assert.That(ToolActionRules.Handles(id), Is.True, id);
             Assert.That(ToolActionRules.Magnitude(ToolActionRules.Ready(id)), Is.GreaterThan(0f), id);
         }
-        foreach (string id in new[] { "knife", "flint_and_steel", "clay_pot", "tarp", "axe" })
+        foreach (string id in new[] { "knife", "flint_and_steel", "clay_pot", "axe" })
             Assert.That(ToolActionRules.Handles(id), Is.False, id);
         Assert.That(ToolActionRules.Magnitude(ToolActionRules.Ready("knife")), Is.EqualTo(0f), "the Knife is a hold pose only (the melee phase is M0e)");
     }
@@ -548,7 +548,7 @@ public class RestOfToolsInHandTests
 
     // ---- M0c-2 fix: the bows are drawn by the right hand only, and everything that hangs hangs straight down ----
 
-    static readonly string[] Hanging = { "bucket", "sap_bucket", "canteen", "cooking_pot", "potash_kettle", "pouch", "fish_trap", "box_trap" };
+    static readonly string[] Hanging = { "bucket", "sap_bucket", "canteen", "cooking_pot", "potash_kettle", "pouch", "fish_trap", "box_trap", "tarp" }; // the tarp hangs from a rope loop since Hands v6
 
     [Test]
     public void TheBowHandNeverMovesWithTheDrawOrTheRelease()
@@ -770,7 +770,7 @@ public class RestOfToolsInHandTests
         CollectionAssert.AreEquivalent(Hanging, ToolActionRules.HangingIds);
         foreach (string id in Hanging)
             Assert.That(ToolActionRules.IsHanging(id), Is.True, id);
-        foreach (string id in new[] { "lantern", "rabbit_snare", "clay_pot", "tarp", "knife", "axe", "primitive_bow", null })
+        foreach (string id in new[] { "lantern", "rabbit_snare", "clay_pot", "knife", "axe", "primitive_bow", null })
             Assert.That(ToolActionRules.IsHanging(id), Is.False, id ?? "null");
     }
 

@@ -299,8 +299,9 @@ public class DroppedItems : MonoBehaviour, ISaveable
         box.size = Vector3.Max(fit.size, Vector3.one * 0.02f);
     }
 
+    // The folded tarp hangs from its rope loop in the hand (Hands v6) but still lies flat when dropped.
     internal static bool StandsUpright(string itemId) =>
-        itemId == "clay_pot" || itemId == "lantern" || Array.IndexOf(ToolActionRules.HangingIds, itemId) >= 0;
+        itemId == "clay_pot" || itemId == "lantern" || (Array.IndexOf(ToolActionRules.HangingIds, itemId) >= 0 && itemId != "tarp");
 
     static void Show(Transform root, string childName, bool on)
     {

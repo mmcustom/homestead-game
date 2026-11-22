@@ -505,13 +505,37 @@ public class PlayerHands : MonoBehaviour
         tool.position += palm.position - grip.position;
     }
 
-    // The rifle grip (Hands v4, Mike 2026-11-21): while the rifle is shown, the grip hand's right Skin, Nails, Sleeve and Cuff meshes are swapped for copies posed on the rifle with the finger
+    // The rifle grip (Hands v4, Mike 2026-11-21): while the rifle is shown, the grip hand's right Skin, Nails, Sleeve and Cuff meshes are swapped (with Hair_R, Hands v5) for copies posed on the rifle with the finger
     // skeleton in Art\Blender_Work\hands\hands_player_grip_rig.blend: the palm on the right side of the stock, the thumb across the top, the fingers wrapped under it so they barely show,
     // the index finger on the trigger (Resources/Art/hands_grip_rifle_skin_R, _nails_R, _sleeve_R, _cuff_R). Every other tool gets the usual meshes back. A no-op when any are missing.
-    static readonly string[] RiflePartNames = { "Skin_R", "Nails_R", "Sleeve_R", "Cuff_R" };
-    static readonly string[] RiflePartAssets = { "Art/hands_grip_rifle_skin_R", "Art/hands_grip_rifle_nails_R", "Art/hands_grip_rifle_sleeve_R", "Art/hands_grip_rifle_cuff_R" };
-    MeshFilter[] rifleParts; Mesh[] plainMeshes, rifleMeshes; Transform rifleArt;
-    void ShowRifleThumb(bool rifle)
+    //
+    // Tool grips (Hands v6, 2026-11-22): the same swap gives other tools their own posed hand. GripPoseFor names the pose (the asset prefix) for a tool:
+    //   flint_and_steel -> hands_grip_flint: the steel's bar runs through the fist with its curls showing above and below, and the thumb presses the flint onto the top of the
+    //   index finger, its edge pointing forward (Resources/Art/hands_grip_flint_skin_R, _nails_R; the tool prefab's FS_Steel and FS_Flint were moved to match).
+    // A pose may supply only some parts (the flint pose moves only the fingers, so it has just Skin and Nails); a part without its own asset keeps the usual mesh.
+    static readonly string[] RiflePartNames = { "Skin_R", "Nails_R", "Sleeve_R", "Cuff_R", "Hair_R" };
+    static readonly string[] GripPartSuffixes = { "skin_R", "nails_R", "sleeve_R", "cuff_R", "hair_R" };
+    public const string RiflePose = "hands_grip_rifle", FlintPose = "hands_grip_flint";
+    public static string GripPoseFor(string toolId)
+    {
+        if (ToolActionRules.IsRifle(toolId)) return RiflePose;
+        if (toolId == FireManager.IgnitionId) return FlintPose;
+        return null;
+    }
+    MeshFilter[] rifleParts; Mesh[] plainMeshes; Transform rifleArt;
+    readonly Dictionary<string, Mesh[]> poseMeshes = new Dictionary<string, Mesh[]>();
+    Mesh[] PoseMeshes(string pose)
+    {
+        if (!poseMeshes.TryGetValue(pose, out Mesh[] meshes))
+        {
+            meshes = new Mesh[GripPartSuffixes.Length];
+            for (int i = 0; i < meshes.Length; i++)
+                meshes[i] = Resources.Load<Mesh>("Art/" + pose + "_" + GripPartSuffixes[i]);
+            poseMeshes[pose] = meshes;
+        }
+        return meshes;
+    }
+    void ShowRifleThumb(string toolId)
     {
         if (art != rifleArt)
         {
@@ -527,14 +551,6 @@ public class PlayerHands : MonoBehaviour
             }
             if (System.Array.IndexOf(found, null) >= 0)
                 return;
-            if (rifleMeshes == null)
-            {
-                rifleMeshes = new Mesh[RiflePartAssets.Length];
-                for (int i = 0; i < RiflePartAssets.Length; i++)
-                    rifleMeshes[i] = Resources.Load<Mesh>(RiflePartAssets[i]);
-            }
-            if (System.Array.IndexOf(rifleMeshes, null) >= 0)
-                return;
             rifleParts = found;
             plainMeshes = new Mesh[found.Length];
             for (int i = 0; i < found.Length; i++)
@@ -542,9 +558,14 @@ public class PlayerHands : MonoBehaviour
         }
         if (rifleParts == null || art != artGrip)
             return;
+        string pose = GripPoseFor(toolId);
+        Mesh[] posed = pose != null ? PoseMeshes(pose) : null;
+        // The rifle pose needs every part (its forearm turns, so the sleeve and cuff move too): without all of them it stays plain, as before.
+        if (pose == RiflePose && System.Array.IndexOf(posed, null) >= 0)
+            posed = null;
         for (int i = 0; i < rifleParts.Length; i++)
         {
-            Mesh wanted = rifle ? rifleMeshes[i] : plainMeshes[i];
+            Mesh wanted = posed != null && posed[i] != null ? posed[i] : plainMeshes[i];
             if (rifleParts[i].sharedMesh != wanted)
                 rifleParts[i].sharedMesh = wanted;
         }
@@ -756,7 +777,7 @@ public class PlayerHands : MonoBehaviour
         if (!IsBuilt)
             return;
         ShowHeld(shownTool);
-        ShowRifleThumb(ToolActionRules.IsRifle(shownTool));
+        ShowRifleThumb(shownTool);
 
         bool rightHolds = shownTool != null;
         bool leftShown = HeldTools.LeftHandShown(shownTool);
