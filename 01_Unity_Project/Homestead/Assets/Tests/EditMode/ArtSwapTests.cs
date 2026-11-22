@@ -646,7 +646,7 @@ public class ArtSwapTests
         Assert.That(pile.GetField("ArtPrefix").GetValue(null), Is.EqualTo("Art/"));
         MethodInfo frame = pile.GetMethod("FramePieces");
         var expected = new[] { ("RockStorage", 6), ("WaterBarrel", 1), ("RainBarrel", 2), ("FoodCache", 2), ("StorageBin", 2), ("ToolRack", 3),
-                               ("WoodShed", 18), ("Shelving", 7), ("HandCart", 10), ("Tent", 0), ("Felled", 0) };
+                               ("WoodShed", 18), ("Shelving", 7), ("HandCart", 10), ("Tent", 0), ("Felled", 0), ("CompostBin", 2) };
         foreach (var (kind, count) in expected)
             Assert.That(frame.Invoke(null, new[] { NewPile(kind) }), Is.EqualTo(count), kind);
 

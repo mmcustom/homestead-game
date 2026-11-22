@@ -146,3 +146,15 @@ Click with empty hands to punch. Fists only stun and startle: a small animal (a 
 Equip a Knife and click to slash, then click again to stab. The clicks alternate on their own, and the first click after a short pause is always a slash. Both reach about 1.5 m. A Knife kills small game (a Rabbit, Squirrel, Turkey or Duck) in one solid hit and leaves a Carcass to field dress, but a Deer is only startled, never hurt.
 
 A punch costs 2 Stamina and a slash or stab 3. Every blow makes noise: animals within 8 m of a punch and 6 m of a Knife blow bolt, so you will rarely catch one that has already noticed you. A blow cannot reach through a wall. A trapped animal cannot be struck; take it out of the trap with a Knife in your pack (it does not have to be equipped).
+
+---
+
+## 13. Food Spoils: Rot and Compost
+
+Trigger: first Rot held.
+
+Fresh food does not keep. The Inventory and every storage screen show how long each food has left: green while fresh, amber once it is past half its life, red when it is about to spoil. Heat spoils food faster, cold slows it, and freezing weather nearly stops it. A Food Cache keeps food a little longer than your pack.
+
+Eating food that is amber or red can make you sick, and the closer it is to spoiling, the more likely.
+
+Food that spoils turns into Rot. Build a Compost Bin (Build tab: 6 Sticks and 2 Cordage, with the Hammer), then press R at it to put in Rot and Tall Grass. Every 4 Rot and 2 Tall Grass become 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen. Press E to take the Fertilizer out. The Trading Post buys it until you have crops to use it on.

@@ -486,7 +486,7 @@ public class SmithyToolTests
             Assert.That(table.Stock.Any(r => r.itemId == id), Is.True, id + " is on the Trading Post list");
             Assert.That(LedgerCategories.ForPurchase(id), Is.EqualTo(LedgerCategory.BuyTools), id + " is a tool purchase");
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(96));
+        Assert.That(table.Rows.Count, Is.EqualTo(97));
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(22));
         Assert.That(table.Stock.Count, Is.EqualTo(39));
         Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new Ledger category");
@@ -629,7 +629,7 @@ public class SmithyToolTests
     [Test]
     public void TheSmithyEntryNowTeachesTheToolsAndTheItemHelpExists()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(12), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3)");
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(13), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage");
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry smithy), Is.True);
         Assert.That(smithy.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(smithy.body, Does.Contain("an iron Shovel and Pick Axe for your own use"));
@@ -673,7 +673,7 @@ public class SmithyToolTests
         Assert.That(text, Does.Contain("and into an iron Shovel and Pick Axe for your own use."));
         Assert.That(text, Does.Contain("An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each."));
         Assert.That(text, Does.Not.Contain("it holds 8 of each"));
-        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(12), "eleven chains and the Melee entry (Hands M0e-3)");
+        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(13), "eleven chains, the Melee entry (Hands M0e-3) and Spoilage");
     }
 
     // --- Saving ---
@@ -686,7 +686,7 @@ public class SmithyToolTests
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("stick") || f.ToLowerInvariant().Contains("cordage") || f.ToLowerInvariant().Contains("tool")), Is.False);
         Assert.That(((int)Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static).GetRawConstantValue()), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(45), "no new kind");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(46), "no new kind (46 since the Compost Bin)");
         Assert.That((int)Enum.Parse(Find("PileKind"), "Smithy"), Is.EqualTo(44));
         Assert.That(CharcoalRules.BurnMarker, Is.EqualTo("charcoal_burn"));
         Assert.That(BloomeryRules.SmeltMarker, Is.EqualTo("iron_smelt"));

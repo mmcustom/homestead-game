@@ -98,6 +98,8 @@ public class SaveManager : MonoBehaviour
     string activeSlot;
 
     public event Action SaveCompleted;
+    // After every section of a loaded save has been restored (SpoilageManager turns an older save's food days into freshness stamps).
+    public event Action Loaded;
     public event Action<Exception> SaveFailed;
 
     // Cached in Awake: Application.persistentDataPath can't be read from the background write thread.
@@ -345,6 +347,9 @@ public class SaveManager : MonoBehaviour
                         saveable.RestoreState(section.data);
                 }
             }
+
+            try { Loaded?.Invoke(); }
+            catch (Exception e) { Debug.LogError($"[SaveManager] After-load step failed: {e}"); }
 
             // Loading a manual slot makes it current; loading the Autosave takes the slot it carried (SlotRules), so Continue
             // still knows the current slot. A save from before lastSlot existed has none.

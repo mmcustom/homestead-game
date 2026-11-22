@@ -27,13 +27,16 @@ public class StructureRefund
             return;
 
         // Wood keeps its batch day like a perishable does (WoodMoisture); the default day 0 is dry, which is what seasoned building timber is.
+        // Food with no stamp given (day 0) comes back fresh rather than as old as the clock (SpoilageManager).
+        if (item.IsPerishable && day <= 0)
+            day = SpoilageManager.FreshStamp();
         int added = item.TracksBatchDay ? inventory.AddToPlayer(itemId, count, day) : inventory.AddToPlayer(itemId, count);
         if (added > 0)
             back.Add($"{added} {item.DisplayName}");
         if (added < count)
         {
             float angle = spot++ * 72f * Mathf.Deg2Rad;
-            DroppedItems.Place(itemId, count - added, at + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f, ignore, item.KeepsBatchDay ? day : -1);
+            DroppedItems.Place(itemId, count - added, at + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 1.2f, ignore, item.TracksBatchDay ? day : -1); // food left on the ground keeps its freshness
             left.Add($"{count - added} {item.DisplayName}");
         }
     }

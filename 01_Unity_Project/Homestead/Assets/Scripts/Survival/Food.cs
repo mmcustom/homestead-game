@@ -32,16 +32,21 @@ public static class Food
 
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayOnConsume(item.IsDrink ? SoundCue.Drink : SoundCue.Eat); // replaces the drop sound
-        if (inventory.RemoveFromPlayer(item.Id, 1) != 1)
+        // The oldest batch is eaten first; its age adds a chance of falling ill (Food_Spoilage_and_Preservation.md: a slight chance,
+        // rising the closer it is to spoiling).
+        int stamp = -1;
+        if (inventory.Player.RemoveBatches(item.Id, 1, (day, count) => stamp = day) != 1)
             return false;
+        double ageRisk = item.IsPerishable && stamp >= 0 ? SpoilageRules.IllnessChance(SpoilageManager.FractionUsed(item, stamp)) : 0.0;
+        float chance = (float)SpoilageRules.Combine(item.IllnessChance, ageRisk);
 
         survival.Eat(item.HungerRestored);
         survival.Drink(item.HydrationRestored);
 
         SurvivalManager.Sickness before = survival.SicknessLevel;
         string verb = item.IsDrink ? "Drank" : "Ate";
-        if (survival.RollIllness(item.IllnessChance))
-            ToolStatus.Flash($"{verb} {item.DisplayName} — {SickMessage(before, survival.SicknessLevel)}", 5f);
+        if (survival.RollIllness(chance))
+            ToolStatus.Flash($"{verb} {item.DisplayName}{(ageRisk > 0 ? " (it was going off)" : "")} — {SickMessage(before, survival.SicknessLevel)}", 5f);
         else
         {
             // Eaten under a Covered Outdoor Kitchen's roof: a sheltered meal, a small comfort bonus (WellsAndOuthouses.ShelteredMeal).

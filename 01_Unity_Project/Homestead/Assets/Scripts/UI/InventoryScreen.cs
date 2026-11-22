@@ -338,6 +338,21 @@ public class InventoryScreen : GameScreen
     const float IconSize = 72f, IconPad = 6f, IconGap = 10f, TextInset = 12f;
     const float ControlY = 5f; // line two's controls: this far above the row's bottom edge
 
+    // "2 days left" for the oldest batch of a perishable carried (with how many when several batches differ), or null.
+    internal static string FreshnessOfPack(ItemDefinition item)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (item == null || !item.IsPerishable || inventory == null)
+            return null;
+        var batches = inventory.Player.Batches(item.Id);
+        if (batches.Count == 0)
+            return null;
+        string text = SpoilageManager.FreshnessTag(item, batches[0].day);
+        if (text != null && batches.Count > 1)
+            text = $"<size=20>{batches[0].quantity}:</size> " + text;
+        return text;
+    }
+
     void AddRow(ItemDefinition item, int quantity, bool equipped, bool atFire, PlayerController player)
     {
         inventoryHasLantern = InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(PortableLight.LanternId);
@@ -397,6 +412,10 @@ public class InventoryScreen : GameScreen
         string risk = Food.RiskTag(item);
         if (risk != null)
             tag += $"  <size=18><color=#94520E>{risk}</color></size>";
+        // Spoilage: how long the batch nearest to spoiling has left, in its colour (Food_Spoilage_and_Preservation.md).
+        string fresh = FreshnessOfPack(item);
+        if (fresh != null)
+            tag += "  " + fresh;
 
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
         bool sapBoil = Cooking.IsSapBoil(item.Id); // Maple Sap boils down to Syrup in 10 L batches

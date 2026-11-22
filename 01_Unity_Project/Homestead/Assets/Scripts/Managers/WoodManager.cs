@@ -42,7 +42,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin }
 
 [Serializable]
 public class WoodPileState
@@ -160,6 +160,19 @@ public class WoodPileState
 
     public void Remove(string itemId, int count) => Take(itemId, count);
 
+    // Merges batches of one item that share a stamp (after SpoilageManager re-stamps food from an older save).
+    public void MergeSameDay()
+    {
+        for (int i = contents.Count - 1; i > 0; i--)
+            for (int j = 0; j < i; j++)
+                if (contents[j].itemId == contents[i].itemId && contents[j].day == contents[i].day)
+                {
+                    contents[j].count += contents[i].count;
+                    contents.RemoveAt(i);
+                    break;
+                }
+    }
+
     // Takes up to count, oldest batches first, and returns what was taken as (day, count) batches.
     public List<WoodStack> Take(string itemId, int count)
     {
@@ -271,6 +284,7 @@ public class WoodPileState
             case PileKind.RainBarrel: return WoodManager.IsWater(itemId);
             case PileKind.FoodCache: return WoodManager.IsStorableFood(itemId);
             case PileKind.StorageBin: return WoodManager.IsDryGoods(itemId);
+            case PileKind.CompostBin: return CompostRules.Accepts(itemId); // Rot and Tall Grass (Food_Spoilage_and_Preservation.md 2)
             case PileKind.Shelving: return WoodManager.IsDryGoods(itemId) || WoodManager.IsStorableFood(itemId);
             case PileKind.ToolRack: return WoodManager.IsTool(itemId);
             case PileKind.CabinSite:
@@ -1124,7 +1138,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
-        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.CompostBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
           PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
@@ -1147,6 +1161,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.RainBarrel: return "Rain Barrel";
             case PileKind.FoodCache: return "Food Cache";
             case PileKind.StorageBin: return "Storage Bin";
+            case PileKind.CompostBin: return "Compost Bin";
             case PileKind.ToolRack: return "Tool Rack";
             case PileKind.Tent: return "Tent";
             case PileKind.TarpShelter: return "Tarp Shelter";
@@ -1204,6 +1219,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.RainBarrel: return new[] { new WoodStack { itemId = LogsId, count = rainBarrelLogCount }, new WoodStack { itemId = BranchesId, count = rainBarrelBranches } };
             case PileKind.FoodCache: return new[] { new WoodStack { itemId = LogsId, count = 2 }, new WoodStack { itemId = BranchesId, count = 4 } };
             case PileKind.StorageBin: return new[] { new WoodStack { itemId = BranchesId, count = 6 }, new WoodStack { itemId = SticksId, count = 6 } };
+            case PileKind.CompostBin: return new[] { new WoodStack { itemId = SticksId, count = 6 }, new WoodStack { itemId = "cordage", count = 2 } };
             case PileKind.ToolRack: return new[] { new WoodStack { itemId = BranchesId, count = 4 }, new WoodStack { itemId = SticksId, count = 4 } };
             case PileKind.Tent: return new[] { new WoodStack { itemId = TentId, count = 1 } };
             case PileKind.TarpShelter: return new[] { new WoodStack { itemId = SleepManager.TarpId, count = 1 }, new WoodStack { itemId = SticksId, count = TarpShelterSticks },
@@ -1478,6 +1494,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WoodStorage:
             case PileKind.RockStorage:
             case PileKind.StorageBin:
+            case PileKind.CompostBin:
             case PileKind.ToolRack:
             case PileKind.Countertop:
             case PileKind.Shelving:

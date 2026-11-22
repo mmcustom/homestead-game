@@ -40,7 +40,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // Cabin's staged CabinSite — get the per-item transfer screen on E instead of an instant take-all.
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
-                                state.kind == PileKind.StorageBin || state.kind == PileKind.ToolRack ||
+                                state.kind == PileKind.StorageBin || state.kind == PileKind.CompostBin || state.kind == PileKind.ToolRack ||
                                 state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart;
 
     // A felled tree's pile (and anything dropped as one) opens the take-only screen on E: the player picks what to take and the rest stays
@@ -292,7 +292,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         int fits = Mathf.Min(count, Inventory.Player.SpaceFor(item));
         int added = 0;
         foreach (WoodStack batch in state.Take(itemId, fits))
-            added += item.TracksBatchDay ? Inventory.AddToPlayer(itemId, batch.count, batch.day) : Inventory.AddToPlayer(itemId, batch.count);
+            added += !item.TracksBatchDay ? Inventory.AddToPlayer(itemId, batch.count)
+                   : Inventory.AddToPlayer(itemId, batch.count, item.IsPerishable ? FromPile(batch.day) : batch.day);
         return added;
     }
 
@@ -475,7 +476,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                 ids.Add(stack.itemId);
         foreach (string itemId in ids)
             foreach (WoodStack batch in state.Take(itemId, state.Count(itemId)))
-                refund.Return(itemId, batch.count, batch.day);
+                refund.Return(itemId, batch.count, ItemDatabase.Get(itemId)?.IsPerishable == true ? FromPile(batch.day) : batch.day);
 
         // Half the building materials of a storage pile (a site is free to place, so there's nothing to give back).
         if (!IsCabinSite)
@@ -661,11 +662,17 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (left <= 0)
                 break;
             int n = Mathf.Min(left, batch.quantity);
-            state.Add(itemId, n, item != null && item.TracksBatchDay ? batch.acquiredDay : 0);
+            int day = item == null || !item.TracksBatchDay ? 0 : item.IsPerishable ? ToPile(batch.acquiredDay) : batch.acquiredDay;
+            state.Add(itemId, n, day);
             left -= n;
         }
         return removed;
     }
+
+    // Food keeps its freshness stamp on the clock of where it is (SpoilageManager): the Food Cache has its own, slower one.
+    // A pile's day 0 means "no stamp" (food stored before batch days existed): it comes out as fresh today.
+    int FromPile(int day) => day > 0 ? SpoilageManager.Convert(day, SpoilageManager.ClockOf(state.kind), FreshClock.Outdoor) : SpoilageManager.FreshStamp();
+    int ToPile(int stamp) => SpoilageManager.Convert(stamp, FreshClock.Outdoor, SpoilageManager.ClockOf(state.kind));
 
     // How many storable items the player carries (not the equipped tool), and a short description.
     int CarriedStorable(out string what)
@@ -711,6 +718,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         var parts = new List<string>();
         foreach (KeyValuePair<string, int> pair in Contents(pile))
             parts.Add($"{pair.Value} {ItemDatabase.Get(pair.Key)?.DisplayName ?? pair.Key}");
+        // The Compost Bin says how its running job is getting on (SpoilageManager runs it).
+        string compost = pile.kind == PileKind.CompostBin ? SpoilageManager.CompostStatus(pile) : null;
+        if (compost != null)
+            return parts.Count > 0 ? $"{compost}; {Shorten(parts)}" : compost;
         return parts.Count > 0 ? Shorten(parts) : "empty";
     }
 
@@ -764,6 +775,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.RainBarrel: return 2;                     // the barrel and its rim
             case PileKind.FoodCache: return 2;                      // the box and its lid
             case PileKind.StorageBin: return 2;                     // the bin and its dark inside
+            case PileKind.CompostBin: return 2;                     // the slatted bin and the heap inside
             case PileKind.ToolRack: return 3;                       // the board and two feet
             case PileKind.WoodShed: return 18;                      // two skids, deck, four posts, five back and five side slats, roof
             case PileKind.Shelving: return 7;                       // two uprights, the back, four boards
@@ -817,6 +829,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.RainBarrel: BuildBarrel(); return;
             case PileKind.FoodCache: BuildBox(new Vector3(1f, 0.6f, 0.7f), 0.8f, true); return;
             case PileKind.StorageBin: BuildBox(new Vector3(1.1f, 0.55f, 0.75f), 1.15f, false); return;
+            case PileKind.CompostBin: BuildBox(new Vector3(0.9f, 0.7f, 0.9f), 0.9f, false); return;
             case PileKind.ToolRack: BuildRack(); return;
             case PileKind.CabinSite: BuildCabinSite(random); return;
             case PileKind.WoodShed: BuildShed(random); return;

@@ -685,6 +685,13 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: fertilizer
+    group: 6
+    pool: fertilizer
+    baseCents: 50
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400

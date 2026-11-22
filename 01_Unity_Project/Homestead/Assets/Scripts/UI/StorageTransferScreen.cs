@@ -229,6 +229,7 @@ public class StorageTransferScreen : GameScreen
         int litres = WoodManager.Instance != null ? WoodManager.Instance.CapacityOf(state.kind) : 0;
         structureWeight.text = barrel ? $"{state.Total} / {litres} L"
                              : state.kind == PileKind.HandCart ? CartRules.KgText(WoodPile.CartLoadKg(state)) + (state.IsEmpty ? "   ·   empty" : "")
+                             : state.kind == PileKind.CompostBin ? (state.IsEmpty ? "Empty" : $"{state.Total} stored") + "   ·   " + SpoilageManager.CompostStatus(state)
                              : state.IsEmpty ? "Empty" : $"{state.Total} stored   ·   no limit";
 
         takeAllButton.interactable = !state.IsEmpty;
@@ -254,6 +255,10 @@ public class StorageTransferScreen : GameScreen
     // " · dry", " · wet" or " · 2 wet, 3 dry" after a row of wood (WoodMoisture); nothing for anything else.
     static string MoistureOfPack(InventoryManager inventory, string itemId)
     {
+        // Food shows how long its oldest batch has left instead (SpoilageManager).
+        string fresh = InventoryScreen.FreshnessOfPack(ItemDatabase.Get(itemId));
+        if (fresh != null)
+            return "   " + fresh;
         if (!WoodMoisture.Applies(itemId))
             return "";
         int wet = 0, dry = 0;
@@ -269,6 +274,17 @@ public class StorageTransferScreen : GameScreen
 
     static string MoistureOfPile(WoodPileState state, string itemId)
     {
+        // Food in a pile or the Food Cache: the oldest batch's time left on that place's clock (SpoilageManager).
+        ItemDefinition food = ItemDatabase.Get(itemId);
+        if (food != null && food.IsPerishable && state != null)
+        {
+            int oldest = int.MaxValue;
+            foreach (WoodStack stack in state.contents)
+                if (stack.itemId == itemId && stack.count > 0 && stack.day > 0 && stack.day < oldest)
+                    oldest = stack.day;
+            string tag = oldest < int.MaxValue ? SpoilageManager.FreshnessTag(food, oldest, SpoilageManager.ClockOf(state.kind)) : null;
+            return tag != null ? "   " + tag : "";
+        }
         if (!WoodMoisture.Applies(itemId))
             return "";
         state.CountMoisture(itemId, WoodMoisture.Today, WoodMoisture.SeasoningDays, out int wet, out int dry);
@@ -294,6 +310,7 @@ public class StorageTransferScreen : GameScreen
             case PileKind.RainBarrel: return "A Rain Barrel only holds water.";
             case PileKind.FoodCache: return "A Food Cache only holds food.";
             case PileKind.StorageBin: return "A Storage Bin holds Cordage, hides, furs, arrows and the like — not Tools, wood, stone, food or water.";
+            case PileKind.CompostBin: return "A Compost Bin takes Rot and Tall Grass: 4 Rot and 2 Tall Grass make 1 Fertilizer in about 7 days.";
             case PileKind.ToolRack: return "A Tool Rack only holds Tools.";
             case PileKind.WoodShed: return "A Wood Shed only holds wood.";
             case PileKind.HandCart: return CartRules.HoldsText;

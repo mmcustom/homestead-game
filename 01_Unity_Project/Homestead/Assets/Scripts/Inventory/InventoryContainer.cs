@@ -8,8 +8,9 @@ public class ItemStack
     public string itemId;
     public int quantity;
 
-    // In-game day (TimeManager.TotalDays) the stack was acquired. Perishable items only stack with others
-    // from the same day, so the Spoilage System can age each batch separately.
+    // The batch's stamp. Perishable food: its freshness stamp, in hours on the freshness clock of where it is (SpoilageRules,
+    // Food_Spoilage_and_Preservation.md; before that system it was the in-game day it was acquired). Wood: the day it was last
+    // made wet (WoodMoisture). Items that track a batch only stack with others of the same stamp, so each batch ages separately.
     public int acquiredDay;
 }
 
@@ -120,6 +121,44 @@ public class InventoryContainer
             }
         }
         Changed?.Invoke();
+    }
+
+    // Spoilage (Food_Spoilage_and_Preservation.md): every stack the test says has spoiled becomes Rot, one for each, kept even past the
+    // weight limit (nothing just vanishes). Returns what spoiled as (item id, quantity); fires Changed once when anything did.
+    public List<(string itemId, int quantity)> ReplaceSpoiled(Func<ItemDefinition, int, bool> spoiled, ItemDefinition rot)
+    {
+        var lost = new List<(string itemId, int quantity)>();
+        if (spoiled == null || rot == null)
+            return lost;
+        int rotCount = 0;
+        for (int i = stacks.Count - 1; i >= 0; i--)
+        {
+            ItemDefinition item = ItemDatabase.Get(stacks[i].itemId);
+            if (item == null || !item.IsPerishable || stacks[i].quantity <= 0 || !spoiled(item, stacks[i].acquiredDay))
+                continue;
+            lost.Add((stacks[i].itemId, stacks[i].quantity));
+            rotCount += stacks[i].quantity;
+            stacks.RemoveAt(i);
+        }
+        if (rotCount > 0)
+        {
+            AddStack(rot, rotCount, 0);
+            Changed?.Invoke();
+        }
+        return lost;
+    }
+
+    // Gives every perishable stack a new stamp (map gets the item and its old stamp), merging stacks of one item that now share one.
+    // Loading a save from before spoilage turns its acquired days into freshness stamps this way (SpoilageManager).
+    public void RestampPerishables(Func<ItemDefinition, int, int> map)
+    {
+        foreach (ItemStack stack in stacks)
+        {
+            ItemDefinition item = ItemDatabase.Get(stack.itemId);
+            if (item != null && item.IsPerishable)
+                stack.acquiredDay = map(item, stack.acquiredDay);
+        }
+        MapBatchDays(_ => false, d => d); // merges stacks that now share a stamp, and fires Changed
     }
 
     // Adds as many as fit and returns how many were added.

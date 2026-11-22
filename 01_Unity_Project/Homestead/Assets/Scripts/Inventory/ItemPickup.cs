@@ -52,6 +52,9 @@ public class ItemPickup : MonoBehaviour, IInteractable
         Dropped = true;
     }
 
+    // A new freshness stamp for a dropped perishable (SpoilageManager, loading a save from before spoilage).
+    public void Restamp(int day) => acquiredDay = day;
+
     // More of the same dropped batch landing on this pile.
     public void AddQuantity(int extra) => quantity += Mathf.Max(0, extra);
 }

@@ -193,6 +193,21 @@ public class DroppedItems : MonoBehaviour, ISaveable
         return spot;
     }
 
+    // Spoilage: a dropped pile of food that has spoiled becomes a pile of the same number of Rot where it lay.
+    public static void TurnTo(ItemPickup pickup, ItemDefinition replacement)
+    {
+        if (pickup == null || replacement == null)
+            return;
+        Transform t = pickup.transform;
+        float size = Mathf.Clamp(0.2f + 0.1f * Mathf.Sqrt(pickup.Item != null ? pickup.Item.WeightKg : 0f), 0.2f, 0.5f);
+        Vector3 ground = t.position - Vector3.up * (size * 0.35f);
+        int quantity = pickup.Quantity;
+        float yaw = t.eulerAngles.y;
+        pickup.gameObject.SetActive(false);
+        Destroy(pickup.gameObject);
+        Spawn(replacement, quantity, 0, ground, yaw, true);
+    }
+
     // Makes the pickup object, or adds to a pile of the same batch already lying right there.
     static ItemPickup Spawn(ItemDefinition item, int quantity, int day, Vector3 position, float yaw, bool merge)
     {

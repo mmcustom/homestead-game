@@ -130,7 +130,8 @@ public class InventoryManager : MonoBehaviour, ISaveable
             return 0;
         }
 
-        return container.Add(item, quantity, Today);
+        // Perishable food is stamped on the freshness clock (SpoilageManager); everything else keeps the day, as before.
+        return container.Add(item, quantity, item.IsPerishable ? SpoilageManager.FreshStamp() : Today);
     }
 
     public InventoryContainer GetStorage(string storageId) =>

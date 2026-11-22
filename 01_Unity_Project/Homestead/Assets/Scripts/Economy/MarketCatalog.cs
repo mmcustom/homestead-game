@@ -190,6 +190,8 @@ public static class MarketCatalog
         Row(SmithyRules.Recipes[0].itemId, MarketGroup.Crafted, SmithyRules.Recipes[0].baseCents, MarketKind.Bought),
         Row(SmithyRules.Recipes[1].itemId, MarketGroup.Crafted, SmithyRules.Recipes[1].baseCents, MarketKind.Bought),
         Row(SmithyRules.Recipes[2].itemId, MarketGroup.Crafted, SmithyRules.Recipes[2].baseCents, MarketKind.Bought),
+        // Food_Spoilage_and_Preservation.md 2: Fertilizer from the Compost Bin, bought until farming gives it a use on the homestead. Appended last, as the asset row was.
+        Row(CompostRules.FertilizerId, MarketGroup.Farm, CompostRules.FertilizerBaseCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

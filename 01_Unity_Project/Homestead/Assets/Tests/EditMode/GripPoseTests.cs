@@ -22,6 +22,26 @@ public class GripPoseTests
     }
 
     [Test]
+    public void TheHandsAndToolsDoNotReceiveDecals()
+    {
+        // Mike, 2026-11-22: footprints showed on the hands. HDRP decals land in a screen-space buffer that any Lit material receiving
+        // decals samples, so the viewmodel's materials (drawn over the world by ViewmodelPass) picked up the footprints behind them.
+        int checkedCount = 0;
+        foreach (Material m in Resources.LoadAll<Material>("Art"))
+        {
+            if (!(m.name.StartsWith("hands_") || m.name.StartsWith("tool_")) || !m.HasProperty("_SupportDecals"))
+                continue;
+            if (!UnityEditor.AssetDatabase.GetAssetPath(m).EndsWith(".mat"))
+                continue; // a model's own imported material, never drawn (the prefabs use the .mat files)
+            Assert.That(m.GetFloat("_SupportDecals"), Is.EqualTo(0f), m.name);
+            Assert.That(m.IsKeywordEnabled("_DISABLE_DECALS"), Is.True, m.name);
+            checkedCount++;
+        }
+        if (checkedCount == 0)
+            Assert.Ignore("no hand or tool art in this project");
+    }
+
+    [Test]
     public void APosedMeshMatchesThePlainGripMeshItReplaces()
     {
         // Only where the art is in the project (Resources/Art is not committed): each posed part has exactly the vertices of the part it replaces, so the UVs and materials still fit.

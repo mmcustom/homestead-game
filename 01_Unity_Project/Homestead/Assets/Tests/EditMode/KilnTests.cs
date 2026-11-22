@@ -314,7 +314,7 @@ public class KilnTests
         Assert.That((int)Kind("PotterShed"), Is.EqualTo(36));
         Assert.That((int)Kind("KilnSite"), Is.EqualTo(37));
         Assert.That((int)Kind("Kiln"), Is.EqualTo(38));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(45));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(46));
     }
 
     [Test]
@@ -611,7 +611,7 @@ public class KilnTests
             Assert.That(table.SellBaseCents(pair.Key), Is.EqualTo(pair.Value), pair.Key);
             Assert.That(table.BuyBaseCents(pair.Key), Is.EqualTo(stocked ? pair.Value * 5 / 2 : 0L), pair.Key + (stocked ? " is stocked" : " is not stocked"));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(96));
+        Assert.That(table.Rows.Count, Is.EqualTo(97));
         Assert.That(table.Stock.Count, Is.EqualTo(39), "the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(22));
         MarketGroupRule crafted = table.RuleOf("clay_cup");

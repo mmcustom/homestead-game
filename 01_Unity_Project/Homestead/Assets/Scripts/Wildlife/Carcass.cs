@@ -181,13 +181,14 @@ public class Carcass : MonoBehaviour, IInteractable
         if (inventory == null)
             return;
 
-        int today = TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
+        // Late dressing takes whole days off the meat's life (SpoilageManager's freshness clock is in hours).
+        int stamp = SpoilageManager.AgedStamp(spoilageShift * 24.0);
         bool leftSomething = false;
         for (int i = remaining.Count - 1; i >= 0; i--)
         {
             (string item, int count) entry = remaining[i];
             bool perishable = entry.item.EndsWith("meat") || entry.item == "venison";
-            int added = perishable ? inventory.AddToPlayer(entry.item, entry.count, today - spoilageShift)
+            int added = perishable ? inventory.AddToPlayer(entry.item, entry.count, stamp)
                                    : inventory.AddToPlayer(entry.item, entry.count);
             if (added >= entry.count)
                 remaining.RemoveAt(i);
