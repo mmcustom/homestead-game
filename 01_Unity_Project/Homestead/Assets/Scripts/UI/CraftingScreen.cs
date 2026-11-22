@@ -500,11 +500,11 @@ public class CraftingScreen : GameScreen
     {
         if (string.IsNullOrEmpty(marker))
             return "";
-        string color = marker == "HAVE" ? "#2E6121" : marker == "SHORT" ? "#8A5A06" : "#AD2E14";
+        string color = marker == "HAVE" ? "#2E6121" : marker == "SHORT" ? "#6B3500" : "#AD2E14";
         return $"  <color={color}><b>{marker}</b></color>";
     }
 
-    static string StatusColor(MaterialStatus status) => status == MaterialStatus.Have ? "#2E6121" : status == MaterialStatus.Short ? "#8A5A06" : "#AD2E14";
+    static string StatusColor(MaterialStatus status) => status == MaterialStatus.Have ? "#2E6121" : status == MaterialStatus.Short ? "#6B3500" : "#AD2E14";
 
     // "Missing: 2 of 5 materials" for the closest way to make it (or the whole list for a build in stages); "Needs" when there are only notes.
     static string RequirementsHeading(Entry e)

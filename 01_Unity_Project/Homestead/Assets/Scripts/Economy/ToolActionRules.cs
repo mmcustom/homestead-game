@@ -178,6 +178,12 @@ public static class ToolActionRules
     // the right) and level (RiflePitch 0). PlayerHands aligns it to the rig, as it does a hanging item, so the forearm angle no longer tips the muzzle up. The shot's kick and the scope lift
     // (ToolActionRules.Offset) are added to this pitch.
     public const float RiflePitch = 0f, RifleYaw = -2.5f, RifleRoll = 0f;
+    // The right hand on the stock (Hands v4, Mike 2026-11-21, round 4, from his photo of a man shooting): the hand is on the right side of the stock's wrist, turned 90 degrees from palm-down so
+    // the palm faces the wood and the back of the hand faces out; the fingers wrap under it to the trigger and only the thumb goes over the top (the rifle thumb mesh, PlayerHands.ShowRifleThumb).
+    // The wrist rolls 90 degrees about the forearm and the hand moves 0.2 cm right, 1.8 cm down and 0.5 cm forward in the view. Tuned live in Play Mode.
+    // Rounds 5 and 6 (Mike): turned back from round 4's 90 degrees to 25, so the palm sits on the right side of the stock with the thumb over the top and the fingers under to the trigger.
+    public const float RifleHandRoll = 25f;
+    public const float RifleHandShiftX = 0.002f, RifleHandShiftY = -0.018f, RifleHandShiftZ = 0.005f;
     public const float BowPitch = 0f, BowYaw = -20f, BowRoll = 0f; // no roll: the bow stands straight up and down
 
     // A hanging item's swing as the player walks (degrees): small, in step with the stride, bigger in a sprint (amount is HandPoseRules.StepAmount: 0 standing, 1 walking, 1.7 sprinting). Pitch is a

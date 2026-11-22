@@ -754,7 +754,10 @@ public class RestOfToolsInHandTests
         Assert.That(Mathf.Atan2(-muzzle.y, muzzle.z) * Mathf.Rad2Deg, Is.InRange(0f, 12f), "the muzzle is a few degrees below the crosshair, not off the bottom");
         Assert.That(Mathf.Atan2(muzzle.x, muzzle.z) * Mathf.Rad2Deg, Is.InRange(-2f, 12f), "and a few degrees to its right at most");
         // the hands are still on it
-        Assert.That(Vector3.Distance(hands.HeldRoot.Find("Anchor_Grip_R").position, hands.RightAnchor.position), Is.LessThan(1e-4f), "the right hand holds the stock's wrist");
+        // Hands v4 (2026-11-21): the right hand holds the wrist of the stock from below, so its palm anchor sits about 2 cm off the stock's grip point (ToolActionRules.RifleHandShift*; about 3.8 in the rig's own units, which are half-size), and lower: the hand is on the side of the stock with the fingers under it
+        Vector3 palmFromGrip = rig.InverseTransformPoint(hands.RightAnchor.position) - rig.InverseTransformPoint(hands.HeldRoot.Find("Anchor_Grip_R").position);
+        Assert.That(palmFromGrip.magnitude, Is.InRange(0.030f, 0.046f), "the right hand holds the stock's wrist, from its side");
+        Assert.That(palmFromGrip.y, Is.LessThan(-0.025f), "the palm is beside and below the stock, not on top of it");
         Assert.That(Vector3.Distance(hands.LeftGrip.position, hands.LeftAnchor.position), Is.LessThan(1e-3f), "and the left hand is on the forend");
         Assert.That(hands.HeldRoot.Find("Anchor_Grip_R").localPosition.z, Is.LessThan(0f), "the right grip is behind the receiver");
     }

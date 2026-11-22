@@ -505,6 +505,64 @@ public class PlayerHands : MonoBehaviour
         tool.position += palm.position - grip.position;
     }
 
+    // The rifle grip (Hands v4, Mike 2026-11-21): while the rifle is shown, the grip hand's right Skin, Nails, Sleeve and Cuff meshes are swapped for copies posed on the rifle with the finger
+    // skeleton in Art\Blender_Work\hands\hands_player_grip_rig.blend: the palm on the right side of the stock, the thumb across the top, the fingers wrapped under it so they barely show,
+    // the index finger on the trigger (Resources/Art/hands_grip_rifle_skin_R, _nails_R, _sleeve_R, _cuff_R). Every other tool gets the usual meshes back. A no-op when any are missing.
+    static readonly string[] RiflePartNames = { "Skin_R", "Nails_R", "Sleeve_R", "Cuff_R" };
+    static readonly string[] RiflePartAssets = { "Art/hands_grip_rifle_skin_R", "Art/hands_grip_rifle_nails_R", "Art/hands_grip_rifle_sleeve_R", "Art/hands_grip_rifle_cuff_R" };
+    MeshFilter[] rifleParts; Mesh[] plainMeshes, rifleMeshes; Transform rifleArt;
+    void ShowRifleThumb(bool rifle)
+    {
+        if (art != rifleArt)
+        {
+            if (rifleParts != null) // leaving a pose: put its own meshes back
+                for (int i = 0; i < rifleParts.Length; i++)
+                    rifleParts[i].sharedMesh = plainMeshes[i];
+            rifleArt = art; rifleParts = null;
+            var found = new MeshFilter[RiflePartNames.Length];
+            foreach (MeshFilter filter in art.GetComponentsInChildren<MeshFilter>(true))
+            {
+                int k = System.Array.IndexOf(RiflePartNames, filter.name);
+                if (k >= 0) found[k] = filter;
+            }
+            if (System.Array.IndexOf(found, null) >= 0)
+                return;
+            if (rifleMeshes == null)
+            {
+                rifleMeshes = new Mesh[RiflePartAssets.Length];
+                for (int i = 0; i < RiflePartAssets.Length; i++)
+                    rifleMeshes[i] = Resources.Load<Mesh>(RiflePartAssets[i]);
+            }
+            if (System.Array.IndexOf(rifleMeshes, null) >= 0)
+                return;
+            rifleParts = found;
+            plainMeshes = new Mesh[found.Length];
+            for (int i = 0; i < found.Length; i++)
+                plainMeshes[i] = found[i].sharedMesh;
+        }
+        if (rifleParts == null || art != artGrip)
+            return;
+        for (int i = 0; i < rifleParts.Length; i++)
+        {
+            Mesh wanted = rifle ? rifleMeshes[i] : plainMeshes[i];
+            if (rifleParts[i].sharedMesh != wanted)
+                rifleParts[i].sharedMesh = wanted;
+        }
+    }
+
+    // The rifle's right hand (Hands v4, Mike 2026-11-21: "the right hand should be under the stock, not on top of it"): the wrist turns RifleHandRoll degrees about the forearm, through the
+    // palm, and the hand moves by RifleHandShift in the view (right, up, forward), so it sits below the wrist of the stock with the fingers curling up around it. The rifle is a child of
+    // the hand, so it is put back where AlignHanging left it: the barrel still runs along the view and the stock does not move.
+    void SeatHandUnderStock()
+    {
+        Quaternion toolRotation = heldRoot.rotation;
+        Vector3 toolPosition = heldRoot.position;
+        handR.RotateAround(anchorR.position, handR.forward, ToolActionRules.RifleHandRoll);
+        handR.position += rig.transform.rotation * new Vector3(ToolActionRules.RifleHandShiftX, ToolActionRules.RifleHandShiftY, ToolActionRules.RifleHandShiftZ);
+        heldRoot.rotation = toolRotation;
+        heldRoot.position = toolPosition;
+    }
+
     // A hanging item by GRAVITY (Mike, 2026-11-14): the grip sits on the palm, the body hangs along the pendulum's world direction (straight down at rest, so looking up
     // or down does not tilt it), it turns with the player's heading only, and the step sway and the action's own pitch (dip, drink, set-down) tip it about the grip as before.
     void AlignHangingByGravity(Transform tool, Transform grip, Transform palm, float pitch, float roll)
@@ -698,6 +756,7 @@ public class PlayerHands : MonoBehaviour
         if (!IsBuilt)
             return;
         ShowHeld(shownTool);
+        ShowRifleThumb(ToolActionRules.IsRifle(shownTool));
 
         bool rightHolds = shownTool != null;
         bool leftShown = HeldTools.LeftHandShown(shownTool);
@@ -730,7 +789,10 @@ public class PlayerHands : MonoBehaviour
                     AlignHangingByGravity(heldRoot, heldGripR, anchorR, toolPitch + sway.Pitch + settle, sway.Roll);
                 }
                 else if (ToolActionRules.IsRifle(shownTool))
+                {
                     AlignHanging(heldRoot, heldGripR, anchorR, ToolActionRules.RiflePitch + toolPitch, ToolActionRules.RifleRoll, ToolActionRules.RifleYaw); // barrel along the view, not the hand
+                    SeatHandUnderStock();
+                }
                 else
                     AlignToGrip(heldRoot, heldGripR, heldPitch + toolPitch, heldRoll);
             }
