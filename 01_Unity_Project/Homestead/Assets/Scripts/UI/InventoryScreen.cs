@@ -423,6 +423,8 @@ public class InventoryScreen : GameScreen
         bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried;
         bool refillable = item.Id == PortableLight.LampOilId && inventoryHasLantern; // Lamp Oil, while a Lantern is carried
         bool cooks = atFire && (cookable || boilable || sapBoil || lyeBoil);
+        // Raw meat and fish get a Salt button while a Crock Pot is carried and no fire is in reach to cook them (SaltRules, Salting).
+        bool saltable = !cooks && SaltRules.Salts(item.Id) && Salting.CrockCarried;
         // Only Tools that clicking equips: the Sleeping Bag (sleeps), Tent (placed) and Weather Station (carried) are Tools by category but aren't held.
         bool hotkeyable = isTool && !InventoryManager.IsCarriedOnly(item.Id);
 
@@ -515,6 +517,15 @@ public class InventoryScreen : GameScreen
                      : potMissing ? TripodRules.RowInfo(Cooking.BoilGate(player, vesselId), Cooking.VesselName(vesselId))
                      : sapBoil ? MapleRules.BoilInfo(quantity) : "";
             queue = new QueueRow { item = item, split = false };
+        }
+        else if (saltable)
+        {
+            int salt = InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(SaltRules.SaltId) : 0;
+            int canSalt = SaltRules.PiecesFor(quantity, salt, item.WeightKg);
+            action = AddButton("Salt", 126f, 118f, Act((shift, n) => { if (Salting.Salt(item, shift ? int.MaxValue : n) > 0) Refresh(); }));
+            QuantityStepper.SetEnabled(action, canSalt > 0);
+            actionText = () => $"Salt {Mathf.Min(stepper.Amount, Mathf.Max(1, canSalt))}";
+            idleInfo = SaltRules.RowInfo(item.Id, salt, item.WeightKg);
         }
 
         if (idleInfo.Length == 0)

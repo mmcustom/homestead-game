@@ -80,7 +80,7 @@ public static class PotteryRules
         new Recipe { itemId = DryCupId,   name = "Clay Cup",          one = "Cup",           many = "Cups",           clay = 1,  sand = 1, shapeHours = 1, dryDays = 1, space = 1, dryKg = 0.3f, firedId = FiredCupId,   firedKg = 0.3f, firedCents = 400 },
         new Recipe { itemId = DryBowlId,  name = "Clay Bowl",         one = "Bowl",          many = "Bowls",          clay = 2,  sand = 1, shapeHours = 1, dryDays = 2, space = 1, dryKg = 0.6f, firedId = FiredBowlId,  firedKg = 0.6f, firedCents = 600 },
         new Recipe { itemId = DryPotId,   name = "Clay Cooking Pot",  one = "Cooking Pot",   many = "Cooking Pots",   clay = 3,  sand = 1, shapeHours = 2, dryDays = 3, space = 2, dryKg = 2f,   firedId = FiredPotId,   firedKg = 1.8f, firedCents = 1000 },
-        new Recipe { itemId = DryCrockId, name = "Water Crock",       one = "Water Crock",   many = "Water Crocks",   clay = 4,  sand = 1, shapeHours = 2, dryDays = 3, space = 2, dryKg = 6f,   firedId = FiredCrockId, firedKg = 5.5f, firedCents = 1200 },
+        new Recipe { itemId = DryCrockId, name = "Crock Pot",       one = "Crock Pot",   many = "Crock Pots",   clay = 4,  sand = 1, shapeHours = 2, dryDays = 3, space = 2, dryKg = 6f,   firedId = FiredCrockId, firedKg = 5.5f, firedCents = 1200 },
         new Recipe { itemId = DryBrickId, name = "Brick Batch",       one = "Brick Batch",   many = "Brick Batches",  clay = 10, sand = 1, shapeHours = 2, dryDays = 3, space = 4, dryKg = 16f,  firedId = FiredBrickId, firedKg = 14f,  firedCents = 600 },
     };
 

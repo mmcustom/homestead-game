@@ -65,7 +65,7 @@ public class PotteryTests
     {
         string[] ids = { "dry_clay_cup", "dry_clay_bowl", "dry_clay_pot", "dry_water_crock", "dry_brick_batch" };
         Assert.That(PotteryRules.Recipes.Select(r => r.itemId), Is.EqualTo(ids));
-        Assert.That(PotteryRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Clay Cup", "Clay Bowl", "Clay Cooking Pot", "Water Crock", "Brick Batch" }));
+        Assert.That(PotteryRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Clay Cup", "Clay Bowl", "Clay Cooking Pot", "Crock Pot", "Brick Batch" }));
         Assert.That(PotteryRules.Recipes.Select(r => r.clay), Is.EqualTo(new[] { 1, 2, 3, 4, 10 }));
         Assert.That(PotteryRules.Recipes.Select(r => r.sand), Is.EqualTo(new[] { 1, 1, 1, 1, 1 }));
         Assert.That(PotteryRules.Recipes.Select(r => r.shapeHours), Is.EqualTo(new[] { 1, 1, 2, 2, 2 }));
@@ -250,7 +250,7 @@ public class PotteryTests
         Assert.That(PotteryRules.StartButtonText(PotteryRules.Gate.ShortOfStock, Bowl, 3), Is.EqualTo("SHORT OF MATERIALS"));
         Assert.That(PotteryRules.ReasonText(PotteryRules.Gate.ShortOfStock, Bowl, 3, 4, 1, 12, 0f, default, 0), Is.EqualTo("Still short 2 Clay, 2 Sand. Deliver more."));
         Assert.That(PotteryRules.ReasonText(PotteryRules.Gate.Busy, Bowl, 3, 6, 3, 12, 2f, Pot, 2), Is.EqualTo("2 Cooking Pots are 2 h from done."));
-        Assert.That(PotteryRules.ReasonText(PotteryRules.Gate.ShelfFull, Crock, 4, 16, 4, 7, 0f, default, 0), Does.StartWith("Only 7 shelf spaces are free; 4 Water Crocks need 8."));
+        Assert.That(PotteryRules.ReasonText(PotteryRules.Gate.ShelfFull, Crock, 4, 16, 4, 7, 0f, default, 0), Does.StartWith("Only 7 shelf spaces are free; 4 Crock Pots need 8."));
         Assert.That(PotteryRules.ReasonText(PotteryRules.Gate.Ok, Bowl, 3, 6, 3, 12, 0f, default, 0), Is.EqualTo(""));
         Assert.That(PotteryRules.ShortText(Brick, 1, 4, 0), Is.EqualTo("6 Clay, 1 Sand"));
     }
@@ -266,7 +266,7 @@ public class PotteryTests
         Assert.That(PotteryRules.ListLabel(Bowl), Is.EqualTo("Clay Bowl\n1 h each  -  dries in 2 days"));
         Assert.That(PotteryRules.ListLabel(Cup), Is.EqualTo("Clay Cup\n1 h each  -  dries in 1 day"));
         Assert.That(PotteryRules.TotalLine(Pot, 3), Is.EqualTo("Total shaping time: 6 h  -  6 shelf space"));
-        Assert.That(PotteryRules.CountLabel(Crock, 4), Is.EqualTo("4 Water Crocks"));
+        Assert.That(PotteryRules.CountLabel(Crock, 4), Is.EqualTo("4 Crock Pots"));
         foreach (string prompt in new[] { PotteryRules.OpenPrompt, PotteryRules.WorkingPrompt(Cup, 2, 2f), PotteryRules.CollectPrompt(3), PotteryRules.DeliverHelp, PotteryRules.StorePrompt("Clay"),
                                           PotteryRules.StockButtonText, PotteryRules.PackLine(1, 1) })
             Assert.That(Regex.IsMatch(prompt, @"\b[ER]\b"), Is.False, prompt);
@@ -491,7 +491,7 @@ public class PotteryTests
         Assert.That((int)Kind("WorkshopSite"), Is.EqualTo(33));
         Assert.That((int)Kind("Workshop"), Is.EqualTo(34));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(46));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(47));
     }
 
     [Test]

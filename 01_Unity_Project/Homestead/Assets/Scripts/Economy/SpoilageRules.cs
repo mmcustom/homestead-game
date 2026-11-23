@@ -8,7 +8,8 @@ using System;
 // ground: x 0.8 of the outdoors, Mike's "a little preservation") and the Root Cellar (a steady 4 C all year). A batch's stamp
 // is on the clock of wherever it is; moving it between clocks converts the stamp so it keeps exactly the life it had left.
 // Pure rules: SpoilageManager runs the clocks and the sweep.
-public enum FreshClock { Outdoor = 0, Cache = 1, Cellar = 2 }
+// Slice 3 adds the Drying Rack's clock: food hung to dry ages at half the outdoor rate while it dries (DryingRules).
+public enum FreshClock { Outdoor = 0, Cache = 1, Cellar = 2, Rack = 3 }
 
 public enum Freshness { Fresh, Aging, GoingOff }
 
@@ -22,6 +23,8 @@ public static class SpoilageRules
     // The Food Cache runs at this share of the outdoor rate; the Root Cellar at this fixed rate (about 4 C).
     public const double CacheFactor = 0.8;
     public const double CellarRate = 0.3;
+    // The Drying Rack runs at this share of the outdoor rate (the design doc's "slower than in the pack: x 0.5").
+    public const double RackFactor = 0.5;
 
     // The rate (clock hours per real game hour) by air temperature, blended between these points:
     // frozen x0.1, near freezing x0.3, cool x0.6, mild x1.0, warm x1.5, hot x2.0 (the design doc's table, centred on each band).
@@ -51,6 +54,7 @@ public static class SpoilageRules
         {
             case FreshClock.Cellar: return CellarRate * d;
             case FreshClock.Cache: return RateAt(tempC) * CacheFactor * d;
+            case FreshClock.Rack: return RateAt(tempC) * RackFactor * d;
             default: return RateAt(tempC) * d;
         }
     }

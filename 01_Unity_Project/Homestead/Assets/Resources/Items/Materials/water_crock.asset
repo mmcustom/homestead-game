@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: water_crock
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   id: water_crock
-  displayName: Water Crock
+  displayName: Crock Pot
   category: 3
   weightKg: 5.5
   shelfLifeDays: 0

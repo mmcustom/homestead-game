@@ -105,6 +105,7 @@ public static class LedgerCategories
         { "cooking_pot", LedgerCategory.BuyCookingWaterFire }, { "canteen", LedgerCategory.BuyCookingWaterFire },
         { "bucket", LedgerCategory.BuyCookingWaterFire }, { "flint_and_steel", LedgerCategory.BuyCookingWaterFire },
         { "lamp_oil", LedgerCategory.BuyCookingWaterFire }, { TripodRules.KettleId, LedgerCategory.BuyCookingWaterFire },
+        { SaltRules.SaltId, LedgerCategory.BuyCookingWaterFire }, // salt curing (slice 4): a kitchen supply
         { "lumber", LedgerCategory.BuyBuildingMaterials }, { "cordage", LedgerCategory.BuyBuildingMaterials },
         { "weather_station", LedgerCategory.BuyOtherGoods },
         { MetalRules.IronOreId, LedgerCategory.BuyOtherGoods }, // Metalworking M1: listed on purpose (the default category), as every stocked item must be

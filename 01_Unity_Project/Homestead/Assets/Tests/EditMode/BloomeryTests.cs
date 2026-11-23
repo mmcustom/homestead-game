@@ -239,7 +239,7 @@ public class BloomeryTests
     public void TheTwoBloomeryKindsAreFortyOneAndFortyTwoAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(46), "41 kinds before the Bloomery, plus its two, the Smithy's two (43, 44) and the Compost Bin (45)");
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(47), "41 kinds before the Bloomery, plus its two, the Smithy's two (43, 44), the Compost Bin (45) and the Drying Rack (46)");
         Assert.That((int)Enum.Parse(kind, "Kiln"), Is.EqualTo(38), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "CharcoalPitSite"), Is.EqualTo(39));
         Assert.That((int)Enum.Parse(kind, "CharcoalPit"), Is.EqualTo(40));
@@ -248,7 +248,7 @@ public class BloomeryTests
         string[] names = Enum.GetNames(kind);
         Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44), "the Smithy came last (M3)");
         Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil")), Is.False, "no separate Forge or Anvil kinds");
-        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names.Last(), Is.EqualTo("CompostBin"), "the Compost Bin (45) came after the Smithy");
+        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin"), "the Compost Bin (45) came after the Smithy"); Assert.That(names.Last(), Is.EqualTo("DryingRack"));
     }
 
     // --- The staged site ---
@@ -492,8 +492,8 @@ public class BloomeryTests
         Assert.That(table.SellBaseCents("iron_bar"), Is.EqualTo(0L), "nothing buys it, so the sell list never shows it (TradingPostScreen lists what CanSell)");
         Assert.That(table.BuyBaseCents("iron_bar"), Is.EqualTo(0L), "and the store does not sell it");
         Assert.That(table.HasPool("iron_bar"), Is.False);
-        Assert.That(table.Rows.Count, Is.EqualTo(97), "the maple gear's two rows (2026-11-14); the five hand tools moved to the shelf (2026-11-14); M2 added no row; M3 added the three Smithy goods; Fertilizer (2026-11-22), and still none for the Iron Bar");
-        Assert.That(table.Stock.Count, Is.EqualTo(39));
+        Assert.That(table.Rows.Count, Is.EqualTo(105), "Salt, Salt Meat and Salt Fish and the five dried foods (2026-11-22); the maple gear's two rows (2026-11-14); the five hand tools moved to the shelf (2026-11-14); M2 added no row; M3 added the three Smithy goods; Fertilizer (2026-11-22), and still none for the Iron Bar");
+        Assert.That(table.Stock.Count, Is.EqualTo(40), "and Salt (2026-11-22)");
         Assert.That(SourceText("Resources/Market/MarketData.asset"), Does.Not.Contain("iron_bar"));
         Assert.That(SourceText("Scripts/UI/TradingPostScreen.cs"), Does.Contain("market.CanSell(stack.itemId)"));
         Assert.That(SourceText("Scripts/Managers/TradingPost.cs"), Does.Contain("!Market.CanSell(itemId)"), "and a sale of it would do nothing");
@@ -670,7 +670,7 @@ public class BloomeryTests
     [Test]
     public void TheSmeltingEntryUnlocksOnAPlacedSiteOrAnIronBar()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(13)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(15)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smelting, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("Smelting Iron in the Bloomery"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }), "holding an Iron Bar opens both the smelting and the Smithy entries");
@@ -796,7 +796,7 @@ public class BloomeryTests
         Assert.That(PotteryRules.KilnFirewood, Is.EqualTo(10));
         Assert.That(PotteryRules.KilnFireHours, Is.EqualTo(24));
         Assert.That(PotashRules.HopperCapacity, Is.EqualTo(12));
-        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(39));
+        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(40), "and Salt (2026-11-22)");
         Assert.That(MarketCatalog.Table.BuyBaseCents("iron_ore"), Is.EqualTo(400L));
         Assert.That(MarketCatalog.Table.SellBaseCents("charcoal"), Is.EqualTo(100L));
         Assert.That(Enum.GetValues(typeof(MarketGroup)).Length, Is.EqualTo(11), "no new market group");

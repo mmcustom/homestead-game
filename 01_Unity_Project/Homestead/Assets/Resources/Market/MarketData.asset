@@ -692,6 +692,62 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: dried_berries
+    group: 4
+    pool: dried_berries
+    baseCents: 150
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: dried_apples
+    group: 4
+    pool: dried_apples
+    baseCents: 150
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: dried_mushrooms
+    group: 4
+    pool: dried_mushrooms
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: dried_meat
+    group: 2
+    pool: dried_meat
+    baseCents: 80
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: dried_fish
+    group: 1
+    pool: dried_fish
+    baseCents: 80
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: salt
+    group: 7
+    pool: salt
+    baseCents: 200
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: salt_meat
+    group: 2
+    pool: salt_meat
+    baseCents: 250
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: salt_fish
+    group: 1
+    pool: salt_fish
+    baseCents: 250
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400

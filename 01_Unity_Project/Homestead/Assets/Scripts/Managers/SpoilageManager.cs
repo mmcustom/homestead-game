@@ -9,6 +9,8 @@ public class SpoilageSaveData
     public double outdoor;
     public double cache;
     public double cellar;
+    // Slice 3 (appended, so older saves load 0 and start the rack clock at the outdoor one): the Drying Rack's clock.
+    public double rack;
 }
 
 // Food spoilage (Food_Spoilage_and_Preservation.md, Mike 2026-11-22). Runs the three freshness clocks (SpoilageRules) once
@@ -22,7 +24,8 @@ public class SpoilageManager : MonoBehaviour, ISaveable
 {
     public static SpoilageManager Instance { get; private set; }
 
-    double outdoor, cache, cellar;
+    double outdoor, cache, cellar, rack;
+    DayNightCycle dayNight;
     bool registered, hooked, restoredThisLoad;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -61,7 +64,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
             TimeManager.Instance.HourChanged += OnHour;
             hooked = true;
             if (outdoor <= 0)
-                outdoor = cache = cellar = TimeManager.Instance.TotalHours; // a fresh start: the clocks begin at the game's own hour
+                outdoor = cache = cellar = rack = TimeManager.Instance.TotalHours; // a fresh start: the clocks begin at the game's own hour
         }
     }
 
@@ -81,7 +84,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
 
     // --- The clocks ---
 
-    public double ClockHours(FreshClock clock) => clock == FreshClock.Cellar ? cellar : clock == FreshClock.Cache ? cache : outdoor;
+    public double ClockHours(FreshClock clock) => clock == FreshClock.Cellar ? cellar : clock == FreshClock.Cache ? cache : clock == FreshClock.Rack ? rack : outdoor;
 
     static double AirC => WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureC : 15.0;
     static double Difficulty => DifficultyManager.SpoilageMultiplier;
@@ -110,7 +113,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
     }
 
     // Which clock a pile or structure keeps its food on: the Food Cache its own; everything else the outdoors.
-    public static FreshClock ClockOf(PileKind kind) => kind == PileKind.FoodCache ? FreshClock.Cache : FreshClock.Outdoor;
+    public static FreshClock ClockOf(PileKind kind) => kind == PileKind.FoodCache ? FreshClock.Cache : kind == PileKind.DryingRack ? FreshClock.Rack : FreshClock.Outdoor;
 
     public static double FractionUsed(ItemDefinition item, int stamp, FreshClock clock = FreshClock.Outdoor)
     {
@@ -141,8 +144,10 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         outdoor += SpoilageRules.ClockRate(FreshClock.Outdoor, AirC, Difficulty);
         cache += SpoilageRules.ClockRate(FreshClock.Cache, AirC, Difficulty);
         cellar += SpoilageRules.ClockRate(FreshClock.Cellar, AirC, Difficulty);
+        rack += SpoilageRules.ClockRate(FreshClock.Rack, AirC, Difficulty);
         Sweep();
         CompostTick();
+        DryingTick();
     }
 
     // --- The Compost Bin (CompostRules) ---
@@ -204,6 +209,76 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         if (pile.jobItem != CompostRules.Marker)
             return CompostRules.IdleStatus(pile.Count(CompostRules.RotId), pile.Count(CompostRules.GrassId));
         return CompostRules.Status(pile.jobCount, pile.jobHours, CompostRules.RateAt(AirC));
+    }
+
+    // --- The Drying Rack (DryingRules) ---
+
+    // Daylight: the sun above the horizon (6 in the morning to 6 at night when there is no sky to ask).
+    bool Daylight()
+    {
+        if (dayNight == null)
+            dayNight = FindAnyObjectByType<DayNightCycle>();
+        if (dayNight != null)
+            return dayNight.SunElevation > 0f;
+        int hour = TimeManager.Instance != null ? (int)(TimeManager.Instance.TotalHours % 24.0) : 12;
+        return hour >= 6 && hour < 18;
+    }
+
+    static bool Raining => WeatherManager.Instance != null && WeatherManager.Instance.IsRaining;
+    static bool Snowing => WeatherManager.Instance != null && WeatherManager.Instance.IsSnowing;
+
+    // Each game hour that is light and dry, every fresh batch on a rack dries one hour more; a batch that has dried long enough becomes its
+    // dried form, fresh on the rack's clock. Night, rain and snow pause it (the food still ages meanwhile, at the rack's slower rate).
+    void DryingTick()
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null || !DryingRules.DriesNow(Daylight(), Raining || Snowing))
+            return;
+        int fresh = FreshStamp(FreshClock.Rack);
+        foreach (WoodPileState pile in wood.Piles)
+        {
+            if (pile.kind != PileKind.DryingRack)
+                continue;
+            bool changed = false;
+            var done = new List<(string driedId, int count)>();
+            for (int i = pile.contents.Count - 1; i >= 0; i--)
+            {
+                WoodStack stack = pile.contents[i];
+                if (stack.count <= 0 || !DryingRules.TryFind(stack.itemId, out string driedId, out int hours))
+                    continue;
+                stack.dried += 1f;
+                changed = true;
+                if (stack.dried < hours)
+                    continue;
+                ItemDefinition item = ItemDatabase.Get(stack.itemId);
+                done.Add((driedId, stack.count * DryingRules.YieldOf(stack.itemId, item != null ? item.WeightKg : 0.0)));
+                pile.contents.RemoveAt(i);
+            }
+            foreach ((string driedId, int count) in done)
+                pile.Add(driedId, count, fresh);
+            if (changed)
+                wood.NotifyChanged(pile);
+        }
+    }
+
+    // How many fresh pieces a rack is drying.
+    public static int DryingCount(WoodPileState pile)
+    {
+        int n = 0;
+        if (pile != null)
+            foreach (WoodStack stack in pile.contents)
+                if (DryingRules.Dries(stack.itemId))
+                    n += stack.count;
+        return n;
+    }
+
+    // "drying 6 pieces", "drying paused for the night" and so on; null when the rack is drying nothing.
+    public static string DryingStatus(WoodPileState pile)
+    {
+        if (pile == null || pile.kind != PileKind.DryingRack)
+            return null;
+        bool day = Instance != null ? Instance.Daylight() : true;
+        return DryingRules.Status(DryingCount(pile), day, Raining, Snowing);
     }
 
     // --- The sweep: spoiled food becomes Rot wherever it is ---
@@ -273,13 +348,14 @@ public class SpoilageManager : MonoBehaviour, ISaveable
 
     // --- Saving ---
 
-    public SpoilageSaveData CaptureState() => new SpoilageSaveData { outdoor = outdoor, cache = cache, cellar = cellar };
+    public SpoilageSaveData CaptureState() => new SpoilageSaveData { outdoor = outdoor, cache = cache, cellar = cellar, rack = rack };
 
     public void RestoreState(SpoilageSaveData data)
     {
         outdoor = data.outdoor;
         cache = data.cache;
         cellar = data.cellar;
+        rack = data.rack > 0 ? data.rack : data.outdoor; // a save from before the Drying Rack
         restoredThisLoad = true;
     }
 
@@ -295,7 +371,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
     {
         TimeManager time = TimeManager.Instance;
         int today = time != null ? time.TotalDays : 0;
-        outdoor = cache = cellar = time != null ? time.TotalHours : 0.0;
+        outdoor = cache = cellar = rack = time != null ? time.TotalHours : 0.0;
         double now = outdoor;
 
         InventoryManager inventory = InventoryManager.Instance;

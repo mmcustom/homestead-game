@@ -162,3 +162,31 @@ Approved by Mike in Play Mode 2026-11-22 ("the spoilage and food storage cache t
 2. Eating old food: **a slight chance of feeling sick, rising the closer the food is to spoiling.** Proposed: no risk while fresh, rising from 0% at half its life to about 15% just before it spoils (a per-bite roll). Feeling sick uses the existing sickness from unsafe water if it fits, otherwise a short mild "upset stomach" (some lost food and water over a few hours).
 3. Food Cache: **yes, a little preservation.** Proposed x 0.8 of the outdoor rate (shaded and off the ground).
 4. Costs and times: fine as starting values, tuned in play.
+
+
+# Slice 3 built (2026-11-22, Claude): the Drying Rack
+
+Approved by Mike in Play Mode 2026-11-22 ("looks great"). Numbers are the doc's proposals unless noted.
+
+- **DryingRules** (Scripts/Economy, pure): what dries into what (Blackberries and Raspberries to Dried Berries; Wild Apples and Pawpaw to Dried Apples; Morel, Oyster Mushroom and Dryad's Saddle to Dried Mushrooms; Venison, Turkey, Small Game, Waterfowl and Chicken Meat to Dried Meat; Bass, Bluegill, Catfish and Crappie to Dried Fish). Fruit and mushrooms need 24 dry daylight hours (about 2 days), meat and fish 36 (about 3). Only hours with the sun up and no rain or snow count. The rack holds 12 fresh pieces at once.
+- **Yield:** fruit and mushrooms dry one for one. Meat and fish are cut into strips, two for every dollar the piece sells for cooked (a Venison gives 8, a Bass or Turkey 6, a Small Game Meat, Chicken Meat or Bluegill 4). Changed from one per 0.3 kg the same day, after Mike's "make salted meat and dried meat more profitable than just cooked meat and even more than fresh raw meat": by weight, small pieces were worth less dried than raw.
+- **Ageing on the rack:** a fourth freshness clock, the Rack, runs at x 0.5 of the outdoor rate (saved with the others; an older save starts it at the outdoor clock). Food moved on or off converts its stamp, as with the Food Cache.
+- **Progress:** each batch on the rack keeps its own drying hours (WoodStack.dried, appended). Fresh food hung later starts its own batch; food taken off early comes back fresh and loses its progress.
+- **Dried foods** (Resources/Items/Consumables, all edible without cooking): Dried Berries 0.1 kg, 120 days, hunger 6; Dried Apples 0.12 kg, 120 days, hunger 8; Dried Mushrooms 0.06 kg, 180 days, hunger 4; Dried Meat 0.08 kg a strip, 90 days, hunger 3; Dried Fish 0.06 kg a strip, 90 days, hunger 1.5.
+- **Trading Post** (proposed): Dried Berries $1.50, Dried Apples $1.50, Dried Mushrooms $2.00 (Forage group); Dried Meat $0.80 a strip (Game Meat); Dried Fish $0.80 a strip (Fish). Every meat and fish is worth more dried than cooked, and cooked more than raw, even after the price drops 5% with each strip sold (a test checks it). Five rows appended to MarketData; no other price touched.
+- **Build:** 4 Sticks, 2 Branches, 2 Cordage, one click with the Hammer, like the Compost Bin. PileKind.DryingRack (46, appended).
+- **Screens:** the rack's screen says "6 of 12 drying" and why drying is paused (night, rain, snow); each fresh row says how many daylight hours it still needs. Know-how entry 14, "Drying Food on a Rack" (Claude's draft text), unlocks with the first dried food held.
+- **Art:** structure_dryingrack and its build icon, and the five dried foods with their icons, each approved by Mike.
+- **Tests:** SpoilageTests (slice 3 section), and the kind, row and Know-how counts updated.
+
+# Slice 4 built (2026-11-22, Claude): salt curing
+
+Awaiting Mike's check in Play Mode. Mike's decisions: the crock is used from the pack, like boiling sap; the crock is the Crock Pot already made at the Potter's Shed and fired in the Kiln (a new Salting Crock would not fit the Potter screen's five large rows); salting must pay more than cooking or selling raw.
+
+Renamed 2026-11-22 (Mike): the Water Crock is now called the **Crock Pot** everywhere players see it (it still holds water and is the salting crock). Item ids stay water_crock and dry_water_crock so saves keep working.
+
+- **SaltRules** (Scripts/Economy, pure) and **Salting** (Scripts/Survival): carrying a Crock Pot, raw meat and fish rows in the Inventory get a Salt button when no fire is in reach (at a fire the Cook button takes the place). Each raw piece takes 1 Salt for every 2 kg (at least 1; a Venison takes 2) and is cut into Salt Meat or Salt Fish at once, one for every dollar it sells for cooked (a Venison gives 4, a Bass or Turkey 3, a Small Game Meat or Bluegill 2). The crock is not used up. Salting is instant, so the doc's 4-day cure is dropped (Mike can ask for it back).
+- **Items:** Salt (1 kg bag, does not spoil); Salt Meat (0.18 kg, 180 days, hunger 6) and Salt Fish (0.12 kg, 180 days, hunger 3.5), both eaten as they are.
+- **Trading Post** (proposed): sells Salt for $2; buys Salt Meat and Salt Fish at $2.50 each. Salted meat and fish pay more than cooked, even after the Salt and the 5% drop per piece sold (a test checks it). Three rows appended to MarketData.
+- **Know-how** entry 15, "Salting Meat and Fish" (Claude's draft text), unlocks with the first Salt held.
+- **Art:** item_salt done; item_salt_meat and item_salt_fish next, one at a time. No crock art (the Crock Pot has its own).

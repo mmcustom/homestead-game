@@ -22,6 +22,8 @@ public static class KnowHowRules
     public const string Smithy = "smithy";
     public const string Melee = "melee"; // Hands M0e-3: fists and the Knife. Only the id is saved, in the journal's existing know-how list (no new save field).
     public const string Spoilage = "spoilage"; // Food_Spoilage_and_Preservation.md: Claude's draft text, for Mike to change as he likes
+    public const string Drying = "drying";     // Food_Spoilage_and_Preservation.md 3: Claude's draft text, for Mike to change as he likes
+    public const string Salting = "salting";   // Food_Spoilage_and_Preservation.md 4: Claude's draft text, for Mike to change as he likes
 
     public readonly struct Entry
     {
@@ -51,6 +53,8 @@ public static class KnowHowRules
         new Entry(Smithy, "The Smithy: Forging Iron Goods", "A Smithy turns Iron Bars and Charcoal into iron goods that sell at the Trading Post, and into an iron Shovel and Pick Axe for your own use. Its forge and anvil stand under a roof.\n\n1. Make Iron Bars first (see \"Smelting Iron in the Bloomery\").\n2. Open Build, then Other, and place a Smithy Site on dry ground, 3 m clear of other buildings and, for the forge fire, 3 m clear of trees. Turn it with the mouse wheel so the open front faces where you want to work.\n3. Deliver 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass with R over as many trips as you like (about 61 kg in all, so a Hand Cart helps). Then equip the Hammer and hold click on the site to build it.\n4. Put the Hammer away. Press R at the Smithy to store the Iron Bars, Charcoal, Sticks and Cordage you carry (it holds 8 Iron Bars, 8 Charcoal, 6 Sticks and 4 Cordage).\n5. Press E to open the Smithy screen and choose what to forge. Door Hinges take 3 game hours; a Hook Set and a Box of Nails take 2. Each uses 1 Iron Bar and 1 Charcoal. An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each. A job runs even while you sleep or are away.\n6. Press E at the Smithy to collect the finished item. One job runs at a time, and the next cannot start until the item is collected.\n\nDoor Hinges sell for about $26, a Hook Set for about $18 and a Box of Nails for about $16, and each price drops a little with every one you sell, then recovers over the next days. The Trading Post also stocks the iron Shovel ($12) and Pick Axe ($15). They work like the stone ones but need a quarter fewer blows for everything: a Stone from the outcrop, a stump, Clay and Sand, a Well shaft and a new Outhouse pit. The stone tools stay as they are. With the Hammer equipped, R takes the Smithy down, but not while something is being forged; you get back half the materials and all the Bars, Charcoal, Sticks, Cordage and finished items inside."),
         new Entry(Melee, "Fighting with your hands and a Knife", "Click with empty hands to punch. Fists only stun and startle: a small animal (a Rabbit, Squirrel, Turkey or Duck) stops for about a second and then bolts, a Deer just bolts, and nothing is ever hurt.\n\nEquip a Knife and click to slash, then click again to stab. The clicks alternate on their own, and the first click after a short pause is always a slash. Both reach about 1.5 m. A Knife kills small game (a Rabbit, Squirrel, Turkey or Duck) in one solid hit and leaves a Carcass to field dress, but a Deer is only startled, never hurt.\n\nA punch costs 2 Stamina and a slash or stab 3. Every blow makes noise: animals within 8 m of a punch and 6 m of a Knife blow bolt, so you will rarely catch one that has already noticed you. A blow cannot reach through a wall. A trapped animal cannot be struck; take it out of the trap with a Knife in your pack (it does not have to be equipped)."),
         new Entry(Spoilage, "Food Spoils: Rot and Compost", "Fresh food does not keep. The Inventory and every storage screen show how long each food has left: green while fresh, amber once it is past half its life, red when it is about to spoil. Heat spoils food faster, cold slows it, and freezing weather nearly stops it. A Food Cache keeps food a little longer than your pack.\n\nEating food that is amber or red can make you sick, and the closer it is to spoiling, the more likely.\n\nFood that spoils turns into Rot. Build a Compost Bin (Build tab: 6 Sticks and 2 Cordage, with the Hammer), then press R at it to put in Rot and Tall Grass. Every 4 Rot and 2 Tall Grass become 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen. Press E to take the Fertilizer out. The Trading Post buys it until you have crops to use it on."),
+        new Entry(Drying, "Drying Food on a Rack", "A Drying Rack turns fresh food into dried food that is light to carry and keeps for months. Build it from the Build tab: 4 Sticks, 2 Branches and 2 Cordage, with the Hammer.\n\nPress R at the rack to hang Blackberries, Raspberries, Wild Apples, Pawpaws, mushrooms, raw meat or raw fish, up to 12 pieces at a time. They dry only in daylight while it is not raining or snowing: fruit and mushrooms need about 2 days, meat and fish about 3. Food on the rack still ages while it dries, but at half the usual rate.\n\nFruit and mushrooms dry one for one. Meat and fish are cut into strips: the more a piece is worth cooked, the more strips, from 4 for a Small Game Meat or a Bluegill to 8 for a Venison. Dried Meat and Dried Fish are safe to eat without cooking. Press E to take the dried food off; the Trading Post pays more for it than for fresh or cooked food."),
+        new Entry(Salting, "Salting Meat and Fish", "Salt keeps raw meat and fish for half a year. Buy Salt at the Trading Post ($2 a bag) and carry a Crock Pot (shaped at the Potter's Shed and fired in the Kiln).\n\nAway from a fire, open Inventory (I): raw meat and fish rows show a Salt button. Each piece takes 1 Salt for every 2 kg it weighs (a Venison takes 2) and is cut into Salt Meat or Salt Fish straight away, one for every dollar it is worth cooked: 4 from a Venison, 2 from a Bluegill. The crock is not used up.\n\nSalt Meat and Salt Fish keep for 180 days and are eaten as they are, no cooking needed. The Trading Post pays more for them than for the same meat fresh or cooked, even after the Salt."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -90,6 +94,14 @@ public static class KnowHowRules
             case MetalRules.IronBarId: return new[] { Smelting, Smithy };
             case KnifeRules.ToolId: return new[] { Melee };
             case SpoilageRules.RotId: return new[] { Spoilage };
+            case DryingRules.DriedBerriesId:
+            case DryingRules.DriedApplesId:
+            case DryingRules.DriedMushroomsId:
+            case DryingRules.DriedMeatId:
+            case DryingRules.DriedFishId: return new[] { Drying };
+            case SaltRules.SaltId:
+            case SaltRules.SaltMeatId:
+            case SaltRules.SaltFishId: return new[] { Salting };
             default: return Array.Empty<string>();
         }
     }
@@ -128,6 +140,8 @@ public static class KnowHowRules
     {
         AshRules.ItemId, AshRules.KindlingItemId, TripodRules.TripodId, MapleRules.SpileId, MapleRules.SapBucketId,
         MapleRules.SapId, PotashRules.LyeId, TripodRules.KettleId, MetalRules.CharcoalId, MetalRules.IronOreId, MetalRules.IronBarId, KnifeRules.ToolId, SpoilageRules.RotId,
+        DryingRules.DriedBerriesId, DryingRules.DriedApplesId, DryingRules.DriedMushroomsId, DryingRules.DriedMeatId, DryingRules.DriedFishId,
+        SaltRules.SaltId, SaltRules.SaltMeatId, SaltRules.SaltFishId,
     };
 
     // The entries a loaded game has already earned: what the pack holds, and what it has built (a hopper site, a tripod, a tap). An old save

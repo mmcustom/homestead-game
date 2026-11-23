@@ -331,8 +331,8 @@ public class PotashTests
     [Test]
     public void TheStockedShelfIsTwentyTwoItemsTotallingThreeHundredFourteenDollars()
     {
-        Assert.That(Table.Stock.Count, Is.EqualTo(39), "the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; 21 and Iron Ore (Metalworking M1)");
-        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(44050L));
+        Assert.That(Table.Stock.Count, Is.EqualTo(40), "Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; 21 and Iron Ore (Metalworking M1)");
+        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(44250L), "and Salt ($2.00)");
         Assert.That(Table.Stock.Count(r => Table.SellBaseCents(r.itemId) > 0), Is.EqualTo(35));
     }
 

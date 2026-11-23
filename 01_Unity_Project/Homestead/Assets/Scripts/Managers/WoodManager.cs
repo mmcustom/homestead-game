@@ -11,6 +11,8 @@ public class WoodStack
     // The in-game day a batch was acquired (perishables: so the Spoilage System can still age it) or, for wood, last made wet
     // (WoodMoisture); kept while it is stored. 0 is "no stamp": food from before this existed, wood that is dry.
     public int day;
+    // The Drying Rack (appended, so older saves load 0): dry daylight hours this fresh batch has had on the rack (DryingRules).
+    public float dried;
 }
 
 [Serializable]
@@ -42,7 +44,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack }
 
 [Serializable]
 public class WoodPileState
@@ -149,7 +151,8 @@ public class WoodPileState
             return;
         foreach (WoodStack stack in contents)
         {
-            if (stack.itemId == itemId && stack.day == day)
+            // On a Drying Rack, a batch already drying keeps its own progress: fresh food hung later starts a batch of its own.
+            if (stack.itemId == itemId && stack.day == day && (kind != PileKind.DryingRack || stack.dried <= 0f))
             {
                 stack.count += count;
                 return;
@@ -285,6 +288,7 @@ public class WoodPileState
             case PileKind.FoodCache: return WoodManager.IsStorableFood(itemId);
             case PileKind.StorageBin: return WoodManager.IsDryGoods(itemId);
             case PileKind.CompostBin: return CompostRules.Accepts(itemId); // Rot and Tall Grass (Food_Spoilage_and_Preservation.md 2)
+            case PileKind.DryingRack: return DryingRules.Accepts(itemId);  // fresh fruit, mushrooms, meat and fish, and dried food (section 3)
             case PileKind.Shelving: return WoodManager.IsDryGoods(itemId) || WoodManager.IsStorableFood(itemId);
             case PileKind.ToolRack: return WoodManager.IsTool(itemId);
             case PileKind.CabinSite:
@@ -1138,7 +1142,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
-        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.CompostBin, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
+        { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.CompostBin, PileKind.DryingRack, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
           PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
@@ -1162,6 +1166,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.FoodCache: return "Food Cache";
             case PileKind.StorageBin: return "Storage Bin";
             case PileKind.CompostBin: return "Compost Bin";
+            case PileKind.DryingRack: return "Drying Rack";
             case PileKind.ToolRack: return "Tool Rack";
             case PileKind.Tent: return "Tent";
             case PileKind.TarpShelter: return "Tarp Shelter";
@@ -1220,6 +1225,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.FoodCache: return new[] { new WoodStack { itemId = LogsId, count = 2 }, new WoodStack { itemId = BranchesId, count = 4 } };
             case PileKind.StorageBin: return new[] { new WoodStack { itemId = BranchesId, count = 6 }, new WoodStack { itemId = SticksId, count = 6 } };
             case PileKind.CompostBin: return new[] { new WoodStack { itemId = SticksId, count = 6 }, new WoodStack { itemId = "cordage", count = 2 } };
+            case PileKind.DryingRack: return new[] { new WoodStack { itemId = SticksId, count = 4 }, new WoodStack { itemId = BranchesId, count = 2 }, new WoodStack { itemId = "cordage", count = 2 } };
             case PileKind.ToolRack: return new[] { new WoodStack { itemId = BranchesId, count = 4 }, new WoodStack { itemId = SticksId, count = 4 } };
             case PileKind.Tent: return new[] { new WoodStack { itemId = TentId, count = 1 } };
             case PileKind.TarpShelter: return new[] { new WoodStack { itemId = SleepManager.TarpId, count = 1 }, new WoodStack { itemId = SticksId, count = TarpShelterSticks },
@@ -1495,6 +1501,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.RockStorage:
             case PileKind.StorageBin:
             case PileKind.CompostBin:
+            case PileKind.DryingRack:
             case PileKind.ToolRack:
             case PileKind.Countertop:
             case PileKind.Shelving:

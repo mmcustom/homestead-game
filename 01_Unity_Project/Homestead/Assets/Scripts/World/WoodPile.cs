@@ -40,7 +40,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // Cabin's staged CabinSite — get the per-item transfer screen on E instead of an instant take-all.
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
-                                state.kind == PileKind.StorageBin || state.kind == PileKind.CompostBin || state.kind == PileKind.ToolRack ||
+                                state.kind == PileKind.StorageBin || state.kind == PileKind.CompostBin || state.kind == PileKind.DryingRack || state.kind == PileKind.ToolRack ||
                                 state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart;
 
     // A felled tree's pile (and anything dropped as one) opens the take-only screen on E: the player picks what to take and the rest stays
@@ -491,7 +491,9 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // --- Storing: the transfer screen's per-item store (the mirror of TakeOne), and the bulk store behind R ---
 
     // Litres the barrel can still take; unlimited for anything else.
-    int StorageRoom => IsBarrel && WoodManager.Instance != null ? Mathf.Max(0, WoodManager.Instance.CapacityOf(state.kind) - state.Total) : int.MaxValue;
+    // The Drying Rack holds DryingRules.Capacity fresh pieces at once (dried food waiting to be taken does not count).
+    int StorageRoom => IsBarrel && WoodManager.Instance != null ? Mathf.Max(0, WoodManager.Instance.CapacityOf(state.kind) - state.Total)
+                     : state.kind == PileKind.DryingRack ? Mathf.Max(0, DryingRules.Capacity - SpoilageManager.DryingCount(state)) : int.MaxValue;
 
     // A Hand Cart (Vehicles_and_Hauling.md, Phase 1) is held to CartRules.CapacityKg by weight, so what fits depends on the item:
     // the whole units of it that still fit under the 100 kg (12 Logs, 20 Stone, 28 Clay, 66 Firewood in an empty cart). Anything else: StorageRoom.
@@ -719,7 +721,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         foreach (KeyValuePair<string, int> pair in Contents(pile))
             parts.Add($"{pair.Value} {ItemDatabase.Get(pair.Key)?.DisplayName ?? pair.Key}");
         // The Compost Bin says how its running job is getting on (SpoilageManager runs it).
-        string compost = pile.kind == PileKind.CompostBin ? SpoilageManager.CompostStatus(pile) : null;
+        string compost = pile.kind == PileKind.CompostBin ? SpoilageManager.CompostStatus(pile) : pile.kind == PileKind.DryingRack ? SpoilageManager.DryingStatus(pile) : null;
         if (compost != null)
             return parts.Count > 0 ? $"{compost}; {Shorten(parts)}" : compost;
         return parts.Count > 0 ? Shorten(parts) : "empty";
@@ -776,6 +778,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.FoodCache: return 2;                      // the box and its lid
             case PileKind.StorageBin: return 2;                     // the bin and its dark inside
             case PileKind.CompostBin: return 2;                     // the slatted bin and the heap inside
+            case PileKind.DryingRack: return 5;                     // two posts and three rails (the hanging food stays drawn)
             case PileKind.ToolRack: return 3;                       // the board and two feet
             case PileKind.WoodShed: return 18;                      // two skids, deck, four posts, five back and five side slats, roof
             case PileKind.Shelving: return 7;                       // two uprights, the back, four boards
@@ -830,6 +833,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.FoodCache: BuildBox(new Vector3(1f, 0.6f, 0.7f), 0.8f, true); return;
             case PileKind.StorageBin: BuildBox(new Vector3(1.1f, 0.55f, 0.75f), 1.15f, false); return;
             case PileKind.CompostBin: BuildBox(new Vector3(0.9f, 0.7f, 0.9f), 0.9f, false); return;
+            case PileKind.DryingRack: BuildDryingRack(); return;
             case PileKind.ToolRack: BuildRack(); return;
             case PileKind.CabinSite: BuildCabinSite(random); return;
             case PileKind.WoodShed: BuildShed(random); return;
@@ -1116,6 +1120,35 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         }
         box.center = new Vector3(0f, height / 2f, 0f);
         box.size = new Vector3(width + 0.3f, height + 0.1f, 0.5f);
+    }
+
+    // The Drying Rack: two posts and three rails, then the food hanging from the rails, one small piece for each batch (fresh pieces
+    // reddish brown, dried ones darker), up to twelve.
+    void BuildDryingRack()
+    {
+        const float width = 1.2f, height = 1.3f;
+        foreach (float x in new[] { -width / 2f, width / 2f })
+            Piece(PrimitiveType.Cylinder, new Vector3(x, height / 2f, 0f), Vector3.zero, new Vector3(0.06f, height / 2f, 0.06f), bark);
+        float[] rails = { 0.55f, 0.9f, 1.25f };
+        foreach (float y in rails)
+            Piece(PrimitiveType.Cylinder, new Vector3(0f, y, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.035f, width / 2f, 0.035f), bark);
+
+        int shown = 0;
+        foreach (WoodStack stack in state.contents)
+        {
+            if (stack.count <= 0)
+                continue;
+            bool fresh = DryingRules.Dries(stack.itemId);
+            for (int n = 0; n < stack.count && shown < 12; n++, shown++)
+            {
+                float x = -width / 2f + 0.15f + (shown % 4) * (width - 0.3f) / 3f;
+                float y = rails[2 - (shown / 4)] - 0.09f;
+                GameObject piece = Piece(PrimitiveType.Cube, new Vector3(x, y, 0f), Vector3.zero, new Vector3(0.1f, 0.14f, 0.03f), null);
+                Tinted(piece, fresh ? new Color(0.45f, 0.16f, 0.12f) : new Color(0.24f, 0.13f, 0.08f));
+            }
+        }
+        box.center = new Vector3(0f, height / 2f, 0f);
+        box.size = new Vector3(width + 0.2f, height + 0.1f, 0.4f);
     }
 
     // A lidded box of split wood (the Food Cache) or an open, lighter-coloured bin (the Storage Bin).

@@ -137,6 +137,161 @@ public class SpoilageTests
         Assert.That(KnowHowRules.ForItem(SpoilageRules.RotId), Does.Contain(KnowHowRules.Spoilage));
     }
 
+    // ---- Slice 3: the Drying Rack ----
+
+    [Test]
+    public void TheRackDriesFruitOneForOneAndCutsMeatAndFishIntoStrips()
+    {
+        Assert.That(DryingRules.TryFind("blackberries", out string berries, out int fruitHours), Is.True);
+        Assert.That((berries, fruitHours), Is.EqualTo((DryingRules.DriedBerriesId, 24)));
+        Assert.That(DryingRules.TryFind("pawpaw", out string apples, out _) && apples == DryingRules.DriedApplesId, Is.True);
+        Assert.That(DryingRules.TryFind("dryads_saddle", out string mushrooms, out _) && mushrooms == DryingRules.DriedMushroomsId, Is.True);
+        Assert.That(DryingRules.TryFind("venison", out string meat, out int meatHours), Is.True);
+        Assert.That((meat, meatHours), Is.EqualTo((DryingRules.DriedMeatId, 36)));
+        Assert.That(DryingRules.TryFind("catfish", out string fish, out _) && fish == DryingRules.DriedFishId, Is.True);
+        Assert.That(DryingRules.TryFind("cooked_venison", out _, out _), Is.False, "cooked food is not dried");
+        Assert.That(DryingRules.TryFind("hickory_nuts", out _, out _), Is.False);
+
+        Assert.That(DryingRules.YieldOf("raspberries", 0.3), Is.EqualTo(1));
+        Assert.That(DryingRules.YieldOf("venison", 2.5), Is.EqualTo(8), "two strips per dollar of its cooked price ($4)");
+        Assert.That(DryingRules.YieldOf("chicken_meat", 0.8), Is.EqualTo(4));
+        Assert.That(DryingRules.YieldOf("small_game_meat", 0.4), Is.EqualTo(4));
+        Assert.That(DryingRules.YieldOf("bluegill", 0.3), Is.EqualTo(4));
+        Assert.That(DryingRules.YieldOf("bass", 0.6), Is.EqualTo(6));
+        Assert.That(DryingRules.YieldOf("crappie", 0.5), Is.EqualTo(4));
+        Assert.That(DryingRules.YieldOf("cattail", 0.3), Is.EqualTo(0), "not a rack food");
+
+        Assert.That(DryingRules.Accepts("morel") && DryingRules.Accepts(DryingRules.DriedFishId), Is.True);
+        Assert.That(DryingRules.Accepts("logs"), Is.False);
+    }
+
+    [Test]
+    public void DryingCountsOnlyDryDaylightAndTheRackAgesFoodAtHalfRate()
+    {
+        Assert.That(DryingRules.DriesNow(true, false), Is.True);
+        Assert.That(DryingRules.DriesNow(false, false), Is.False, "night");
+        Assert.That(DryingRules.DriesNow(true, true), Is.False, "rain or snow");
+        Assert.That(SpoilageRules.ClockRate(FreshClock.Rack, 15, 1), Is.EqualTo(0.5).Within(1e-9));
+        Assert.That(SpoilageRules.ClockRate(FreshClock.Rack, 30, 1.3), Is.EqualTo(SpoilageRules.ClockRate(FreshClock.Outdoor, 30, 1.3) * 0.5).Within(1e-9));
+
+        Assert.That(DryingRules.HoursLeft(24, 10.5f), Is.EqualTo(14));
+        Assert.That(DryingRules.HoursLeft(24, 30f), Is.EqualTo(0));
+        Assert.That(DryingRules.RowText(14), Is.EqualTo("drying, 14 daylight hours to go"));
+        Assert.That(DryingRules.RowText(1), Is.EqualTo("drying, 1 daylight hour to go"));
+        Assert.That(DryingRules.Status(6, true, false, false), Is.EqualTo("drying 6 pieces"));
+        Assert.That(DryingRules.Status(1, true, false, false), Is.EqualTo("drying 1 piece"));
+        Assert.That(DryingRules.Status(6, false, false, false), Is.EqualTo("drying paused for the night"));
+        Assert.That(DryingRules.Status(6, true, true, false), Is.EqualTo("drying paused while it rains"));
+        Assert.That(DryingRules.Status(6, true, false, true), Is.EqualTo("drying paused while it snows"));
+        Assert.That(DryingRules.Status(0, true, false, false), Is.Null);
+    }
+
+    [Test]
+    public void TheDryingRackIsBuiltWithTheHammerAndItsFoodSellsAndUnlocksKnowHow()
+    {
+        Type pk = Find("PileKind"), wm = Find("WoodManager");
+        object rack = Enum.Parse(pk, "DryingRack");
+        Assert.That((int)rack, Is.EqualTo(46), "appended after the Compost Bin");
+        Assert.That(((Array)wm.GetField("Buildable").GetValue(null)).Cast<object>(), Does.Contain(rack));
+        Assert.That(wm.GetMethod("PileName").Invoke(null, new[] { rack }), Is.EqualTo("Drying Rack"));
+        Assert.That(wm.GetMethod("NeedsHammerToBuild").Invoke(null, new[] { rack }), Is.True);
+        foreach (string id in DryingRules.DriedIds)
+        {
+            Assert.That(MarketCatalog.Rows.Any(r => r.itemId == id && r.kind == MarketKind.Bought), Is.True, id);
+            Assert.That(KnowHowRules.ForItem(id), Does.Contain(KnowHowRules.Drying), id);
+        }
+        Assert.That(MarketCatalog.Rows.Single(r => r.itemId == DryingRules.DriedMeatId).baseCents, Is.EqualTo(80));
+    }
+
+    [Test]
+    public void FoodHungLaterOnTheRackStartsItsOwnBatch()
+    {
+        Type state = Find("WoodPileState"), stackType = Find("WoodStack");
+        object pile = Activator.CreateInstance(state);
+        state.GetField("kind").SetValue(pile, Enum.Parse(Find("PileKind"), "DryingRack"));
+        var add = state.GetMethod("Add");
+        add.Invoke(pile, new object[] { "venison", 1, 600 });
+        var contents = (System.Collections.IList)state.GetField("contents").GetValue(pile);
+        stackType.GetField("dried").SetValue(contents[0], 12f);
+        add.Invoke(pile, new object[] { "venison", 1, 600 });
+        Assert.That(contents.Count, Is.EqualTo(2), "the half-dried Venison keeps its own progress");
+        add.Invoke(pile, new object[] { "venison", 1, 600 });
+        Assert.That(contents.Count, Is.EqualTo(2), "two fresh ones hung together share a batch");
+    }
+
+    // ---- Slice 4: salt curing ----
+
+    [Test]
+    public void EachRawPieceTakesOneSaltPerTwoKilogramsAndBecomesOneSaltPiece()
+    {
+        Assert.That(SaltRules.TryFind("venison", out string meat) && meat == SaltRules.SaltMeatId, Is.True);
+        Assert.That(SaltRules.TryFind("chicken_meat", out string chicken) && chicken == SaltRules.SaltMeatId, Is.True);
+        Assert.That(SaltRules.TryFind("bluegill", out string fish) && fish == SaltRules.SaltFishId, Is.True);
+        Assert.That(SaltRules.Salts("blackberries"), Is.False, "fruit is dried, not salted");
+        Assert.That(SaltRules.Salts("cooked_venison"), Is.False);
+        Assert.That(SaltRules.SaltFor(2.5), Is.EqualTo(2), "a Venison");
+        Assert.That(SaltRules.SaltFor(2.0), Is.EqualTo(1));
+        Assert.That(SaltRules.SaltFor(0.3), Is.EqualTo(1), "at least one");
+        Assert.That(SaltRules.PiecesFor(4, 5, 2.5), Is.EqualTo(2), "5 Salt salts two Venison");
+        Assert.That(SaltRules.PiecesFor(4, 10, 0.6), Is.EqualTo(4), "no more than are carried");
+        Assert.That(SaltRules.PiecesFor(3, 0, 0.6), Is.EqualTo(0));
+        Assert.That(SaltRules.RowInfo("small_game_meat", 4, 0.4), Is.EqualTo("1 Salt each, makes 2; 4 carried"));
+        Assert.That(SaltRules.RowInfo("venison", 0, 2.5), Is.EqualTo("2 Salt each, makes 4; you have no Salt"));
+        Assert.That(SaltRules.YieldOf("venison"), Is.EqualTo(4));
+        Assert.That(SaltRules.YieldOf("bass"), Is.EqualTo(3));
+        Assert.That(SaltRules.YieldOf("bluegill"), Is.EqualTo(2));
+        Assert.That(SaltRules.YieldOf("blackberries"), Is.EqualTo(0));
+        Assert.That(SaltRules.SaltedMessage(1, "Venison", 4, "Salt Meat", 2), Is.EqualTo("Salted 1 Venison into 4 Salt Meat (2 Salt)"));
+        Assert.That(SaltRules.CrockId, Is.EqualTo("water_crock"), "Mike: use the Water Crock (renamed Crock Pot)");
+    }
+
+    [Test]
+    public void SaltIsSoldAndTheSaltFoodIsBoughtAndUnlocksKnowHow()
+    {
+        Assert.That(MarketCatalog.Rows.Single(r => r.itemId == SaltRules.SaltId).kind, Is.EqualTo(MarketKind.Stocked));
+        Assert.That(MarketCatalog.Rows.Single(r => r.itemId == SaltRules.SaltId).baseCents, Is.EqualTo(200));
+        Assert.That(MarketCatalog.Rows.Single(r => r.itemId == SaltRules.SaltMeatId).kind, Is.EqualTo(MarketKind.Bought));
+        Assert.That(MarketCatalog.Rows.Single(r => r.itemId == SaltRules.SaltFishId).kind, Is.EqualTo(MarketKind.Bought));
+        foreach (string id in new[] { SaltRules.SaltId, SaltRules.SaltMeatId, SaltRules.SaltFishId })
+            Assert.That(KnowHowRules.ForItem(id), Does.Contain(KnowHowRules.Salting), id);
+        Assert.That(PotteryRules.Recipes.Length, Is.EqualTo(5), "the Potter screen keeps its five rows");
+    }
+
+    // Mike, 2026-11-22: "make salted meat and dried meat more profitable than just cooked meat and even more than fresh raw meat". Selling many
+    // strips or pieces drops their price a little each time (5% a unit in the meat and fish groups), so the check allows for that.
+    [Test]
+    public void DriedAndSaltedMeatAndFishPayMoreThanCookedAndCookedMoreThanRaw()
+    {
+        foreach (string raw in new[] { "venison", "turkey_meat", "waterfowl_meat", "small_game_meat", "chicken_meat", "bluegill", "crappie", "bass", "catfish" })
+        {
+            long rawCents = MarketCatalog.Rows.Single(r => r.itemId == raw).baseCents;
+            string cookedId = raw == "turkey_meat" ? "cooked_turkey" : raw == "waterfowl_meat" ? "cooked_waterfowl" : raw == "small_game_meat" ? "cooked_small_game"
+                            : raw == "chicken_meat" ? "cooked_chicken" : "cooked_" + raw;
+            long cooked = MarketCatalog.Rows.Single(r => r.itemId == cookedId).baseCents;
+            Assert.That(DryingRules.CookedCents(raw), Is.EqualTo(cooked), raw + ": the drying table follows the Trading Post");
+            Assert.That(cooked, Is.GreaterThan(rawCents), raw);
+
+            DryingRules.TryFind(raw, out string driedId, out _);
+            int strips = DryingRules.YieldOf(raw, 0);
+            double dried = SoldWithDrops(MarketCatalog.Rows.Single(r => r.itemId == driedId).baseCents, strips);
+            Assert.That(dried, Is.GreaterThan(cooked), raw + " dried");
+
+            SaltRules.TryFind(raw, out string saltedId);
+            double weight = raw == "venison" ? 2.5 : raw == "turkey_meat" ? 1.5 : raw == "waterfowl_meat" ? 1.3 : 0.8;
+            double salted = SoldWithDrops(MarketCatalog.Rows.Single(r => r.itemId == saltedId).baseCents, SaltRules.YieldOf(raw)) - SaltRules.SaltFor(weight) * SaltRules.SaltCents;
+            Assert.That(salted, Is.GreaterThan(cooked), raw + " salted, less its Salt");
+        }
+    }
+
+    // What n units fetch when each sale drops the price 5% of the base.
+    static double SoldWithDrops(long cents, int n)
+    {
+        double total = 0;
+        for (int i = 0; i < n; i++)
+            total += cents * Math.Max(0.25, 1.0 - 0.05 * i);
+        return total;
+    }
+
     [Test]
     public void AContainerTurnsSpoiledStacksIntoTheSameNumberOfRot()
     {

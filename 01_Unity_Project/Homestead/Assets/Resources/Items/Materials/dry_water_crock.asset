@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: dry_water_crock
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   id: dry_water_crock
-  displayName: Dry Water Crock
+  displayName: Dry Crock Pot
   category: 3
   weightKg: 6
   shelfLifeDays: 0

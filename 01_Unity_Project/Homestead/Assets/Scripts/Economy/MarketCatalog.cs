@@ -192,6 +192,16 @@ public static class MarketCatalog
         Row(SmithyRules.Recipes[2].itemId, MarketGroup.Crafted, SmithyRules.Recipes[2].baseCents, MarketKind.Bought),
         // Food_Spoilage_and_Preservation.md 2: Fertilizer from the Compost Bin, bought until farming gives it a use on the homestead. Appended last, as the asset row was.
         Row(CompostRules.FertilizerId, MarketGroup.Farm, CompostRules.FertilizerBaseCents, MarketKind.Bought),
+        // Food_Spoilage_and_Preservation.md 3: dried food from the Drying Rack, each its own pool, in the group of what it was dried from (DryingRules has the prices).
+        Row(DryingRules.DriedBerriesId, MarketGroup.Forage, DryingRules.DriedBerriesCents, MarketKind.Bought),
+        Row(DryingRules.DriedApplesId, MarketGroup.Forage, DryingRules.DriedApplesCents, MarketKind.Bought),
+        Row(DryingRules.DriedMushroomsId, MarketGroup.Forage, DryingRules.DriedMushroomsCents, MarketKind.Bought),
+        Row(DryingRules.DriedMeatId, MarketGroup.GameMeat, DryingRules.DriedMeatCents, MarketKind.Bought),
+        Row(DryingRules.DriedFishId, MarketGroup.Fish, DryingRules.DriedFishCents, MarketKind.Bought),
+        // Food_Spoilage_and_Preservation.md 4: Salt sold in 1 kg bags, and the Salt Meat and Salt Fish it makes, bought (SaltRules has the prices).
+        Row(SaltRules.SaltId, MarketGroup.Stocked, SaltRules.SaltCents, MarketKind.Stocked),
+        Row(SaltRules.SaltMeatId, MarketGroup.GameMeat, SaltRules.SaltMeatCents, MarketKind.Bought),
+        Row(SaltRules.SaltFishId, MarketGroup.Fish, SaltRules.SaltFishCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

@@ -158,3 +158,27 @@ Fresh food does not keep. The Inventory and every storage screen show how long e
 Eating food that is amber or red can make you sick, and the closer it is to spoiling, the more likely.
 
 Food that spoils turns into Rot. Build a Compost Bin (Build tab: 6 Sticks and 2 Cordage, with the Hammer), then press R at it to put in Rot and Tall Grass. Every 4 Rot and 2 Tall Grass become 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen. Press E to take the Fertilizer out. The Trading Post buys it until you have crops to use it on.
+
+---
+
+## 14. Drying Food on a Rack
+
+Trigger: first dried food held.
+
+A Drying Rack turns fresh food into dried food that is light to carry and keeps for months. Build it from the Build tab: 4 Sticks, 2 Branches and 2 Cordage, with the Hammer.
+
+Press R at the rack to hang Blackberries, Raspberries, Wild Apples, Pawpaws, mushrooms, raw meat or raw fish, up to 12 pieces at a time. They dry only in daylight while it is not raining or snowing: fruit and mushrooms need about 2 days, meat and fish about 3. Food on the rack still ages while it dries, but at half the usual rate.
+
+Fruit and mushrooms dry one for one. Meat and fish are cut into strips: the more a piece is worth cooked, the more strips, from 4 for a Small Game Meat or a Bluegill to 8 for a Venison. Dried Meat and Dried Fish are safe to eat without cooking. Press E to take the dried food off; the Trading Post pays more for it than for fresh or cooked food.
+
+---
+
+## 15. Salting Meat and Fish
+
+Trigger: first Salt held.
+
+Salt keeps raw meat and fish for half a year. Buy Salt at the Trading Post ($2 a bag) and carry a Crock Pot (shaped at the Potter's Shed and fired in the Kiln).
+
+Away from a fire, open Inventory (I): raw meat and fish rows show a Salt button. Each piece takes 1 Salt for every 2 kg it weighs (a Venison takes 2) and is cut into Salt Meat or Salt Fish straight away, one for every dollar it is worth cooked: 4 from a Venison, 2 from a Bluegill. The crock is not used up.
+
+Salt Meat and Salt Fish keep for 180 days and are eaten as they are, no cooking needed. The Trading Post pays more for them than for the same meat fresh or cooked, even after the Salt.
