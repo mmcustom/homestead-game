@@ -184,6 +184,20 @@ public static class ArtSwap
             stateOf = s => WellsAndOuthouses.BloomeryPhaseOf(s) == BloomeryRules.Phase.Smelting ? "State_Smelting" : "State_Idle",
             flagsOf = s => WellsAndOuthouses.BloomeryPhaseOf(s) == BloomeryRules.Phase.Smelting ? new[] { "On_Smelting" } : NoFlags,
         },
+        // Food_Spoilage_and_Preservation.md 5 (2026-11-22): the Smokehouse. The smoke from its roof vent stays PlacedStructure.Rebuild's own (smokeOn null); the glow sits at the fire pit.
+        new Spec
+        {
+            id = "structure_smokehouse",
+            kind = PileKind.Smokehouse,
+            anchors = new[] { A(AnchorSmoke, false, 0f, SmokeRules.SmokeHeight, 0f), A(AnchorMouth, false, 0f, 0.12f, 0f), A(AnchorStock, false, 0f, 0f, 0f) },
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(2.9f, 3.0f, 2.8f),            // its door is a SwingDoor, not part of the art
+            boxCenter = new Vector3(0f, 1.2f, 0f),
+            boxSize = new Vector3(2.1f, 2.4f, 2.1f),
+            staticPieces = 19,                                       // soil, five wall pieces and the lintel, two roof boards and the vent, eight ring stones, the fire bed
+            contentAnchors = new[] { AnchorStock },                  // the meat on its rails and the Firewood outside
+        },
         new Spec
         {
             id = "structure_smithy",

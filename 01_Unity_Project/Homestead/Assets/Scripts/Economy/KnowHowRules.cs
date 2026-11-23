@@ -24,6 +24,8 @@ public static class KnowHowRules
     public const string Spoilage = "spoilage"; // Food_Spoilage_and_Preservation.md: Claude's draft text, for Mike to change as he likes
     public const string Drying = "drying";     // Food_Spoilage_and_Preservation.md 3: Claude's draft text, for Mike to change as he likes
     public const string Salting = "salting";   // Food_Spoilage_and_Preservation.md 4: Claude's draft text, for Mike to change as he likes
+    public const string Smoking = "smoking";
+    public const string Cellar = "cellar";     // Food_Spoilage_and_Preservation.md 6: Claude's draft text, for Mike to change as he likes   // Food_Spoilage_and_Preservation.md 5: Claude's draft text, for Mike to change as he likes
 
     public readonly struct Entry
     {
@@ -55,6 +57,8 @@ public static class KnowHowRules
         new Entry(Spoilage, "Food Spoils: Rot and Compost", "Fresh food does not keep. The Inventory and every storage screen show how long each food has left: green while fresh, amber once it is past half its life, red when it is about to spoil. Heat spoils food faster, cold slows it, and freezing weather nearly stops it. A Food Cache keeps food a little longer than your pack.\n\nEating food that is amber or red can make you sick, and the closer it is to spoiling, the more likely.\n\nFood that spoils turns into Rot. Build a Compost Bin (Build tab: 6 Sticks and 2 Cordage, with the Hammer), then press R at it to put in Rot and Tall Grass. Every 4 Rot and 2 Tall Grass become 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen. Press E to take the Fertilizer out. The Trading Post buys it until you have crops to use it on."),
         new Entry(Drying, "Drying Food on a Rack", "A Drying Rack turns fresh food into dried food that is light to carry and keeps for months. Build it from the Build tab: 4 Sticks, 2 Branches and 2 Cordage, with the Hammer.\n\nPress R at the rack to hang Blackberries, Raspberries, Wild Apples, Pawpaws, mushrooms, raw meat or raw fish, up to 12 pieces at a time. They dry only in daylight while it is not raining or snowing: fruit and mushrooms need about 2 days, meat and fish about 3. Food on the rack still ages while it dries, but at half the usual rate.\n\nFruit and mushrooms dry one for one. Meat and fish are cut into strips: the more a piece is worth cooked, the more strips, from 4 for a Small Game Meat or a Bluegill to 8 for a Venison. Dried Meat and Dried Fish are safe to eat without cooking. Press E to take the dried food off; the Trading Post pays more for it than for fresh or cooked food."),
         new Entry(Salting, "Salting Meat and Fish", "Salt keeps raw meat and fish for half a year. Buy Salt at the Trading Post ($2 a bag) and carry a Crock Pot (shaped at the Potter's Shed and fired in the Kiln).\n\nAway from a fire, open Inventory (I): raw meat and fish rows show a Salt button. Each piece takes 1 Salt for every 2 kg it weighs (a Venison takes 2) and is cut into Salt Meat or Salt Fish straight away, one for every dollar it is worth cooked: 4 from a Venison, 2 from a Bluegill. The crock is not used up.\n\nSalt Meat and Salt Fish keep for 180 days and are eaten as they are, no cooking needed. The Trading Post pays more for them than for the same meat fresh or cooked, even after the Salt."),
+        new Entry(Smoking, "Smoking Meat and Fish", "A Smokehouse turns raw meat and fish into Smoked Meat and Smoked Fish, the best-paying food the Trading Post buys. Build it from the Build tab: mark out the site, deliver 10 Stone and 4 Clay for the fire pit, then 12 Logs and 6 Lumber, and finish it with the Hammer.\n\nPut the Hammer away and press R at the smokehouse to load raw meat and fish (up to 20 pieces) and Firewood (up to 12), then press E to light the fire. A load smokes for a day and burns 6 Firewood. While the fire burns, the meat does not age. If the Firewood runs out, the smoking stops and the meat starts to age again until you load more Firewood.\n\nEach piece gives one Smoked Meat or Smoked Fish for every dollar it is worth cooked: 4 from a Venison, 2 from a Bluegill. Smoked food keeps for 180 days and is eaten as it is. Press E to collect it; the Trading Post pays $3 a piece, more than for salted, dried or cooked meat."),
+        new Entry(Cellar, "The Root Cellar", "A Root Cellar is an earth-covered room for keeping food. Food on its shelves ages a third as fast as outdoors, in every season, and it never freezes: raw meat keeps about 10 days, apples about 6 weeks, and smoked, dried and salted food far longer.\n\nBuild it from the Build tab. Mark out the site, dig it out with the Shovel, then deliver 10 Stone, 8 Logs and 4 Lumber in any order and finish it with the Hammer. Pick dry ground out of hollows, or rain will run in.\n\nWalk in through the door and press E at the shelves at the back to store or take food. The shelves hold up to 300 kg of food."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -74,7 +78,7 @@ public static class KnowHowRules
     // --- Triggers ---
 
     // Things that happen in the world, besides an item entering the pack.
-    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched }
+    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched, SmokehouseSitePlaced, RootCellarSitePlaced }
 
     // Entries a first-held item unlocks (none for most items). Ash opens both "Ash" and "From Ash to Potash".
     public static string[] ForItem(string itemId)
@@ -102,6 +106,8 @@ public static class KnowHowRules
             case SaltRules.SaltId:
             case SaltRules.SaltMeatId:
             case SaltRules.SaltFishId: return new[] { Salting };
+            case SmokeRules.SmokedMeatId:
+            case SmokeRules.SmokedFishId: return new[] { Smoking };
             default: return Array.Empty<string>();
         }
     }
@@ -116,6 +122,8 @@ public static class KnowHowRules
             case Happening.BloomerySitePlaced: return new[] { Smelting };
             case Happening.SmithySitePlaced: return new[] { Smithy };
             case Happening.Punched: return new[] { Melee };
+            case Happening.SmokehouseSitePlaced: return new[] { Smoking };
+            case Happening.RootCellarSitePlaced: return new[] { Cellar };
             default: return Array.Empty<string>();
         }
     }
@@ -142,6 +150,7 @@ public static class KnowHowRules
         MapleRules.SapId, PotashRules.LyeId, TripodRules.KettleId, MetalRules.CharcoalId, MetalRules.IronOreId, MetalRules.IronBarId, KnifeRules.ToolId, SpoilageRules.RotId,
         DryingRules.DriedBerriesId, DryingRules.DriedApplesId, DryingRules.DriedMushroomsId, DryingRules.DriedMeatId, DryingRules.DriedFishId,
         SaltRules.SaltId, SaltRules.SaltMeatId, SaltRules.SaltFishId,
+        SmokeRules.SmokedMeatId, SmokeRules.SmokedFishId,
     };
 
     // The entries a loaded game has already earned: what the pack holds, and what it has built (a hopper site, a tripod, a tap). An old save

@@ -236,7 +236,7 @@ public class AxeTool : MonoBehaviour
             if (!pick && target == null)
             {
                 PlacedStructure site = hit.collider.GetComponentInParent<PlacedStructure>();
-                if (site != null && site.State != null && site.State.kind == PileKind.WellSite && site.State.digProgress < 1f)
+                if (site != null && site.State != null && WellsAndOuthouses.RequiresDig(site.State.kind) && site.State.digProgress < 1f)
                     target = site;
                 // A full Outhouse pit: the Shovel digs the new one the shack moves onto (WellsAndOuthouses.PitDigBlow).
                 else if (site != null && site.State != null && site.State.kind == PileKind.Outhouse && WellsAndOuthouses.Instance != null &&
@@ -392,7 +392,9 @@ public class AxeTool : MonoBehaviour
         if (rules == null || state == null)
             return;
 
-        ToolStatus.Report(state.digProgress > 0f ? "Digging the well shaft" : "Well site - hold click to dig the shaft", state.digProgress > 0f ? state.digProgress : -1f);
+        bool cellar = state.kind == PileKind.RootCellarSite;
+        ToolStatus.Report(state.digProgress > 0f ? (cellar ? "Digging out the cellar" : "Digging the well shaft")
+                                                 : (cellar ? "Root Cellar site - hold click to dig it out" : "Well site - hold click to dig the shaft"), state.digProgress > 0f ? state.digProgress : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
 
@@ -402,7 +404,7 @@ public class AxeTool : MonoBehaviour
         if (finished)
         {
             ToolEvents.JobFinished();
-            ToolStatus.Banner("The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
+            ToolStatus.Banner(cellar ? RootCellarRules.DugBanner : "The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
             WoodManager.Instance.NotifyChanged(state);
         }
         else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - swing / rules.DigBlowsOf(state)) * 10f))

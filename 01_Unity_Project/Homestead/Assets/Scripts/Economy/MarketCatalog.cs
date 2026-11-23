@@ -202,6 +202,9 @@ public static class MarketCatalog
         Row(SaltRules.SaltId, MarketGroup.Stocked, SaltRules.SaltCents, MarketKind.Stocked),
         Row(SaltRules.SaltMeatId, MarketGroup.GameMeat, SaltRules.SaltMeatCents, MarketKind.Bought),
         Row(SaltRules.SaltFishId, MarketGroup.Fish, SaltRules.SaltFishCents, MarketKind.Bought),
+        // Food_Spoilage_and_Preservation.md 5: Smoked Meat and Smoked Fish from the Smokehouse, bought (SmokeRules has the prices).
+        Row(SmokeRules.SmokedMeatId, MarketGroup.GameMeat, SmokeRules.SmokedMeatCents, MarketKind.Bought),
+        Row(SmokeRules.SmokedFishId, MarketGroup.Fish, SmokeRules.SmokedFishCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

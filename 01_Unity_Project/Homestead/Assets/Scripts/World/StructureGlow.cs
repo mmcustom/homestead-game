@@ -53,13 +53,14 @@ public class StructureGlow : MonoBehaviour
             case PileKind.Kiln: return new Vector3(0f, 0.45f, 0.95f);
             case PileKind.Bloomery: return new Vector3(0f, 0.28f, 0.5f);
             case PileKind.Smithy: return new Vector3(-0.8f, 0.3f, -0.27f);
+            case PileKind.Smokehouse: return new Vector3(0f, 0.12f, 0f); // the fire pit, seen through the doorway
             default: return new Vector3(0f, 0.4f, 0.38f); // the Charcoal Pit's draught hole
         }
     }
 
     // Candela at full glow, and light range.
     public static float Brightness(PileKind kind) =>
-        kind == PileKind.Kiln ? 90f : kind == PileKind.Bloomery ? 120f : kind == PileKind.Smithy ? 110f : 30f; // the Campfire is 150
+        kind == PileKind.Kiln ? 90f : kind == PileKind.Bloomery ? 120f : kind == PileKind.Smithy ? 110f : kind == PileKind.Smokehouse ? 25f : 30f; // the Campfire is 150
 
     static bool HasBellows(PileKind kind) => kind == PileKind.Bloomery || kind == PileKind.Smithy;
 

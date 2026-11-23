@@ -283,6 +283,189 @@ public class SpoilageTests
         }
     }
 
+    // --- Slice 5: the Smokehouse (SmokeRules; Mike 2026-11-22: staged build, top of the line, the fire as proposed) ---
+
+    [Test]
+    public void RawMeatAndFishSmokeIntoOnePiecePerCookedDollar()
+    {
+        Assert.That(SmokeRules.TryFind("venison", out string meat) && meat == SmokeRules.SmokedMeatId, Is.True);
+        Assert.That(SmokeRules.TryFind("catfish", out string fish) && fish == SmokeRules.SmokedFishId, Is.True);
+        Assert.That(SmokeRules.Smokes("blackberries"), Is.False);
+        Assert.That(SmokeRules.Smokes("cooked_venison"), Is.False);
+        Assert.That(SmokeRules.YieldOf("venison"), Is.EqualTo(4));
+        Assert.That(SmokeRules.YieldOf("bass"), Is.EqualTo(3));
+        Assert.That(SmokeRules.YieldOf("bluegill"), Is.EqualTo(2));
+        foreach (string raw in SmokeRules.RawIds)
+            Assert.That(SmokeRules.Smokes(raw) && SaltRules.Salts(raw), Is.True, raw + ": the same raw list as salting");
+        Assert.That(SmokeRules.FirewoodPerLoad, Is.EqualTo(6), "the design doc: a day of smoking burns 6 Firewood");
+        Assert.That(SmokeRules.MeatCap, Is.EqualTo(20));
+    }
+
+    [Test]
+    public void TheSmokehouseLightsWithMeatAndFirewoodAndCollectsFirst()
+    {
+        Assert.That(SmokeRules.PhaseOf(false, 0, 0, 0, 0), Is.EqualTo(SmokeRules.Phase.Empty));
+        Assert.That(SmokeRules.PhaseOf(false, 0, 4, 0, 0), Is.EqualTo(SmokeRules.Phase.Loading), "meat but no wood");
+        Assert.That(SmokeRules.PhaseOf(false, 0, 0, 6, 0), Is.EqualTo(SmokeRules.Phase.Loading), "wood but no meat");
+        Assert.That(SmokeRules.PhaseOf(false, 0, 4, 1, 0), Is.EqualTo(SmokeRules.Phase.Ready), "one Firewood is enough to light it");
+        Assert.That(SmokeRules.PhaseOf(false, 0, 4, 6, 8), Is.EqualTo(SmokeRules.Phase.Done), "smoked food waiting is collected first");
+        Assert.That(SmokeRules.PhaseOf(true, 2, 4, 0, 0), Is.EqualTo(SmokeRules.Phase.Smoking), "a log still burning");
+        Assert.That(SmokeRules.PhaseOf(true, 0, 4, 3, 0), Is.EqualTo(SmokeRules.Phase.Smoking), "the next log is there");
+        Assert.That(SmokeRules.PhaseOf(true, 0, 4, 0, 0), Is.EqualTo(SmokeRules.Phase.Paused), "out of wood");
+        Assert.That(SmokeRules.CanDismantle(SmokeRules.Phase.Paused), Is.False);
+        Assert.That(SmokeRules.CanDismantle(SmokeRules.Phase.Done), Is.True);
+    }
+
+    [Test]
+    public void MeatGoesInOnlyBetweenLoadsAndFirewoodAtAnyTime()
+    {
+        Assert.That(SmokeRules.Accepts("venison", 19, 0, false), Is.True);
+        Assert.That(SmokeRules.Accepts("venison", 20, 0, false), Is.False, "20 pieces is a full load");
+        Assert.That(SmokeRules.Accepts("venison", 0, 0, true), Is.False, "not while it smokes");
+        Assert.That(SmokeRules.Accepts("firewood", 4, 11, true), Is.True);
+        Assert.That(SmokeRules.Accepts("firewood", 4, 12, false), Is.False);
+        Assert.That(SmokeRules.Accepts("stone", 0, 0, false), Is.False);
+        SmokeRules.LoadPlan plan = SmokeRules.PlanLoad(15, 10, false, 8, 5);
+        Assert.That(plan.raw, Is.EqualTo(5));
+        Assert.That(plan.firewood, Is.EqualTo(2));
+        plan = SmokeRules.PlanLoad(4, 0, true, 3, 2);
+        Assert.That(plan.raw, Is.EqualTo(0));
+        Assert.That(plan.firewood, Is.EqualTo(2));
+        Assert.That(SmokeRules.LoadPrompt(plan, true, 3, 2), Is.EqualTo("Load 2 Firewood  (meat waits until this load is done)"));
+    }
+
+    [Test]
+    public void AFullDayBurnsSixFirewoodAndRunningOutPauses()
+    {
+        float hours = SmokeRules.SmokeHours;
+        int fuel = SmokeRules.HoursPerFirewood, wood = 5, burned = 1, smokedHours = 0;
+        for (int i = 0; i < 30 && !SmokeRules.IsDone(hours); i++)
+        {
+            SmokeRules.Hour h = SmokeRules.AfterHour(hours, fuel, wood);
+            wood -= h.firewoodUsed;
+            burned += h.firewoodUsed;
+            hours = h.hoursLeft;
+            fuel = h.fuelHours;
+            if (h.smoked)
+                smokedHours++;
+        }
+        Assert.That(SmokeRules.IsDone(hours), Is.True);
+        Assert.That(burned, Is.EqualTo(6), "the one lit with and five more");
+        Assert.That(smokedHours, Is.EqualTo(24));
+
+        SmokeRules.Hour paused = SmokeRules.AfterHour(10f, 0, 0);
+        Assert.That(paused.smoked, Is.False);
+        Assert.That(paused.hoursLeft, Is.EqualTo(10f), "no wood, no progress");
+        SmokeRules.Hour resumed = SmokeRules.AfterHour(10f, 0, 1);
+        Assert.That(resumed.smoked && resumed.firewoodUsed == 1 && resumed.hoursLeft == 9f, Is.True, "new wood takes from the embers");
+        Assert.That(SmokeRules.FirewoodStillNeeded(10f, 2), Is.EqualTo(2), "8 hours beyond the log burning");
+    }
+
+    [Test]
+    public void SmokedFoodIsTheTopOfTheLineEvenAfterTheFirewood()
+    {
+        long firewood = MarketCatalog.Rows.Single(r => r.itemId == "firewood").baseCents;
+        foreach (string raw in SmokeRules.RawIds)
+        {
+            SmokeRules.TryFind(raw, out string smokedId);
+            SaltRules.TryFind(raw, out string saltedId);
+            double weight = raw == "venison" ? 2.5 : raw == "turkey_meat" ? 1.5 : raw == "waterfowl_meat" ? 1.3 : 0.8;
+            double smoked = SoldWithDrops(MarketCatalog.Rows.Single(r => r.itemId == smokedId).baseCents, SmokeRules.YieldOf(raw));
+            double salted = SoldWithDrops(MarketCatalog.Rows.Single(r => r.itemId == saltedId).baseCents, SaltRules.YieldOf(raw)) - SaltRules.SaltFor(weight) * SaltRules.SaltCents;
+            // A full load of 20 shares its 6 Firewood: under a third of a Firewood a piece.
+            double firewoodShare = firewood * (double)SmokeRules.FirewoodPerLoad / SmokeRules.MeatCap;
+            Assert.That(smoked - firewoodShare, Is.GreaterThan(salted), raw + " smoked pays more than salted");
+            Assert.That(MarketCatalog.Rows.Single(r => r.itemId == smokedId).kind, Is.EqualTo(MarketKind.Bought));
+        }
+        foreach (string id in SmokeRules.SmokedIds)
+            Assert.That(KnowHowRules.ForItem(id), Does.Contain(KnowHowRules.Smoking), id);
+        Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.SmokehouseSitePlaced), Is.EqualTo(new[] { KnowHowRules.Smoking }));
+    }
+
+    // The hourly burn on a real pile (WoodPileState and SpoilageManager are game types): the meat's stamp moves on with the clock while the fire burns,
+    // stays put while it is out, and at the end every raw piece becomes its smoked pieces with the stamp given.
+    [Test]
+    public void ABurningHourKeepsTheMeatFreshAndTheLastHourSmokesIt()
+    {
+        Type pileType = Find("WoodPileState"), kindType = Find("PileKind"), manager = Find("SpoilageManager");
+        object house = Activator.CreateInstance(pileType);
+        pileType.GetField("kind").SetValue(house, Enum.Parse(kindType, "Smokehouse"));
+        var add = pileType.GetMethod("Add");
+        add.Invoke(house, new object[] { "venison", 2, 100 });
+        add.Invoke(house, new object[] { "bass", 1, 100 });
+        add.Invoke(house, new object[] { "firewood", 1, 0 });
+        pileType.GetField("jobItem").SetValue(house, SmokeRules.SmokeMarker);
+        pileType.GetField("jobHours").SetValue(house, 2f);
+        pileType.GetField("jobCount").SetValue(house, 0);
+        var burn = manager.GetMethod("BurnHour");
+        var contents = (System.Collections.IList)pileType.GetField("contents").GetValue(house);
+        int StampOf(string id) { foreach (object s in contents) if ((string)s.GetType().GetField("itemId").GetValue(s) == id) return (int)s.GetType().GetField("day").GetValue(s); return -1; }
+        int CountOf(string id) { int n = 0; foreach (object s in contents) if ((string)s.GetType().GetField("itemId").GetValue(s) == id) n += (int)s.GetType().GetField("count").GetValue(s); return n; }
+
+        Assert.That((bool)burn.Invoke(null, new object[] { house, 1.5, 500 }), Is.False);
+        Assert.That(CountOf("firewood"), Is.EqualTo(0), "the Firewood went on");
+        Assert.That(StampOf("venison"), Is.EqualTo(101), "1.5 clock hours: one whole hour moved on, half kept");
+        Assert.That((bool)burn.Invoke(null, new object[] { house, 1.5, 500 }), Is.True, "the last hour finishes the load");
+        Assert.That(CountOf("venison") + CountOf("bass"), Is.EqualTo(0));
+        Assert.That(CountOf(SmokeRules.SmokedMeatId), Is.EqualTo(8), "2 Venison at 4 each");
+        Assert.That(CountOf(SmokeRules.SmokedFishId), Is.EqualTo(3));
+        Assert.That(StampOf(SmokeRules.SmokedMeatId), Is.EqualTo(500));
+        Assert.That((string)pileType.GetField("jobItem").GetValue(house), Is.Empty);
+
+        object idle = Activator.CreateInstance(pileType);
+        pileType.GetField("kind").SetValue(idle, Enum.Parse(kindType, "Smokehouse"));
+        add.Invoke(idle, new object[] { "venison", 1, 100 });
+        pileType.GetField("jobItem").SetValue(idle, SmokeRules.SmokeMarker);
+        pileType.GetField("jobHours").SetValue(idle, 5f);
+        burn.Invoke(null, new object[] { idle, 1.5, 500 });
+        var idleContents = (System.Collections.IList)pileType.GetField("contents").GetValue(idle);
+        Assert.That((int)idleContents[0].GetType().GetField("day").GetValue(idleContents[0]), Is.EqualTo(100), "out of wood: the meat ages");
+        Assert.That((float)pileType.GetField("jobHours").GetValue(idle), Is.EqualTo(5f));
+    }
+
+    // --- Slice 6: the Root Cellar (RootCellarRules; Mike 2026-11-23: dug then built, walked into, 300 kg) ---
+
+    [Test]
+    public void TheRootCellarHolds300KgOfFoodByWeight()
+    {
+        Assert.That(RootCellarRules.UnitsThatFit(0f, 2.5f), Is.EqualTo(120), "120 Venison");
+        Assert.That(RootCellarRules.UnitsThatFit(299f, 2.5f), Is.EqualTo(0));
+        Assert.That(RootCellarRules.UnitsThatFit(297.5f, 2.5f), Is.EqualTo(1), "an exact fit");
+        Assert.That(RootCellarRules.UnitsThatFit(300f, 0.1f), Is.EqualTo(0));
+        Assert.That(RootCellarRules.KgText(42.4f), Is.EqualTo("42 of 300 kg"));
+        Assert.That(SpoilageRules.ClockRate(FreshClock.Cellar, 30.0, 1.0), Is.EqualTo(SpoilageRules.ClockRate(FreshClock.Cellar, -10.0, 1.0)), "the same in summer and winter");
+        Assert.That(SpoilageRules.ClockRate(FreshClock.Cellar, 20.0, 1.0), Is.EqualTo(0.3).Within(1e-9));
+    }
+
+    [Test]
+    public void TheShelvesAnswerFromInsideTheRoomOrItsDoorwayOnly()
+    {
+        Assert.That(RootCellarRules.IsInside(0f, 0f), Is.True, "the middle of the room");
+        Assert.That(RootCellarRules.IsInside(0f, RootCellarRules.InnerBack + 0.1f), Is.True, "at the shelves");
+        Assert.That(RootCellarRules.IsInside(0f, RootCellarRules.FrontZ + 0.2f), Is.True, "in the doorway");
+        Assert.That(RootCellarRules.IsInside(0f, RootCellarRules.FrontZ + 1f), Is.False, "outside the door");
+        Assert.That(RootCellarRules.IsInside(1.6f, 0f), Is.False, "on the mound's side");
+        Assert.That(RootCellarRules.DoorHalfWidth * 2f, Is.GreaterThanOrEqualTo(1f), "a doorway the player fits through");
+        Assert.That(RootCellarRules.DoorHeight, Is.GreaterThanOrEqualTo(2f));
+    }
+
+    [Test]
+    public void TheRootCellarIsDugThenBuiltAndTakesFoodOnly()
+    {
+        Type rules = Find("WellsAndOuthouses"), kindType = Find("PileKind"), pileType = Find("WoodPileState"), manager = Find("SpoilageManager");
+        object site = Enum.Parse(kindType, "RootCellarSite"), cellar = Enum.Parse(kindType, "RootCellar");
+        Assert.That((bool)rules.GetMethod("RequiresDig").Invoke(null, new[] { site }), Is.True);
+        Assert.That((bool)rules.GetMethod("IsStagedSite").Invoke(null, new[] { site }), Is.True);
+        Assert.That(rules.GetMethod("FinishedKind").Invoke(null, new[] { site }), Is.EqualTo(cellar));
+        Assert.That(manager.GetMethod("ClockOf").Invoke(null, new[] { cellar }), Is.EqualTo(FreshClock.Cellar));
+        object pile = Activator.CreateInstance(pileType);
+        pileType.GetField("kind").SetValue(pile, cellar);
+        var accepts = pileType.GetMethod("Accepts");
+        Assert.That((bool)accepts.Invoke(pile, new object[] { "venison" }), Is.True);
+        Assert.That((bool)accepts.Invoke(pile, new object[] { "logs" }), Is.False);
+        Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.RootCellarSitePlaced), Is.EqualTo(new[] { KnowHowRules.Cellar }));
+    }
+
     // What n units fetch when each sale drops the price 5% of the base.
     static double SoldWithDrops(long cents, int n)
     {

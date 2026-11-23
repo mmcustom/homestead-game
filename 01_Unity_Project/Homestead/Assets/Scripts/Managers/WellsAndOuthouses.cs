@@ -191,6 +191,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.CharcoalPitSite:
             case PileKind.BloomerySite:
             case PileKind.SmithySite:
+            case PileKind.SmokehouseSite:
+            case PileKind.RootCellarSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -217,6 +219,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.CharcoalPitSite: return PileKind.CharcoalPit;
             case PileKind.BloomerySite: return PileKind.Bloomery;
             case PileKind.SmithySite: return PileKind.Smithy;
+            case PileKind.SmokehouseSite: return PileKind.Smokehouse;
+            case PileKind.RootCellarSite: return PileKind.RootCellar;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -251,6 +255,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.CharcoalPitSite: return CharcoalPitCost();
             case PileKind.BloomerySite: return BloomeryCost();
             case PileKind.SmithySite: return SmithyCost();
+            case PileKind.SmokehouseSite: return SmokehouseCost();
+            case PileKind.RootCellarSite: return RootCellarCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -272,7 +278,7 @@ public class WellsAndOuthouses : MonoBehaviour
     }
 
     // A stage that must be done before anything is delivered (the Well's shaft, dug with the Shovel; the Outhouse has none).
-    public static bool RequiresDig(PileKind site) => site == PileKind.WellSite;
+    public static bool RequiresDig(PileKind site) => site == PileKind.WellSite || site == PileKind.RootCellarSite;
 
     // The order materials are taken in: a group opens once every earlier group is full. The Well lines the shaft with Stone before
     // the cap timber is taken; the Outhouse's materials go in any order.
@@ -292,6 +298,10 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { CharcoalRules.ClayId, CharcoalRules.TallGrassId } }; // the Clay and the Tall Grass in any order
         if (site == PileKind.BloomerySite)
             return new[] { new[] { BloomeryRules.StoneId, BloomeryRules.ClayId } }; // the Stone and the Clay in any order
+        if (site == PileKind.SmokehouseSite)
+            return new[] { new[] { SmokeRules.StoneId, SmokeRules.ClayId, SmokeRules.LogsId, SmokeRules.LumberId } }; // all four, in any order (Mike, 2026-11-23: the Lumber was refused before the Stone and Clay)
+        if (site == PileKind.RootCellarSite)
+            return new[] { new[] { RootCellarRules.StoneId, RootCellarRules.LogsId, RootCellarRules.LumberId } }; // all three, in any order, once it is dug
         if (site == PileKind.SmithySite)
             return new[] { new[] { SmithyRules.StoneId, SmithyRules.ClayId, SmithyRules.LogsId, SmithyRules.BranchesId, SmithyRules.TallGrassId } }; // all five, in any order
         if (site == PileKind.LeachHopperSite)
@@ -441,6 +451,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.CharcoalPitSite: return CharcoalRules.BuildBlows;
             case PileKind.BloomerySite: return BloomeryRules.BuildBlows;
             case PileKind.SmithySite: return SmithyRules.BuildBlows;
+            case PileKind.SmokehouseSite: return SmokeRules.BuildBlows;
+            case PileKind.RootCellarSite: return RootCellarRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -484,6 +496,10 @@ public class WellsAndOuthouses : MonoBehaviour
             return BloomeryRules.BuiltMessage;
         if (site == PileKind.SmithySite)
             return SmithyRules.BuiltMessage;
+        if (site == PileKind.SmokehouseSite)
+            return SmokeRules.BuiltMessage;
+        if (site == PileKind.RootCellarSite)
+            return RootCellarRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -607,6 +623,23 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         new WoodStack { itemId = BloomeryRules.StoneId, count = BloomeryRules.SiteStone },
         new WoodStack { itemId = BloomeryRules.ClayId, count = BloomeryRules.SiteClay },
+    };
+
+    // A Smokehouse (Food_Spoilage_and_Preservation.md 5): 10 Stone, 4 Clay, 12 Logs and 6 Lumber, about 190 kg, a staged site. SmokeRules has the numbers.
+    public static WoodStack[] SmokehouseCost() => new[]
+    {
+        new WoodStack { itemId = SmokeRules.StoneId, count = SmokeRules.SiteStone },
+        new WoodStack { itemId = SmokeRules.ClayId, count = SmokeRules.SiteClay },
+        new WoodStack { itemId = SmokeRules.LogsId, count = SmokeRules.SiteLogs },
+        new WoodStack { itemId = SmokeRules.LumberId, count = SmokeRules.SiteLumber },
+    };
+
+    // A Root Cellar (Food_Spoilage_and_Preservation.md 6): 10 Stone, 8 Logs and 4 Lumber, about 159 kg, after the digging. RootCellarRules has the numbers.
+    public static WoodStack[] RootCellarCost() => new[]
+    {
+        new WoodStack { itemId = RootCellarRules.StoneId, count = RootCellarRules.SiteStone },
+        new WoodStack { itemId = RootCellarRules.LogsId, count = RootCellarRules.SiteLogs },
+        new WoodStack { itemId = RootCellarRules.LumberId, count = RootCellarRules.SiteLumber },
     };
 
     // A Smithy (Metalworking M3): 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass (the thatch roof), about 61 kg, a staged site. SmithyRules has the numbers.
@@ -835,6 +868,10 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.BloomerySite: return BloomeryRules.RadiusMetres;
             case PileKind.Smithy:
             case PileKind.SmithySite: return SmithyRules.ReachMetres;   // the shed's half-diagonal (3 m by 2.4 m), as the Workshop's
+            case PileKind.Smokehouse:
+            case PileKind.SmokehouseSite: return SmokeRules.RadiusMetres;
+            case PileKind.RootCellar:
+            case PileKind.RootCellarSite: return RootCellarRules.ReachMetres;
             case PileKind.WoodShed:
             case PileKind.WoodShedSite:
             case PileKind.Tent:
@@ -860,6 +897,8 @@ public class WellsAndOuthouses : MonoBehaviour
                     kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = CharcoalRules.PitRadiusMetres });
                 else if (WoodManager.IsBloomery(pile.kind)) // a Bloomery keeps later buildings the same 3 m clear, from its own edge
                     kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = BloomeryRules.RadiusMetres });
+                else if (WoodManager.IsSmokehouse(pile.kind)) // a Smokehouse keeps later buildings the same 3 m clear, from its own edge
+                    kilns.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = WoodManager.PileName(pile.kind), radius = SmokeRules.RadiusMetres });
         return Setbacks.CanPlaceBesideKiln(point, ReachOf(kind), kilns, Rules, out reason);
     }
 
@@ -949,6 +988,23 @@ public class WellsAndOuthouses : MonoBehaviour
             return true;
         }
 
+        // A Root Cellar (Food_Spoilage_and_Preservation.md 6) is dug in: not in a hollow (rain would run in and flood it), no tree on its mound, and spaced from other
+        // buildings like a wide shed.
+        if (kind == PileKind.RootCellarSite || kind == PileKind.RootCellar)
+        {
+            if (InHollow(point))
+            {
+                reason = "In a hollow: rain would run in and flood the cellar.";
+                return false;
+            }
+            if (WoodManager.Instance != null && WoodManager.Instance.FindTree(point, RootCellarRules.ReachMetres) >= 0)
+            {
+                reason = "Clear the trees off the cellar site first.";
+                return false;
+            }
+            return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
+        }
+
         // A Smithy is a wide roofed shed like the Workshop (dry ground clear of the cabin; WoodManager adds the wide-shed spacing and the 2 m trunk-free footprint), and the forge fire
         // also wants clear air: no tree within SmithyRules.FireClearanceMetres (3 m) of the shed's edge, that is within SmithyRules.TreeReachMetres (4.9 m) of its centre.
         if (kind == PileKind.SmithySite || kind == PileKind.Smithy)
@@ -1010,6 +1066,23 @@ public class WellsAndOuthouses : MonoBehaviour
             bloomeryRules.kilnFromStructure = BloomeryRules.ClearanceMetres;
             bloomeryRules.kilnFromTree = BloomeryRules.ClearanceMetres;
             return Setbacks.CanPlaceKiln(point, KilnNeighbours(ignore), treeNearBloomery, bloomeryRules, out reason);
+        }
+
+        // A Smokehouse is a fire under its own small roof (Food_Spoilage_and_Preservation.md 5): dry ground, not under another roof, its walls 3 m clear of every other
+        // structure and every tree (the Kiln's rule, the smokehouse's own reach).
+        if (kind == PileKind.SmokehouseSite || kind == PileKind.Smokehouse)
+        {
+            if (OverheadCover.Roofed(point))
+            {
+                reason = "A smokehouse needs open sky above it: not under a roof.";
+                return false;
+            }
+            bool treeNearSmokehouse = WoodManager.Instance != null && WoodManager.Instance.FindTree(point, SmokeRules.TreeReachMetres) >= 0;
+            SetbackRules smokeRules = rules;
+            smokeRules.kilnRadius = SmokeRules.RadiusMetres;
+            smokeRules.kilnFromStructure = SmokeRules.ClearanceMetres;
+            smokeRules.kilnFromTree = SmokeRules.ClearanceMetres;
+            return Setbacks.CanPlaceKiln(point, KilnNeighbours(ignore), treeNearSmokehouse, smokeRules, out reason);
         }
 
         // A Covered Kitchen keeps its roof edge clear of every other structure and every tree (a fire under a roof).
@@ -1160,7 +1233,7 @@ public class WellsAndOuthouses : MonoBehaviour
     public static WellWaterResult WellNumbers(WoodPileState well) =>
         Instance != null ? Instance.NumbersOf(well) : WellWater.ForDepth(well.depthToWater);
 
-    public int DigBlowsOf(WoodPileState well) => Mathf.Max(1, NumbersOf(well).digBlows);
+    public int DigBlowsOf(WoodPileState well) => well.kind == PileKind.RootCellarSite ? RootCellarRules.DigBlows : Mathf.Max(1, NumbersOf(well).digBlows);
 
     public float RecoveryPerHour(WoodPileState well)
     {
@@ -1397,6 +1470,11 @@ public class WellsAndOuthouses : MonoBehaviour
 
     public static BloomeryRules.Phase BloomeryPhaseOf(WoodPileState furnace) =>
         BloomeryRules.PhaseOf(furnace.SmeltRunning, furnace.BloomeryBars, furnace.BloomeryOre, furnace.BloomeryCharcoal);
+
+    // --- The Smokehouse (Food_Spoilage_and_Preservation.md 5); SpoilageManager runs its fire each hour ---
+
+    public static SmokeRules.Phase SmokePhaseOf(WoodPileState house) =>
+        SmokeRules.PhaseOf(house.SmokeRunning, house.jobCount, house.SmokeRaw, house.SmokeFirewood, house.SmokedMeat + house.SmokedFish);
 
     // Testing only (TimeDebugControls, Ctrl+period): every smelt is done now. Returns how many bloomeries changed.
     public int DebugFinishSmelts()

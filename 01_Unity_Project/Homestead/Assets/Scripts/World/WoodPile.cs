@@ -41,7 +41,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
                                 state.kind == PileKind.StorageBin || state.kind == PileKind.CompostBin || state.kind == PileKind.DryingRack || state.kind == PileKind.ToolRack ||
-                                state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart;
+                                state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart || state.kind == PileKind.RootCellar;
 
     // A felled tree's pile (and anything dropped as one) opens the take-only screen on E: the player picks what to take and the rest stays
     // (Mike, 2026-10-24). A Small Cabin's CabinSite keeps its instant E.
@@ -55,6 +55,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         {
             if (state == null)
                 return "";
+            if (IsCellar && !PlayerInside())
+                return RootCellarRules.OutsidePrompt;
+            if (IsCellar)
+                return $"Open the Root Cellar's shelves  ({Describe(state)}; {RootCellarRules.KgText(CartLoadKg(state))})";
             if (UsesTransferScreen)
                 return IsCart ? $"Open {Name}  ({Describe(state)}; {CartRules.KgText(CartLoadKg(state))})" : $"Open {Name}  ({Describe(state)})";
             if (state.IsEmpty)
@@ -91,6 +95,12 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (state == null || Inventory == null)
             return;
 
+        // The Root Cellar's shelves are reached from inside (Mike, 2026-11-23: "Walk inside").
+        if (IsCellar && !PlayerInside())
+        {
+            ToolStatus.Flash(RootCellarRules.OutsidePrompt, 3f);
+            return;
+        }
         // Opens even when empty now — there may be something to put in.
         if (UsesTransferScreen)
         {
@@ -498,9 +508,15 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // A Hand Cart (Vehicles_and_Hauling.md, Phase 1) is held to CartRules.CapacityKg by weight, so what fits depends on the item:
     // the whole units of it that still fit under the 100 kg (12 Logs, 20 Stone, 28 Clay, 66 Firewood in an empty cart). Anything else: StorageRoom.
     bool IsCart => state != null && state.kind == PileKind.HandCart;
+    bool IsCellar => state != null && state.kind == PileKind.RootCellar;
 
     int RoomFor(string itemId)
     {
+        if (IsCellar)
+        {
+            ItemDefinition food = ItemDatabase.Get(itemId);
+            return RootCellarRules.UnitsThatFit(CartLoadKg(state), food != null ? food.WeightKg : 0f);
+        }
         if (!IsCart)
             return StorageRoom;
         ItemDefinition item = ItemDatabase.Get(itemId);
@@ -543,7 +559,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         }
         if (RoomFor(itemId) <= 0)
         {
-            reason = IsCart ? CartRules.NoRoomReason(CartLoadKg(state)) : "the barrel is full";
+            reason = IsCart ? CartRules.NoRoomReason(CartLoadKg(state)) : IsCellar ? $"the cellar is full ({RootCellarRules.KgText(CartLoadKg(state))})" : "the barrel is full";
             return false;
         }
         return true;
@@ -783,6 +799,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.WoodShed: return 18;                      // two skids, deck, four posts, five back and five side slats, roof
             case PileKind.Shelving: return 7;                       // two uprights, the back, four boards
             case PileKind.HandCart: return 10;                      // bed, two sides, front board, axle, two wheels, two handles, rest leg
+            case PileKind.RootCellar: return CellarFramePieces;     // the mound, front, walls, roof and shelves (the colliders after them draw nothing)
             default: return 0;
         }
     }
@@ -839,6 +856,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.WoodShed: BuildShed(random); return;
             case PileKind.Shelving: BuildShelving(); return;
             case PileKind.HandCart: BuildCart(random); return;
+            case PileKind.RootCellar: BuildRootCellar(); return;
         }
 
         int logs = Mathf.Min(state.Count(WoodManager.LogsId), 6);
@@ -913,6 +931,95 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         box.center = new Vector3(0f, 0.95f, 0f);
         box.size = new Vector3(halfWidth * 2f + 0.3f, 1.9f, halfDepth * 2f + 0.2f);
+    }
+
+    // --- The Root Cellar (Food_Spoilage_and_Preservation.md 6; Mike 2026-11-23: dug then built, walked into, 300 kg) ---
+
+    static PlayerController cellarPlayer;
+
+    // Whether the player is in the room or its doorway (the shelves answer only there).
+    bool PlayerInside()
+    {
+        if (cellarPlayer == null)
+            cellarPlayer = FindAnyObjectByType<PlayerController>();
+        if (cellarPlayer == null)
+            return true;
+        Vector3 local = transform.InverseTransformPoint(cellarPlayer.transform.position);
+        return RootCellarRules.IsInside(local.x, local.z);
+    }
+
+    public const int CellarFramePieces = 13 + 7; // the visible pieces (13) and the colliders (7), all before the stored food
+
+    static readonly Color EarthColor = new Color(0.27f, 0.22f, 0.15f);
+    static readonly Color CellarStone = new Color(0.47f, 0.45f, 0.41f);
+    static readonly Color ShelfFood = new Color(0.62f, 0.48f, 0.3f);
+
+    // An earth-covered room at ground level, entered through a doorway in its stone front (+Z): the mound over it (seen from outside; its inside faces are
+    // culled, so the room shows from within), the front wall in two leaves and a lintel, log-lined side and back walls, a log roof under the earth, and three
+    // shelves across the back. The walls, roof and front are solid colliders (a gap at the doorway, its door is a SwingDoor); the interaction box is the shelves.
+    // The stored food shows as small boxes on the shelves, after the frame.
+    void BuildRootCellar()
+    {
+        float hw = RootCellarRules.InnerHalfWidth, back = RootCellarRules.InnerBack, front = RootCellarRules.InnerFront, outer = RootCellarRules.OuterHalfWidth;
+        float ceiling = RootCellarRules.CeilingHeight, frontZ = RootCellarRules.FrontZ, door = RootCellarRules.DoorHalfWidth, doorTop = RootCellarRules.DoorHeight;
+        float frontDepth = frontZ - front, frontY = 2.6f;
+        // 1: the earth mound.
+        Tinted(Piece(PrimitiveType.Sphere, new Vector3(0f, 0.3f, -0.55f), Vector3.zero, new Vector3(outer * 2f, 5f, 3.9f), null), EarthColor);
+        // 2-4: the stone front, either side of the doorway, and the lintel.
+        foreach (float side in new[] { -1f, 1f })
+            Tinted(Piece(PrimitiveType.Cube, new Vector3(side * (door + (outer - door) / 2f), frontY / 2f, (front + frontZ) / 2f), Vector3.zero, new Vector3(outer - door, frontY, frontDepth), null), CellarStone);
+        Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, (doorTop + frontY) / 2f, (front + frontZ) / 2f), Vector3.zero, new Vector3(door * 2f, frontY - doorTop, frontDepth), null), CellarStone);
+        // 5-7: the log-lined walls, left, right and back.
+        foreach (float side in new[] { -1f, 1f })
+            Piece(PrimitiveType.Cube, new Vector3(side * (hw + 0.06f), ceiling / 2f, (front + back) / 2f), Vector3.zero, new Vector3(0.12f, ceiling, front - back), bark);
+        Piece(PrimitiveType.Cube, new Vector3(0f, ceiling / 2f, back - 0.06f), Vector3.zero, new Vector3(hw * 2f + 0.24f, ceiling, 0.12f), bark);
+        // 8: the log roof, seen from inside.
+        Piece(PrimitiveType.Cube, new Vector3(0f, ceiling + 0.08f, (front + back) / 2f), Vector3.zero, new Vector3(hw * 2f + 0.24f, 0.16f, front - back + 0.1f), bark);
+        // 9-12: the shelves across the back: two uprights and two boards.
+        foreach (float side in new[] { -1f, 1f })
+            Piece(PrimitiveType.Cube, new Vector3(side * (hw - 0.06f), 0.8f, back + 0.22f), Vector3.zero, new Vector3(0.06f, 1.6f, 0.4f), bark);
+        foreach (float y in new[] { 0.7f, 1.3f })
+            Piece(PrimitiveType.Cube, new Vector3(0f, y, back + 0.22f), Vector3.zero, new Vector3(hw * 2f - 0.1f, 0.04f, 0.4f), bark);
+        // 13: the packed earth floor.
+        Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, 0.01f, (front + back) / 2f), Vector3.zero, new Vector3(hw * 2f, 0.02f, front - back), null), EarthColor * 0.8f);
+        // 14-20: the colliders (no renderer): the side walls out to the mound's edge, the back, the roof, the two front leaves and the lintel.
+        float wallDepth = frontZ - RootCellarRules.OuterBack;
+        float wallZ = (frontZ + RootCellarRules.OuterBack) / 2f;
+        foreach (float side in new[] { -1f, 1f })
+            Solid(new Vector3(side * (hw + (outer - hw) / 2f), 1.3f, wallZ), new Vector3(outer - hw, 2.6f, wallDepth));
+        Solid(new Vector3(0f, 1.3f, (back + RootCellarRules.OuterBack) / 2f), new Vector3(hw * 2f, 2.6f, back - RootCellarRules.OuterBack));
+        Solid(new Vector3(0f, ceiling + 0.3f, wallZ), new Vector3(outer * 2f, 0.6f, wallDepth));
+        foreach (float side in new[] { -1f, 1f })
+            Solid(new Vector3(side * (door + (hw - door) / 2f), frontY / 2f, (front + frontZ) / 2f), new Vector3(hw - door, frontY, frontDepth));
+        Solid(new Vector3(0f, (doorTop + ceiling) / 2f, (front + frontZ) / 2f), new Vector3(door * 2f, ceiling - doorTop, frontDepth));
+
+        // The stored food: a small box per stack on the shelves, as the Kitchen Shelving shows it (up to 12).
+        int shown = 0;
+        foreach (WoodStack stack in state.contents)
+        {
+            if (shown >= 12)
+                break;
+            float x = -hw + 0.2f + (shown % 6) * 0.32f, y = shown < 6 ? 0.82f : 1.42f;
+            Tinted(Piece(PrimitiveType.Cube, new Vector3(x, y, back + 0.22f), new Vector3(0f, shown * 17f, 0f), new Vector3(0.22f, 0.2f, 0.22f), null), ShelfFood);
+            shown++;
+        }
+
+        box.center = new Vector3(0f, 1f, back + 0.25f);
+        box.size = new Vector3(hw * 2f - 0.1f, 2f, 0.5f);
+
+        if (transform.Find("Door") == null)
+            SwingDoor.Create(transform, new Vector3(-door + 0.03f, 0f, (front + frontZ) / 2f), door * 2f - 0.06f, doorTop - 0.03f, 0.05f,
+                             Resources.Load<Material>(ArtPrefix + "structure_plank"));
+    }
+
+    // A collider with nothing drawn, kept with the pieces (so Rebuild replaces it).
+    void Solid(Vector3 center, Vector3 size)
+    {
+        var go = new GameObject("Solid");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = center;
+        go.AddComponent<BoxCollider>().size = size;
+        pieces.Add(go);
     }
 
     // Kitchen Shelving: four boards between two uprights against the kitchen's wall, 1.4 m tall (under the roof's 2.45 m and under head height,

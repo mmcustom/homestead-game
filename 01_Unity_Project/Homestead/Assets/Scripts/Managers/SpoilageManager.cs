@@ -113,7 +113,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
     }
 
     // Which clock a pile or structure keeps its food on: the Food Cache its own; everything else the outdoors.
-    public static FreshClock ClockOf(PileKind kind) => kind == PileKind.FoodCache ? FreshClock.Cache : kind == PileKind.DryingRack ? FreshClock.Rack : FreshClock.Outdoor;
+    public static FreshClock ClockOf(PileKind kind) => kind == PileKind.RootCellar ? FreshClock.Cellar : kind == PileKind.FoodCache ? FreshClock.Cache : kind == PileKind.DryingRack ? FreshClock.Rack : FreshClock.Outdoor;
 
     public static double FractionUsed(ItemDefinition item, int stamp, FreshClock clock = FreshClock.Outdoor)
     {
@@ -141,10 +141,12 @@ public class SpoilageManager : MonoBehaviour, ISaveable
 
     void OnHour(int hour)
     {
-        outdoor += SpoilageRules.ClockRate(FreshClock.Outdoor, AirC, Difficulty);
+        double outdoorStep = SpoilageRules.ClockRate(FreshClock.Outdoor, AirC, Difficulty);
+        outdoor += outdoorStep;
         cache += SpoilageRules.ClockRate(FreshClock.Cache, AirC, Difficulty);
         cellar += SpoilageRules.ClockRate(FreshClock.Cellar, AirC, Difficulty);
         rack += SpoilageRules.ClockRate(FreshClock.Rack, AirC, Difficulty);
+        SmokingTick(outdoorStep);
         Sweep();
         CompostTick();
         DryingTick();
@@ -279,6 +281,68 @@ public class SpoilageManager : MonoBehaviour, ISaveable
             return null;
         bool day = Instance != null ? Instance.Daylight() : true;
         return DryingRules.Status(DryingCount(pile), day, Raining, Snowing);
+    }
+
+    // --- The Smokehouse (SmokeRules) ---
+
+    // Each game hour, every lit smokehouse burns: a new Firewood goes on when the last has burned through; with none left the hour is lost and the
+    // meat ages like any raw meat outdoors. An hour that burns moves each raw batch's stamp on by the hour's outdoor clock, so the meat does not age
+    // while it smokes (the part-hours are kept in WoodStack.dried, which a raw batch in a smokehouse has no other use for). When the hours run out,
+    // every raw piece becomes its smoked pieces, fresh.
+    void SmokingTick(double outdoorStep)
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null)
+            return;
+        foreach (WoodPileState house in wood.Piles)
+        {
+            if (house.kind != PileKind.Smokehouse || !house.SmokeRunning)
+                continue;
+            BurnHour(house, outdoorStep, FreshStamp());
+            wood.NotifyChanged(house);
+        }
+    }
+
+    // One hour of a lit smokehouse (public static for tests). freshStamp: the outdoor clock's stamp for food made now. Returns true on the hour the load finishes.
+    public static bool BurnHour(WoodPileState house, double outdoorStep, int freshStamp)
+    {
+        SmokeRules.Hour hour = SmokeRules.AfterHour(house.jobHours, house.jobCount, house.SmokeFirewood);
+        if (hour.firewoodUsed > 0)
+            house.Take(SmokeRules.FirewoodId, hour.firewoodUsed);
+        house.jobCount = hour.fuelHours;
+        house.jobHours = hour.hoursLeft;
+        if (hour.smoked)
+        {
+            foreach (WoodStack stack in house.contents)
+            {
+                if (!SmokeRules.Smokes(stack.itemId) || stack.day <= 0)
+                    continue;
+                stack.dried += (float)outdoorStep;
+                int whole = (int)Math.Floor(stack.dried);
+                if (whole > 0)
+                {
+                    stack.day += whole;
+                    stack.dried -= whole;
+                }
+            }
+        }
+        if (!SmokeRules.IsDone(house.jobHours))
+            return false;
+        var made = new Dictionary<string, int>();
+        for (int i = house.contents.Count - 1; i >= 0; i--)
+        {
+            WoodStack stack = house.contents[i];
+            if (!SmokeRules.TryFind(stack.itemId, out string smokedId))
+                continue;
+            made[smokedId] = (made.TryGetValue(smokedId, out int n) ? n : 0) + stack.count * SmokeRules.YieldOf(stack.itemId);
+            house.contents.RemoveAt(i);
+        }
+        foreach (KeyValuePair<string, int> pair in made)
+            house.Add(pair.Key, pair.Value, freshStamp);
+        house.jobItem = "";
+        house.jobHours = 0f;
+        house.jobCount = 0;
+        return true;
     }
 
     // --- The sweep: spoiled food becomes Rot wherever it is ---

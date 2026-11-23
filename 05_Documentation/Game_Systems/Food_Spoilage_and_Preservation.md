@@ -97,6 +97,17 @@ Dried food is lighter than fresh (most of the water is gone), so it is easier to
 
 **Smoke:** the smokehouse puffs smoke while it works, like the Kiln and Charcoal Pit.
 
+**Slice 5 as built (2026-11-22).** Mike's decisions: a staged build like the Kiln ("Staged build"); smoked food is the top of the line ("Top of the line"); the fire works as proposed ("As proposed"). Checked by Mike in Play Mode 2026-11-23 ("everything looks great").
+
+- **SmokeRules** (Scripts/Economy, pure) and the hourly burn in **SpoilageManager.SmokingTick / BurnHour**. PileKind gains SmokehouseSite (47) and Smokehouse (48), appended.
+- **Build:** a staged site (Build tab, Other): 10 Stone, 4 Clay, 12 Logs and 6 Lumber in any order (first built Stone and Clay first; changed 2026-11-23 when Mike's Lumber was refused), about 190 kg; 48 Hammer blows. Open sky, 3 m clear of other buildings and trees both ways (the Kiln's rule, reach 1.2 m).
+- **Use:** R loads raw meat and fish (up to 20 pieces, only between loads) and Firewood (up to 12, any time); E lights it (one Firewood is enough to light; the prompt warns when there are fewer than 6). A load smokes 24 game hours; one Firewood burns 4 hours, so a load burns 6. Out of wood, the smoking stops with its hours left and the meat ages again; loading Firewood starts it again from the embers. While the fire burns the meat does not age (its stamp moves on with the outdoor clock).
+- **Yield and price:** 1 Smoked Meat or Smoked Fish per dollar the raw piece is worth cooked (Venison 4, Bass 3, Bluegill 2), $3.00 each, so smoked pays more than salted, dried, cooked or raw even after the Firewood. Smoked food keeps 180 days and is eaten as it is (Smoked Meat 0.15 kg, hunger 6; Smoked Fish 0.1 kg, hunger 3.5).
+- E collects the smoked food (with its freshness) before lighting again. The Hammer takes it down for half the materials, with the meat, Firewood and smoked food whole, but not while a load is in.
+- **Know-how 16:** "Smoking Meat and Fish", unlocked by holding smoked food or marking out a Smokehouse Site.
+- **Market:** rows 106 and 107 (Smoked Meat in GameMeat, Smoked Fish in Fish), Bought.
+- **Art:** structure_smokehouse (with smoke from its roof vent and a glow at the fire pit), item_smoked_meat, item_smoked_fish, one at a time.
+
 ---
 
 # 6. Root Cellar
@@ -106,6 +117,16 @@ Dried food is lighter than fresh (most of the water is gone), so it is easier to
 **How it works (proposed):** a storage container (like the Food Cache, but bigger: 300 kg) that stays at about 4 C (40 F) all year. Everything inside ages at x 0.3 in every season, and never freezes. Raw meat lasts about 10 days, apples about 6 weeks, eggs about 10 weeks, nuts most of a year, and preserved foods (smoked, dried, salted) far longer.
 
 **Later (not in this build):** potatoes, carrots and other crops from farming will be the classic cellar foods.
+
+**Slice 6 as built (2026-11-23).** Mike's decisions: dug out with the Shovel, then built ("Dig, then build"); a room you walk into ("Walk inside"); 300 kg ("300 kg"). Awaiting Mike's check in Play Mode.
+
+- **RootCellarRules** (Scripts/Economy, pure). PileKind gains RootCellarSite (49) and RootCellar (50), appended.
+- **Build:** a staged site (Build tab, Storage and Piles). Mark it out, dig it out with the Shovel (30 blows, like the Well's shaft), then deliver 10 Stone, 8 Logs and 4 Lumber in any order and hammer it up (40 blows). Dry ground out of hollows, no trees on it, spaced like a wide shed.
+- **The room:** an earth-covered room at ground level (a bermed cellar: the dug earth heaped over its log roof), 2 m wide and 2.6 m deep inside, 2.3 m to the roof, entered through a 1.1 by 2.05 m doorway in its stone front with a swinging plank door (SwingDoor). Its walls, roof and front are solid; the room counts as under a roof.
+- **Use:** E at the shelves on the back wall, from inside the room or its doorway, opens the storage screen; from outside the prompt says to walk in. Food only, up to 300 kg by weight; the screen shows "N of 300 kg". Everything in it ages on the Cellar clock, a steady x 0.3 all year (never freezing); stamps convert on the way in and out, as for the Food Cache. Stored food shows as boxes on the shelves.
+- **Know-how 17:** "The Root Cellar", unlocked by marking out a Root Cellar Site.
+- **Doors (Mike, 2026-11-23):** "doors that swing open when we walk into them". SwingDoor (Scripts/World) swings away from the player as they come up to a doorway, in or out, and shuts behind them; its collider closes the doorway only while it is shut. On the Small Cabin, the Smokehouse (its baked-open door taken out of the art) and the Root Cellar.
+- **Art:** structure_rootcellar and its build icons next.
 
 ---
 

@@ -113,6 +113,8 @@ public class PlacementMode : MonoBehaviour
             case PileKind.CharcoalPitSite:
             case PileKind.BloomerySite:
             case PileKind.SmithySite:
+            case PileKind.SmokehouseSite:
+            case PileKind.RootCellarSite:
                 return true;
             default:
                 return false;

@@ -56,6 +56,23 @@ public class Shelter : MonoBehaviour, IInteractable, ISecondaryInteractable
         else
             BuildLeanTo();
         UseArt();
+        // The cabin's doorway gets a plank door that swings open as the player walks into it (Mike, 2026-11-23). It is added after the art, so the art
+        // does not hide it, and it hangs in the front wall's line from the left jamb.
+        if (IsCabin && transform.Find("Door") == null)
+            SwingDoor.Create(transform, new Vector3(-DoorWidth / 2f + 0.04f, FloorHeight, CabinDepth / 2f), DoorWidth - 0.08f, CabinDoorTop - FloorHeight - 0.03f, 0.05f,
+                             Resources.Load<Material>(ArtPrefix + "structure_plank"));
+    }
+
+    // The top of the cabin's doorway: the course under the lintel (BuildCabin's own sums).
+    public static float CabinDoorTop
+    {
+        get
+        {
+            float logDiameter = LogRadius * 2f;
+            int courses = Mathf.Max(4, Mathf.RoundToInt(WallHeight / logDiameter));
+            int doorCourses = Mathf.Min(courses - 1, Mathf.FloorToInt(DoorHeight / logDiameter));
+            return FloorHeight + doorCourses * logDiameter;
+        }
     }
 
     public string InteractionPrompt

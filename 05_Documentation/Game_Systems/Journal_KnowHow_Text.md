@@ -182,3 +182,27 @@ Salt keeps raw meat and fish for half a year. Buy Salt at the Trading Post ($2 a
 Away from a fire, open Inventory (I): raw meat and fish rows show a Salt button. Each piece takes 1 Salt for every 2 kg it weighs (a Venison takes 2) and is cut into Salt Meat or Salt Fish straight away, one for every dollar it is worth cooked: 4 from a Venison, 2 from a Bluegill. The crock is not used up.
 
 Salt Meat and Salt Fish keep for 180 days and are eaten as they are, no cooking needed. The Trading Post pays more for them than for the same meat fresh or cooked, even after the Salt.
+
+---
+
+## 16. Smoking Meat and Fish
+
+Trigger: first Smoked Meat or Smoked Fish held, or a Smokehouse Site marked out.
+
+A Smokehouse turns raw meat and fish into Smoked Meat and Smoked Fish, the best-paying food the Trading Post buys. Build it from the Build tab: mark out the site, deliver 10 Stone and 4 Clay for the fire pit, then 12 Logs and 6 Lumber, and finish it with the Hammer.
+
+Put the Hammer away and press R at the smokehouse to load raw meat and fish (up to 20 pieces) and Firewood (up to 12), then press E to light the fire. A load smokes for a day and burns 6 Firewood. While the fire burns, the meat does not age. If the Firewood runs out, the smoking stops and the meat starts to age again until you load more Firewood.
+
+Each piece gives one Smoked Meat or Smoked Fish for every dollar it is worth cooked: 4 from a Venison, 2 from a Bluegill. Smoked food keeps for 180 days and is eaten as it is. Press E to collect it; the Trading Post pays $3 a piece, more than for salted, dried or cooked meat.
+
+---
+
+## 17. The Root Cellar
+
+Trigger: a Root Cellar Site marked out.
+
+A Root Cellar is an earth-covered room for keeping food. Food on its shelves ages a third as fast as outdoors, in every season, and it never freezes: raw meat keeps about 10 days, apples about 6 weeks, and smoked, dried and salted food far longer.
+
+Build it from the Build tab. Mark out the site, dig it out with the Shovel, then deliver 10 Stone, 8 Logs and 4 Lumber in any order and finish it with the Hammer. Pick dry ground out of hollows, or rain will run in.
+
+Walk in through the door and press E at the shelves at the back to store or take food. The shelves hold up to 300 kg of food.

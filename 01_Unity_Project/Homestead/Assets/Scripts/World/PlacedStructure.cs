@@ -45,6 +45,9 @@ public static class StructureVisuals
             case PileKind.Bloomery: BuildBloomery(parent, state, pieces, out boxCenter, out boxSize); return;
             case PileKind.SmithySite: BuildSmithySite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.Smithy: BuildSmithy(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.SmokehouseSite: BuildSmokehouseSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Smokehouse: BuildSmokehouse(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.RootCellarSite: BuildRootCellarSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -555,6 +558,96 @@ public static class StructureVisuals
         boxSize = new Vector3(1.2f, 1.4f, 1.2f);
     }
 
+    static readonly Color RawMeatColor = new Color(0.55f, 0.16f, 0.14f);
+    static readonly Color SmokedMeatColor = new Color(0.36f, 0.17f, 0.08f);
+    static readonly Color LumberColor = new Color(0.62f, 0.47f, 0.3f);
+
+    // The Smokehouse's marked-out plot (2 m square: half = 1): the stakes and bare earth with the delivered Logs (the usual site drawing), the Stone and Clay for the
+    // fire pit at the back, and the Lumber laid flat at the front left.
+    static void BuildSmokehouseSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 1f, out boxCenter, out boxSize);
+        int stone = Mathf.Min(state.Count(SmokeRules.StoneId), SmokeRules.SiteStone);
+        for (int i = 0; i < stone; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.6f + (i % 5) * 0.3f, 0.1f + (i / 5) * 0.2f, -1.45f), new Vector3(0f, i * 23f, 0f), new Vector3(0.28f, 0.18f, 0.24f), null), SlabColor);
+        int clay = Mathf.Min(state.Count(SmokeRules.ClayId), SmokeRules.SiteClay);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(1.0f + (i % 2) * 0.28f, 0.1f + (i / 2) * 0.16f, -1.45f), Vector3.zero, new Vector3(0.26f, 0.2f, 0.26f), null), ClayColor);
+        int lumber = Mathf.Min(state.Count(SmokeRules.LumberId), SmokeRules.SiteLumber);
+        for (int i = 0; i < lumber; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.5f + (i % 3) * 0.26f, 0.04f + (i / 3) * 0.06f, 1.45f), Vector3.zero, new Vector3(0.22f, 0.05f, 1.6f), null), LumberColor);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(2.2f, 0.9f, 3.2f);
+    }
+
+    // The finished Smokehouse (Food_Spoilage_and_Preservation.md 5): a 2 m square log house about 2.4 m to its ridge, door in the front (+Z), over a ring of stones round a
+    // fire pit, with a small vent at the ridge. Raw meat (red) hangs inside where the doorway shows it, darkening to smoked brown when it is done; Firewood is stacked against
+    // the right wall outside. While the fire burns the doorway glows (StructureGlow) and smoke rises from the vent (KilnSmoke). No two faces share a plane: the walls overlap at
+    // the corners and the roof boards overhang them.
+    static void BuildSmokehouse(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        SmokeRules.Phase phase = WellsAndOuthouses.SmokePhaseOf(state);
+        bool burning = phase == SmokeRules.Phase.Smoking;
+        const float half = 1f, wall = 1.7f, thick = 0.12f;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f, 0f), Vector3.zero, new Vector3(2.1f, 0.02f, 2.1f), null), SoilColor);
+        // The walls: back, left and right whole; the front in two leaves round a 0.7 m doorway, with a lintel.
+        Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, wall / 2f, -half), Vector3.zero, new Vector3(2f * half + thick, wall, thick), bark);
+        Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-half, wall / 2f, 0f), Vector3.zero, new Vector3(thick, wall, 2f * half - 0.02f), bark);
+        Piece(parent, pieces, PrimitiveType.Cube, new Vector3(half, wall / 2f, 0f), Vector3.zero, new Vector3(thick, wall, 2f * half - 0.02f), bark);
+        Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.68f, wall / 2f, half), Vector3.zero, new Vector3(0.66f, wall, thick), bark);
+        Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0.68f, wall / 2f, half), Vector3.zero, new Vector3(0.66f, wall, thick), bark);
+        Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, wall - 0.2f, half), Vector3.zero, new Vector3(0.72f, 0.4f, thick * 0.9f), bark);
+        // The roof: two boards meeting at the ridge, overhanging the walls, and the vent cap on top.
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.55f, wall + 0.33f, 0f), new Vector3(0f, 0f, 33f), new Vector3(1.35f, 0.06f, 2.4f), null), Color.Lerp(BenchWoodColor, SootColor, 0.3f));
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0.55f, wall + 0.33f, 0f), new Vector3(0f, 0f, -33f), new Vector3(1.35f, 0.06f, 2.4f), null), Color.Lerp(BenchWoodColor, SootColor, 0.3f));
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, wall + 0.78f, 0f), Vector3.zero, new Vector3(0.36f, 0.14f, 0.5f), null), SootColor);
+        // The fire pit: a ring of stones, its bed glowing while it burns.
+        for (int i = 0; i < 8; i++)
+        {
+            float a = i * Mathf.PI / 4f;
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(Mathf.Cos(a) * 0.32f, 0.08f, Mathf.Sin(a) * 0.32f), new Vector3(0f, -a * Mathf.Rad2Deg, 0f), new Vector3(0.16f, 0.14f, 0.2f), null), SlabColor);
+        }
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.03f, 0f), Vector3.zero, new Vector3(0.46f, 0.02f, 0.46f), null), burning ? Color.Lerp(SootColor, EmberColor, 0.6f) : SootColor);
+        // The meat on its rails: what is loaded (raw red), or what waits (smoked brown), up to 10 shown, hanging where the doorway shows them.
+        int raw = state.SmokeRaw, smoked = state.SmokedMeat + state.SmokedFish;
+        int shown = Mathf.Min(10, raw > 0 ? raw : smoked);
+        Color meat = raw > 0 ? (state.SmokeRunning ? Color.Lerp(RawMeatColor, SmokedMeatColor, 0.5f) : RawMeatColor) : SmokedMeatColor;
+        for (int i = 0; i < shown; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-0.6f + (i % 5) * 0.3f, 1.25f, -0.35f + (i / 5) * 0.5f), Vector3.zero, new Vector3(0.12f, 0.14f, 0.12f), null), meat);
+        // Firewood stacked against the right wall, outside.
+        for (int i = 0; i < Mathf.Min(state.SmokeFirewood, SmokeRules.FirewoodCap); i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(half + 0.2f + (i % 2) * 0.15f, 0.08f + (i / 2) * 0.13f, -0.5f + (i % 3) * 0.02f), new Vector3(90f, 0f, 0f), new Vector3(0.12f, 0.3f, 0.12f), bark);
+        boxCenter = new Vector3(0f, 1.2f, 0f);
+        boxSize = new Vector3(2.1f, 2.4f, 2.1f);
+    }
+
+    // The Root Cellar's plot (Food_Spoilage_and_Preservation.md 6): stakes at the corners of the mound's footprint, a rectangle of bare earth that darkens and
+    // widens as it is dug out, the spoil heaped at the back, and the Stone, Logs and Lumber delivered lying at the sides.
+    static void BuildRootCellarSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        float hw = RootCellarRules.OuterHalfWidth, back = RootCellarRules.OuterBack, front = RootCellarRules.FrontZ;
+        foreach (Vector2 corner in new[] { new Vector2(-hw, back), new Vector2(hw, back), new Vector2(-hw, front), new Vector2(hw, front) })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, 0.25f, corner.y), Vector3.zero, new Vector3(0.04f, 0.25f, 0.04f), bark);
+        float dug = Mathf.Clamp01(state.digProgress);
+        float innerDepth = RootCellarRules.InnerFront - RootCellarRules.InnerBack;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.012f, (RootCellarRules.InnerFront + RootCellarRules.InnerBack) / 2f), Vector3.zero,
+                     new Vector3(RootCellarRules.InnerHalfWidth * 2f * (0.4f + 0.6f * dug), 0.01f, innerDepth * (0.4f + 0.6f * dug)), null), dug > 0f ? Color.Lerp(SoilColor, SootColor, 0.5f * dug) : SoilColor);
+        int heap = Mathf.CeilToInt(dug * 8f);
+        for (int i = 0; i < heap; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-0.9f + (i % 4) * 0.6f, 0.12f + (i / 4) * 0.18f, back + 0.2f), Vector3.zero, new Vector3(0.55f, 0.3f, 0.45f), null), SoilColor);
+        int stone = Mathf.Min(state.Count(RootCellarRules.StoneId), RootCellarRules.SiteStone);
+        for (int i = 0; i < stone; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-hw - 0.4f, 0.1f + (i / 5) * 0.2f, -1.2f + (i % 5) * 0.32f), new Vector3(0f, i * 23f, 0f), new Vector3(0.28f, 0.18f, 0.24f), null), SlabColor);
+        int logs = Mathf.Min(state.Count(RootCellarRules.LogsId), RootCellarRules.SiteLogs);
+        for (int i = 0; i < logs; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(hw + 0.35f + (i % 2) * 0.32f, 0.16f + (i / 2) * 0.3f, -0.5f), new Vector3(90f, 0f, 0f), new Vector3(0.3f, 1.2f, 0.3f), bark);
+        int lumber = Mathf.Min(state.Count(RootCellarRules.LumberId), RootCellarRules.SiteLumber);
+        for (int i = 0; i < lumber; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.4f + i * 0.26f, 0.04f, front + 0.5f), Vector3.zero, new Vector3(0.22f, 0.05f, 1.6f), null), LumberColor);
+        boxCenter = new Vector3(0f, 0.3f, (back + front) / 2f);
+        boxSize = new Vector3(hw * 2f, 0.7f, front - back);
+    }
+
     // One small piece, by its dry id's shape (the same shapes as on the Potter's Shed's shelf).
     static void KilnPiece(Transform parent, List<GameObject> pieces, string dryId, Vector3 at, Color tone)
     {
@@ -906,6 +999,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     KilnSmoke pitSmoke;  // a Charcoal Pit's, the same smoke made smaller
     KilnSmoke bloomerySmoke; // a Bloomery's, likewise
     KilnSmoke smithySmoke;   // a Smithy's, from its chimney
+    KilnSmoke smokehouseSmoke; // a Smokehouse's, from its roof vent
+    SwingDoor smokehouseDoor;  // a Smokehouse's plank door, swinging open as the player comes up to it (Mike, 2026-11-23)
 
     public WoodPileState State => state;
 
@@ -995,6 +1090,26 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             }
             smithySmoke.SetFiring(SmithyWorking);
         }
+        else if (state.kind == PileKind.Smokehouse)
+        {
+            if (smokehouseSmoke == null)
+            {
+                smokehouseSmoke = KilnSmoke.Create(transform);
+                smokehouseSmoke.gameObject.name = "Smokehouse Smoke";
+                smokehouseSmoke.height = SmokeRules.SmokeHeight;
+                smokehouseSmoke.spreadRadius = SmokeRules.SmokeSpread;
+                smokehouseSmoke.startSizeMin = SmokeRules.SmokeSizeMin;
+                smokehouseSmoke.startSizeMax = SmokeRules.SmokeSizeMax;
+                smokehouseSmoke.puffsPerSecond = SmokeRules.SmokePuffsPerSecond;
+                smokehouseSmoke.riseSpeed = SmokeRules.SmokeRiseSpeed;
+                smokehouseSmoke.maxPuffs = SmokeRules.SmokeMaxPuffs;
+                smokehouseSmoke.Apply();
+            }
+            smokehouseSmoke.SetFiring(WellsAndOuthouses.SmokePhaseOf(state) == SmokeRules.Phase.Smoking);
+            if (smokehouseDoor == null)
+                smokehouseDoor = SwingDoor.Create(transform, new Vector3(-SmokeRules.DoorHalfWidth, SmokeRules.DoorSill, SmokeRules.DoorZ), SmokeRules.DoorHalfWidth * 2f,
+                                                  SmokeRules.DoorHeight, 0.045f, Resources.Load<Material>("Art/structure_smokehouse_planks"));
+        }
         // Wave 8: a flickering glow and embers in the mouth while it burns (the Smithy's and Bloomery's breathe with the bellows).
         if (state.kind == PileKind.Kiln)
             StructureGlow.Drive(transform, state.kind, WellsAndOuthouses.KilnPhaseOf(state) == PotteryRules.KilnPhase.Firing);
@@ -1004,6 +1119,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             StructureGlow.Drive(transform, state.kind, state.SmeltRunning);
         else if (state.kind == PileKind.Smithy)
             StructureGlow.Drive(transform, state.kind, SmithyWorking);
+        else if (state.kind == PileKind.Smokehouse)
+            StructureGlow.Drive(transform, state.kind, WellsAndOuthouses.SmokePhaseOf(state) == SmokeRules.Phase.Smoking);
         box.center = center;
         box.size = size;
         // The finished kitchen has no interaction box (it would be a solid block to walk into): its roof, posts and table are the colliders,
@@ -1055,6 +1172,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.CharcoalPit: return PitPromptText();
                 case PileKind.Bloomery: return BloomeryPromptText();
                 case PileKind.Smithy: return SmithyPromptText();
+                case PileKind.Smokehouse: return SmokehousePromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -1091,7 +1209,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return (WoodManager.HammerEquipped ? $"Hold click with the Hammer to build{what} ({percent})" : $"Fully stocked - equip the Hammer to build{what} ({percent})") + locked;
         }
         if (WellsAndOuthouses.RequiresDig(state.kind) && state.digProgress < 1f)
-            return EquippedShovel ? $"Dig the shaft: hold click ({state.digProgress * 100f:0}%)" : $"Dig the shaft: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
+        {
+            string what = state.kind == PileKind.RootCellarSite ? "Dig out the cellar" : "Dig the shaft";
+            return EquippedShovel ? $"{what}: hold click ({state.digProgress * 100f:0}%)" : $"{what}: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
+        }
         if (state.kind == PileKind.WellSite)
         {
             int lining = WellsAndOuthouses.NeedOf(state, WoodManager.StoneId); // this well's own: its depth to water sets it
@@ -2090,6 +2211,151 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // --- The Smokehouse (Food_Spoilage_and_Preservation.md 5) ---
+
+    SmokeRules.Phase SmokePhaseNow => WellsAndOuthouses.SmokePhaseOf(state);
+
+    int SmokeYieldNow()
+    {
+        int n = 0;
+        foreach (WoodStack stack in state.contents)
+            n += stack.count * SmokeRules.YieldOf(stack.itemId);
+        return n;
+    }
+
+    string SmokehousePromptText() =>
+        SmokeRules.Prompt(SmokePhaseNow, state.SmokeRaw, state.SmokeFirewood, SmokeYieldNow(), state.SmokedMeat, state.SmokedFish, state.jobHours, state.jobCount);
+
+    int RawCarried()
+    {
+        int n = 0;
+        foreach (string rawId in SmokeRules.RawIds)
+            n += Inventory.Player.Count(rawId);
+        return n;
+    }
+
+    SmokeRules.LoadPlan SmokePlan(out int rawCarried, out int firewoodCarried)
+    {
+        rawCarried = RawCarried();
+        firewoodCarried = Inventory.Player.Count(SmokeRules.FirewoodId);
+        return SmokeRules.PlanLoad(state.SmokeRaw, state.SmokeFirewood, state.SmokeRunning, rawCarried, firewoodCarried);
+    }
+
+    string SmokehouseSecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return SmokeRules.DismantlePrompt(SmokePhaseNow, state.jobHours);
+        SmokeRules.LoadPlan plan = SmokePlan(out int rawCarried, out int firewoodCarried);
+        return SmokeRules.LoadPrompt(plan, state.SmokeRunning, rawCarried, firewoodCarried);
+    }
+
+    // E: collect any smoked food first; otherwise light the fire when it holds meat and Firewood, show the hours while it smokes, and say what is missing.
+    void SmokehouseInteract()
+    {
+        switch (SmokePhaseNow)
+        {
+            case SmokeRules.Phase.Done:
+                SmokehouseCollect();
+                return;
+            case SmokeRules.Phase.Smoking:
+            case SmokeRules.Phase.Paused:
+                ToolStatus.Flash(SmokehousePromptText(), 3f);
+                return;
+            case SmokeRules.Phase.Ready:
+                SmokehouseLight(out string lit);
+                ToolStatus.Flash(lit, 5f);
+                return;
+            default:
+                ToolStatus.Flash(SmokeRules.NotReady(state.SmokeRaw, state.SmokeFirewood), 4f);
+                return;
+        }
+    }
+
+    // Lights the fire: the first Firewood goes on (jobCount is the hours it burns) and the day's smoking starts (jobHours). The meat stays in contents with its stamps.
+    public bool SmokehouseLight(out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.Smokehouse || WoodManager.Instance == null || !SmokeRules.CanStart(SmokePhaseNow))
+            return false;
+        int raw = state.SmokeRaw, made = SmokeYieldNow();
+        state.Take(SmokeRules.FirewoodId, 1);
+        state.jobItem = SmokeRules.SmokeMarker;
+        state.jobCount = SmokeRules.HoursPerFirewood;
+        state.jobHours = SmokeRules.SmokeHours;
+        WoodManager.Instance.NotifyChanged(state);
+        message = SmokeRules.Lit(raw, made, state.SmokeFirewood + 1);
+        return true;
+    }
+
+    // The smoked food goes to the pack with its freshness, as much as it holds; the rest stays in the smokehouse.
+    void SmokehouseCollect()
+    {
+        int waiting = state.SmokedMeat + state.SmokedFish, took = 0;
+        for (int i = state.contents.Count - 1; i >= 0; i--)
+        {
+            WoodStack stack = state.contents[i];
+            if (!SmokeRules.IsSmoked(stack.itemId) || stack.count <= 0)
+                continue;
+            ItemDefinition item = ItemDatabase.Get(stack.itemId);
+            int fits = item != null ? Mathf.Min(stack.count, Inventory.Player.SpaceFor(item)) : 0;
+            int added = fits > 0 ? Inventory.AddToPlayer(stack.itemId, fits, stack.day) : 0;
+            if (added <= 0)
+                continue;
+            took += added;
+            stack.count -= added;
+            if (stack.count <= 0)
+                state.contents.RemoveAt(i);
+        }
+        if (took > 0)
+            WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(SmokeRules.Took(took, waiting - took), 4f);
+    }
+
+    // R: with the Hammer it takes the smokehouse down; without, it loads raw meat and fish (between loads) and Firewood (at any time) from the pack.
+    void SmokehouseSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        SmokeRules.LoadPlan plan = SmokePlan(out int rawCarried, out int firewoodCarried);
+        if (!plan.Any)
+        {
+            ToolStatus.Flash(SmokeRules.LoadRefusal(state.SmokeRunning, rawCarried, firewoodCarried), 4f);
+            return;
+        }
+        SmokehouseLoadFromPack(out string message);
+        ToolStatus.Flash(message, 4f);
+    }
+
+    // Puts the raw meat and fish carried (oldest first, keeping their freshness) and the Firewood carried into the smokehouse, each up to its room. Returns whether anything moved.
+    public bool SmokehouseLoadFromPack(out string message)
+    {
+        message = SmokeRules.LoadRefusal(false, 0, 0);
+        if (state == null || state.kind != PileKind.Smokehouse || Inventory == null || WoodManager.Instance == null)
+            return false;
+        SmokeRules.LoadPlan plan = SmokePlan(out int rawCarried, out int firewoodCarried);
+        if (!plan.Any)
+            return false;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        int raw = 0;
+        foreach (string rawId in SmokeRules.RawIds)
+        {
+            if (raw >= plan.raw)
+                break;
+            string id = rawId;
+            raw += Inventory.Player.RemoveBatches(id, plan.raw - raw, (day, count) => state.Add(id, count, day));
+        }
+        int firewood = plan.firewood > 0 ? Inventory.Player.RemoveBatches(SmokeRules.FirewoodId, plan.firewood, (day, count) => state.Add(SmokeRules.FirewoodId, count, 0)) : 0;
+        if (raw + firewood <= 0)
+            return false;
+        WoodManager.Instance.NotifyChanged(state);
+        message = SmokeRules.Loaded(new SmokeRules.LoadPlan { raw = raw, firewood = firewood }, state.SmokeRaw, state.SmokeFirewood);
+        return true;
+    }
+
     // --- The Bloomery (Metalworking M2) ---
 
     BloomeryRules.Phase SmeltPhaseNow => WellsAndOuthouses.BloomeryPhaseOf(state);
@@ -2372,6 +2638,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return BloomerySecondaryPrompt();
             if (state.kind == PileKind.Smithy)
                 return SmithySecondaryPrompt();
+            if (state.kind == PileKind.Smokehouse)
+                return SmokehouseSecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -2420,6 +2688,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.CharcoalPit: PitInteract(); break;
             case PileKind.Bloomery: BloomeryInteract(); break;
             case PileKind.Smithy: SmithyInteract(); break;
+            case PileKind.Smokehouse: SmokehouseInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -2600,6 +2869,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             SmithySecondary();
         }
+        else if (state.kind == PileKind.Smokehouse)
+        {
+            SmokehouseSecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -2729,6 +3002,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash(BloomeryRules.DismantlePrompt(SmeltPhaseNow, state.jobHours), 4f);
             return;
         }
+        // A Smokehouse is not taken down while a load is in (lit, or stopped half smoked).
+        if (state.kind == PileKind.Smokehouse && !SmokeRules.CanDismantle(SmokePhaseNow))
+        {
+            ToolStatus.Flash(SmokeRules.DismantlePrompt(SmokePhaseNow, state.jobHours), 4f);
+            return;
+        }
         var refund = new StructureRefund(state.position, transform);
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
@@ -2776,6 +3055,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             refund.Return(BloomeryRules.CharcoalId, state.Count(BloomeryRules.CharcoalId));
             refund.Return(BloomeryRules.BarId, state.Count(BloomeryRules.BarId));
         }
+        // A Smokehouse gives back its Firewood and the meat and smoked food in it whole (keeping their freshness), on top of half the materials.
+        if (state.kind == PileKind.Smokehouse)
+            foreach (WoodStack stack in state.contents)
+                if (stack.itemId == SmokeRules.FirewoodId || SmokeRules.Smokes(stack.itemId) || SmokeRules.IsSmoked(stack.itemId))
+                    refund.Return(stack.itemId, stack.count, stack.day);
         WoodManager.Instance.RemovePile(state);
         ToolStatus.Flash(refund.Describe(name), 5f);
     }

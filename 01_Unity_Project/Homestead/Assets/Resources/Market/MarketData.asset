@@ -748,6 +748,20 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: smoked_meat
+    group: 2
+    pool: smoked_meat
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: smoked_fish
+    group: 1
+    pool: smoked_fish
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400
