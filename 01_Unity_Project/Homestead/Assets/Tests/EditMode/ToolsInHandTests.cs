@@ -758,7 +758,7 @@ public class ToolsInHandTests
         Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.RaiseSwung\(Equipped\)").Count, Is.EqualTo(1), "one line where a blow lands");
         Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.RaiseTired\(Equipped\)").Count, Is.EqualTo(1), "one line where a blow is refused");
         Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.WorkingOn\(WorkKind\.Split\)").Count, Is.EqualTo(1), "one line before a blow at a wood pile");
-        Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.JobFinished\(\)").Count, Is.EqualTo(8), "one line at each job's finishing point");
+        Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.JobFinished\(\)").Count, Is.EqualTo(9), "one line at each job's finishing point (+ a pair of Logs sawn at the Saw Pit, 2026-11-23)");
         // the blow's own lines are still there, in order: stamina, the interval, then the event
         int spend = axe.IndexOf("player.TrySpendStamina(staminaPerSwing)");
         int interval = axe.IndexOf("nextSwing = Time.time + swingSeconds;");

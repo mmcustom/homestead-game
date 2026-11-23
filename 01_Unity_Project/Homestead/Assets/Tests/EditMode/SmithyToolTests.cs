@@ -629,7 +629,7 @@ public class SmithyToolTests
     [Test]
     public void TheSmithyEntryNowTeachesTheToolsAndTheItemHelpExists()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(17), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(18), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry smithy), Is.True);
         Assert.That(smithy.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(smithy.body, Does.Contain("an iron Shovel and Pick Axe for your own use"));
@@ -673,7 +673,7 @@ public class SmithyToolTests
         Assert.That(text, Does.Contain("and into an iron Shovel and Pick Axe for your own use."));
         Assert.That(text, Does.Contain("An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each."));
         Assert.That(text, Does.Not.Contain("it holds 8 of each"));
-        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(17), "eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
+        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(18), "eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
     }
 
     // --- Saving ---
@@ -686,7 +686,7 @@ public class SmithyToolTests
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("stick") || f.ToLowerInvariant().Contains("cordage") || f.ToLowerInvariant().Contains("tool")), Is.False);
         Assert.That(((int)Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static).GetRawConstantValue()), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(51), "no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(54), "no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
         Assert.That((int)Enum.Parse(Find("PileKind"), "Smithy"), Is.EqualTo(44));
         Assert.That(CharcoalRules.BurnMarker, Is.EqualTo("charcoal_burn"));
         Assert.That(BloomeryRules.SmeltMarker, Is.EqualTo("iron_smelt"));

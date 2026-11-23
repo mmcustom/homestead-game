@@ -183,6 +183,17 @@ public class AxeTool : MonoBehaviour
         if (!AxeRules.IsFellingTool(equipped))
             return;
 
+        // The Wood Saw on a Saw Pit (Saw_Pit_Sawmill_and_Salt_Barrel.md 1): sawing Logs into Lumber, stroke by stroke.
+        if (equipped == SawId && player.AimRaycast(reach, out RaycastHit pitHit))
+        {
+            PlacedStructure pit = pitHit.collider.GetComponentInParent<PlacedStructure>();
+            if (pit != null && pit.State != null && pit.State.kind == PileKind.SawPit)
+            {
+                SawAtPit(pit, pitHit.point);
+                return;
+            }
+        }
+
         // What the axe would hit: a wood pile, or the trunk of a standing tree.
         WoodPile pile = null;
         int tree = -1;
@@ -392,9 +403,10 @@ public class AxeTool : MonoBehaviour
         if (rules == null || state == null)
             return;
 
-        bool cellar = state.kind == PileKind.RootCellarSite;
-        ToolStatus.Report(state.digProgress > 0f ? (cellar ? "Digging out the cellar" : "Digging the well shaft")
-                                                 : (cellar ? "Root Cellar site - hold click to dig it out" : "Well site - hold click to dig the shaft"), state.digProgress > 0f ? state.digProgress : -1f);
+        bool cellar = state.kind == PileKind.RootCellarSite, sawPit = state.kind == PileKind.SawPitSite;
+        ToolStatus.Report(state.digProgress > 0f ? (cellar ? "Digging out the cellar" : sawPit ? "Digging the saw pit" : "Digging the well shaft")
+                                                 : (cellar ? "Root Cellar site - hold click to dig it out" : sawPit ? "Saw Pit site - hold click to dig the trench" : "Well site - hold click to dig the shaft"),
+                          state.digProgress > 0f ? state.digProgress : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
 
@@ -404,12 +416,42 @@ public class AxeTool : MonoBehaviour
         if (finished)
         {
             ToolEvents.JobFinished();
-            ToolStatus.Banner(cellar ? RootCellarRules.DugBanner : "The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
+            ToolStatus.Banner(cellar ? RootCellarRules.DugBanner : sawPit ? SawPitRules.DugBanner : "The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
             WoodManager.Instance.NotifyChanged(state);
         }
         else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - swing / rules.DigBlowsOf(state)) * 10f))
         {
             WoodManager.Instance.NotifyChanged(state); // the visible shaft deepens a tenth at a time
+        }
+    }
+
+    // One stroke of the Wood Saw on a Saw Pit holding at least two Logs: every pair of Logs takes SawPitRules.StrokesPerPair strokes and becomes
+    // 3 Lumber stacked beside the pit. The strokes so far are the pit's jobHours (saved), so sawing can stop and carry on later.
+    void SawAtPit(PlacedStructure pit, Vector3 point)
+    {
+        WoodPileState state = pit.State;
+        int logs = state.Count(SawPitRules.LogsId);
+        if (!SawPitRules.CanSaw(logs))
+        {
+            ToolStatus.ReportIdle(SawPitRules.Prompt(logs, state.Count(SawPitRules.LumberId), state.jobHours, true));
+            return;
+        }
+        ToolStatus.Report(state.jobHours > 0f ? "Sawing Logs into Lumber" : "Saw Pit - hold click to saw", state.jobHours > 0f ? SawPitRules.Progress(state.jobHours) : -1f);
+        if (!Swing(point))
+            return;
+        float before = state.jobHours;
+        state.jobHours = SawPitRules.AfterStroke(state.jobHours, DigSwing, out bool pairDone);
+        if (pairDone)
+        {
+            state.Take(SawPitRules.LogsId, SawPitRules.LogsPerPair);
+            state.Add(SawPitRules.LumberId, SawPitRules.LumberPerPair, 0);
+            ToolEvents.JobFinished();
+            ToolStatus.Banner(SawPitRules.PairDone(state.Count(SawPitRules.LumberId)), 4f);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+        else if (Mathf.FloorToInt(SawPitRules.Progress(state.jobHours) * 5f) != Mathf.FloorToInt(SawPitRules.Progress(before) * 5f))
+        {
+            WoodManager.Instance.NotifyChanged(state); // the cut shows along the log a fifth at a time
         }
     }
 

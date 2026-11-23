@@ -719,6 +719,7 @@ public class CraftingScreen : GameScreen
             case PileKind.BloomerySite:
             case PileKind.SmithySite:
             case PileKind.SmokehouseSite:
+            case PileKind.SawPitSite:
             case PileKind.WorkshopSite:
             case PileKind.PotterSite:
             case PileKind.KilnSite: return BuildCategories[2];
@@ -960,6 +961,7 @@ public class CraftingScreen : GameScreen
             case PileKind.WaterBarrel: return "pour water in from the Bucket (R), fill the Bucket from it (E). Holds 40 L.";
             case PileKind.RainBarrel: return "stand it under a Small Cabin's eave; it fills from the roof in rain (E draws water, R pours in). Holds 80 L.";
             case PileKind.FoodCache: return "store food (R), take it back (E).";
+            case PileKind.SaltBarrel: return SaltBarrelRules.Help;
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
             case PileKind.CompostBin: return "put in Rot and Tall Grass (R). Every 4 Rot and 2 Tall Grass compost into 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen; take the Fertilizer out (E). The Trading Post buys Fertilizer until there is farming.";
             case PileKind.DryingRack: return "hang up to 12 fresh berries, apples, pawpaws, mushrooms, raw meat or raw fish on it (R). They dry in daylight while it is not raining: about 2 days for fruit and mushrooms, 3 for meat and fish. Dried food is light and keeps for months; take it off (E).";
@@ -994,6 +996,10 @@ public class CraftingScreen : GameScreen
                 return $"smelts Iron Ore with Charcoal into Iron Bars. Put the Hammer away, then R loads the Ore and the Charcoal you carry, separately and at any time (up to {BloomeryRules.OreCap} of each); E starts a smelt once it holds {BloomeryRules.OrePerBar} Ore and {BloomeryRules.CharcoalPerBar} Charcoal. Each {BloomeryRules.OrePerBar} Ore and {BloomeryRules.CharcoalPerBar} Charcoal make 1 Iron Bar, up to {BloomeryRules.MaxBars} Bars a smelt, and a smelt takes {BloomeryRules.SmeltHours} game hours, even while you are away or asleep, rain or not. Ore and Charcoal added while it smelts wait for the next smelt. Then E collects the Bars, which no one buys: forge them into goods at a Smithy. R with the Hammer takes it down for half the Stone and Clay back, with any Ore, Charcoal and Bars in it, but not while it smelts.";
             case PileKind.SmithySite:
                 return $"a roofed iron-working shed with a forge and an anvil, built in stages because its materials are heavy (about 61 kg: a Hand Cart takes them in a few trips). Mark the site out (free, no Hammer; turn it with the wheel so the open front faces where you want to work), deliver {SmithyRules.SiteStone} Stone, {SmithyRules.SiteClay} Clay, {SmithyRules.SiteLogs} Logs, {SmithyRules.SiteBranches} Branches and {SmithyRules.SiteTallGrass} Tall Grass with R over as many trips as it takes (no Hammer; E takes them back), then equip the Hammer and hold click on the site until the Smithy is built (once you start, the materials are built in). Needs dry ground, 3 m clear of other buildings like the Workshop, and 3 m clear of trees for the forge fire.";
+            case PileKind.SawPitSite:
+                return $"a trench with a log frame over it, for sawing Logs lengthwise into Lumber with the Wood Saw: every {SawPitRules.LogsPerPair} Logs make {SawPitRules.LumberPerPair} Lumber, so you need not buy it. Mark the site out (free, no Hammer; turn it with the wheel so the long side faces where you want to stand), dig the trench with the Shovel (hold click), deliver {SawPitRules.SiteLogs} Logs and {SawPitRules.SiteBranches} Branches with R in any order, then equip the Hammer and hold click on the site until it is built. Needs dry ground out of hollows, with no trees on it.";
+            case PileKind.SawPit:
+                return $"saws Logs into Lumber. Put the Hammer away and press R to lay the Logs you carry on it (up to {SawPitRules.LogsCap}); then equip the Wood Saw and hold click on it. Every {SawPitRules.LogsPerPair} Logs take {SawPitRules.StrokesPerPair} strokes and make {SawPitRules.LumberPerPair} Lumber, stacked beside the pit until E takes it. R with the Hammer takes it down for half its materials, with the Logs and Lumber in it.";
             case PileKind.RootCellarSite:
                 return $"an earth-covered room you walk into, with shelves for food: anything kept on them ages a third as fast as outdoors, all year, and never freezes (raw meat about 10 days, apples about 6 weeks). It holds {RootCellarRules.CapacityKg:0} kg of food. Mark the site out (free, no Hammer; turn it with the wheel so the door faces where you want to walk in), dig it out with the Shovel (hold click), deliver {RootCellarRules.SiteStone} Stone, {RootCellarRules.SiteLogs} Logs and {RootCellarRules.SiteLumber} Lumber with R in any order (a Hand Cart takes the Stone and Logs), then equip the Hammer and hold click on the site until it is built. Needs dry ground out of hollows, with no trees on it.";
             case PileKind.RootCellar:

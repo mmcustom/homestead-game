@@ -48,6 +48,8 @@ public static class StructureVisuals
             case PileKind.SmokehouseSite: BuildSmokehouseSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.Smokehouse: BuildSmokehouse(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.RootCellarSite: BuildRootCellarSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.SawPitSite: BuildSawPitSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.SawPit: BuildSawPit(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -648,6 +650,63 @@ public static class StructureVisuals
         boxSize = new Vector3(hw * 2f, 0.7f, front - back);
     }
 
+    // The Saw Pit's plot: stakes at the trench's corners, the trench darkening and deepening as it is dug, the spoil heaped along the back, and the Logs
+    // and Branches delivered at the ends.
+    static void BuildSawPitSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        float hl = SawPitRules.HalfLength, hw = SawPitRules.HalfWidth;
+        foreach (Vector2 corner in new[] { new Vector2(-hl, -hw), new Vector2(hl, -hw), new Vector2(-hl, hw), new Vector2(hl, hw) })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, 0.25f, corner.y), Vector3.zero, new Vector3(0.04f, 0.25f, 0.04f), bark);
+        float dug = Mathf.Clamp01(state.digProgress);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.012f, 0f), Vector3.zero, new Vector3(2f * hl * (0.4f + 0.6f * dug), 0.01f, 1.0f * (0.4f + 0.6f * dug)), null),
+               dug > 0f ? Color.Lerp(SoilColor, SootColor, 0.6f * dug) : SoilColor);
+        int heap = Mathf.CeilToInt(dug * 6f);
+        for (int i = 0; i < heap; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-1.2f + i * 0.48f, 0.12f, -hw - 0.45f), Vector3.zero, new Vector3(0.55f, 0.3f, 0.45f), null), SoilColor);
+        int logs = Mathf.Min(state.Count(SawPitRules.LogsId), SawPitRules.SiteLogs);
+        for (int i = 0; i < logs; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(hl + 0.4f + (i % 2) * 0.32f, 0.16f + (i / 2) * 0.3f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.3f, 1.1f, 0.3f), bark);
+        int branches = Mathf.Min(state.Count(SawPitRules.BranchesId), SawPitRules.SiteBranches);
+        for (int i = 0; i < branches; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-hl - 0.4f, 0.06f + i * 0.1f, 0f), new Vector3(90f, i * 12f, 0f), new Vector3(0.09f, 0.9f, 0.09f), bark);
+        boxCenter = new Vector3(0f, 0.3f, 0f);
+        boxSize = new Vector3(2f * hl + 0.4f, 0.7f, 2f * hw + 0.4f);
+    }
+
+    static readonly Color SawdustColor = new Color(0.78f, 0.64f, 0.42f);
+    static readonly Color SawnLogColor = new Color(0.66f, 0.5f, 0.3f);
+
+    // The finished Saw Pit: a dark trench 3 m long, two sill logs along its edges and a cross log at each end, a log laid along it on the cross logs when
+    // there are Logs to saw (its cut end pale), sawdust under it, and the Lumber stacked at the front. 9 static pieces: the trench, two sills, two cross
+    // logs, the sawdust, and three stakes for the log stops.
+    static void BuildSawPit(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        float hl = SawPitRules.HalfLength, hw = SawPitRules.HalfWidth;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.012f, 0f), Vector3.zero, new Vector3(2f * hl, 0.012f, 1.0f), null), SootColor);
+        foreach (float side in new[] { -1f, 1f })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.14f, side * 0.62f), new Vector3(0f, 0f, 90f), new Vector3(0.26f, hl + 0.1f, 0.26f), bark);
+        foreach (float end in new[] { -1f, 1f })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(end * (hl - 0.25f), 0.3f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.22f, 0.8f, 0.22f), bark);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.025f, 0f), Vector3.zero, new Vector3(1.3f, 0.01f, 0.7f), null), SawdustColor);
+        for (int i = 0; i < 3; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-0.6f + i * 0.6f, 0.35f, -0.45f), Vector3.zero, new Vector3(0.05f, 0.35f, 0.05f), bark);
+        // The log being sawn, when there are Logs, and the rest piled at the back end.
+        int logs = state.Count(SawPitRules.LogsId);
+        if (logs > 0)
+        {
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.55f, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.3f, hl - 0.1f, 0.3f), bark);
+            Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(hl - 0.08f, 0.55f, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.28f, 0.01f, 0.28f), null), SawnLogColor);
+        }
+        for (int i = 1; i < Mathf.Min(logs, SawPitRules.LogsCap); i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-0.8f + (i % 3) * 0.5f, 0.16f + ((i - 1) / 3) * 0.3f, -hw - 0.35f), new Vector3(0f, 0f, 90f), new Vector3(0.28f, 0.4f, 0.28f), bark);
+        // The Lumber stacked at the front, up to 12 boards shown.
+        int lumber = Mathf.Min(state.Count(SawPitRules.LumberId), 12);
+        for (int i = 0; i < lumber; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.4f + (i % 3) * 0.28f, 0.04f + (i / 3) * 0.06f, hw + 0.4f), Vector3.zero, new Vector3(1.6f, 0.05f, 0.24f), null), LumberColor);
+        boxCenter = new Vector3(0f, 0.45f, 0f);
+        boxSize = new Vector3(2f * hl + 0.2f, 0.9f, 2f * hw + 0.3f);
+    }
+
     // One small piece, by its dry id's shape (the same shapes as on the Potter's Shed's shelf).
     static void KilnPiece(Transform parent, List<GameObject> pieces, string dryId, Vector3 at, Color tone)
     {
@@ -1173,6 +1232,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Bloomery: return BloomeryPromptText();
                 case PileKind.Smithy: return SmithyPromptText();
                 case PileKind.Smokehouse: return SmokehousePromptText();
+                case PileKind.SawPit: return SawPitPromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -1210,7 +1270,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         }
         if (WellsAndOuthouses.RequiresDig(state.kind) && state.digProgress < 1f)
         {
-            string what = state.kind == PileKind.RootCellarSite ? "Dig out the cellar" : "Dig the shaft";
+            string what = state.kind == PileKind.RootCellarSite ? "Dig out the cellar" : state.kind == PileKind.SawPitSite ? "Dig the saw pit" : "Dig the shaft";
             return EquippedShovel ? $"{what}: hold click ({state.digProgress * 100f:0}%)" : $"{what}: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
         }
         if (state.kind == PileKind.WellSite)
@@ -2211,6 +2271,69 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // --- The Saw Pit (Saw_Pit_Sawmill_and_Salt_Barrel.md 1); AxeTool saws with the Wood Saw ---
+
+    static bool SawEquipped => InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null && InventoryManager.Instance.EquippedTool.Id == SawPitRules.SawId;
+
+    string SawPitPromptText() => SawPitRules.Prompt(state.Count(SawPitRules.LogsId), state.Count(SawPitRules.LumberId), state.jobHours, SawEquipped);
+
+    int SawPitLoadable(out int carried)
+    {
+        carried = Inventory.Player.Count(SawPitRules.LogsId);
+        return Mathf.Min(carried, SawPitRules.LogRoom(state.Count(SawPitRules.LogsId)));
+    }
+
+    string SawPitSecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return SawPitRules.DismantlePrompt;
+        int canLoad = SawPitLoadable(out int carried);
+        return SawPitRules.LoadPrompt(canLoad, carried);
+    }
+
+    // E: takes the Lumber stacked by the pit to the pack; with none, says how to saw.
+    void SawPitInteract()
+    {
+        int lumber = state.Count(SawPitRules.LumberId);
+        if (lumber <= 0)
+        {
+            ToolStatus.Flash(SawEquipped ? SawPitPromptText() : SawPitRules.NoSaw, 4f);
+            return;
+        }
+        ItemDefinition item = ItemDatabase.Get(SawPitRules.LumberId);
+        int fits = item != null ? Mathf.Min(lumber, Inventory.Player.SpaceFor(item)) : 0;
+        int took = fits > 0 ? Inventory.AddToPlayer(SawPitRules.LumberId, fits) : 0;
+        if (took > 0)
+        {
+            state.Take(SawPitRules.LumberId, took);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+        ToolStatus.Flash(SawPitRules.Took(took, lumber - took), 4f);
+    }
+
+    // R: with the Hammer it takes the pit down; without, it lays the Logs carried on it.
+    void SawPitSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        int canLoad = SawPitLoadable(out int carried);
+        if (canLoad <= 0)
+        {
+            ToolStatus.Flash(SawPitRules.LoadPrompt(canLoad, carried), 4f);
+            return;
+        }
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        int laid = Inventory.Player.RemoveBatches(SawPitRules.LogsId, canLoad, (day, count) => state.Add(SawPitRules.LogsId, count, day));
+        if (laid <= 0)
+            return;
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(SawPitRules.Loaded(laid, state.Count(SawPitRules.LogsId)), 4f);
+    }
+
     // --- The Smokehouse (Food_Spoilage_and_Preservation.md 5) ---
 
     SmokeRules.Phase SmokePhaseNow => WellsAndOuthouses.SmokePhaseOf(state);
@@ -2640,6 +2763,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return SmithySecondaryPrompt();
             if (state.kind == PileKind.Smokehouse)
                 return SmokehouseSecondaryPrompt();
+            if (state.kind == PileKind.SawPit)
+                return SawPitSecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -2689,6 +2814,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Bloomery: BloomeryInteract(); break;
             case PileKind.Smithy: SmithyInteract(); break;
             case PileKind.Smokehouse: SmokehouseInteract(); break;
+            case PileKind.SawPit: SawPitInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -2873,6 +2999,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             SmokehouseSecondary();
         }
+        else if (state.kind == PileKind.SawPit)
+        {
+            SawPitSecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -3055,6 +3185,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             refund.Return(BloomeryRules.CharcoalId, state.Count(BloomeryRules.CharcoalId));
             refund.Return(BloomeryRules.BarId, state.Count(BloomeryRules.BarId));
         }
+        // A Saw Pit gives back the Logs on it and the Lumber beside it whole, on top of half the materials.
+        if (state.kind == PileKind.SawPit)
+            foreach (WoodStack stack in state.contents)
+                if (stack.itemId == SawPitRules.LogsId || stack.itemId == SawPitRules.LumberId)
+                    refund.Return(stack.itemId, stack.count, 0);
         // A Smokehouse gives back its Firewood and the meat and smoked food in it whole (keeping their freshness), on top of half the materials.
         if (state.kind == PileKind.Smokehouse)
             foreach (WoodStack stack in state.contents)

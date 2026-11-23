@@ -27,6 +27,19 @@ A frontier saw pit is a trench with a frame of logs over it, so a log can be lai
 - **Know-how:** "Sawing Lumber in a Saw Pit".
 - **Art:** structure_sawpit (the trench, the log frame and a log on it, sawdust), and its build icons.
 
+### As built (2026-11-23)
+
+Built as proposed. SawPitSite (51) and SawPit (52) are appended to PileKind; the rules live in SawPitRules.cs.
+
+- Site: Other tab, free to mark. Shovel 20 blows, then 6 Logs and 4 Branches with R (any order), then the Hammer 30 blows.
+- It can't go in a hollow or on a tree, and keeps the shed setbacks.
+- Loading: R loads Logs, up to 6.
+- Sawing: the Wood Saw, hold click within 1.7 m. Every 40 strokes take 2 Logs and add 3 Lumber, with a banner.
+- Taking: E takes the Lumber to your pack.
+- Dismantle: the Hammer gives back half the site cost plus everything left in the pit.
+- Know-how entry 18, "Sawing Lumber in a Saw Pit", and a journal happening when the site is marked.
+- Art: structure_sawpit (4,686 tris) with build icons build_sawpit and build_sawpitsite.
+
 ## 2. The Sawmill (later, an upgrade)
 
 - *Proposed*: a large staged building beside a stream, with a water wheel driving an up-and-down saw. It needs flowing water within a few metres.

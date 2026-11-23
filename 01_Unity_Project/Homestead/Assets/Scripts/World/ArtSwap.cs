@@ -198,6 +198,20 @@ public static class ArtSwap
             staticPieces = 19,                                       // soil, five wall pieces and the lintel, two roof boards and the vent, eight ring stones, the fire bed
             contentAnchors = new[] { AnchorStock },                  // the meat on its rails and the Firewood outside
         },
+        // Saw_Pit_Sawmill_and_Salt_Barrel.md 1 (2026-11-23): the Saw Pit. The log being sawn, the Logs waiting and the Lumber stay primitives on the stock anchor.
+        new Spec
+        {
+            id = "structure_sawpit",
+            kind = PileKind.SawPit,
+            anchors = new[] { A(AnchorStock, false, 0f, 0f, 0f) },
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(3.9f, 0.7f, 2.3f),
+            boxCenter = new Vector3(0f, 0.45f, 0f),
+            boxSize = new Vector3(3.2f, 0.9f, 1.8f),
+            staticPieces = 9,                                        // the trench, two sills, two cross logs, the sawdust, three log stops
+            contentAnchors = new[] { AnchorStock },
+        },
         new Spec
         {
             id = "structure_smithy",

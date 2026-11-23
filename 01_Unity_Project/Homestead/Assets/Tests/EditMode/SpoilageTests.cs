@@ -466,6 +466,50 @@ public class SpoilageTests
         Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.RootCellarSitePlaced), Is.EqualTo(new[] { KnowHowRules.Cellar }));
     }
 
+    // --- The Saw Pit (SawPitRules; Mike 2026-11-23: "a lumber mill or something to turn logs into boards or lumber") ---
+
+    [Test]
+    public void EveryTwoLogsSawnMakeThreeLumber()
+    {
+        Assert.That(SawPitRules.Accepts("logs", 5), Is.True);
+        Assert.That(SawPitRules.Accepts("logs", 6), Is.False, "six Logs at most");
+        Assert.That(SawPitRules.Accepts("lumber", 0), Is.False);
+        Assert.That(SawPitRules.CanSaw(1), Is.False, "a single Log waits for a second");
+        Assert.That(SawPitRules.CanSaw(2), Is.True);
+        Assert.That(SawPitRules.StrokesPerPair, Is.EqualTo(20), "Mike: 20 strokes a pair");
+        float strokes = 0f; int pairs = 0;
+        for (int i = 0; i < SawPitRules.StrokesPerPair; i++)
+        {
+            strokes = SawPitRules.AfterStroke(strokes, 1f, out bool done);
+            if (done) pairs++;
+        }
+        Assert.That(pairs, Is.EqualTo(1));
+        Assert.That(strokes, Is.EqualTo(0f));
+        Assert.That(SawPitRules.LumberPerPair * 5f, Is.LessThanOrEqualTo(SawPitRules.LogsPerPair * 8f), "no more board than log by weight");
+        Assert.That(SawPitRules.Prompt(3, 0, 0f, true), Is.EqualTo("Saw Pit  (3 Logs -> 3 Lumber; hold click to saw)"));
+        Type rules = Find("WellsAndOuthouses"), kindType = Find("PileKind");
+        object site = Enum.Parse(kindType, "SawPitSite");
+        Assert.That((bool)rules.GetMethod("RequiresDig").Invoke(null, new[] { site }), Is.True);
+        Assert.That(rules.GetMethod("FinishedKind").Invoke(null, new[] { site }), Is.EqualTo(Enum.Parse(kindType, "SawPit")));
+        Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.SawPitSitePlaced), Is.EqualTo(new[] { KnowHowRules.Sawing }));
+    }
+
+    [Test]
+    public void TheSaltBarrelHoldsDryGoodsUpToAHundredKilograms()
+    {
+        Assert.That(SaltBarrelRules.CapacityKg, Is.EqualTo(100f));
+        Assert.That(SaltBarrelRules.UnitsThatFit(0f, 1f), Is.EqualTo(100), "100 Salt at 1 kg each");
+        Assert.That(SaltBarrelRules.UnitsThatFit(99.5f, 1f), Is.EqualTo(0));
+        Assert.That(SaltBarrelRules.UnitsThatFit(99.5f, 0.3f), Is.EqualTo(1), "one more Cordage still fits");
+        Assert.That(SaltBarrelRules.KgText(42f), Is.EqualTo("42 of 100 kg"));
+        Type manager = Find("WoodManager"), kindType = Find("PileKind");
+        object barrel = Enum.Parse(kindType, "SaltBarrel");
+        Assert.That((string)manager.GetMethod("PileName").Invoke(null, new[] { barrel }), Is.EqualTo("Salt Barrel"));
+        Assert.That((bool)manager.GetMethod("NeedsHammerToBuild").Invoke(null, new[] { barrel }), Is.True, "built in one go with the Hammer, like the Storage Bin");
+        Assert.That(Array.IndexOf((Array)manager.GetField("Buildable").GetValue(null), barrel), Is.GreaterThanOrEqualTo(0));
+        Assert.That((bool)manager.GetMethod("IsDryGoods").Invoke(null, new object[] { "salt" }), Is.True, "Salt is dry goods, so the barrel takes it");
+    }
+
     // What n units fetch when each sale drops the price 5% of the base.
     static double SoldWithDrops(long cents, int n)
     {

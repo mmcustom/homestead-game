@@ -187,7 +187,7 @@ public class CharcoalPitTests
     public void TheTwoPitKindsAreThirtyNineAndFortyAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(51), "39 kinds before the Pit, plus the Pit's two, the Bloomery's two (41, 42), the Smithy's two (43, 44), the Compost Bin (45) and the Drying Rack (46)");
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(54), "39 kinds before the Pit, plus the Pit's two, the Bloomery's two (41, 42), the Smithy's two (43, 44), the Compost Bin (45) and the Drying Rack (46)");
         Assert.That((int)Enum.Parse(kind, "Kiln"), Is.EqualTo(38), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "CharcoalPitSite"), Is.EqualTo(39));
         Assert.That((int)Enum.Parse(kind, "CharcoalPit"), Is.EqualTo(40));
@@ -614,7 +614,7 @@ public class CharcoalPitTests
     [Test]
     public void TheCharcoalAndOreEntriesUnlockOnTheirTriggers()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(17)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(18)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Charcoal, out KnowHowRules.Entry charcoal), Is.True);
         Assert.That(charcoal.title, Is.EqualTo("Charcoal: Burning Logs Slowly"));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.IronOre, out KnowHowRules.Entry ore), Is.True);

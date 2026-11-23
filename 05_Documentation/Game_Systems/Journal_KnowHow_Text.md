@@ -206,3 +206,13 @@ A Root Cellar is an earth-covered room for keeping food. Food on its shelves age
 Build it from the Build tab. Mark out the site, dig it out with the Shovel, then deliver 10 Stone, 8 Logs and 4 Lumber in any order and finish it with the Hammer. Pick dry ground out of hollows, or rain will run in.
 
 Walk in through the door and press E at the shelves at the back to store or take food. The shelves hold up to 300 kg of food.
+
+---
+
+## 18. Sawing Lumber in a Saw Pit
+
+Trigger: a Saw Pit Site marked out.
+
+A Saw Pit turns Logs into Lumber, so you need not buy it at the Trading Post. Build it from the Build tab: mark out the site, dig the trench with the Shovel, then deliver 6 Logs and 4 Branches in any order and finish it with the Hammer.
+
+Put the Hammer away and press R at the pit to lay Logs across it (up to 6). Then equip the Wood Saw and hold click on the log. Every 2 Logs take 20 strokes and make 3 Lumber, stacked beside the pit. Press E to take the Lumber.

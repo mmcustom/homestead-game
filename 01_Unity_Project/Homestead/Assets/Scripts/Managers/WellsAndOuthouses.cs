@@ -193,6 +193,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmithySite:
             case PileKind.SmokehouseSite:
             case PileKind.RootCellarSite:
+            case PileKind.SawPitSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -221,6 +222,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmithySite: return PileKind.Smithy;
             case PileKind.SmokehouseSite: return PileKind.Smokehouse;
             case PileKind.RootCellarSite: return PileKind.RootCellar;
+            case PileKind.SawPitSite: return PileKind.SawPit;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -257,6 +259,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmithySite: return SmithyCost();
             case PileKind.SmokehouseSite: return SmokehouseCost();
             case PileKind.RootCellarSite: return RootCellarCost();
+            case PileKind.SawPitSite: return SawPitCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -278,7 +281,7 @@ public class WellsAndOuthouses : MonoBehaviour
     }
 
     // A stage that must be done before anything is delivered (the Well's shaft, dug with the Shovel; the Outhouse has none).
-    public static bool RequiresDig(PileKind site) => site == PileKind.WellSite || site == PileKind.RootCellarSite;
+    public static bool RequiresDig(PileKind site) => site == PileKind.WellSite || site == PileKind.RootCellarSite || site == PileKind.SawPitSite;
 
     // The order materials are taken in: a group opens once every earlier group is full. The Well lines the shaft with Stone before
     // the cap timber is taken; the Outhouse's materials go in any order.
@@ -300,6 +303,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { BloomeryRules.StoneId, BloomeryRules.ClayId } }; // the Stone and the Clay in any order
         if (site == PileKind.SmokehouseSite)
             return new[] { new[] { SmokeRules.StoneId, SmokeRules.ClayId, SmokeRules.LogsId, SmokeRules.LumberId } }; // all four, in any order (Mike, 2026-11-23: the Lumber was refused before the Stone and Clay)
+        if (site == PileKind.SawPitSite)
+            return new[] { new[] { SawPitRules.LogsId, SawPitRules.BranchesId } }; // both, in any order, once the trench is dug
         if (site == PileKind.RootCellarSite)
             return new[] { new[] { RootCellarRules.StoneId, RootCellarRules.LogsId, RootCellarRules.LumberId } }; // all three, in any order, once it is dug
         if (site == PileKind.SmithySite)
@@ -453,6 +458,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmithySite: return SmithyRules.BuildBlows;
             case PileKind.SmokehouseSite: return SmokeRules.BuildBlows;
             case PileKind.RootCellarSite: return RootCellarRules.BuildBlows;
+            case PileKind.SawPitSite: return SawPitRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -500,6 +506,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return SmokeRules.BuiltMessage;
         if (site == PileKind.RootCellarSite)
             return RootCellarRules.BuiltMessage;
+        if (site == PileKind.SawPitSite)
+            return SawPitRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -640,6 +648,13 @@ public class WellsAndOuthouses : MonoBehaviour
         new WoodStack { itemId = RootCellarRules.StoneId, count = RootCellarRules.SiteStone },
         new WoodStack { itemId = RootCellarRules.LogsId, count = RootCellarRules.SiteLogs },
         new WoodStack { itemId = RootCellarRules.LumberId, count = RootCellarRules.SiteLumber },
+    };
+
+    // A Saw Pit (Saw_Pit_Sawmill_and_Salt_Barrel.md 1): 6 Logs and 4 Branches after the trench. SawPitRules has the numbers.
+    public static WoodStack[] SawPitCost() => new[]
+    {
+        new WoodStack { itemId = SawPitRules.LogsId, count = SawPitRules.SiteLogs },
+        new WoodStack { itemId = SawPitRules.BranchesId, count = SawPitRules.SiteBranches },
     };
 
     // A Smithy (Metalworking M3): 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass (the thatch roof), about 61 kg, a staged site. SmithyRules has the numbers.
@@ -872,6 +887,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmokehouseSite: return SmokeRules.RadiusMetres;
             case PileKind.RootCellar:
             case PileKind.RootCellarSite: return RootCellarRules.ReachMetres;
+            case PileKind.SawPit:
+            case PileKind.SawPitSite: return SawPitRules.ReachMetres;
             case PileKind.WoodShed:
             case PileKind.WoodShedSite:
             case PileKind.Tent:
@@ -990,16 +1007,17 @@ public class WellsAndOuthouses : MonoBehaviour
 
         // A Root Cellar (Food_Spoilage_and_Preservation.md 6) is dug in: not in a hollow (rain would run in and flood it), no tree on its mound, and spaced from other
         // buildings like a wide shed.
-        if (kind == PileKind.RootCellarSite || kind == PileKind.RootCellar)
+        if (kind == PileKind.RootCellarSite || kind == PileKind.RootCellar || kind == PileKind.SawPitSite || kind == PileKind.SawPit)
         {
+            bool pit = kind == PileKind.SawPitSite || kind == PileKind.SawPit;
             if (InHollow(point))
             {
-                reason = "In a hollow: rain would run in and flood the cellar.";
+                reason = pit ? "In a hollow: rain would run in and flood the saw pit." : "In a hollow: rain would run in and flood the cellar.";
                 return false;
             }
-            if (WoodManager.Instance != null && WoodManager.Instance.FindTree(point, RootCellarRules.ReachMetres) >= 0)
+            if (WoodManager.Instance != null && WoodManager.Instance.FindTree(point, pit ? SawPitRules.ReachMetres : RootCellarRules.ReachMetres) >= 0)
             {
-                reason = "Clear the trees off the cellar site first.";
+                reason = pit ? "Clear the trees off the saw pit site first." : "Clear the trees off the cellar site first.";
                 return false;
             }
             return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
@@ -1233,7 +1251,7 @@ public class WellsAndOuthouses : MonoBehaviour
     public static WellWaterResult WellNumbers(WoodPileState well) =>
         Instance != null ? Instance.NumbersOf(well) : WellWater.ForDepth(well.depthToWater);
 
-    public int DigBlowsOf(WoodPileState well) => well.kind == PileKind.RootCellarSite ? RootCellarRules.DigBlows : Mathf.Max(1, NumbersOf(well).digBlows);
+    public int DigBlowsOf(WoodPileState well) => well.kind == PileKind.RootCellarSite ? RootCellarRules.DigBlows : well.kind == PileKind.SawPitSite ? SawPitRules.DigBlows : Mathf.Max(1, NumbersOf(well).digBlows);
 
     public float RecoveryPerHour(WoodPileState well)
     {

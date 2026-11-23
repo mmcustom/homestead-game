@@ -232,6 +232,7 @@ public class StorageTransferScreen : GameScreen
                              : state.kind == PileKind.CompostBin ? (state.IsEmpty ? "Empty" : $"{state.Total} stored") + "   ·   " + SpoilageManager.CompostStatus(state)
                              : state.kind == PileKind.DryingRack ? DryingHeader(state)
                              : state.kind == PileKind.RootCellar ? RootCellarRules.KgText(WoodPile.CartLoadKg(state)) + "   ·   ages a third as fast, never freezes"
+                             : state.kind == PileKind.SaltBarrel ? SaltBarrelRules.KgText(WoodPile.CartLoadKg(state)) + "   ·   kept dry under its lid"
                              : state.IsEmpty ? "Empty" : $"{state.Total} stored   ·   no limit";
 
         takeAllButton.interactable = !state.IsEmpty;
@@ -330,6 +331,7 @@ public class StorageTransferScreen : GameScreen
             case PileKind.RainBarrel: return "A Rain Barrel only holds water.";
             case PileKind.FoodCache: return "A Food Cache only holds food.";
             case PileKind.RootCellar: return "A Root Cellar holds food only, up to 300 kg. Food kept here ages a third as fast all year and never freezes.";
+            case PileKind.SaltBarrel: return SaltBarrelRules.Holds;
             case PileKind.StorageBin: return "A Storage Bin holds Cordage, hides, furs, arrows and the like — not Tools, wood, stone, food or water.";
             case PileKind.CompostBin: return "A Compost Bin takes Rot and Tall Grass: 4 Rot and 2 Tall Grass make 1 Fertilizer in about 7 days.";
             case PileKind.DryingRack: return "A Drying Rack takes fresh berries, apples, pawpaws, mushrooms, raw meat and raw fish, up to 12 at a time. They dry in daylight while it is not raining.";

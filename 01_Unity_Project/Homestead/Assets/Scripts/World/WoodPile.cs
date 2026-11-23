@@ -40,7 +40,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // Cabin's staged CabinSite — get the per-item transfer screen on E instead of an instant take-all.
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
-                                state.kind == PileKind.StorageBin || state.kind == PileKind.CompostBin || state.kind == PileKind.DryingRack || state.kind == PileKind.ToolRack ||
+                                state.kind == PileKind.StorageBin || state.kind == PileKind.SaltBarrel || state.kind == PileKind.CompostBin || state.kind == PileKind.DryingRack || state.kind == PileKind.ToolRack ||
                                 state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart || state.kind == PileKind.RootCellar;
 
     // A felled tree's pile (and anything dropped as one) opens the take-only screen on E: the player picks what to take and the rest stays
@@ -59,6 +59,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                 return RootCellarRules.OutsidePrompt;
             if (IsCellar)
                 return $"Open the Root Cellar's shelves  ({Describe(state)}; {RootCellarRules.KgText(CartLoadKg(state))})";
+            if (IsSaltBarrel)
+                return $"Open {Name}  ({Describe(state)}; {SaltBarrelRules.KgText(CartLoadKg(state))})";
             if (UsesTransferScreen)
                 return IsCart ? $"Open {Name}  ({Describe(state)}; {CartRules.KgText(CartLoadKg(state))})" : $"Open {Name}  ({Describe(state)})";
             if (state.IsEmpty)
@@ -509,6 +511,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // the whole units of it that still fit under the 100 kg (12 Logs, 20 Stone, 28 Clay, 66 Firewood in an empty cart). Anything else: StorageRoom.
     bool IsCart => state != null && state.kind == PileKind.HandCart;
     bool IsCellar => state != null && state.kind == PileKind.RootCellar;
+    bool IsSaltBarrel => state != null && state.kind == PileKind.SaltBarrel;
 
     int RoomFor(string itemId)
     {
@@ -516,6 +519,11 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         {
             ItemDefinition food = ItemDatabase.Get(itemId);
             return RootCellarRules.UnitsThatFit(CartLoadKg(state), food != null ? food.WeightKg : 0f);
+        }
+        if (IsSaltBarrel)
+        {
+            ItemDefinition goods = ItemDatabase.Get(itemId);
+            return SaltBarrelRules.UnitsThatFit(CartLoadKg(state), goods != null ? goods.WeightKg : 0f);
         }
         if (!IsCart)
             return StorageRoom;
@@ -559,7 +567,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         }
         if (RoomFor(itemId) <= 0)
         {
-            reason = IsCart ? CartRules.NoRoomReason(CartLoadKg(state)) : IsCellar ? $"the cellar is full ({RootCellarRules.KgText(CartLoadKg(state))})" : "the barrel is full";
+            reason = IsCart ? CartRules.NoRoomReason(CartLoadKg(state)) : IsCellar ? $"the cellar is full ({RootCellarRules.KgText(CartLoadKg(state))})"
+                   : IsSaltBarrel ? SaltBarrelRules.FullReason(CartLoadKg(state)) : "the barrel is full";
             return false;
         }
         return true;
@@ -793,6 +802,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.RainBarrel: return 2;                     // the barrel and its rim
             case PileKind.FoodCache: return 2;                      // the box and its lid
             case PileKind.StorageBin: return 2;                     // the bin and its dark inside
+            case PileKind.SaltBarrel: return 4;                     // the barrel, two hoops and the lid
             case PileKind.CompostBin: return 2;                     // the slatted bin and the heap inside
             case PileKind.DryingRack: return 5;                     // two posts and three rails (the hanging food stays drawn)
             case PileKind.ToolRack: return 3;                       // the board and two feet
@@ -849,6 +859,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.RainBarrel: BuildBarrel(); return;
             case PileKind.FoodCache: BuildBox(new Vector3(1f, 0.6f, 0.7f), 0.8f, true); return;
             case PileKind.StorageBin: BuildBox(new Vector3(1.1f, 0.55f, 0.75f), 1.15f, false); return;
+            case PileKind.SaltBarrel: BuildSaltBarrel(); return;
             case PileKind.CompostBin: BuildBox(new Vector3(0.9f, 0.7f, 0.9f), 0.9f, false); return;
             case PileKind.DryingRack: BuildDryingRack(); return;
             case PileKind.ToolRack: BuildRack(); return;
@@ -1204,6 +1215,20 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                    new Color(0.22f, 0.3f, 0.34f));
         box.center = new Vector3(0f, height / 2f, 0f);
         box.size = new Vector3(width + 0.05f, height, width + 0.05f);
+    }
+
+    // The Salt Barrel (SaltBarrelRules): a lidded barrel about 0.9 m tall, with two dark hoops. Its contents are kept out of sight under the lid.
+    void BuildSaltBarrel()
+    {
+        const float height = 0.9f, width = 0.62f;
+        Piece(PrimitiveType.Cylinder, new Vector3(0f, height / 2f, 0f), Vector3.zero, new Vector3(width, height / 2f, width), bark);
+        Color hoop = new Color(0.12f, 0.1f, 0.08f);
+        foreach (float y in new[] { 0.2f, height - 0.2f })
+            Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, y, 0f), Vector3.zero, new Vector3(width + 0.03f, 0.025f, width + 0.03f), null), hoop);
+        Tinted(Piece(PrimitiveType.Cylinder, new Vector3(0f, height + 0.02f, 0f), Vector3.zero, new Vector3(width + 0.02f, 0.02f, width + 0.02f), bark),
+               new Color(0.3f, 0.23f, 0.16f));
+        box.center = new Vector3(0f, height / 2f, 0f);
+        box.size = new Vector3(width + 0.1f, height + 0.1f, width + 0.1f);
     }
 
     // A standing frame with a peg for each kind of Tool stored (up to 6), filling left to right, top to bottom.
