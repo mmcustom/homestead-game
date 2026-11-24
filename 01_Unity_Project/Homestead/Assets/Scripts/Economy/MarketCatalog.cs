@@ -205,6 +205,9 @@ public static class MarketCatalog
         // Food_Spoilage_and_Preservation.md 5: Smoked Meat and Smoked Fish from the Smokehouse, bought (SmokeRules has the prices).
         Row(SmokeRules.SmokedMeatId, MarketGroup.GameMeat, SmokeRules.SmokedMeatCents, MarketKind.Bought),
         Row(SmokeRules.SmokedFishId, MarketGroup.Fish, SmokeRules.SmokedFishCents, MarketKind.Bought),
+        // Tanning_Hides_and_Furs.md 2 (slice T1): salted hides, bought for what the raw ones fetch, each its own pool (HideRules has the prices).
+        Row(HideRules.SaltedDeerHideId, MarketGroup.Hides, HideRules.SaltedDeerHideCents, MarketKind.Bought),
+        Row(HideRules.SaltedFursId, MarketGroup.Hides, HideRules.SaltedFursCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

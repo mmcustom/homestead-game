@@ -11,6 +11,8 @@ public class SpoilageSaveData
     public double cellar;
     // Slice 3 (appended, so older saves load 0 and start the rack clock at the outdoor one): the Drying Rack's clock.
     public double rack;
+    // Slice T1 (appended, so older saves load false): whether hides carry freshness stamps yet. A save without it gets its hides stamped half-fresh.
+    public bool hidesStamped;
 }
 
 // Food spoilage (Food_Spoilage_and_Preservation.md, Mike 2026-11-22). Runs the three freshness clocks (SpoilageRules) once
@@ -27,6 +29,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
     double outdoor, cache, cellar, rack;
     DayNightCycle dayNight;
     bool registered, hooked, restoredThisLoad;
+    bool hidesStamped = true; // a new game's hides are stamped as they are picked up (Tanning_Hides_and_Furs.md section 2)
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics() => Instance = null;
@@ -412,7 +415,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
 
     // --- Saving ---
 
-    public SpoilageSaveData CaptureState() => new SpoilageSaveData { outdoor = outdoor, cache = cache, cellar = cellar, rack = rack };
+    public SpoilageSaveData CaptureState() => new SpoilageSaveData { outdoor = outdoor, cache = cache, cellar = cellar, rack = rack, hidesStamped = true };
 
     public void RestoreState(SpoilageSaveData data)
     {
@@ -420,6 +423,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         cache = data.cache;
         cellar = data.cellar;
         rack = data.rack > 0 ? data.rack : data.outdoor; // a save from before the Drying Rack
+        hidesStamped = data.hidesStamped;
         restoredThisLoad = true;
     }
 
@@ -427,8 +431,52 @@ public class SpoilageManager : MonoBehaviour, ISaveable
     void OnLoaded()
     {
         if (!restoredThisLoad)
-            MigrateFromDays();
+            MigrateFromDays(); // turns the hides' days into stamps along with the food's
+        else if (!hidesStamped)
+            StampOldHides();
+        hidesStamped = true;
         restoredThisLoad = false;
+    }
+
+    // A save from before slice T1: its hides kept the day they were picked up (or nothing, in a pile), not a freshness stamp. Each one is
+    // stamped half-fresh, as food was when spoilage first came in, so nothing turns to Rot the moment the save loads.
+    public void StampOldHides()
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory != null)
+        {
+            Func<ItemDefinition, int, int> map = (item, stamp) => HideRules.IsRawHide(item.Id)
+                ? SpoilageRules.StampAged(outdoor, HideRules.HalfFreshAgeHours(item.ShelfLifeDays)) : stamp;
+            inventory.Player.RestampPerishables(map);
+            foreach (InventoryContainer container in inventory.Storage)
+                container.RestampPerishables(map);
+        }
+
+        WoodManager wood = WoodManager.Instance;
+        if (wood != null)
+        {
+            foreach (WoodPileState pile in wood.Piles)
+            {
+                bool changed = false;
+                foreach (WoodStack stack in pile.contents)
+                {
+                    ItemDefinition item = ItemDatabase.Get(stack.itemId);
+                    if (item == null || !HideRules.IsRawHide(item.Id))
+                        continue;
+                    stack.day = SpoilageRules.StampAged(ClockHours(ClockOf(pile.kind)), HideRules.HalfFreshAgeHours(item.ShelfLifeDays));
+                    changed = true;
+                }
+                if (changed)
+                {
+                    pile.MergeSameDay();
+                    wood.NotifyChanged(pile);
+                }
+            }
+        }
+
+        foreach (ItemPickup pickup in FindObjectsByType<ItemPickup>(FindObjectsSortMode.None))
+            if (pickup != null && pickup.Dropped && pickup.Item != null && HideRules.IsRawHide(pickup.Item.Id))
+                pickup.Restamp(SpoilageRules.StampAged(outdoor, HideRules.HalfFreshAgeHours(pickup.Item.ShelfLifeDays)));
     }
 
     public void MigrateFromDays()

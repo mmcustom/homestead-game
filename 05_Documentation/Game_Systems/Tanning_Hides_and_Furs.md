@@ -29,6 +29,18 @@ Everything below marked *proposed* is Claude's suggestion for Mike to change as 
 - The Food Cache and the Root Cellar do not take hides; the Storage Bin does, as now.
 - Old saves: hides already carried are stamped half-fresh, as food was in slice 1.
 
+### As built (slice T1, 2026-11-23)
+
+Built with the proposed numbers (Mike: "yes, commit, then proceed"). The rules live in HideRules.cs.
+
+- Deer Hide keeps 7 days and Small Furs 5, on the outdoor freshness clock. The Inventory and storage screens show the time left, as for food. A spoiled hide turns to Rot.
+- Salting needs only the Salt, no Crock Pot (the salt is rubbed into the flesh side). The Salt button shows on any raw hide row in the Inventory.
+- New items: Salted Deer Hide (3 kg) and Salted Furs (0.2 kg), each keeping 360 days. The Trading Post buys them for $8 and $3, in the Hides group.
+- Old saves: hides carried, stored or dropped are stamped half-fresh the first time the save loads (SpoilageSaveData.hidesStamped).
+- Know-how entry 19, "Hides Spoil: Salt or Tan Them", unlocks when any raw or salted hide is in the pack.
+- Hides are not food, so the Food Cache and the Root Cellar still refuse them; the Storage Bin and the Salt Barrel take them.
+- Art: item_salted_deer_hide and its icon; item_salted_furs comes next.
+
 ## 3. The Hide Frame (slice T2): scraping and rawhide
 
 - **Build** (*proposed*): 4 Sticks, 2 Branches and 2 Cordage, one click with the Hammer (like the Drying Rack). It is a square pole frame about 2 m tall, with a hide laced into it.

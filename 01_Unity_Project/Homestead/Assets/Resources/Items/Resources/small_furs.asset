@@ -16,4 +16,8 @@ MonoBehaviour:
   displayName: Small Furs
   category: 0
   weightKg: 0.2
-  shelfLifeDays: 0
+  shelfLifeDays: 5
+  keepsBatchDay: 0
+  hungerRestored: 0
+  hydrationRestored: 0
+  illnessChance: 0

@@ -762,6 +762,20 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: salted_deer_hide
+    group: 3
+    pool: salted_deer_hide
+    baseCents: 800
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: salted_furs
+    group: 3
+    pool: salted_furs
+    baseCents: 300
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400

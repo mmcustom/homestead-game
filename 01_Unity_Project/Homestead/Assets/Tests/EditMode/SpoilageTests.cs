@@ -510,6 +510,36 @@ public class SpoilageTests
         Assert.That((bool)manager.GetMethod("IsDryGoods").Invoke(null, new object[] { "salt" }), Is.True, "Salt is dry goods, so the barrel takes it");
     }
 
+    [Test]
+    public void RawHidesSpoilAndSaltingKeepsThemAYear()
+    {
+        Assert.That(HideRules.TryFind("deer_hide", out string hide, out int hideSalt), Is.True);
+        Assert.That(hide, Is.EqualTo("salted_deer_hide")); Assert.That(hideSalt, Is.EqualTo(2));
+        Assert.That(HideRules.TryFind("small_furs", out string furs, out int fursSalt), Is.True);
+        Assert.That(furs, Is.EqualTo("salted_furs")); Assert.That(fursSalt, Is.EqualTo(1));
+        Assert.That(HideRules.Salts("venison"), Is.False, "meat salts in the crock (SaltRules), not here");
+        Assert.That(HideRules.PiecesFor("deer_hide", 3, 5), Is.EqualTo(2), "5 Salt salts two Deer Hides");
+        Assert.That(HideRules.PiecesFor("small_furs", 3, 5), Is.EqualTo(3), "no more than are carried");
+        Assert.That(HideRules.PiecesFor("deer_hide", 1, 1), Is.EqualTo(0));
+        Assert.That(HideRules.HalfFreshAgeHours(7), Is.EqualTo(84.0));
+        Assert.That(HideRules.RowInfo("deer_hide", 0), Is.EqualTo("2 Salt each, keeps about a year; you have no Salt"));
+        Assert.That(HideRules.SaltedMessage(1, "Deer Hide", 2), Is.EqualTo("Salted 1 Deer Hide (2 Salt): it keeps about a year now"));
+
+        // The item assets carry the shelf lives; the salted hides weigh what the raw ones do and are not food.
+        Type db = Find("ItemDatabase");
+        Func<string, object> get = id => db.GetMethod("Get", new[] { typeof(string) }).Invoke(null, new object[] { id });
+        Func<string, string, object> prop = (id, name) => { object item = get(id); return item.GetType().GetProperty(name).GetValue(item, null); };
+        Assert.That(prop("deer_hide", "ShelfLifeDays"), Is.EqualTo(HideRules.DeerHideShelfDays));
+        Assert.That(prop("small_furs", "ShelfLifeDays"), Is.EqualTo(HideRules.SmallFursShelfDays));
+        Assert.That(prop("salted_deer_hide", "ShelfLifeDays"), Is.EqualTo(HideRules.SaltedShelfDays));
+        Assert.That(prop("salted_furs", "ShelfLifeDays"), Is.EqualTo(HideRules.SaltedShelfDays));
+        Assert.That(prop("salted_deer_hide", "WeightKg"), Is.EqualTo(prop("deer_hide", "WeightKg")));
+        Assert.That(prop("salted_furs", "WeightKg"), Is.EqualTo(prop("small_furs", "WeightKg")));
+        foreach (string id in new[] { "deer_hide", "small_furs", "salted_deer_hide", "salted_furs" })
+            Assert.That(prop(id, "IsFood"), Is.False, id + " is not food, so the Food Cache and Root Cellar refuse it");
+        Assert.That(KnowHowRules.ForItem("salted_furs"), Is.EqualTo(new[] { KnowHowRules.Hides }));
+    }
+
     // What n units fetch when each sale drops the price 5% of the base.
     static double SoldWithDrops(long cents, int n)
     {

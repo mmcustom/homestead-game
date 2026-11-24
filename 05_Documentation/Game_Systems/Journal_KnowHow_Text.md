@@ -216,3 +216,13 @@ Trigger: a Saw Pit Site marked out.
 A Saw Pit turns Logs into Lumber, so you need not buy it at the Trading Post. Build it from the Build tab: mark out the site, dig the trench with the Shovel, then deliver 6 Logs and 4 Branches in any order and finish it with the Hammer.
 
 Put the Hammer away and press R at the pit to lay Logs across it (up to 6). Then equip the Wood Saw and hold click on the log. Every 2 Logs take 20 strokes and make 3 Lumber, stacked beside the pit. Press E to take the Lumber.
+
+---
+
+## 19. Hides Spoil: Salt or Tan Them
+
+Trigger: a Deer Hide, Small Furs, a Salted Deer Hide or Salted Furs in the pack.
+
+A fresh Deer Hide or Small Furs will not keep. A Deer Hide spoils in about a week and Small Furs in about five days, faster in summer heat and slower in the cold, and then they turn to Rot. The Inventory shows how long each has left, as it does for food.
+
+To keep a hide, salt it. Buy Salt at the Trading Post ($2 a bag), then open Inventory (I): a raw hide row shows a Salt button. A Deer Hide takes 2 Salt and Small Furs take 1. A salted hide keeps for about a year and sells for the same as a fresh one.

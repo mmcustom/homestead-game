@@ -425,6 +425,8 @@ public class InventoryScreen : GameScreen
         bool cooks = atFire && (cookable || boilable || sapBoil || lyeBoil);
         // Raw meat and fish get a Salt button while a Crock Pot is carried and no fire is in reach to cook them (SaltRules, Salting).
         bool saltable = !cooks && SaltRules.Salts(item.Id) && Salting.CrockCarried;
+        // A raw Deer Hide or Small Furs gets a Salt button whenever the row shows: salting a hide needs only the Salt (HideRules, Salting.SaltHides).
+        bool hideSaltable = HideRules.Salts(item.Id);
         // Only Tools that clicking equips: the Sleeping Bag (sleeps), Tent (placed) and Weather Station (carried) are Tools by category but aren't held.
         bool hotkeyable = isTool && !InventoryManager.IsCarriedOnly(item.Id);
 
@@ -526,6 +528,15 @@ public class InventoryScreen : GameScreen
             QuantityStepper.SetEnabled(action, canSalt > 0);
             actionText = () => $"Salt {Mathf.Min(stepper.Amount, Mathf.Max(1, canSalt))}";
             idleInfo = SaltRules.RowInfo(item.Id, salt, item.WeightKg);
+        }
+        else if (hideSaltable)
+        {
+            int salt = InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(HideRules.SaltId) : 0;
+            int canSalt = HideRules.PiecesFor(item.Id, quantity, salt);
+            action = AddButton("Salt", 126f, 118f, Act((shift, n) => { if (Salting.SaltHides(item, shift ? int.MaxValue : n) > 0) Refresh(); }));
+            QuantityStepper.SetEnabled(action, canSalt > 0);
+            actionText = () => $"Salt {Mathf.Min(stepper.Amount, Mathf.Max(1, canSalt))}";
+            idleInfo = HideRules.RowInfo(item.Id, salt);
         }
 
         if (idleInfo.Length == 0)
