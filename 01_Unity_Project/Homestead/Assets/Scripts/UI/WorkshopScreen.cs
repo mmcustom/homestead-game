@@ -97,6 +97,9 @@ public class WorkshopScreen : MonoBehaviour
 
         Text title = UiKit.Heading(panel, "Title", "Workshop", TitleSize, TextAnchor.MiddleLeft);
         Place(title.rectTransform, 32f, 14f, 600f, 60f);
+        // The Leatherwork tab (tanning slice T5a): the same bench's leather goods, on their own screen.
+        Button tab = UiKit.Button(panel, "Leatherwork Tab", ClothingRules.TabLeatherwork, CloseSize, SwitchToLeatherwork);
+        Place((RectTransform)tab.transform, PanelWidth - 32f - 190f - 20f - 260f, 16f, 260f, 56f);
         Button close = UiKit.Button(panel, "Close", "Close", CloseSize, () => Hide(true));
         Place((RectTransform)close.transform, PanelWidth - 32f - 190f, 16f, 190f, 56f);
 
@@ -204,6 +207,15 @@ public class WorkshopScreen : MonoBehaviour
             AudioManager.Instance.Play(SoundCue.UiBack);
     }
 
+    // The Leatherwork tab (or L): this screen closes without leaving the Menu state, and the Leatherwork screen opens on the same bench.
+    void SwitchToLeatherwork()
+    {
+        PlacedStructure target = bench;
+        Hide(false);
+        if (target != null)
+            LeatherworkScreen.Open(target);
+    }
+
     void Subscribe()
     {
         if (subscribed || GameManager.Instance == null)
@@ -261,6 +273,11 @@ public class WorkshopScreen : MonoBehaviour
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null)
             return;
+        if (keyboard.lKey.wasPressedThisFrame)
+        {
+            SwitchToLeatherwork();
+            return;
+        }
         WorkshopRules.KeyAction action = WorkshopRules.Resolve(PressedKey(keyboard), selected, WorkshopRules.Recipes.Length);
         switch (action.kind)
         {

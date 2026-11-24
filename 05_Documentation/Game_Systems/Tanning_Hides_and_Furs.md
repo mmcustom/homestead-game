@@ -100,16 +100,61 @@ Built with the proposed numbers and no Brains item (Mike: "ok"). The rules are i
 - **Leather:** $30 a hide, sold in the Hides group. The first Tanbark or Leather unlocks the Know-how entry **Bark Tanning: Leather** (entry 22).
 - **Taking the vat down:** with the Hammer, but not while hides are soaking. Rawhide, Tanbark and Leather come back to the pack; the water is poured out.
 
-## 6. Crafting with tanned goods (slice T5, later)
+## 6. Crafting with tanned goods (slice T5)
 
-These are proposals only, to come once the goods exist:
+### Mike's decisions (2026-11-23)
 
-- **Rawhide Lashing** from Rawhide: it binds tool heads and frames, and is stronger than Cordage.
-- **Moccasins** from Buckskin and Sinew: less stamina lost walking.
-- **Buckskin Coat** from Buckskin and Tanned Furs: warmer in cold weather.
-- **Leather Pouch** from Leather and Sinew: a bigger Pouch.
-- **Fur Hat and Mittens** from Tanned Furs: winter warmth.
+- All four groups go in: the **Leather Pack**, **cold-weather clothing** (Buckskin Coat, Buckskin Leggings, Fur Hat, Fur Mittens), **Moccasins** and **Rawhide Lashing**.
+- Clothing is worn in **real clothing slots**, not just carried: **five slots**, Head, Upper Body, Lower Body, Hands and Feet (Mike, 2026-11-23).
+- The goods are made **at the Workshop**.
+- **Winter gets colder without the clothes** (Mike, 2026-11-23): the everyday winter clothing drops from 2.0 clo to 1.2 clo (summer stays 0.8), so a full set (+1.2 clo) is what keeps a winter comfortable. The Buckskin Leggings are approved as planned.
+
+### What the game has today (checked 2026-11-23)
+
+- **Sinew:** 2 from a deer, 1 from a turkey. Today it only goes into Cordage.
+- **The Pouch:** +10 kg of carry room while it is in the pack.
+- **Body heat:** the player is assumed to dress for the season: 2.0 clo in the cold (-1 C and below) down to 0.8 clo in the warm (24 C and above). There are no clothing slots.
+- **Stamina:** walking costs none; sprinting costs 15 a second and jumping 10. Sprinting is less stealthy; wildlife detection has multipliers.
+- **The Workshop:** a woodworking bench, stocked with Logs, Branches and Cordage (R), four pieces on its screen (E), each a job of a few game hours.
+
+### Proposed (*for Mike to approve*)
+
+**Clothing slots.** The Inventory screen gets a **Wearing** panel with five slots: **Head, Upper Body, Lower Body, Hands, Feet**. Click a piece of clothing in the pack to put it on; click it in its slot to take it off. Worn clothing still counts toward the carry weight. What is worn is saved with the game.
+
+**Warmth.** The seasonal clothing stays as the player's everyday clothes, but its winter end drops from 2.0 to 1.2 clo (Mike's decision above). Worn pieces add on top of it:
+
+| Piece | Slot | Adds | Made from | Hours | Sells for |
+|---|---|---|---|---|---|
+| Buckskin Coat | Upper Body | +0.5 clo | 3 Buckskin, 1 Tanned Furs (collar), 2 Sinew | 6 | $90 |
+| Buckskin Leggings | Lower Body | +0.3 clo | 2 Buckskin, 1 Sinew | 4 | $50 |
+| Fur Hat | Head | +0.2 clo | 2 Tanned Furs, 1 Sinew | 2 | $18 |
+| Fur Mittens | Hands | +0.15 clo | 2 Tanned Furs, 1 Sinew | 2 | $16 |
+| Moccasins | Feet | +0.05 clo; sprinting costs 20% less stamina, and walking is quieter to wildlife | 1 Buckskin, 1 Sinew | 2 | $30 |
+
+Because worn clothing adds warmth, it can also make the player too hot in summer: take it off. Wet clothing loses its warmth as the everyday clothes do.
+
+**Rawhide Lashing.** 1 Rawhide makes 4 Rawhide Lashing (1 hour). It counts as Cordage everywhere Cordage is used (recipes, building costs, the Workshop's own stock), the way a Peeled Log counts as a Log; plain Cordage is used first. Not sold.
+
+**Leather Pack.** 2 Leather, 2 Sinew, 2 Rawhide Lashing (4 hours): **+20 kg** of carry room while it is in the pack, instead of the Pouch's +10 (the two do not add up; the bigger one counts). Carried, like the Pouch. Sells for $75.
+
+**At the Workshop.** The Workshop screen gets two tabs: **Woodwork** (the four pieces as today) and **Leatherwork** (the seven goods above). A leather piece takes its hides, Sinew and Lashing straight from the pack when it starts, so there is no stocking step; then it runs hour by hour like the woodwork, and E collects it.
+
+**Build order.** Two sub-slices, each played and approved before the next:
+1. **T5a:** the clothing slots, the warmth, and the five pieces of clothing, with the Leatherwork tab.
+2. **T5b:** Rawhide Lashing and the Leather Pack.
+
+**Art:** the Coat, Leggings, Hat, Mittens, Moccasins, Rawhide Lashing and Leather Pack, each with its icon. Worn clothing is not seen in first person.
+
 - **Saddle, harness and belts** later, with horses and livestock.
+
+### As built (slice T5a, 2026-11-24)
+
+- **Slots:** the Inventory's **Wearing** panel has five lines, Head, Upper Body, Lower Body, Hands and Feet. Click a piece of clothing in the list to put it on (anything already in that slot comes off); click its line in the panel to take it off. Worn clothing stays in the pack, so its weight counts; it comes off by itself if it leaves the pack (sold, stored, dropped). What is worn is saved with the game.
+- **Warmth:** the everyday clothes now run from **1.2 clo** in the cold (was 2.0) to 0.8 in the warm, and each worn piece adds its warmth on top: Coat +0.5, Leggings +0.3, Hat +0.2, Mittens +0.15, Moccasins +0.05 (a full set +1.2). Worn clothing gets wet with the everyday clothes and loses its warmth the same way.
+- **Moccasins:** sprinting costs 20% less stamina, and walking and sprinting are 20% less noticeable to wildlife.
+- **Leatherwork:** the Workshop screen has a **Leatherwork** button (or L); the Leatherwork screen lists the five pieces and has a **Woodwork** button (or W) back. A piece takes its Buckskin, Tanned Furs and Sinew straight from the pack when it starts, needs the **Knife** in the pack, then runs as the bench's one job, hour by hour, and E at the bench collects it. The bench does one job at a time, woodwork or leather.
+- **Selling:** the five pieces sell in the Crafted group at their base prices ($90, $50, $18, $16, $30).
+- **Art:** the five pieces each have a model and an icon (approved 2026-11-24). Worn clothing is not seen in first person.
 
 ## 7. The Trading Post (proposed)
 

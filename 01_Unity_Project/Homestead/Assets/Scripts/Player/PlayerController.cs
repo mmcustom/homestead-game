@@ -158,16 +158,18 @@ public class PlayerController : MonoBehaviour, ISaveable
     }
 
     // For Wildlife/Hunting: how noticeable the player currently is (First_Person_Controller.md, Design Rule 2).
+    // Worn Moccasins (tanning slice T5a) make walking and sprinting steps quieter.
     public float DetectionMultiplier
     {
         get
         {
+            float feet = ClothingRules.DetectionFactor(InventoryManager.Instance != null && InventoryManager.Instance.MoccasinsWorn);
             switch (State)
             {
                 case MovementState.Jumping: return jumpDetection;
                 case MovementState.Crouching: return crouchDetection;
-                case MovementState.Sprinting: return sprintDetection;
-                case MovementState.Walking: return walkDetection;
+                case MovementState.Sprinting: return sprintDetection * feet;
+                case MovementState.Walking: return walkDetection * feet;
                 default: return crouched ? crouchDetection : idleDetection;
             }
         }
@@ -438,7 +440,9 @@ public class PlayerController : MonoBehaviour, ISaveable
     {
         if (sprinting)
         {
-            stamina = Mathf.Max(0f, stamina - sprintStaminaPerSecond * dt);
+            // Worn Moccasins (tanning slice T5a) make sprinting cost less stamina.
+            float feet = ClothingRules.SprintFactor(InventoryManager.Instance != null && InventoryManager.Instance.MoccasinsWorn);
+            stamina = Mathf.Max(0f, stamina - sprintStaminaPerSecond * feet * dt);
             sprintExertion += dt;
             lastSprintTime = Time.time;
         }

@@ -202,10 +202,11 @@ public class SurvivalManager : MonoBehaviour, ISaveable
     [SerializeField] float bagIgnoredFromC = 20f;
     [SerializeField] float bagIgnoredAtC = 24f;
 
-    [Header("Seasonal clothing (until a clothing system exists)")]
-    [Tooltip("The player dresses for the recent temperature: this much insulation (clo) at or below the cold temperature, " +
-             "falling to the warm figure at or above the warm temperature.")]
-    [SerializeField, Min(0f)] float winterClo = 2f;
+    [Header("Everyday clothing (worn clothing adds to it: ClothingRules)")]
+    [Tooltip("The player's everyday clothes, dressed for the recent temperature: this much insulation (clo) at or below the cold temperature, " +
+             "falling to the warm figure at or above the warm temperature. The winter end was 2.0 until worn clothing came in (tanning slice T5a, Mike 2026-11-23: " +
+             "winter is colder without the clothes); the coat, leggings, hat, mittens and moccasins add their warmth on top.")]
+    [SerializeField, Min(0f)] float winterClo = ClothingRules.WinterEverydayClo;
     [SerializeField, Min(0f)] float summerClo = 0.8f;
     [SerializeField] float clothingColdC = -1f;
     [SerializeField] float clothingWarmC = 24f;
@@ -674,7 +675,7 @@ public class SurvivalManager : MonoBehaviour, ISaveable
             solarWatts = solarWatts,
             sweatEfficiency = evaporation * sweatSupply,
             windMetersPerSecond = wind * windMetersPerSecondAtFull * (1f - windShelter),
-            clo = BodyHeat.Clo(smoothedTempC, winterClo, summerClo, clothingColdC, clothingWarmC),
+            clo = BodyHeat.Clo(smoothedTempC, winterClo, summerClo, clothingColdC, clothingWarmC) + (InventoryManager.Instance != null ? InventoryManager.Instance.WornClo : 0f),
             wetness = wetness * (1f - hotWet),
             damp = damp * (1f - hotWet),
             waterCoolingWatts = waterCoolWatts,

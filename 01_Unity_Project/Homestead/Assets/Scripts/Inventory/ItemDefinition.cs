@@ -1,7 +1,7 @@
 using UnityEngine;
 
-// Inventory_System.md's item categories.
-public enum ItemCategory { Resource, Tool, Consumable, Material }
+// Inventory_System.md's item categories. Clothing (tanning slice T5a) is worn in the Inventory's five slots (ClothingRules); appended so saved assets keep their numbers.
+public enum ItemCategory { Resource, Tool, Consumable, Material, Clothing }
 
 // Static data for one kind of item. Create via Assets > Create > Homestead > Item and place under
 // Assets/Resources/Items so ItemDatabase can find it. Per Inventory_System.md, this holds what Inventory needs to

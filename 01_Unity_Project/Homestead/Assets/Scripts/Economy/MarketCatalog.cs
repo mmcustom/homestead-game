@@ -181,6 +181,12 @@ public static class MarketCatalog
         Row(WorkshopRules.EndTableId, MarketGroup.Crafted, WorkshopRules.Recipes[1].baseCents, MarketKind.Bought),
         Row(WorkshopRules.ChairId, MarketGroup.Crafted, WorkshopRules.Recipes[2].baseCents, MarketKind.Bought),
         Row(WorkshopRules.TableId, MarketGroup.Crafted, WorkshopRules.Recipes[3].baseCents, MarketKind.Bought),
+        // Tanning slice T5a: the five pieces of clothing from the Workshop's Leatherwork, in the Crafted group (ClothingRules has the prices).
+        Row(ClothingRules.Pieces[0].itemId, MarketGroup.Crafted, ClothingRules.Pieces[0].baseCents, MarketKind.Bought),
+        Row(ClothingRules.Pieces[1].itemId, MarketGroup.Crafted, ClothingRules.Pieces[1].baseCents, MarketKind.Bought),
+        Row(ClothingRules.Pieces[2].itemId, MarketGroup.Crafted, ClothingRules.Pieces[2].baseCents, MarketKind.Bought),
+        Row(ClothingRules.Pieces[3].itemId, MarketGroup.Crafted, ClothingRules.Pieces[3].baseCents, MarketKind.Bought),
+        Row(ClothingRules.Pieces[4].itemId, MarketGroup.Crafted, ClothingRules.Pieces[4].baseCents, MarketKind.Bought),
         // Pottery P2: the five fired pieces from the Kiln, in the Crafted group (10% off per unit, floor 0.1); the dry pieces and Sand have no row, so they do not sell. PotteryRules has the prices.
         Row(PotteryRules.FiredCupId, MarketGroup.Crafted, PotteryRules.Recipes[0].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredBowlId, MarketGroup.Crafted, PotteryRules.Recipes[1].firedCents, MarketKind.Bought),

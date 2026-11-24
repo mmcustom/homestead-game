@@ -636,6 +636,41 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: buckskin_coat
+    group: 5
+    pool: buckskin_coat
+    baseCents: 9000
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: buckskin_leggings
+    group: 5
+    pool: buckskin_leggings
+    baseCents: 5000
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: fur_hat
+    group: 5
+    pool: fur_hat
+    baseCents: 1800
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: fur_mittens
+    group: 5
+    pool: fur_mittens
+    baseCents: 1600
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: moccasins
+    group: 5
+    pool: moccasins
+    baseCents: 3000
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   - itemId: clay_cup
     group: 5
     pool: clay_cup

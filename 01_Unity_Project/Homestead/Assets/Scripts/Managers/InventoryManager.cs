@@ -9,6 +9,7 @@ public struct InventorySaveData
     public string equippedItemId;
     public List<InventoryContainerData> storage;
     public List<string> hotkeys; // item id per slot, "" for empty; null in saves from before hotkeys
+    public List<string> worn;    // item id per clothing slot (ClothingRules.Slot order), "" for empty; null in saves from before clothing
 }
 
 // Player inventory, storage containers, equipment (Unity_Architecture.md, Inventory_System.md).
@@ -43,10 +44,14 @@ public class InventoryManager : MonoBehaviour, ISaveable
 
     readonly Dictionary<string, InventoryContainer> storage = new Dictionary<string, InventoryContainer>();
     readonly string[] hotkeys = new string[HotkeySlots];
+    // What is worn in each clothing slot (tanning slice T5a): an item id per ClothingRules.Slot, or null. A worn piece stays in the pack, so its weight counts and it is
+    // saved with the pack; this only says which piece is on.
+    readonly string[] worn = new string[ClothingRules.SlotCount];
     ItemDefinition equippedTool;
 
     public event Action<ItemDefinition> EquippedToolChanged;
     public event Action HotkeysChanged;
+    public event Action WornChanged;
 
     public InventoryContainer Player { get; private set; }
     public IEnumerable<InventoryContainer> Storage => storage.Values;
@@ -179,6 +184,42 @@ public class InventoryManager : MonoBehaviour, ISaveable
 
     public void Unequip() => SetEquipped(null);
 
+    // --- Clothing (tanning slice T5a) ---
+
+    // The piece worn in a slot, or null.
+    public string WornIn(ClothingRules.Slot slot) => worn[(int)slot];
+
+    public bool IsWorn(string itemId) => !string.IsNullOrEmpty(itemId) && Array.IndexOf(worn, itemId) >= 0;
+
+    // The warmth (clo) of everything worn, added to the everyday clothes' warmth (SurvivalManager).
+    public float WornClo => ClothingRules.WornClo(worn);
+
+    public bool MoccasinsWorn => IsWorn(ClothingRules.MoccasinsId);
+
+    // Puts a carried piece of clothing on, in its own slot (whatever was there comes off). False if it is not clothing or not carried.
+    public bool Wear(string itemId)
+    {
+        int slot = ClothingRules.SlotOf(itemId);
+        if (slot < 0 || !Player.Has(itemId))
+            return false;
+        if (worn[slot] == itemId)
+            return true;
+        worn[slot] = itemId;
+        WornChanged?.Invoke();
+        return true;
+    }
+
+    // Takes a piece off (it stays in the pack). False if it was not worn.
+    public bool TakeOff(string itemId)
+    {
+        int slot = Array.IndexOf(worn, itemId);
+        if (string.IsNullOrEmpty(itemId) || slot < 0)
+            return false;
+        worn[slot] = null;
+        WornChanged?.Invoke();
+        return true;
+    }
+
     // --- Tool hotkeys ---
 
     // The label for a slot: keys 1-9, then 0 for the tenth.
@@ -272,6 +313,8 @@ public class InventoryManager : MonoBehaviour, ISaveable
         SetEquipped(null);
         Array.Clear(hotkeys, 0, hotkeys.Length);
         HotkeysChanged?.Invoke();
+        Array.Clear(worn, 0, worn.Length);
+        WornChanged?.Invoke();
     }
 
     void OnPlayerInventoryChanged()
@@ -282,6 +325,19 @@ public class InventoryManager : MonoBehaviour, ISaveable
         // A tool that's been dropped, sold or stored can't stay equipped.
         if (equippedTool != null && !Player.Has(equippedTool.Id))
             SetEquipped(null);
+
+        // Nor can clothing that has left the pack stay worn.
+        bool changed = false;
+        for (int i = 0; i < worn.Length; i++)
+        {
+            if (worn[i] != null && !Player.Has(worn[i]))
+            {
+                worn[i] = null;
+                changed = true;
+            }
+        }
+        if (changed)
+            WornChanged?.Invoke();
     }
 
     void SetEquipped(ItemDefinition item)
@@ -308,6 +364,10 @@ public class InventoryManager : MonoBehaviour, ISaveable
         data.hotkeys = new List<string>();
         foreach (string id in hotkeys)
             data.hotkeys.Add(id ?? "");
+
+        data.worn = new List<string>();
+        foreach (string id in worn)
+            data.worn.Add(id ?? "");
 
         return data;
     }
@@ -342,6 +402,19 @@ public class InventoryManager : MonoBehaviour, ISaveable
             }
         }
         HotkeysChanged?.Invoke();
+
+        // Each slot keeps only clothing for that slot that is still in the pack.
+        Array.Clear(worn, 0, worn.Length);
+        if (data.worn != null)
+        {
+            for (int i = 0; i < worn.Length && i < data.worn.Count; i++)
+            {
+                string id = data.worn[i];
+                if (!string.IsNullOrEmpty(id) && ClothingRules.SlotOf(id) == i && Player.Has(id))
+                    worn[i] = id;
+            }
+        }
+        WornChanged?.Invoke();
 
         equippedTool = null;
         if (!string.IsNullOrEmpty(data.equippedItemId))

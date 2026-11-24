@@ -63,6 +63,20 @@ public static class WorkshopRules
         new Recipe { itemId = TableId, name = "Table", logs = 3, branches = 4, cordage = 2, hours = 5, baseCents = 2800, weightKg = 24f },
     };
 
+    // Every piece the bench can make: the woodwork above, then the Leatherwork pieces (tanning slice T5a), each as a bench recipe with no Logs, Branches or Cordage. A
+    // leather piece shares the bench's one job and its finished-piece slot, so the prompts, the hour ticks, the collecting and the refund work for it unchanged.
+    public static Recipe[] AllPieces
+    {
+        get
+        {
+            var all = new Recipe[Recipes.Length + ClothingRules.Pieces.Length];
+            Recipes.CopyTo(all, 0);
+            for (int i = 0; i < ClothingRules.Pieces.Length; i++)
+                all[Recipes.Length + i] = ClothingRules.AsBenchRecipe(ClothingRules.Pieces[i]);
+            return all;
+        }
+    }
+
     public static bool TryFind(string itemId, out Recipe recipe)
     {
         foreach (Recipe r in Recipes)
@@ -72,6 +86,11 @@ public static class WorkshopRules
                 recipe = r;
                 return true;
             }
+        }
+        if (ClothingRules.TryFind(itemId, out ClothingRules.Piece piece))
+        {
+            recipe = ClothingRules.AsBenchRecipe(piece);
+            return true;
         }
         recipe = default;
         return false;

@@ -1011,7 +1011,7 @@ MonoBehaviour:
   evaporativeTailWatts: 60
   bagIgnoredFromC: 20
   bagIgnoredAtC: 24
-  winterClo: 2
+  winterClo: 1.2
   summerClo: 0.8
   clothingColdC: -1
   clothingWarmC: 24

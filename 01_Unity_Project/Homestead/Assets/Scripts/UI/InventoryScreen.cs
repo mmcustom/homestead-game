@@ -34,6 +34,11 @@ public class InventoryScreen : GameScreen
     Text hintLabel;
     Button craftButton;
     Text noticeLabel;
+    // The Wearing panel (tanning slice T5a): one button per clothing slot, naming what is worn there; a click takes it off.
+    readonly Button[] wornButtons = new Button[ClothingRules.SlotCount];
+    readonly Text[] wornLabels = new Text[ClothingRules.SlotCount];
+    public const float WornTop = 536f, WornRowHeight = 32f;
+    public const int WornSize = 22;
     readonly ScreenBanner banner = new ScreenBanner();
     RectTransform barFill;
     Image barFillImage;
@@ -118,6 +123,18 @@ public class InventoryScreen : GameScreen
         noticeLabel = UiKit.Text(right, "Notice", "", 18, UiKit.InkMuted);
         Top(noticeLabel.rectTransform, 470f, 56f);
 
+        // What is worn, a line per slot (Head, Upper Body, Lower Body, Hands, Feet). Click clothing in the list to put it on; click its line here to take it off.
+        Heading(right, "Wearing", WornTop);
+        for (int i = 0; i < ClothingRules.SlotCount; i++)
+        {
+            var slot = (ClothingRules.Slot)i;
+            Button b = UiKit.Button(right, "Worn " + ClothingRules.SlotName(slot), "", WornSize, () => TakeOffSlot(slot));
+            Top((RectTransform)b.transform, WornTop + 38f + i * WornRowHeight, WornRowHeight - 2f);
+            wornLabels[i] = b.GetComponentInChildren<Text>();
+            wornLabels[i].alignment = TextAnchor.MiddleLeft;
+            wornButtons[i] = b;
+        }
+
         banner.Build(area); // last, so it draws over everything else
     }
 
@@ -129,6 +146,7 @@ public class InventoryScreen : GameScreen
             watched.Player.Changed += Refresh;
             watched.EquippedToolChanged += OnEquippedChanged;
             watched.HotkeysChanged += Refresh;
+            watched.WornChanged += Refresh;
         }
         Refresh();
     }
@@ -152,6 +170,7 @@ public class InventoryScreen : GameScreen
         watched.Player.Changed -= Refresh;
         watched.EquippedToolChanged -= OnEquippedChanged;
         watched.HotkeysChanged -= Refresh;
+        watched.WornChanged -= Refresh;
         watched = null;
     }
 
@@ -250,7 +269,7 @@ public class InventoryScreen : GameScreen
         foreach ((ItemDefinition item, int quantity) in stacks)
             AddRow(item, quantity, item == equipped, atFire, player);
 
-        hintLabel.text = "Click a tool to equip it, food or water to use one. Set an amount with - / + / Max or type it; Shift-click Drop: the stack. Point at a tool, press 1-9/0: hotkey. " +
+        hintLabel.text = "Click a tool to equip it, clothing to wear it, food or water to use one. Set an amount with - / + / Max or type it; Shift-click Drop: the stack. Point at a tool, press 1-9/0: hotkey. " +
                          (atFire ? "<color=#2E6121>At the fire: Cook; Boil water or sap (Pot) or Lye (Kettle), hung on a tripod.</color>"
                                  : "Cook at a burning campfire; split Logs and Branches with the Axe.");
 
@@ -272,7 +291,45 @@ public class InventoryScreen : GameScreen
             statusLabel.text = $"Unencumbered. {limit - carried:0.0} kg before you slow down.";
 
         equippedLabel.text = equipped != null ? equipped.DisplayName : "<color=#6B5538>None</color>";
+        for (int i = 0; i < ClothingRules.SlotCount; i++)
+        {
+            string id = inventory.WornIn((ClothingRules.Slot)i);
+            ItemDefinition piece = string.IsNullOrEmpty(id) ? null : ItemDatabase.Get(id);
+            wornLabels[i].text = ClothingRules.WornLine((ClothingRules.Slot)i, piece != null ? piece.DisplayName : null);
+            wornButtons[i].interactable = piece != null;
+        }
         RefreshNotice();
+    }
+
+    // Clothing: a click on its row puts it on, or takes it off when it is already on.
+    void ToggleWear(ItemDefinition item)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null || !ClothingRules.TryFind(item.Id, out ClothingRules.Piece piece))
+            return;
+        if (inventory.IsWorn(item.Id))
+        {
+            inventory.TakeOff(item.Id);
+            Notify(ClothingRules.TookOffMessage(piece), warning: false, seconds: 2.5f);
+        }
+        else if (inventory.Wear(item.Id))
+        {
+            Notify(ClothingRules.PutOnMessage(piece), warning: false, seconds: 3.5f);
+        }
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+    }
+
+    // The Wearing panel's line: takes that slot's piece off (it stays in the pack).
+    void TakeOffSlot(ClothingRules.Slot slot)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        string id = inventory != null ? inventory.WornIn(slot) : null;
+        if (string.IsNullOrEmpty(id))
+            return;
+        ItemDefinition item = ItemDatabase.Get(id);
+        if (item != null)
+            ToggleWear(item);
     }
 
     // --- Notice ---
@@ -357,15 +414,17 @@ public class InventoryScreen : GameScreen
     {
         inventoryHasLantern = InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(PortableLight.LanternId);
         bool isTool = item.Category == ItemCategory.Tool;
+        bool worn = InventoryManager.Instance != null && InventoryManager.Instance.IsWorn(item.Id);
         UnityEngine.Events.UnityAction click = item.Id == SleepManager.SleepingBagId ? SleepHere
                                              : InventoryManager.IsCarriedOnly(item.Id) ? null
+                                             : ClothingRules.IsPiece(item.Id) ? () => ToggleWear(item)
                                              : isTool ? () => ToggleEquip(item)
                                              : item.IsFood ? () => Food.Consume(item)
                                              : (UnityEngine.Events.UnityAction)null;
 
         // The row is a panel. Its top half is the old click-to-equip or eat row, a button so it lights up under the pointer; the bottom
         // half holds the stepper and the action buttons, outside that button so a click there never equips or eats by accident.
-        Image panel = UiKit.Image(list, item.Id, equipped ? UiKit.SelectedColor : UiKit.RaisedColor);
+        Image panel = UiKit.Image(list, item.Id, equipped || worn ? UiKit.SelectedColor : UiKit.RaisedColor);
         RectTransform rt = panel.rectTransform;
         UiKit.Height(rt, RowHeight);
         if (click != null)
@@ -403,7 +462,7 @@ public class InventoryScreen : GameScreen
         }
 
         string detail = item.IsFood ? FoodDetail(item) : CategoryName(item.Category);
-        string tag = equipped ? "  <color=#2E6121>• Equipped</color>" : "";
+        string tag = equipped ? "  <color=#2E6121>• Equipped</color>" : worn ? "  <color=#2E6121>• Worn</color>" : "";
         PortableLight light = PortableLight.Instance;
         if (light != null && item.Id == PortableLight.TorchId && light.TorchHoursLeft > 0f)
             tag += $"  <size=18><color=#94520E>{light.TorchHoursLeft:0.0} h</color></size>";
@@ -757,6 +816,7 @@ public class InventoryScreen : GameScreen
             case ItemCategory.Resource: return "Resource";
             case ItemCategory.Tool: return "Tool";
             case ItemCategory.Consumable: return "Consumable";
+            case ItemCategory.Clothing: return "Clothing";
             default: return "Material";
         }
     }

@@ -174,7 +174,7 @@ public static class StructureVisuals
         bool working = !string.IsNullOrEmpty(state.jobItem) && state.jobHours > 0f;
         if (working)
             Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-0.4f, 1.02f, bench.z), new Vector3(0f, 0f, 90f), new Vector3(0.26f, 0.45f, 0.26f), bark);
-        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.AllPieces)
         {
             if (state.Count(recipe.itemId) > 0)
             {
@@ -765,6 +765,7 @@ public static class StructureVisuals
     static readonly Color TanWaterColor = new Color(0.22f, 0.12f, 0.05f);
     static readonly Color TanbarkColor = new Color(0.35f, 0.2f, 0.1f);
     static readonly Color LeatherColor = new Color(0.3f, 0.17f, 0.08f);
+    static readonly Color BuckskinFoldColor = new Color(0.72f, 0.55f, 0.34f);
 
     // A log trough sunk in the ground, about 1.6 x 0.9 m: four side logs, two end logs and a plank lid leaning on one side. 7 static pieces. Inside, the
     // dark bark water when there is water, the hides' edges showing while they soak, and the Leather folded on the lid when it is done; Tanbark heaped beside.
@@ -841,6 +842,15 @@ public static class StructureVisuals
     {
         void Plank(Vector3 offset, Vector3 size) => Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + offset, Vector3.zero, size, bark), BenchWoodColor);
         void Leg(float x, float z, float height) => Piece(parent, pieces, PrimitiveType.Cylinder, at + new Vector3(x, height / 2f, z), Vector3.zero, new Vector3(0.05f, height / 2f, 0.05f), bark);
+
+        // A finished leather piece (tanning slice T5a): folded on the bench, buckskin tan, or fur brown for the fur goods.
+        if (ClothingRules.IsPiece(itemId))
+        {
+            bool fur = itemId == ClothingRules.HatId || itemId == ClothingRules.MittensId;
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0f, 0.04f, 0f), new Vector3(0f, 8f, 0f), new Vector3(0.42f, 0.07f, 0.32f), null), fur ? HideHairColor : BuckskinFoldColor);
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, at + new Vector3(0.02f, 0.1f, 0.01f), new Vector3(0f, -5f, 0f), new Vector3(0.36f, 0.05f, 0.26f), null), fur ? HideHairColor : BuckskinFoldColor);
+            return;
+        }
 
         switch (itemId)
         {
@@ -1712,7 +1722,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     // A finished piece waiting to be collected.
     bool WorkshopProduct(out WorkshopRules.Recipe piece, out int count)
     {
-        foreach (WorkshopRules.Recipe recipe in WorkshopRules.Recipes)
+        foreach (WorkshopRules.Recipe recipe in WorkshopRules.AllPieces)
         {
             int n = state.Count(recipe.itemId);
             if (n > 0)
@@ -1814,6 +1824,38 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         state.Take(WorkshopRules.BranchesId, recipe.branches);
         if (recipe.cordage > 0)
             state.Take(WorkshopRules.CordageId, recipe.cordage);
+        state.jobItem = recipe.itemId;
+        state.jobHours = recipe.hours;
+        WoodManager.Instance.NotifyChanged(state);
+        message = WorkshopRules.StartedMessage(recipe);
+        return true;
+    }
+
+    // --- Leatherwork at the same bench (tanning slice T5a): a leather piece takes its materials from the pack when it starts, needs the Knife, and then runs as the bench's job ---
+
+    static int PackCount(string itemId) => Inventory != null ? Inventory.Player.Count(itemId) : 0;
+
+    public WorkshopRules.Gate LeatherGateFor(ClothingRules.Piece piece) =>
+        ClothingRules.CanStart(piece, Inventory != null && Inventory.Player.Has(ClothingRules.KnifeId), WorkshopWorking, WorkshopProduct(out _, out _), PackCount);
+
+    // The one way a leather piece starts (the Leatherwork screen's Start button calls it): the gate is worked out again now; on success the pack's materials are taken and the
+    // bench's job set, and the message is the woodwork's "Started" one.
+    public bool TryStartLeather(ClothingRules.Piece piece, out string message)
+    {
+        message = "";
+        if (state == null || state.kind != PileKind.Workshop || Inventory == null || WoodManager.Instance == null)
+            return false;
+        WorkshopRules.Gate gate = LeatherGateFor(piece);
+        if (gate != WorkshopRules.Gate.Ok)
+        {
+            WorkshopMade(out WorkshopRules.Recipe made);
+            message = ClothingRules.ReasonText(gate, piece, made, PackCount, state.jobHours);
+            return false;
+        }
+
+        foreach (ClothingRules.Need need in piece.needs)
+            Inventory.RemoveFromPlayer(need.itemId, need.count);
+        WorkshopRules.Recipe recipe = ClothingRules.AsBenchRecipe(piece);
         state.jobItem = recipe.itemId;
         state.jobHours = recipe.hours;
         WoodManager.Instance.NotifyChanged(state);
@@ -3632,7 +3674,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             foreach (string stockId in WorkshopRules.StockIds)
                 refund.Return(stockId, state.Count(stockId));
-            foreach (WorkshopRules.Recipe piece in WorkshopRules.Recipes)
+            foreach (WorkshopRules.Recipe piece in WorkshopRules.AllPieces)
                 refund.Return(piece.itemId, state.Count(piece.itemId));
         }
         // A Potter's Shed gives back the Clay and Sand in it and the dry pieces on its shelf whole, on top of half the materials.
