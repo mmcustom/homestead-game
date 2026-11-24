@@ -790,6 +790,20 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: buckskin
+    group: 3
+    pool: buckskin
+    baseCents: 2400
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: tanned_furs
+    group: 3
+    pool: tanned_furs
+    baseCents: 600
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400

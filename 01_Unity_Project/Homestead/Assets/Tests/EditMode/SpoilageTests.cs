@@ -592,6 +592,55 @@ public class SpoilageTests
         Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.HideFramePlaced), Is.EqualTo(new[] { KnowHowRules.HideFrame }));
     }
 
+    [Test]
+    public void BrainTanningSoftensOnTheFrameThenSmokesIntoBuckskin()
+    {
+        Assert.That(HideFrameRules.TrySoften("rawhide", out string soft), Is.True); Assert.That(soft, Is.EqualTo("soft_hide"));
+        Assert.That(HideFrameRules.TrySoften("dried_furs", out soft), Is.True); Assert.That(soft, Is.EqualTo("soft_furs"));
+        Assert.That(HideFrameRules.Softens("deer_hide"), Is.False, "a raw hide is scraped and dried first");
+        Assert.That(HideFrameRules.KindOfOutput("rawhide"), Is.EqualTo(HideFrameRules.Kind.Deer));
+        Assert.That(HideFrameRules.KindOfOutput("soft_furs"), Is.EqualTo(HideFrameRules.Kind.Furs));
+        Assert.That(HideFrameRules.PhaseOf(false, true, HideFrameRules.SofteningMarker), Is.EqualTo(HideFrameRules.Phase.Softening));
+
+        float strokes = 0f; int blows = 0; bool done = false;
+        while (!done && blows < 100) { strokes = HideFrameRules.AfterSoftenStroke(strokes, HideFrameRules.Kind.Deer, out done); blows++; }
+        Assert.That(blows, Is.EqualTo(30));
+        strokes = 0f; blows = 0; done = false;
+        while (!done && blows < 100) { strokes = HideFrameRules.AfterSoftenStroke(strokes, HideFrameRules.Kind.Furs, out done); blows++; }
+        Assert.That(blows, Is.EqualTo(10));
+
+        Assert.That(HideFrameRules.SoftenRefusal(true, 2), Is.Null);
+        Assert.That(HideFrameRules.SoftenRefusal(false, 2), Does.Contain("Crock Pot"));
+        Assert.That(HideFrameRules.SoftenRefusal(true, 0), Does.Contain("water"));
+
+        // The Smokehouse takes them with the meat: a Soft Hide is 2 pieces' room, Soft Furs 1, each makes one.
+        Assert.That(SmokeRules.TryFind("soft_hide", out string smoked), Is.True); Assert.That(smoked, Is.EqualTo("buckskin"));
+        Assert.That(SmokeRules.TryFind("soft_furs", out smoked), Is.True); Assert.That(smoked, Is.EqualTo("tanned_furs"));
+        Assert.That(SmokeRules.RoomOf("soft_hide"), Is.EqualTo(2));
+        Assert.That(SmokeRules.RoomOf("soft_furs"), Is.EqualTo(1));
+        Assert.That(SmokeRules.RoomOf("venison"), Is.EqualTo(1));
+        Assert.That(SmokeRules.YieldOf("soft_hide"), Is.EqualTo(1));
+        Assert.That(SmokeRules.IsSmoked("buckskin"), Is.True, "E collects it with the smoked food");
+        Assert.That(SmokeRules.Accepts("soft_hide", SmokeRules.MeatCap - 1, 0, false), Is.False, "no room for 2 pieces' worth");
+        Assert.That(SmokeRules.Accepts("soft_furs", SmokeRules.MeatCap - 1, 0, false), Is.True);
+        Assert.That(SmokeRules.Accepts("soft_hide", 0, 0, true), Is.False, "nothing goes in while a load smokes");
+        Assert.That(SmokeRules.SmokedGoodsText(4, 0, 1, 2), Is.EqualTo("4 Smoked Meat, 1 Buckskin and 2 Tanned Furs"));
+
+        // Each step pays more than the last.
+        Assert.That(SmokeRules.BuckskinCents, Is.GreaterThan(HideFrameRules.RawhideCents));
+        Assert.That(SmokeRules.TannedFursCents, Is.GreaterThan(HideFrameRules.DriedFursCents));
+
+        Type db = Find("ItemDatabase");
+        Func<string, object> get = id => db.GetMethod("Get", new[] { typeof(string) }).Invoke(null, new object[] { id });
+        foreach (string id in new[] { "soft_hide", "soft_furs", "buckskin", "tanned_furs" })
+        {
+            object item = get(id);
+            Assert.That(item, Is.Not.Null, id);
+            Assert.That(item.GetType().GetProperty("IsPerishable").GetValue(item, null), Is.False, id + " does not spoil");
+        }
+        Assert.That(KnowHowRules.ForItem("buckskin"), Is.EqualTo(new[] { KnowHowRules.BrainTanning }));
+    }
+
     // What n units fetch when each sale drops the price 5% of the base.
     static double SoldWithDrops(long cents, int n)
     {

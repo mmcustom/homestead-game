@@ -612,7 +612,7 @@ public static class StructureVisuals
         }
         Tinted(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.03f, 0f), Vector3.zero, new Vector3(0.46f, 0.02f, 0.46f), null), burning ? Color.Lerp(SootColor, EmberColor, 0.6f) : SootColor);
         // The meat on its rails: what is loaded (raw red), or what waits (smoked brown), up to 10 shown, hanging where the doorway shows them.
-        int raw = state.SmokeRaw, smoked = state.SmokedMeat + state.SmokedFish;
+        int raw = state.SmokeRaw, smoked = state.SmokedMeat + state.SmokedFish + state.SmokedHides;
         int shown = Mathf.Min(10, raw > 0 ? raw : smoked);
         Color meat = raw > 0 ? (state.SmokeRunning ? Color.Lerp(RawMeatColor, SmokedMeatColor, 0.5f) : RawMeatColor) : SmokedMeatColor;
         for (int i = 0; i < shown; i++)
@@ -715,6 +715,7 @@ public static class StructureVisuals
     static readonly Color ScrapedHideColor = new Color(0.86f, 0.78f, 0.62f);
     static readonly Color RawhideColor = new Color(0.78f, 0.62f, 0.38f);
     static readonly Color CordageColor = new Color(0.55f, 0.45f, 0.3f);
+    static readonly Color SoftHideColor = new Color(0.93f, 0.9f, 0.82f);
 
     // A square pole frame about 2 m tall: two uprights set in the ground, a top and a bottom crossbar, and two braces at the foot. 6 static pieces.
     // The hide laced in it shows as a panel: hair-brown while it is being scraped, pale once scraped and drying, golden when it is Rawhide; furs as
@@ -733,10 +734,14 @@ public static class StructureVisuals
         HideFrameRules.Kind kind = HideFrameKindOf(state, out int pieceCount, out string outputId, out int outputCount);
         HideFrameRules.Phase phase = HideFramePhaseOf(state);
         float inner = 2f * half - 0.2f, height = top - low - 0.2f, mid = (top + low) / 2f;
-        if (phase == HideFrameRules.Phase.Scraping || phase == HideFrameRules.Phase.Drying || phase == HideFrameRules.Phase.Done)
+        if (phase != HideFrameRules.Phase.Empty)
         {
-            bool furs = phase == HideFrameRules.Phase.Scraping ? kind == HideFrameRules.Kind.Furs : outputId == HideFrameRules.DriedFursId;
-            Color tone = phase == HideFrameRules.Phase.Scraping ? (furs ? FurHairColor : HideHairColor) : phase == HideFrameRules.Phase.Drying ? ScrapedHideColor : RawhideColor;
+            bool furs = kind == HideFrameRules.Kind.Furs;
+            bool soft = outputId == HideFrameRules.SoftHideId || outputId == HideFrameRules.SoftFursId;
+            Color tone = phase == HideFrameRules.Phase.Scraping ? (furs ? FurHairColor : HideHairColor)
+                       : phase == HideFrameRules.Phase.Drying ? ScrapedHideColor
+                       : phase == HideFrameRules.Phase.Softening ? Color.Lerp(RawhideColor, SoftHideColor, 0.5f)
+                       : soft ? SoftHideColor : RawhideColor;
             if (!furs)
                 Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, mid, 0f), Vector3.zero, new Vector3(inner * 0.92f, height * 0.9f, 0.02f), null), tone);
             else
@@ -775,7 +780,7 @@ public static class StructureVisuals
                 outputCount += stack.count;
             }
         }
-        return kind;
+        return kind != HideFrameRules.Kind.None ? kind : HideFrameRules.KindOfOutput(outputId);
     }
 
     public static HideFrameRules.Phase HideFramePhaseOf(WoodPileState state)
@@ -2425,7 +2430,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         HideFrameRules.Kind kind = HideFrameKindOf(state, out int pieces, out string outputId, out int outputCount);
         ItemDefinition output = outputId != null ? ItemDatabase.Get(outputId) : null;
         bool dryingNow = SpoilageManager.Instance == null || SpoilageManager.Instance.DriesNow;
-        return HideFrameRules.Prompt(HideFramePhaseOf(state), kind, pieces, state.jobHours, KnifeEquipped, dryingNow, output != null ? output.DisplayName : outputId, outputCount);
+        return HideFrameRules.Prompt(HideFramePhaseOf(state), kind, pieces, state.jobHours, KnifeEquipped, dryingNow, output != null ? output.DisplayName : outputId, outputCount,
+                                     outputId != null && HideFrameRules.Softens(outputId));
     }
 
     string HideFrameSecondaryPrompt()
@@ -2437,18 +2443,21 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return NextHideCarried(out _, out _) != null ? "Lace a hide into the Hide Frame (R)" : HideFrameRules.NoHide;
     }
 
+    static readonly string[] LaceOrder =
+        { HideRules.DeerHideId, HideRules.SaltedDeerHideId, HideRules.SmallFursId, HideRules.SaltedFursId, HideFrameRules.RawhideId, HideFrameRules.DriedFursId };
+
     // The hide R would lace in: a Deer Hide before furs, raw before salted (the raw one spoils), and how many.
     static string NextHideCarried(out HideFrameRules.Kind kind, out int count)
     {
         kind = HideFrameRules.Kind.None; count = 0;
         if (Inventory == null)
             return null;
-        foreach (string id in new[] { HideRules.DeerHideId, HideRules.SaltedDeerHideId, HideRules.SmallFursId, HideRules.SaltedFursId })
+        foreach (string id in LaceOrder)
         {
             int have = Inventory.Player.Count(id);
             if (have <= 0)
                 continue;
-            kind = HideFrameRules.KindOf(id);
+            kind = HideFrameRules.LacesToSoften(id) ? HideFrameRules.KindOfOutput(id) : HideFrameRules.KindOf(id);
             count = Mathf.Min(have, HideFrameRules.MaxOn(kind));
             return id;
         }
@@ -2477,18 +2486,22 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (AudioManager.Instance != null)
             AudioManager.Instance.SilenceNextRemoval();
         int laced = 0;
-        foreach (string id in new[] { HideRules.DeerHideId, HideRules.SaltedDeerHideId, HideRules.SmallFursId, HideRules.SaltedFursId })
-        {
-            if (laced >= count || HideFrameRules.KindOf(id) != kind)
-                continue;
-            laced += Inventory.Player.RemoveBatches(id, Mathf.Min(count - laced, Inventory.Player.Count(id)), (day, n) => state.Add(id, n, day));
-        }
+        bool toSoften = HideFrameRules.LacesToSoften(first);
+        if (toSoften)
+            laced = Inventory.Player.RemoveBatches(first, count, (day, n) => state.Add(first, n, 0)); // Rawhide or Dried Furs: ready to soften
+        else
+            foreach (string id in new[] { HideRules.DeerHideId, HideRules.SaltedDeerHideId, HideRules.SmallFursId, HideRules.SaltedFursId })
+            {
+                if (laced >= count || HideFrameRules.KindOf(id) != kind)
+                    continue;
+                laced += Inventory.Player.RemoveBatches(id, Mathf.Min(count - laced, Inventory.Player.Count(id)), (day, n) => state.Add(id, n, day));
+            }
         if (laced <= 0)
             return;
         state.jobHours = 0f;
         state.jobItem = null;
         WoodManager.Instance.NotifyChanged(state);
-        ToolStatus.Flash(HideFrameRules.Laced(kind, laced), 4f);
+        ToolStatus.Flash(toSoften ? HideFrameRules.LacedToSoften(kind, laced) : HideFrameRules.Laced(kind, laced), 4f);
     }
 
     // E: takes Rawhide or Dried Furs off the frame; an unscraped hide comes back off whole; otherwise it says where the frame is.
@@ -2541,7 +2554,13 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (frame == null || frame.state == null || frame.state.kind != PileKind.HideFrame)
             return false;
         WoodPileState s = frame.state;
-        if (HideFramePhaseOf(s) != HideFrameRules.Phase.Scraping)
+        HideFrameRules.Phase phase = HideFramePhaseOf(s);
+        if (phase == HideFrameRules.Phase.Softening || phase == HideFrameRules.Phase.Done)
+        {
+            SoftenStroke(frame, s, phase);
+            return true;
+        }
+        if (phase != HideFrameRules.Phase.Scraping)
         {
             ToolStatus.Flash(frame.HideFramePromptText(), 3f);
             return true;
@@ -2563,6 +2582,48 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
+    // Brain tanning (slice T3): one Knife stroke working Rawhide or Dried Furs soft. The first stroke mixes the brains with water in the Crock Pot
+    // (WaterLitres taken from the pack, the worst water first); when the strokes are done it is a Soft Hide or Soft Furs, ready for the Smokehouse.
+    static void SoftenStroke(PlacedStructure frame, WoodPileState s, HideFrameRules.Phase phase)
+    {
+        HideFrameKindOf(s, out _, out string outputId, out int outputCount);
+        if (outputId == null || !HideFrameRules.TrySoften(outputId, out string softId))
+        {
+            ToolStatus.Flash(frame.HideFramePromptText(), 3f);
+            return;
+        }
+        HideFrameRules.Kind kind = HideFrameRules.KindOfOutput(outputId);
+        if (phase == HideFrameRules.Phase.Done)
+        {
+            InventoryContainer pack = InventoryManager.Instance != null ? InventoryManager.Instance.Player : null;
+            int litres = pack != null ? WaterQualities.LitresCarried(pack) : 0;
+            string refusal = HideFrameRules.SoftenRefusal(Salting.CrockCarried, litres);
+            if (refusal != null)
+            {
+                ToolStatus.Flash(refusal, 4f);
+                return;
+            }
+            int need = HideFrameRules.WaterLitres;
+            for (int i = WaterQualities.AllItemIds.Length - 1; i >= 0 && need > 0; i--)
+                need -= pack.Remove(WaterQualities.AllItemIds[i], need);
+            if (need > 0)
+                pack.Remove(Cooking.PurifiedWaterId, need);
+            s.jobItem = HideFrameRules.SofteningMarker;
+            s.jobHours = 0f;
+        }
+        s.jobHours = HideFrameRules.AfterSoftenStroke(s.jobHours, kind, out bool done);
+        if (done)
+        {
+            s.contents.RemoveAll(stack => stack.itemId == outputId);
+            s.Add(softId, outputCount, 0);
+            s.jobItem = null;
+            s.jobHours = 0f;
+            ToolStatus.Banner(HideFrameRules.Softened(kind), 5f);
+            ToolEvents.JobFinished();
+        }
+        WoodManager.Instance.NotifyChanged(s);
+    }
+
     // While the Knife is aimed at a Hide Frame with a hide to scrape: the HUD line and the progress bar (MeleeAttack.UpdatePrompt). Null otherwise.
     public static string HideFrameAimText(PlayerController player, out float progress)
     {
@@ -2570,9 +2631,19 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (player == null || !player.AimRaycast(HideFrameRules.ReachMetres, out RaycastHit hit))
             return null;
         PlacedStructure frame = hit.collider.GetComponentInParent<PlacedStructure>();
-        if (frame == null || frame.state == null || frame.state.kind != PileKind.HideFrame || HideFramePhaseOf(frame.state) != HideFrameRules.Phase.Scraping)
+        if (frame == null || frame.state == null || frame.state.kind != PileKind.HideFrame)
             return null;
-        HideFrameRules.Kind kind = HideFrameKindOf(frame.state, out _, out _, out _);
+        HideFrameRules.Phase phase = HideFramePhaseOf(frame.state);
+        HideFrameRules.Kind kind = HideFrameKindOf(frame.state, out _, out string outputId, out _);
+        if (phase == HideFrameRules.Phase.Softening)
+        {
+            progress = HideFrameRules.SoftenPercent(frame.state.jobHours, kind) / 100f;
+            return $"Work the hide soft (hold click): {HideFrameRules.SoftenPercent(frame.state.jobHours, kind)}%";
+        }
+        if (phase == HideFrameRules.Phase.Done && outputId != null && HideFrameRules.Softens(outputId))
+            return "Work it soft (hold click): needs a Crock Pot and 1 litre of water";
+        if (phase != HideFrameRules.Phase.Scraping)
+            return null;
         progress = HideFrameRules.Percent(frame.state.jobHours, kind) / 100f;
         return $"Scrape the hide (hold click): {HideFrameRules.Percent(frame.state.jobHours, kind)}%";
     }
@@ -2589,14 +2660,21 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return n;
     }
 
-    string SmokehousePromptText() =>
-        SmokeRules.Prompt(SmokePhaseNow, state.SmokeRaw, state.SmokeFirewood, SmokeYieldNow(), state.SmokedMeat, state.SmokedFish, state.jobHours, state.jobCount);
+    string SmokehousePromptText()
+    {
+        if (SmokePhaseNow == SmokeRules.Phase.Done && state.SmokedHides > 0)
+            return $"Collect  ({SmokeRules.SmokedGoodsText(state.SmokedMeat, state.SmokedFish, state.Count(SmokeRules.BuckskinId), state.Count(SmokeRules.TannedFursId))})";
+        return SmokeRules.Prompt(SmokePhaseNow, state.SmokeRaw, state.SmokeFirewood, SmokeYieldNow(), state.SmokedMeat, state.SmokedFish, state.jobHours, state.jobCount);
+    }
 
+    // The room the raw meat, fish and soft hides carried would take, in pieces of meat.
     int RawCarried()
     {
         int n = 0;
         foreach (string rawId in SmokeRules.RawIds)
             n += Inventory.Player.Count(rawId);
+        foreach (string hideId in SmokeRules.HideIds)
+            n += Inventory.Player.Count(hideId) * SmokeRules.RoomOf(hideId);
         return n;
     }
 
@@ -2656,7 +2734,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     // The smoked food goes to the pack with its freshness, as much as it holds; the rest stays in the smokehouse.
     void SmokehouseCollect()
     {
-        int waiting = state.SmokedMeat + state.SmokedFish, took = 0;
+        int waiting = state.SmokedMeat + state.SmokedFish + state.SmokedHides, took = 0;
         for (int i = state.contents.Count - 1; i >= 0; i--)
         {
             WoodStack stack = state.contents[i];
@@ -2713,6 +2791,15 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 break;
             string id = rawId;
             raw += Inventory.Player.RemoveBatches(id, plan.raw - raw, (day, count) => state.Add(id, count, day));
+        }
+        // Soft hides from the Hide Frame go in after the meat, each taking its room (a Soft Hide 2 pieces' worth).
+        foreach (string hideId in SmokeRules.HideIds)
+        {
+            int each = SmokeRules.RoomOf(hideId), fits = (plan.raw - raw) / each;
+            if (fits <= 0)
+                continue;
+            string id = hideId;
+            raw += each * Inventory.Player.RemoveBatches(id, fits, (day, count) => state.Add(id, count, day));
         }
         int firewood = plan.firewood > 0 ? Inventory.Player.RemoveBatches(SmokeRules.FirewoodId, plan.firewood, (day, count) => state.Add(SmokeRules.FirewoodId, count, 0)) : 0;
         if (raw + firewood <= 0)

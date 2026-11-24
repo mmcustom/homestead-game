@@ -211,6 +211,9 @@ public static class MarketCatalog
         // Tanning_Hides_and_Furs.md 3 (slice T2): what the Hide Frame makes, each its own pool (HideFrameRules has the prices).
         Row(HideFrameRules.RawhideId, MarketGroup.Hides, HideFrameRules.RawhideCents, MarketKind.Bought),
         Row(HideFrameRules.DriedFursId, MarketGroup.Hides, HideFrameRules.DriedFursCents, MarketKind.Bought),
+        // Tanning_Hides_and_Furs.md 4 (slice T3): brain-tanned goods from the Smokehouse (SmokeRules has the prices). The soft hides between are not bought.
+        Row(SmokeRules.BuckskinId, MarketGroup.Hides, SmokeRules.BuckskinCents, MarketKind.Bought),
+        Row(SmokeRules.TannedFursId, MarketGroup.Hides, SmokeRules.TannedFursCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

@@ -26,6 +26,21 @@ public static class SmokeRules
 
     public static readonly string[] SmokedIds = { SmokedMeatId, SmokedFishId };
 
+    // Brain tanning's second step (Tanning_Hides_and_Furs.md section 4, slice T3): a Soft Hide or Soft Furs from the Hide Frame smokes with the meat
+    // and comes out as Buckskin or Tanned Furs. A Soft Hide takes the room of 2 pieces of meat, Soft Furs 1; each makes one.
+    public const string SoftHideId = "soft_hide";
+    public const string SoftFursId = "soft_furs";
+    public const string BuckskinId = "buckskin";
+    public const string TannedFursId = "tanned_furs";
+    public const long BuckskinCents = 2400;
+    public const long TannedFursCents = 600;
+    public static readonly string[] HideIds = { SoftHideId, SoftFursId };
+
+    public static bool IsSoftHide(string itemId) => itemId == SoftHideId || itemId == SoftFursId;
+
+    // The room one piece takes in a load, in pieces of meat.
+    public static int RoomOf(string itemId) => itemId == SoftHideId ? 2 : 1;
+
     // The raw meat and fish it smokes (SaltRules.TryFind's list), in the order R loads them from the pack.
     public static readonly string[] RawIds = { "venison", "turkey_meat", "small_game_meat", "waterfowl_meat", "chicken_meat", "bass", "bluegill", "catfish", "crappie" };
 
@@ -79,6 +94,11 @@ public static class SmokeRules
     // What a raw piece smokes into. False for anything that is not raw meat or fish.
     public static bool TryFind(string itemId, out string smokedId)
     {
+        if (IsSoftHide(itemId))
+        {
+            smokedId = itemId == SoftHideId ? BuckskinId : TannedFursId;
+            return true;
+        }
         if (!SaltRules.TryFind(itemId, out string salted))
         {
             smokedId = null;
@@ -90,10 +110,12 @@ public static class SmokeRules
 
     public static bool Smokes(string itemId) => TryFind(itemId, out _);
 
-    public static bool IsSmoked(string itemId) => itemId == SmokedMeatId || itemId == SmokedFishId;
+    public static bool IsSmoked(string itemId) => itemId == SmokedMeatId || itemId == SmokedFishId || itemId == BuckskinId || itemId == TannedFursId;
+
+    public static bool IsTannedHide(string itemId) => itemId == BuckskinId || itemId == TannedFursId;
 
     // Smoked pieces one raw piece gives: one per dollar of its cooked price, at least one.
-    public static int YieldOf(string rawId) => Smokes(rawId) ? Math.Max(1, DryingRules.CookedCents(rawId) * PiecesPerCookedDollar / 100) : 0;
+    public static int YieldOf(string rawId) => IsSoftHide(rawId) ? 1 : Smokes(rawId) ? Math.Max(1, DryingRules.CookedCents(rawId) * PiecesPerCookedDollar / 100) : 0;
 
     // --- Phases ---
 
@@ -123,7 +145,7 @@ public static class SmokeRules
     public static int FirewoodRoom(int firewoodHeld) => Math.Max(0, FirewoodCap - Math.Max(0, firewoodHeld));
 
     public static bool Accepts(string itemId, int rawHeld, int firewoodHeld, bool smoking) =>
-        (Smokes(itemId) && MeatRoom(rawHeld, smoking) > 0) || (itemId == FirewoodId && FirewoodRoom(firewoodHeld) > 0);
+        (Smokes(itemId) && MeatRoom(rawHeld, smoking) >= RoomOf(itemId)) || (itemId == FirewoodId && FirewoodRoom(firewoodHeld) > 0);
 
     public struct LoadPlan
     {
@@ -188,6 +210,19 @@ public static class SmokeRules
         if (meat > 0 && fish > 0)
             return $"{meat} Smoked Meat and {fish} Smoked Fish";
         return fish > 0 ? $"{fish} Smoked Fish" : $"{meat} Smoked Meat";
+    }
+
+    // "4 Smoked Meat, 1 Buckskin and 2 Tanned Furs": everything smoked waiting, meat and hides.
+    public static string SmokedGoodsText(int meat, int fish, int buckskin, int tannedFurs)
+    {
+        var parts = new System.Collections.Generic.List<string>();
+        if (meat > 0) parts.Add($"{meat} Smoked Meat");
+        if (fish > 0) parts.Add($"{fish} Smoked Fish");
+        if (buckskin > 0) parts.Add($"{buckskin} Buckskin");
+        if (tannedFurs > 0) parts.Add($"{tannedFurs} Tanned Furs");
+        if (parts.Count == 0) return "nothing";
+        if (parts.Count == 1) return parts[0];
+        return string.Join(", ", parts.GetRange(0, parts.Count - 1)) + " and " + parts[parts.Count - 1];
     }
 
     public static string CostText => $"{SiteStone} Stone, {SiteClay} Clay, {SiteLogs} Logs and {SiteLumber} Lumber";

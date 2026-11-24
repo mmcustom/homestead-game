@@ -412,7 +412,7 @@ public class CharcoalPitTests
         Assert.That(asset, Does.Contain("  - itemId: charcoal\n    group: 0\n    pool: charcoal\n    baseCents: 100\n    kind: 1\n    seasonalBuy: 0\n"));
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(111), "Salt, Salt Meat, Salt Fish and the five dried foods; the maple gear's two rows; the five hand tools joined the shelf 2026-11-14; 87, the two M1 rows, the three Smithy goods and Fertilizer");
+        Assert.That(rows, Is.EqualTo(113), "Salt, Salt Meat, Salt Fish and the five dried foods; the maple gear's two rows; the five hand tools joined the shelf 2026-11-14; 87, the two M1 rows, the three Smithy goods and Fertilizer");
         Assert.That(SourceText("Scripts/Editor/MarketDataSeeder.cs"), Does.Not.Contain("CharcoalRules"), "the seeder was not touched");
     }
 
@@ -614,7 +614,7 @@ public class CharcoalPitTests
     [Test]
     public void TheCharcoalAndOreEntriesUnlockOnTheirTriggers()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(20)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(21)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Charcoal, out KnowHowRules.Entry charcoal), Is.True);
         Assert.That(charcoal.title, Is.EqualTo("Charcoal: Burning Logs Slowly"));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.IronOre, out KnowHowRules.Entry ore), Is.True);

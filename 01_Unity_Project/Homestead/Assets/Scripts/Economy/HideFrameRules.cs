@@ -17,6 +17,16 @@ public static class HideFrameRules
     public const string DriedFursId = "dried_furs";
     public const string DryingMarker = "drying";
 
+    // Brain tanning on the frame (Tanning_Hides_and_Furs.md section 4, slice T3): Rawhide or Dried Furs, worked with the Knife while the brain-and-water
+    // mix soaks in, become a Soft Hide or Soft Furs for the Smokehouse (SmokeRules). The first stroke takes WaterLitres of water from the pack, and needs a
+    // Crock Pot carried to mix it in. Each animal's brains do for its own hide, so there is no Brains item (Mike, 2026-11-23: the proposals).
+    public const string SoftHideId = "soft_hide";
+    public const string SoftFursId = "soft_furs";
+    public const string SofteningMarker = "softening";
+    public const int DeerSoftenStrokes = 30;
+    public const int FursSoftenStrokes = 10;
+    public const int WaterLitres = 1;
+
     // --- What building one takes ---
 
     public const int Sticks = 4;
@@ -36,7 +46,7 @@ public static class HideFrameRules
     public const long DriedFursCents = 400;
 
     public enum Kind { None, Deer, Furs }
-    public enum Phase { Empty, Scraping, Drying, Done }
+    public enum Phase { Empty, Scraping, Drying, Softening, Done }
 
     // Which kind of hide an item is, for the frame.
     public static Kind KindOf(string itemId)
@@ -53,7 +63,50 @@ public static class HideFrameRules
 
     public static bool Laces(string itemId) => KindOf(itemId) != Kind.None;
 
-    public static bool IsOutput(string itemId) => itemId == RawhideId || itemId == DriedFursId;
+    public static bool IsOutput(string itemId) => itemId == RawhideId || itemId == DriedFursId || itemId == SoftHideId || itemId == SoftFursId;
+
+    // What brain tanning on the frame turns an output into: Rawhide into a Soft Hide, Dried Furs into Soft Furs. False for anything else.
+    public static bool TrySoften(string itemId, out string softId)
+    {
+        softId = itemId == RawhideId ? SoftHideId : itemId == DriedFursId ? SoftFursId : null;
+        return softId != null;
+    }
+
+    public static bool Softens(string itemId) => TrySoften(itemId, out _);
+
+    // The kind of hide a frame output is (for the strokes it takes and how it is drawn).
+    public static Kind KindOfOutput(string itemId) =>
+        itemId == RawhideId || itemId == SoftHideId ? Kind.Deer : itemId == DriedFursId || itemId == SoftFursId ? Kind.Furs : Kind.None;
+
+    // Laced in from the pack to be softened: Rawhide (one) or Dried Furs (a bundle of up to 4).
+    public static bool LacesToSoften(string itemId) => itemId == RawhideId || itemId == DriedFursId;
+
+    public static int SoftenStrokesFor(Kind kind) => kind == Kind.Deer ? DeerSoftenStrokes : kind == Kind.Furs ? FursSoftenStrokes : 0;
+
+    // One softening stroke: the strokes so far plus one; done when they reach what the hide needs.
+    public static float AfterSoftenStroke(float strokes, Kind kind, out bool done)
+    {
+        int needed = SoftenStrokesFor(kind);
+        float next = Math.Max(0f, strokes) + 1f;
+        done = needed > 0 && next >= needed - 0.001f;
+        return done ? 0f : next;
+    }
+
+    public static int SoftenPercent(float strokes, Kind kind)
+    {
+        int needed = SoftenStrokesFor(kind);
+        return needed <= 0 ? 0 : Math.Min(100, (int)Math.Round(100.0 * Math.Max(0f, strokes) / needed));
+    }
+
+    // What the first softening stroke needs: a Crock Pot and the water. Null when it can start.
+    public static string SoftenRefusal(bool crock, int litres) =>
+        !crock && litres < WaterLitres ? "Softening needs a Crock Pot and 1 litre of water in your pack (a Canteen or Bucket)"
+        : !crock ? "Softening needs a Crock Pot in your pack to mix the brains and water"
+        : litres < WaterLitres ? "Softening needs 1 litre of water in your pack (a Canteen or Bucket)" : null;
+
+    public static string Softened(Kind kind) =>
+        kind == Kind.Deer ? "Worked soft and white: a Soft Hide. Smoke it in the Smokehouse to make Buckskin, or it will stiffen"
+                          : "Worked soft: Soft Furs. Smoke them in the Smokehouse to make Tanned Furs";
 
     // How many of a hide go on at once: one Deer Hide, or up to a bundle of furs.
     public static int MaxOn(Kind kind) => kind == Kind.Deer ? 1 : kind == Kind.Furs ? FursPerBundle : 0;
@@ -68,7 +121,7 @@ public static class HideFrameRules
     public static Phase PhaseOf(bool hasHide, bool hasOutput, string jobItem)
     {
         if (hasOutput)
-            return jobItem == DryingMarker ? Phase.Drying : Phase.Done;
+            return jobItem == DryingMarker ? Phase.Drying : jobItem == SofteningMarker ? Phase.Softening : Phase.Done;
         return hasHide ? Phase.Scraping : Phase.Empty;
     }
 
@@ -102,26 +155,32 @@ public static class HideFrameRules
     static string HideName(Kind kind, int pieces) => kind == Kind.Deer ? "a Deer Hide" : pieces == 1 ? "1 Small Furs" : $"{pieces} Small Furs";
 
     // The frame's prompt, phase by phase.
-    public static string Prompt(Phase phase, Kind kind, int pieces, float jobHours, bool knife, bool dryingNow, string outputName, int outputCount)
+    public static string Prompt(Phase phase, Kind kind, int pieces, float jobHours, bool knife, bool dryingNow, string outputName, int outputCount, bool softenable = false)
     {
         switch (phase)
         {
             case Phase.Empty:
-                return "Hide Frame\nLace a hide into it (R): a Deer Hide, or up to 4 Small Furs, raw or salted";
+                return "Hide Frame\nLace a hide into it (R): a Deer Hide or up to 4 Small Furs (raw or salted) to scrape, or Rawhide or Dried Furs to soften";
             case Phase.Scraping:
                 return $"Hide Frame: {HideName(kind, pieces)}, scraped {(int)jobHours} of {StrokesFor(kind)} strokes\n"
                      + (knife ? "Scrape it (hold click)" : "Equip the Knife to scrape it") + (jobHours <= 0f ? ";  take it back off (E)" : "");
             case Phase.Drying:
                 return $"Hide Frame: drying, {DryHoursLeft(jobHours)} daylight hours left\n"
                      + (dryingNow ? "It dries in daylight while it is not raining" : "Drying paused: it dries only in daylight while it is not raining");
+            case Phase.Softening:
+                return $"Hide Frame: softening {outputName}, worked {(int)jobHours} of {SoftenStrokesFor(kind)} strokes\n"
+                     + (knife ? "Work it soft (hold click)" : "Equip the Knife to work it soft");
             default:
-                return $"Hide Frame: {outputCount} {outputName} ready\nTake it (E)";
+                return $"Hide Frame: {outputCount} {outputName} ready\nTake it (E)" + (softenable ? (knife ? ", or work it soft with the Knife (hold click; a Crock Pot and 1 litre of water)" : ", or soften it with the Knife") : "");
         }
     }
 
-    public const string NoHide = "You have no hide to lace in: a Deer Hide or Small Furs, raw or salted";
+    public const string NoHide = "You have no hide to lace in: a Deer Hide or Small Furs (raw or salted), Rawhide or Dried Furs";
     public const string Busy = "The frame already has a hide on it";
     public static string Laced(Kind kind, int pieces) => $"Laced {HideName(kind, pieces)} into the frame. Scrape it with the Knife (hold click)";
+    public static string LacedToSoften(Kind kind, int pieces) =>
+        (kind == Kind.Deer ? "Laced the Rawhide into the frame" : pieces == 1 ? "Laced 1 Dried Furs into the frame" : $"Laced {pieces} Dried Furs into the frame")
+        + ". Work it soft with the Knife (hold click; a Crock Pot and 1 litre of water)";
     public static string TookBack(Kind kind, int pieces) => $"Took {HideName(kind, pieces)} back off the frame";
     public static string Scraped(Kind kind) =>
         kind == Kind.Deer ? "Scraped clean of flesh and hair. Now it dries on the frame: 12 daylight hours" : "Scraped clean of flesh. Now they dry on the frame: 12 daylight hours";

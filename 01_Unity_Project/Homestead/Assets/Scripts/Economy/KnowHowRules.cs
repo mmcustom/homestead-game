@@ -27,6 +27,7 @@ public static class KnowHowRules
     public const string Smoking = "smoking";
     public const string Cellar = "cellar";
     public const string Hides = "hides";
+    public const string BrainTanning = "brain_tanning"; // Tanning_Hides_and_Furs.md 8 (slice T3): Claude's draft text, for Mike to change as he likes
     public const string HideFrame = "hide_frame"; // Tanning_Hides_and_Furs.md 8 (slice T2): Claude's draft text, for Mike to change as he likes     // Tanning_Hides_and_Furs.md 8 (slice T1): Claude's draft text, for Mike to change as he likes
     public const string Sawing = "sawing";     // Saw_Pit_Sawmill_and_Salt_Barrel.md 1: Claude's draft text, for Mike to change as he likes     // Food_Spoilage_and_Preservation.md 6: Claude's draft text, for Mike to change as he likes   // Food_Spoilage_and_Preservation.md 5: Claude's draft text, for Mike to change as he likes
 
@@ -65,6 +66,7 @@ public static class KnowHowRules
         new Entry(Sawing, "Sawing Lumber in a Saw Pit", "A Saw Pit turns Logs into Lumber, so you need not buy it at the Trading Post. Build it from the Build tab: mark out the site, dig the trench with the Shovel, then deliver 6 Logs and 4 Branches in any order and finish it with the Hammer.\n\nPut the Hammer away and press R at the pit to lay Logs across it (up to 6). Then equip the Wood Saw and hold click on the log. Every 2 Logs take 20 strokes and make 3 Lumber, stacked beside the pit. Press E to take the Lumber."),
         new Entry(Hides, "Hides Spoil: Salt or Tan Them", "A fresh Deer Hide or Small Furs will not keep. A Deer Hide spoils in about a week and Small Furs in about five days, faster in summer heat and slower in the cold, and then they turn to Rot. The Inventory shows how long each has left, as it does for food.\n\nTo keep a hide, salt it. Buy Salt at the Trading Post ($2 a bag), then open Inventory (I): a raw hide row shows a Salt button. A Deer Hide takes 2 Salt and Small Furs take 1. A salted hide keeps for about a year and sells for the same as a fresh one."),
         new Entry(HideFrame, "The Hide Frame: Scraping and Rawhide", "A Hide Frame is a square pole frame for working hides, built in one go with the Hammer: 4 Sticks, 2 Branches and 2 Cordage. Find it under Other in the build list.\n\nLace a hide into it with R: a Deer Hide, or up to 4 Small Furs, raw or salted. Then equip the Knife and hold click on the hide to scrape it clean: 20 strokes for a Deer Hide, 8 for furs. Scraping takes off the flesh and fat, and the hair from a Deer Hide; furs keep their hair.\n\nThe scraped hide then dries on the frame in daylight while it is not raining, about 12 hours. A dried Deer Hide is Rawhide, stiff and lasting, which the Trading Post buys for $12. Dried Furs fetch $4 each. Press E to take them off the frame."),
+        new Entry(BrainTanning, "Brain Tanning: Buckskin and Furs", "Brain tanning makes a hide soft and lasting. Lace Rawhide or Dried Furs into the Hide Frame with R. With a Crock Pot and 1 litre of water in your pack (a Canteen or Bucket), equip the Knife and hold click on the hide to work the brain-and-water mix into it: 30 strokes for a hide, 10 for furs. Each animal's brains are enough for its own hide.\n\nThe worked hide is a Soft Hide or Soft Furs, white and floppy. Take it off with E and smoke it in the Smokehouse with the meat (R loads it). A Soft Hide takes the room of 2 pieces of meat and Soft Furs 1, and it smokes for the same day on the same Firewood.\n\nIt comes out as Buckskin, golden brown and soft, or Tanned Furs. The Trading Post buys Buckskin for $24 and Tanned Furs for $6 each."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -120,6 +122,10 @@ public static class KnowHowRules
             case HideRules.SaltedFursId: return new[] { Hides };
             case HideFrameRules.RawhideId:
             case HideFrameRules.DriedFursId: return new[] { HideFrame };
+            case SmokeRules.SoftHideId:
+            case SmokeRules.SoftFursId:
+            case SmokeRules.BuckskinId:
+            case SmokeRules.TannedFursId: return new[] { BrainTanning };
             default: return Array.Empty<string>();
         }
     }
@@ -167,6 +173,7 @@ public static class KnowHowRules
         SmokeRules.SmokedMeatId, SmokeRules.SmokedFishId,
         HideRules.DeerHideId, HideRules.SmallFursId, HideRules.SaltedDeerHideId, HideRules.SaltedFursId,
         HideFrameRules.RawhideId, HideFrameRules.DriedFursId,
+        SmokeRules.SoftHideId, SmokeRules.SoftFursId, SmokeRules.BuckskinId, SmokeRules.TannedFursId,
     };
 
     // The entries a loaded game has already earned: what the pack holds, and what it has built (a hopper site, a tripod, a tap). An old save

@@ -134,6 +134,8 @@ public class WoodPileState
     public int SmokeFirewood => Count(SmokeRules.FirewoodId);
     public int SmokedMeat => Count(SmokeRules.SmokedMeatId);
     public int SmokedFish => Count(SmokeRules.SmokedFishId);
+    public int SmokedHides => Count(SmokeRules.BuckskinId) + Count(SmokeRules.TannedFursId);
+    // The room the load takes, in pieces of meat (a Soft Hide takes 2: SmokeRules.RoomOf).
     public int SmokeRaw
     {
         get
@@ -141,7 +143,7 @@ public class WoodPileState
             int n = 0;
             foreach (WoodStack stack in contents)
                 if (SmokeRules.Smokes(stack.itemId))
-                    n += stack.count;
+                    n += stack.count * SmokeRules.RoomOf(stack.itemId);
             return n;
         }
     }

@@ -70,6 +70,19 @@ Built with the proposed numbers (Mike: "commit t1 and start t2"). The rules live
 - **Smoke:** a Soft Hide goes into the Smokehouse with the meat. It takes up the room of 2 pieces of meat (Furs take 1), smokes for the same 24 hours and burns the same Firewood. It comes out as **Buckskin** (golden brown, soft, keeps for years) or **Tanned Furs**.
 - **Value** (*proposed*): Buckskin $24 (against $8 raw, $12 as Rawhide). Tanned Furs $6 each (against $3 raw).
 
+### As built (slice T3, 2026-11-23)
+
+Built with the proposed numbers and no Brains item (Mike: "ok"). The rules are in HideFrameRules.cs (softening) and SmokeRules.cs (smoking).
+
+- R laces Rawhide (one) or Dried Furs (up to 4) into an empty Hide Frame. Raw hides still come first.
+- Rawhide or Dried Furs that just finished drying on the frame can be softened where they hang.
+- Softening: Knife strokes, 30 for a hide and 10 for furs, with the percent on the HUD. The first stroke needs a Crock Pot carried and takes 1 litre of water from the pack, the worst water first.
+- The result is a **Soft Hide** (2 kg) or **Soft Furs** (0.2 kg). E takes them off the frame.
+- The proposal said a Soft Hide "would go stiff again". As built, soft hides keep, and they are not bought at the Trading Post.
+- The Smokehouse's R loads soft hides after the meat. A Soft Hide takes 2 pieces' room and Soft Furs 1. They smoke with the load and come out as **Buckskin** (1.8 kg, $24) or **Tanned Furs** (0.2 kg, $6), collected with E alongside the smoked food.
+- Know-how entry 21, "Brain Tanning: Buckskin and Furs".
+- Art: item_soft_hide is done. item_soft_furs, item_buckskin and item_tanned_furs come next.
+
 ## 5. Bark tanning (slice T4): Leather
 
 - **Tanbark** (*proposed*): with the Knife, strip bark from a Log lying on the ground (a felled log or one in a pile). Each Log gives 2 Tanbark and stays a Log. Tanbark is 1 kg and keeps for years. Oak bark is the classic; if oaks are added to the forest later, oak logs could give more.

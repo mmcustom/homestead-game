@@ -1492,7 +1492,7 @@ public class WellsAndOuthouses : MonoBehaviour
     // --- The Smokehouse (Food_Spoilage_and_Preservation.md 5); SpoilageManager runs its fire each hour ---
 
     public static SmokeRules.Phase SmokePhaseOf(WoodPileState house) =>
-        SmokeRules.PhaseOf(house.SmokeRunning, house.jobCount, house.SmokeRaw, house.SmokeFirewood, house.SmokedMeat + house.SmokedFish);
+        SmokeRules.PhaseOf(house.SmokeRunning, house.jobCount, house.SmokeRaw, house.SmokeFirewood, house.SmokedMeat + house.SmokedFish + house.SmokedHides);
 
     // Testing only (TimeDebugControls, Ctrl+period): every smelt is done now. Returns how many bloomeries changed.
     public int DebugFinishSmelts()

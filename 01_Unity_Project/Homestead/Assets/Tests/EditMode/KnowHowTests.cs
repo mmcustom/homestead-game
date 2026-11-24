@@ -19,9 +19,9 @@ public class KnowHowTests
     [Test]
     public void ThereAreTwelveEntriesWithUniqueIdsTitlesAndBodies()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(20)); // the eleven chains, Hands M0e-3's "Fighting with your hands and a Knife" and "Food Spoils: Rot and Compost"
-        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(20));
-        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(20));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(21)); // the eleven chains, Hands M0e-3's "Fighting with your hands and a Knife" and "Food Spoils: Rot and Compost"
+        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(21));
+        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(21));
         foreach (KnowHowRules.Entry e in KnowHowRules.Entries)
         {
             Assert.That(e.title, Is.Not.Empty);
@@ -41,13 +41,13 @@ public class KnowHowTests
             "Ash: Collect and Sell", "Kindling Bundles", "The Tripod and Boiling Water", "Tapping Maples", "Sap to Syrup",
             "Using the Leach Hopper", "From Ash to Potash", "Charcoal: Burning Logs Slowly", "Iron Ore at the Trading Post",
             "Smelting Iron in the Bloomery", "The Smithy: Forging Iron Goods", "Fighting with your hands and a Knife",
-            "Food Spoils: Rot and Compost", "Drying Food on a Rack", "Salting Meat and Fish", "Smoking Meat and Fish", "The Root Cellar", "Sawing Lumber in a Saw Pit", "Hides Spoil: Salt or Tan Them", "The Hide Frame: Scraping and Rawhide",
+            "Food Spoils: Rot and Compost", "Drying Food on a Rack", "Salting Meat and Fish", "Smoking Meat and Fish", "The Root Cellar", "Sawing Lumber in a Saw Pit", "Hides Spoil: Salt or Tan Them", "The Hide Frame: Scraping and Rawhide", "Brain Tanning: Buckskin and Furs",
         }));
         Assert.That(KnowHowRules.Entries.Select(e => e.id), Is.EqualTo(new[]
         {
             KnowHowRules.Ash, KnowHowRules.Kindling, KnowHowRules.Tripod, KnowHowRules.Tapping, KnowHowRules.Syrup, KnowHowRules.Hopper, KnowHowRules.Potash,
             KnowHowRules.Charcoal, KnowHowRules.IronOre, KnowHowRules.Smelting, KnowHowRules.Smithy, KnowHowRules.Melee,
-            KnowHowRules.Spoilage, KnowHowRules.Drying, KnowHowRules.Salting, KnowHowRules.Smoking, KnowHowRules.Cellar, KnowHowRules.Sawing, KnowHowRules.Hides, KnowHowRules.HideFrame,
+            KnowHowRules.Spoilage, KnowHowRules.Drying, KnowHowRules.Salting, KnowHowRules.Smoking, KnowHowRules.Cellar, KnowHowRules.Sawing, KnowHowRules.Hides, KnowHowRules.HideFrame, KnowHowRules.BrainTanning,
         }));
     }
 
@@ -106,14 +106,14 @@ public class KnowHowTests
     public void EveryTriggerNamesARealEntry()
     {
         var ids = new List<string>();
-        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle", "charcoal", "iron_ore", "iron_bar", "knife", "rot", "dried_meat", "salt", "deer_hide" })
+        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle", "charcoal", "iron_ore", "iron_bar", "knife", "rot", "dried_meat", "salt", "deer_hide", "buckskin" })
             ids.AddRange(KnowHowRules.ForItem(itemId));
         foreach (KnowHowRules.Happening h in Enum.GetValues(typeof(KnowHowRules.Happening)))
             ids.AddRange(KnowHowRules.ForHappening(h));
         Assert.That(ids, Is.Not.Empty);
         foreach (string id in ids)
             Assert.That(KnowHowRules.TryGet(id, out _), Is.True, id);
-        Assert.That(ids.Distinct().Count(), Is.EqualTo(20), "and every entry has a way to unlock");
+        Assert.That(ids.Distinct().Count(), Is.EqualTo(21), "and every entry has a way to unlock");
     }
 
     [Test]

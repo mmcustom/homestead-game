@@ -492,7 +492,7 @@ public class BloomeryTests
         Assert.That(table.SellBaseCents("iron_bar"), Is.EqualTo(0L), "nothing buys it, so the sell list never shows it (TradingPostScreen lists what CanSell)");
         Assert.That(table.BuyBaseCents("iron_bar"), Is.EqualTo(0L), "and the store does not sell it");
         Assert.That(table.HasPool("iron_bar"), Is.False);
-        Assert.That(table.Rows.Count, Is.EqualTo(111), "Salt, Salt Meat and Salt Fish and the five dried foods (2026-11-22); the maple gear's two rows (2026-11-14); the five hand tools moved to the shelf (2026-11-14); M2 added no row; M3 added the three Smithy goods; Fertilizer (2026-11-22), and still none for the Iron Bar");
+        Assert.That(table.Rows.Count, Is.EqualTo(113), "Salt, Salt Meat and Salt Fish and the five dried foods (2026-11-22); the maple gear's two rows (2026-11-14); the five hand tools moved to the shelf (2026-11-14); M2 added no row; M3 added the three Smithy goods; Fertilizer (2026-11-22), and still none for the Iron Bar");
         Assert.That(table.Stock.Count, Is.EqualTo(40), "and Salt (2026-11-22)");
         Assert.That(SourceText("Resources/Market/MarketData.asset"), Does.Not.Contain("iron_bar"));
         Assert.That(SourceText("Scripts/UI/TradingPostScreen.cs"), Does.Contain("market.CanSell(stack.itemId)"));
@@ -670,7 +670,7 @@ public class BloomeryTests
     [Test]
     public void TheSmeltingEntryUnlocksOnAPlacedSiteOrAnIronBar()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(20)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(21)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smelting, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("Smelting Iron in the Bloomery"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }), "holding an Iron Bar opens both the smelting and the Smithy entries");
