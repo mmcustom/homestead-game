@@ -49,6 +49,20 @@ Built with the proposed numbers (Mike: "yes, commit, then proceed"). The rules l
 - **Dry:** a scraped hide dries on the frame in daylight while it is not raining (the Drying Rack's rule; *proposed*: 12 daylight hours). It doesn't age on the frame.
 - **Rawhide:** a dried scraped Deer Hide is **Rawhide** (*proposed*: 2 kg, keeps for years, sells for $12). E takes it off the frame. Rawhide is stiff, and it is the starting point for both kinds of tanning. Dried scraped furs are **Dried Furs** (*proposed*: $4 each, $1 more than raw).
 
+### As built (slice T2, 2026-11-23)
+
+Built with the proposed numbers (Mike: "commit t1 and start t2"). The rules live in HideFrameRules.cs.
+
+- Build: 4 Sticks, 2 Branches and 2 Cordage, one click with the Hammer, under **Other** in the build list.
+- R laces in one hide: a Deer Hide before furs, raw before salted. Furs go on as a bundle of up to 4, raw and salted mixed. E takes an unscraped hide back off.
+- The Knife scrapes it: each Knife blow aimed at the frame (within 1.8 m) is one stroke, with the same stamina as a blow. The HUD shows the percent. 20 strokes for a Deer Hide, 8 for furs.
+- Then it dries 12 hours on the Drying Rack's rule (daylight, no rain or snow). A banner says when it is ready, and E takes it.
+- A hide on the frame does not spoil there (the frame is left out of the spoilage sweep).
+- New items: Rawhide (2 kg, never spoils, $12) and Dried Furs (0.2 kg, never spoil, $4 each), in the Hides group.
+- Dismantling with the Hammer gives back half the materials, plus the hide or what it has become.
+- Know-how entry 20, "The Hide Frame: Scraping and Rawhide", unlocks when a frame is built or Rawhide or Dried Furs are first held.
+- Art: structure_hideframe and its build icon; item_rawhide and item_dried_furs come next.
+
 ## 4. Brain tanning (slice T3): Buckskin and Tanned Furs
 
 - **Soften:** with Rawhide or Dried Furs laced in the frame, a Crock Pot in the pack and water in it (from the Canteen or a bucket), hold click with the Knife to work the hide. The brain-and-water mix soaks in as you stretch and work it until it is soft (*proposed*: 30 strokes for a Deer Hide, 10 for Furs). Each animal's brains are enough for its own hide, so no new item is needed (*proposed*).

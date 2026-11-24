@@ -540,6 +540,58 @@ public class SpoilageTests
         Assert.That(KnowHowRules.ForItem("salted_furs"), Is.EqualTo(new[] { KnowHowRules.Hides }));
     }
 
+    [Test]
+    public void TheHideFrameScrapesThenDriesAHideIntoRawhide()
+    {
+        Assert.That(HideFrameRules.KindOf("deer_hide"), Is.EqualTo(HideFrameRules.Kind.Deer));
+        Assert.That(HideFrameRules.KindOf("salted_deer_hide"), Is.EqualTo(HideFrameRules.Kind.Deer), "salted hides go on the frame too");
+        Assert.That(HideFrameRules.KindOf("salted_furs"), Is.EqualTo(HideFrameRules.Kind.Furs));
+        Assert.That(HideFrameRules.KindOf("venison"), Is.EqualTo(HideFrameRules.Kind.None));
+        Assert.That(HideFrameRules.MaxOn(HideFrameRules.Kind.Deer), Is.EqualTo(1));
+        Assert.That(HideFrameRules.MaxOn(HideFrameRules.Kind.Furs), Is.EqualTo(4), "a bundle of up to 4 Small Furs");
+
+        // 20 strokes scrape a Deer Hide, 8 a bundle of furs.
+        float strokes = 0f; int blows = 0; bool done = false;
+        while (!done && blows < 100) { strokes = HideFrameRules.AfterStroke(strokes, HideFrameRules.Kind.Deer, out done); blows++; }
+        Assert.That(blows, Is.EqualTo(20));
+        strokes = 0f; blows = 0; done = false;
+        while (!done && blows < 100) { strokes = HideFrameRules.AfterStroke(strokes, HideFrameRules.Kind.Furs, out done); blows++; }
+        Assert.That(blows, Is.EqualTo(8));
+
+        // 12 daylight hours dry it.
+        float hours = 0f; int dryHours = 0; done = false;
+        while (!done && dryHours < 100) { hours = HideFrameRules.AfterDryHour(hours, out done); dryHours++; }
+        Assert.That(dryHours, Is.EqualTo(12));
+
+        Assert.That(HideFrameRules.OutputFor(HideFrameRules.Kind.Deer), Is.EqualTo("rawhide"));
+        Assert.That(HideFrameRules.OutputCount(HideFrameRules.Kind.Deer, 1), Is.EqualTo(1));
+        Assert.That(HideFrameRules.OutputFor(HideFrameRules.Kind.Furs), Is.EqualTo("dried_furs"));
+        Assert.That(HideFrameRules.OutputCount(HideFrameRules.Kind.Furs, 3), Is.EqualTo(3), "one Dried Furs for each fur");
+
+        Assert.That(HideFrameRules.PhaseOf(false, false, null), Is.EqualTo(HideFrameRules.Phase.Empty));
+        Assert.That(HideFrameRules.PhaseOf(true, false, null), Is.EqualTo(HideFrameRules.Phase.Scraping));
+        Assert.That(HideFrameRules.PhaseOf(false, true, HideFrameRules.DryingMarker), Is.EqualTo(HideFrameRules.Phase.Drying));
+        Assert.That(HideFrameRules.PhaseOf(false, true, null), Is.EqualTo(HideFrameRules.Phase.Done));
+
+        // Each step pays more than the last.
+        Assert.That(HideFrameRules.RawhideCents, Is.GreaterThan(HideRules.SaltedDeerHideCents));
+        Assert.That(HideFrameRules.DriedFursCents, Is.GreaterThan(HideRules.SaltedFursCents));
+
+        Type db = Find("ItemDatabase");
+        Func<string, object> get = id => db.GetMethod("Get", new[] { typeof(string) }).Invoke(null, new object[] { id });
+        Func<string, string, object> prop = (id, name) => { object item = get(id); return item.GetType().GetProperty(name).GetValue(item, null); };
+        Assert.That(prop("rawhide", "WeightKg"), Is.EqualTo(2f));
+        Assert.That(prop("rawhide", "IsPerishable"), Is.False, "Rawhide keeps for years");
+        Assert.That(prop("dried_furs", "IsPerishable"), Is.False);
+
+        Type manager = Find("WoodManager"), kindType = Find("PileKind");
+        object frame = Enum.Parse(kindType, "HideFrame");
+        Assert.That((string)manager.GetMethod("PileName").Invoke(null, new[] { frame }), Is.EqualTo("Hide Frame"));
+        Assert.That((bool)manager.GetMethod("NeedsHammerToBuild").Invoke(null, new[] { frame }), Is.True, "one click with the Hammer, like the Drying Rack");
+        Assert.That(KnowHowRules.ForItem("rawhide"), Is.EqualTo(new[] { KnowHowRules.HideFrame }));
+        Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.HideFramePlaced), Is.EqualTo(new[] { KnowHowRules.HideFrame }));
+    }
+
     // What n units fetch when each sale drops the price 5% of the base.
     static double SoldWithDrops(long cents, int n)
     {

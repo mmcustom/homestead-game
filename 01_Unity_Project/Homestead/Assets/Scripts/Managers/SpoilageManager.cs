@@ -232,6 +232,9 @@ public class SpoilageManager : MonoBehaviour, ISaveable
     static bool Raining => WeatherManager.Instance != null && WeatherManager.Instance.IsRaining;
     static bool Snowing => WeatherManager.Instance != null && WeatherManager.Instance.IsSnowing;
 
+    // Whether this hour dries things hung out (daylight, no rain or snow): the Drying Rack's and the Hide Frame's rule.
+    public bool DriesNow => DryingRules.DriesNow(Daylight(), Raining || Snowing);
+
     // Each game hour that is light and dry, every fresh batch on a rack dries one hour more; a batch that has dried long enough becomes its
     // dried form, fresh on the rack's clock. Night, rain and snow pause it (the food still ages meanwhile, at the rack's slower rate).
     void DryingTick()
@@ -242,6 +245,11 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         int fresh = FreshStamp(FreshClock.Rack);
         foreach (WoodPileState pile in wood.Piles)
         {
+            if (pile.kind == PileKind.HideFrame)
+            {
+                HideFrameDryHour(pile);
+                continue;
+            }
             if (pile.kind != PileKind.DryingRack)
                 continue;
             bool changed = false;
@@ -264,6 +272,26 @@ public class SpoilageManager : MonoBehaviour, ISaveable
             if (changed)
                 wood.NotifyChanged(pile);
         }
+    }
+
+    // A scraped hide drying on a Hide Frame (HideFrameRules): one more hour; at DryHours it is Rawhide or Dried Furs, ready to take.
+    public static void HideFrameDryHour(WoodPileState frame)
+    {
+        if (frame == null || frame.jobItem != HideFrameRules.DryingMarker)
+            return;
+        frame.jobHours = HideFrameRules.AfterDryHour(frame.jobHours, out bool done);
+        if (done)
+        {
+            frame.jobItem = null;
+            string outputId = null;
+            foreach (WoodStack stack in frame.contents)
+                if (HideFrameRules.IsOutput(stack.itemId))
+                    outputId = stack.itemId;
+            ItemDefinition output = outputId != null ? ItemDatabase.Get(outputId) : null;
+            ToolStatus.Banner(HideFrameRules.Dried(output != null ? output.DisplayName : outputId), 6f);
+        }
+        if (WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(frame);
     }
 
     // How many fresh pieces a rack is drying.
@@ -371,6 +399,8 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         {
             foreach (WoodPileState pile in wood.Piles)
             {
+                if (pile.kind == PileKind.HideFrame)
+                    continue; // a hide laced in a frame is being worked: it does not age there (HideFrameRules)
                 FreshClock clock = ClockOf(pile.kind);
                 int rotCount = 0;
                 for (int i = pile.contents.Count - 1; i >= 0; i--)

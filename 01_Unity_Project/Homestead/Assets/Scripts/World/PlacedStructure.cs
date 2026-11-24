@@ -50,6 +50,7 @@ public static class StructureVisuals
             case PileKind.RootCellarSite: BuildRootCellarSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.SawPitSite: BuildSawPitSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.SawPit: BuildSawPit(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.HideFrame: BuildHideFrame(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -707,6 +708,82 @@ public static class StructureVisuals
         boxSize = new Vector3(2f * hl + 0.2f, 0.9f, 2f * hw + 0.3f);
     }
 
+    // --- The Hide Frame (HideFrameRules, Tanning_Hides_and_Furs.md 3) ---
+
+    static readonly Color HideHairColor = new Color(0.42f, 0.27f, 0.15f);
+    static readonly Color FurHairColor = new Color(0.4f, 0.36f, 0.3f);
+    static readonly Color ScrapedHideColor = new Color(0.86f, 0.78f, 0.62f);
+    static readonly Color RawhideColor = new Color(0.78f, 0.62f, 0.38f);
+    static readonly Color CordageColor = new Color(0.55f, 0.45f, 0.3f);
+
+    // A square pole frame about 2 m tall: two uprights set in the ground, a top and a bottom crossbar, and two braces at the foot. 6 static pieces.
+    // The hide laced in it shows as a panel: hair-brown while it is being scraped, pale once scraped and drying, golden when it is Rawhide; furs as
+    // up to four small panels side by side.
+    static void BuildHideFrame(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float half = 0.75f, top = 1.9f, low = 0.3f;
+        foreach (float side in new[] { -1f, 1f })
+        {
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(side * half, top / 2f + 0.05f, 0f), Vector3.zero, new Vector3(0.08f, top / 2f + 0.05f, 0.08f), bark);
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(side * half, 0.25f, -0.3f), new Vector3(-50f, 0f, 0f), new Vector3(0.05f, 0.4f, 0.05f), bark);
+        }
+        foreach (float y in new[] { low, top - 0.05f })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, y, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.06f, half + 0.08f, 0.06f), bark);
+
+        HideFrameRules.Kind kind = HideFrameKindOf(state, out int pieceCount, out string outputId, out int outputCount);
+        HideFrameRules.Phase phase = HideFramePhaseOf(state);
+        float inner = 2f * half - 0.2f, height = top - low - 0.2f, mid = (top + low) / 2f;
+        if (phase == HideFrameRules.Phase.Scraping || phase == HideFrameRules.Phase.Drying || phase == HideFrameRules.Phase.Done)
+        {
+            bool furs = phase == HideFrameRules.Phase.Scraping ? kind == HideFrameRules.Kind.Furs : outputId == HideFrameRules.DriedFursId;
+            Color tone = phase == HideFrameRules.Phase.Scraping ? (furs ? FurHairColor : HideHairColor) : phase == HideFrameRules.Phase.Drying ? ScrapedHideColor : RawhideColor;
+            if (!furs)
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, mid, 0f), Vector3.zero, new Vector3(inner * 0.92f, height * 0.9f, 0.02f), null), tone);
+            else
+            {
+                int n = Mathf.Clamp(phase == HideFrameRules.Phase.Scraping ? pieceCount : outputCount, 1, HideFrameRules.FursPerBundle);
+                float w = inner / HideFrameRules.FursPerBundle;
+                for (int i = 0; i < n; i++)
+                    Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-inner / 2f + w * (i + 0.5f), mid + 0.15f, 0f), Vector3.zero, new Vector3(w * 0.8f, 0.55f, 0.02f), null), tone);
+            }
+            // The lacing to the uprights, one cord each side.
+            foreach (float side in new[] { -1f, 1f })
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side * (half - 0.07f), mid, 0f), Vector3.zero, new Vector3(0.1f, height * 0.85f, 0.01f), null), CordageColor);
+        }
+        boxCenter = new Vector3(0f, top / 2f, -0.1f);
+        boxSize = new Vector3(2f * half + 0.2f, top + 0.1f, 0.7f);
+    }
+
+    // What is on a Hide Frame: the kind of hide laced in and how many pieces, or what it has become.
+    internal static HideFrameRules.Kind HideFrameKindOf(WoodPileState state, out int pieces, out string outputId, out int outputCount)
+    {
+        HideFrameRules.Kind kind = HideFrameRules.Kind.None;
+        pieces = 0; outputId = null; outputCount = 0;
+        foreach (WoodStack stack in state.contents)
+        {
+            if (stack.count <= 0)
+                continue;
+            HideFrameRules.Kind k = HideFrameRules.KindOf(stack.itemId);
+            if (k != HideFrameRules.Kind.None)
+            {
+                kind = k;
+                pieces += stack.count;
+            }
+            else if (HideFrameRules.IsOutput(stack.itemId))
+            {
+                outputId = stack.itemId;
+                outputCount += stack.count;
+            }
+        }
+        return kind;
+    }
+
+    public static HideFrameRules.Phase HideFramePhaseOf(WoodPileState state)
+    {
+        HideFrameKindOf(state, out int pieces, out string outputId, out int outputCount);
+        return HideFrameRules.PhaseOf(pieces > 0, outputCount > 0, state.jobItem);
+    }
+
     // One small piece, by its dry id's shape (the same shapes as on the Potter's Shed's shelf).
     static void KilnPiece(Transform parent, List<GameObject> pieces, string dryId, Vector3 at, Color tone)
     {
@@ -1233,6 +1310,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Smithy: return SmithyPromptText();
                 case PileKind.Smokehouse: return SmokehousePromptText();
                 case PileKind.SawPit: return SawPitPromptText();
+                case PileKind.HideFrame: return HideFramePromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -2334,6 +2412,171 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         ToolStatus.Flash(SawPitRules.Loaded(laid, state.Count(SawPitRules.LogsId)), 4f);
     }
 
+    // --- The Hide Frame (HideFrameRules, Tanning_Hides_and_Furs.md 3); MeleeAttack scrapes with the Knife through ScrapeHideFrame ---
+
+    static HideFrameRules.Kind HideFrameKindOf(WoodPileState s, out int pieces, out string outputId, out int outputCount) =>
+        StructureVisuals.HideFrameKindOf(s, out pieces, out outputId, out outputCount);
+    static HideFrameRules.Phase HideFramePhaseOf(WoodPileState s) => StructureVisuals.HideFramePhaseOf(s);
+
+    static bool KnifeEquipped => InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null && KnifeRules.IsKnife(InventoryManager.Instance.EquippedTool.Id);
+
+    string HideFramePromptText()
+    {
+        HideFrameRules.Kind kind = HideFrameKindOf(state, out int pieces, out string outputId, out int outputCount);
+        ItemDefinition output = outputId != null ? ItemDatabase.Get(outputId) : null;
+        bool dryingNow = SpoilageManager.Instance == null || SpoilageManager.Instance.DriesNow;
+        return HideFrameRules.Prompt(HideFramePhaseOf(state), kind, pieces, state.jobHours, KnifeEquipped, dryingNow, output != null ? output.DisplayName : outputId, outputCount);
+    }
+
+    string HideFrameSecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return HideFrameRules.DismantlePrompt;
+        if (HideFramePhaseOf(state) != HideFrameRules.Phase.Empty)
+            return HideFramePromptText();
+        return NextHideCarried(out _, out _) != null ? "Lace a hide into the Hide Frame (R)" : HideFrameRules.NoHide;
+    }
+
+    // The hide R would lace in: a Deer Hide before furs, raw before salted (the raw one spoils), and how many.
+    static string NextHideCarried(out HideFrameRules.Kind kind, out int count)
+    {
+        kind = HideFrameRules.Kind.None; count = 0;
+        if (Inventory == null)
+            return null;
+        foreach (string id in new[] { HideRules.DeerHideId, HideRules.SaltedDeerHideId, HideRules.SmallFursId, HideRules.SaltedFursId })
+        {
+            int have = Inventory.Player.Count(id);
+            if (have <= 0)
+                continue;
+            kind = HideFrameRules.KindOf(id);
+            count = Mathf.Min(have, HideFrameRules.MaxOn(kind));
+            return id;
+        }
+        return null;
+    }
+
+    // R: with the Hammer it takes the frame down; otherwise it laces a hide in (a bundle of furs may mix raw and salted).
+    void HideFrameSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        if (HideFramePhaseOf(state) != HideFrameRules.Phase.Empty)
+        {
+            ToolStatus.Flash(HideFrameRules.Busy, 3f);
+            return;
+        }
+        string first = NextHideCarried(out HideFrameRules.Kind kind, out int count);
+        if (first == null)
+        {
+            ToolStatus.Flash(HideFrameRules.NoHide, 4f);
+            return;
+        }
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        int laced = 0;
+        foreach (string id in new[] { HideRules.DeerHideId, HideRules.SaltedDeerHideId, HideRules.SmallFursId, HideRules.SaltedFursId })
+        {
+            if (laced >= count || HideFrameRules.KindOf(id) != kind)
+                continue;
+            laced += Inventory.Player.RemoveBatches(id, Mathf.Min(count - laced, Inventory.Player.Count(id)), (day, n) => state.Add(id, n, day));
+        }
+        if (laced <= 0)
+            return;
+        state.jobHours = 0f;
+        state.jobItem = null;
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(HideFrameRules.Laced(kind, laced), 4f);
+    }
+
+    // E: takes Rawhide or Dried Furs off the frame; an unscraped hide comes back off whole; otherwise it says where the frame is.
+    void HideFrameInteract()
+    {
+        HideFrameRules.Phase phase = HideFramePhaseOf(state);
+        HideFrameRules.Kind kind = HideFrameKindOf(state, out int pieces, out string outputId, out int outputCount);
+        if (phase == HideFrameRules.Phase.Scraping && state.jobHours <= 0f)
+        {
+            int back = 0;
+            for (int i = state.contents.Count - 1; i >= 0; i--)
+            {
+                WoodStack stack = state.contents[i];
+                if (!HideFrameRules.Laces(stack.itemId) || stack.count <= 0)
+                    continue;
+                int got = Inventory.AddToPlayer(stack.itemId, stack.count, stack.day);
+                back += got;
+                stack.count -= got;
+                if (stack.count <= 0)
+                    state.contents.RemoveAt(i);
+            }
+            if (back > 0)
+                WoodManager.Instance.NotifyChanged(state);
+            ToolStatus.Flash(back > 0 ? HideFrameRules.TookBack(kind, back) : "No room in your pack", 3f);
+            return;
+        }
+        if (phase != HideFrameRules.Phase.Done)
+        {
+            ToolStatus.Flash(HideFramePromptText(), 4f);
+            return;
+        }
+        ItemDefinition item = ItemDatabase.Get(outputId);
+        int fits = item != null ? Mathf.Min(outputCount, Inventory.Player.SpaceFor(item)) : 0;
+        int took = fits > 0 ? Inventory.AddToPlayer(outputId, fits) : 0;
+        if (took > 0)
+        {
+            state.Take(outputId, took);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+        ToolStatus.Flash(HideFrameRules.Took(took, item != null ? item.DisplayName : outputId, outputCount - took), 4f);
+    }
+
+    // One Knife blow aimed at a Hide Frame within reach (MeleeAttack, at the click): a scraping stroke if a hide is on it to scrape. Returns false
+    // when the blow did not land on a frame that needed it, so the Knife goes on to strike as usual.
+    public static bool ScrapeHideFrame(PlayerController player)
+    {
+        if (player == null || !player.AimRaycast(HideFrameRules.ReachMetres, out RaycastHit hit))
+            return false;
+        PlacedStructure frame = hit.collider.GetComponentInParent<PlacedStructure>();
+        if (frame == null || frame.state == null || frame.state.kind != PileKind.HideFrame)
+            return false;
+        WoodPileState s = frame.state;
+        if (HideFramePhaseOf(s) != HideFrameRules.Phase.Scraping)
+        {
+            ToolStatus.Flash(frame.HideFramePromptText(), 3f);
+            return true;
+        }
+        HideFrameRules.Kind kind = HideFrameKindOf(s, out int pieces, out _, out _);
+        s.jobHours = HideFrameRules.AfterStroke(s.jobHours, kind, out bool done);
+        if (done)
+        {
+            string outputId = HideFrameRules.OutputFor(kind);
+            int count = HideFrameRules.OutputCount(kind, pieces);
+            s.contents.RemoveAll(stack => HideFrameRules.Laces(stack.itemId));
+            s.Add(outputId, count, 0);
+            s.jobItem = HideFrameRules.DryingMarker;
+            s.jobHours = 0f;
+            ToolStatus.Banner(HideFrameRules.Scraped(kind), 5f);
+            ToolEvents.JobFinished();
+        }
+        WoodManager.Instance.NotifyChanged(s);
+        return true;
+    }
+
+    // While the Knife is aimed at a Hide Frame with a hide to scrape: the HUD line and the progress bar (MeleeAttack.UpdatePrompt). Null otherwise.
+    public static string HideFrameAimText(PlayerController player, out float progress)
+    {
+        progress = -1f;
+        if (player == null || !player.AimRaycast(HideFrameRules.ReachMetres, out RaycastHit hit))
+            return null;
+        PlacedStructure frame = hit.collider.GetComponentInParent<PlacedStructure>();
+        if (frame == null || frame.state == null || frame.state.kind != PileKind.HideFrame || HideFramePhaseOf(frame.state) != HideFrameRules.Phase.Scraping)
+            return null;
+        HideFrameRules.Kind kind = HideFrameKindOf(frame.state, out _, out _, out _);
+        progress = HideFrameRules.Percent(frame.state.jobHours, kind) / 100f;
+        return $"Scrape the hide (hold click): {HideFrameRules.Percent(frame.state.jobHours, kind)}%";
+    }
+
     // --- The Smokehouse (Food_Spoilage_and_Preservation.md 5) ---
 
     SmokeRules.Phase SmokePhaseNow => WellsAndOuthouses.SmokePhaseOf(state);
@@ -2765,6 +3008,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return SmokehouseSecondaryPrompt();
             if (state.kind == PileKind.SawPit)
                 return SawPitSecondaryPrompt();
+            if (state.kind == PileKind.HideFrame)
+                return HideFrameSecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -2815,6 +3060,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Smithy: SmithyInteract(); break;
             case PileKind.Smokehouse: SmokehouseInteract(); break;
             case PileKind.SawPit: SawPitInteract(); break;
+            case PileKind.HideFrame: HideFrameInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -3003,6 +3249,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             SawPitSecondary();
         }
+        else if (state.kind == PileKind.HideFrame)
+        {
+            HideFrameSecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -3185,6 +3435,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             refund.Return(BloomeryRules.CharcoalId, state.Count(BloomeryRules.CharcoalId));
             refund.Return(BloomeryRules.BarId, state.Count(BloomeryRules.BarId));
         }
+        // A Hide Frame gives back the hide laced in it (keeping its freshness), or the Rawhide or Dried Furs it has become, on top of half the materials.
+        if (state.kind == PileKind.HideFrame)
+            foreach (WoodStack stack in state.contents)
+                if (HideFrameRules.Laces(stack.itemId) || HideFrameRules.IsOutput(stack.itemId))
+                    refund.Return(stack.itemId, stack.count, stack.day);
         // A Saw Pit gives back the Logs on it and the Lumber beside it whole, on top of half the materials.
         if (state.kind == PileKind.SawPit)
             foreach (WoodStack stack in state.contents)

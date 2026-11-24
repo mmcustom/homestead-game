@@ -226,3 +226,15 @@ Trigger: a Deer Hide, Small Furs, a Salted Deer Hide or Salted Furs in the pack.
 A fresh Deer Hide or Small Furs will not keep. A Deer Hide spoils in about a week and Small Furs in about five days, faster in summer heat and slower in the cold, and then they turn to Rot. The Inventory shows how long each has left, as it does for food.
 
 To keep a hide, salt it. Buy Salt at the Trading Post ($2 a bag), then open Inventory (I): a raw hide row shows a Salt button. A Deer Hide takes 2 Salt and Small Furs take 1. A salted hide keeps for about a year and sells for the same as a fresh one.
+
+---
+
+## 20. The Hide Frame: Scraping and Rawhide
+
+Trigger: building a Hide Frame, or Rawhide or Dried Furs in the pack.
+
+A Hide Frame is a square pole frame for working hides, built in one go with the Hammer: 4 Sticks, 2 Branches and 2 Cordage. Find it under Other in the build list.
+
+Lace a hide into it with R: a Deer Hide, or up to 4 Small Furs, raw or salted. Then equip the Knife and hold click on the hide to scrape it clean: 20 strokes for a Deer Hide, 8 for furs. Scraping takes off the flesh and fat, and the hair from a Deer Hide; furs keep their hair.
+
+The scraped hide then dries on the frame in daylight while it is not raining, about 12 hours. A dried Deer Hide is Rawhide, stiff and lasting, which the Trading Post buys for $12. Dried Furs fetch $4 each. Press E to take them off the frame.

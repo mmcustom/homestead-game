@@ -776,6 +776,20 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: rawhide
+    group: 3
+    pool: rawhide
+    baseCents: 1200
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: dried_furs
+    group: 3
+    pool: dried_furs
+    baseCents: 400
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400

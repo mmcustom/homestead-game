@@ -212,6 +212,20 @@ public static class ArtSwap
             staticPieces = 9,                                        // the trench, two sills, two cross logs, the sawdust, three log stops
             contentAnchors = new[] { AnchorStock },
         },
+        // Tanning_Hides_and_Furs.md 3 (slice T2): the Hide Frame. The hide laced in it and its lacing stay primitives on the stock anchor.
+        new Spec
+        {
+            id = "structure_hideframe",
+            kind = PileKind.HideFrame,
+            anchors = new[] { A(AnchorStock, false, 0f, 0f, 0f) },
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(1.74f, 2.08f, 0.41f),
+            boxCenter = new Vector3(0f, 0.95f, -0.1f),
+            boxSize = new Vector3(1.7f, 2.0f, 0.7f),
+            staticPieces = 6,                                        // two uprights, two braces, two crossbars
+            contentAnchors = new[] { AnchorStock },
+        },
         new Spec
         {
             id = "structure_smithy",

@@ -720,6 +720,7 @@ public class CraftingScreen : GameScreen
             case PileKind.SmithySite:
             case PileKind.SmokehouseSite:
             case PileKind.SawPitSite:
+            case PileKind.HideFrame:
             case PileKind.WorkshopSite:
             case PileKind.PotterSite:
             case PileKind.KilnSite: return BuildCategories[2];
@@ -962,6 +963,7 @@ public class CraftingScreen : GameScreen
             case PileKind.RainBarrel: return "stand it under a Small Cabin's eave; it fills from the roof in rain (E draws water, R pours in). Holds 80 L.";
             case PileKind.FoodCache: return "store food (R), take it back (E).";
             case PileKind.SaltBarrel: return SaltBarrelRules.Help;
+            case PileKind.HideFrame: return HideFrameRules.Help;
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
             case PileKind.CompostBin: return "put in Rot and Tall Grass (R). Every 4 Rot and 2 Tall Grass compost into 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen; take the Fertilizer out (E). The Trading Post buys Fertilizer until there is farming.";
             case PileKind.DryingRack: return "hang up to 12 fresh berries, apples, pawpaws, mushrooms, raw meat or raw fish on it (R). They dry in daylight while it is not raining: about 2 days for fruit and mushrooms, 3 for meat and fish. Dried food is light and keeps for months; take it off (E).";

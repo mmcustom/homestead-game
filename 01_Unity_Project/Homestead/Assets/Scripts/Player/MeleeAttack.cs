@@ -63,6 +63,16 @@ public class MeleeAttack : MonoBehaviour
     {
         MeleeRules.Mode mode = MeleeRules.ModeFor(HandsEmpty, KnifeEquipped);
         bool canUse = player.CanUseTools;
+        // Tanning slice T2: the Knife aimed at a Hide Frame with a hide on it scrapes instead of striking.
+        if (canUse && KnifeEquipped)
+        {
+            string scrape = PlacedStructure.HideFrameAimText(player, out float progress);
+            if (scrape != null)
+            {
+                ToolStatus.Report(scrape, progress);
+                return;
+            }
+        }
         bool stab = NextIsStab;
         Animal target = canUse && mode != MeleeRules.Mode.None ? TargetAnimalWithin(player, MeleeRules.ReachFor(mode, stab)) : null;
         string text = MeleeRules.PromptFor(canUse, mode, stab, target != null, target != null && target.IsDead, target != null ? target.DisplayName : null);
@@ -119,6 +129,8 @@ public class MeleeAttack : MonoBehaviour
         lastKnifeTime = Time.time;
         nextKnife = Time.time + KnifeRules.CycleSeconds(stab);
         ToolEvents.RaiseKnife(stab, false);
+        if (PlacedStructure.ScrapeHideFrame(player)) // tanning slice T2: a blow at a Hide Frame is a scraping stroke
+            return;
         KnifeStrike(player, stab);
     }
 

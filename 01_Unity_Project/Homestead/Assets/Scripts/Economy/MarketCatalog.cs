@@ -208,6 +208,9 @@ public static class MarketCatalog
         // Tanning_Hides_and_Furs.md 2 (slice T1): salted hides, bought for what the raw ones fetch, each its own pool (HideRules has the prices).
         Row(HideRules.SaltedDeerHideId, MarketGroup.Hides, HideRules.SaltedDeerHideCents, MarketKind.Bought),
         Row(HideRules.SaltedFursId, MarketGroup.Hides, HideRules.SaltedFursCents, MarketKind.Bought),
+        // Tanning_Hides_and_Furs.md 3 (slice T2): what the Hide Frame makes, each its own pool (HideFrameRules has the prices).
+        Row(HideFrameRules.RawhideId, MarketGroup.Hides, HideFrameRules.RawhideCents, MarketKind.Bought),
+        Row(HideFrameRules.DriedFursId, MarketGroup.Hides, HideFrameRules.DriedFursCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =
