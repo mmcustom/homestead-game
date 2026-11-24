@@ -88,7 +88,17 @@ Built with the proposed numbers and no Brains item (Mike: "ok"). The rules are i
 - **Tanbark** (*proposed*): with the Knife, strip bark from a Log lying on the ground (a felled log or one in a pile). Each Log gives 2 Tanbark and stays a Log. Tanbark is 1 kg and keeps for years. Oak bark is the classic; if oaks are added to the forest later, oak logs could give more.
 - **The Tanning Vat** (*proposed*): a sunken log trough with a lid, 3 Logs and 2 Clay, one click with the Hammer. R loads Rawhide (up to 4), Tanbark (4 per hide) and water (20 L per hide, from a bucket or the Water Barrel).
 - **Soak:** the hides soak for 14 game days (*proposed*), counted hour by hour like the Smokehouse, so being away or asleep counts. The vat needs no tending, but if its water runs low (*proposed*: in long dry heat) it stops until topped up.
-- **Leather:** dark brown, stiff and strong, keeps for years. *Proposed* value: $30 a hide. Leather pays the most, but it takes two weeks and the bark.
+- **Leather:** dark brown, stiff and strong, keeps for years. *Proposed* value: $30 a hide. Leather pays the most, but it takes a week (as built) and the bark.
+
+### As built (slice T4, 2026-11-23)
+
+- **The Bark Spud** (Mike's addition): the tool for peeling bark. Forged at the Smithy (1 Iron Bar, 1 Charcoal, 1 Stick, 2 hours, for the player's own use), or $10 at the Trading Post. It weighs 0.6 kg and is used from the Inventory, so it has no model in the hands.
+- **Tanbark:** in the Inventory, the Logs row shows a **Strip** button when the Bark Spud is carried and no axe is in hand (with an axe in hand the row shows Split, as before). Each Log stripped gives 2 Tanbark and becomes a **Peeled Log**. The Knife does not strip bark.
+- **The Peeled Log** counts as a Log everywhere: in recipes, building costs and the wood piles. When the pack pays Logs, plain Logs go first, then Peeled Logs. A Peeled Log cannot be stripped again.
+- **The Tanning Vat:** 3 Logs and 2 Clay, one click with the Hammer, under Other in the Crafting screen. R loads Rawhide (up to 4), the Tanbark (4 per hide) and the water (20 L per hide) from the pack, taking the worst water first. The use key starts the soak, and later takes out the Leather.
+- **Soak:** 7 game days (168 hours; Mike halved the proposed 14 for gameplay), counted hour by hour, so being away or asleep counts. As built, the water does **not** run low in dry heat: the vat needs no tending at all.
+- **Leather:** $30 a hide, sold in the Hides group. The first Tanbark or Leather unlocks the Know-how entry **Bark Tanning: Leather** (entry 22).
+- **Taking the vat down:** with the Hammer, but not while hides are soaking. Rawhide, Tanbark and Leather come back to the pack; the water is poured out.
 
 ## 6. Crafting with tanned goods (slice T5, later)
 

@@ -641,6 +641,53 @@ public class SpoilageTests
         Assert.That(KnowHowRules.ForItem("buckskin"), Is.EqualTo(new[] { KnowHowRules.BrainTanning }));
     }
 
+    [Test]
+    public void TheTanningVatSoaksRawhideSevenDaysIntoLeather()
+    {
+        Assert.That(TanningVatRules.SoakHours, Is.EqualTo(7 * 24), "halved from 14 days for gameplay (Mike, 2026-11-23)");
+        Assert.That(TanningVatRules.CanStart(2, 8, 40), Is.True, "4 Tanbark and 20 litres a hide");
+        Assert.That(TanningVatRules.CanStart(2, 7, 40), Is.False);
+        Assert.That(TanningVatRules.CanStart(2, 8, 39), Is.False);
+        Assert.That(TanningVatRules.CanStart(0, 8, 40), Is.False);
+        Assert.That(TanningVatRules.PhaseOf(false, 0, 0, 0, 0), Is.EqualTo(TanningVatRules.Phase.Empty));
+        Assert.That(TanningVatRules.PhaseOf(false, 1, 2, 0, 0), Is.EqualTo(TanningVatRules.Phase.Loading));
+        Assert.That(TanningVatRules.PhaseOf(false, 1, 4, 20, 0), Is.EqualTo(TanningVatRules.Phase.Ready));
+        Assert.That(TanningVatRules.PhaseOf(true, 1, 0, 0, 0), Is.EqualTo(TanningVatRules.Phase.Soaking));
+        Assert.That(TanningVatRules.PhaseOf(false, 0, 0, 0, 2), Is.EqualTo(TanningVatRules.Phase.Done));
+
+        // R loads the hides first, then only the bark and water they need.
+        TanningVatRules.LoadPlan plan = TanningVatRules.PlanLoad(0, 0, 0, 6, 30, 100);
+        Assert.That(plan.hides, Is.EqualTo(4), "up to 4 hides");
+        Assert.That(plan.tanbark, Is.EqualTo(16));
+        Assert.That(plan.water, Is.EqualTo(80));
+        plan = TanningVatRules.PlanLoad(1, 4, 10, 0, 10, 10);
+        Assert.That(plan.tanbark, Is.EqualTo(0), "the one hide already has its bark");
+        Assert.That(plan.water, Is.EqualTo(10));
+
+        float hours = TanningVatRules.SoakHours; int ticks = 0; bool done = false;
+        while (!done && ticks < 1000) { hours = TanningVatRules.AfterHour(hours, out done); ticks++; }
+        Assert.That(ticks, Is.EqualTo(TanningVatRules.SoakHours));
+        Assert.That(TanningVatRules.DaysLeft(25f), Is.EqualTo(2));
+
+        Assert.That(TanningVatRules.LeatherCents, Is.GreaterThan(SmokeRules.BuckskinCents), "Leather pays the most");
+        Assert.That(TanningVatRules.Stripped(1), Is.EqualTo("Stripped the bark from 1 Log: 2 Tanbark and a Peeled Log"));
+
+        Type db = Find("ItemDatabase");
+        Func<string, object> get = id => db.GetMethod("Get", new[] { typeof(string) }).Invoke(null, new object[] { id });
+        foreach (string id in new[] { "tanbark", "leather", "peeled_log" })
+        {
+            object item = get(id);
+            Assert.That(item, Is.Not.Null, id);
+            Assert.That(item.GetType().GetProperty("IsPerishable").GetValue(item, null), Is.False, id + " keeps");
+        }
+        Type manager = Find("WoodManager"), kindType = Find("PileKind");
+        object vat = Enum.Parse(kindType, "TanningVat");
+        Assert.That((string)manager.GetMethod("PileName").Invoke(null, new[] { vat }), Is.EqualTo("Tanning Vat"));
+        Assert.That((bool)manager.GetMethod("NeedsHammerToBuild").Invoke(null, new[] { vat }), Is.True);
+        Assert.That((bool)manager.GetMethod("IsWood").Invoke(null, new object[] { "peeled_log" }), Is.True, "a Peeled Log stores with the wood");
+        Assert.That(KnowHowRules.ForItem("leather"), Is.EqualTo(new[] { KnowHowRules.BarkTanning }));
+    }
+
     // What n units fetch when each sale drops the price 5% of the base.
     static double SoldWithDrops(long cents, int n)
     {

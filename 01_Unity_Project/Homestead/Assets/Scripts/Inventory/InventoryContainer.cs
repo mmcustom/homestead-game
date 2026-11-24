@@ -64,9 +64,14 @@ public class InventoryContainer
 
     public float FreeWeightKg => Mathf.Max(0f, MaxWeightKg - WeightKg);
 
+    // Tanning slice T4 (Mike, 2026-11-23: "Log becomes Peeled Log"): a Peeled Log counts as a Log wherever Logs are counted or taken from a container,
+    // plain Logs first. Rows, drops and moves of the Peeled Log itself go by its own id as usual.
+    public const string LogsId = "logs";
+    public const string PeeledLogId = "peeled_log";
+
     public int Count(string itemId)
     {
-        int total = 0;
+        int total = itemId == LogsId ? Count(PeeledLogId) : 0;
         foreach (ItemStack stack in stacks)
         {
             if (stack.itemId == itemId)
@@ -186,6 +191,8 @@ public class InventoryContainer
             Changed?.Invoke();
             ItemsRemoved?.Invoke(itemId, removed);
         }
+        if (itemId == LogsId && removed < quantity)
+            removed += Remove(PeeledLogId, quantity - removed);
         return removed;
     }
 
@@ -199,6 +206,8 @@ public class InventoryContainer
             Changed?.Invoke();
             ItemsRemoved?.Invoke(itemId, removed);
         }
+        if (itemId == LogsId && removed < quantity)
+            removed += RemoveBatches(PeeledLogId, quantity - removed, onTaken);
         return removed;
     }
 

@@ -420,7 +420,11 @@ public class InventoryScreen : GameScreen
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
         bool sapBoil = Cooking.IsSapBoil(item.Id); // Maple Sap boils down to Syrup in 10 L batches
         bool lyeBoil = Cooking.IsLyeBoil(item.Id); // Lye boils down to Potash in the Potash Kettle, 3 Lye and 2 Firewood a batch
-        bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried;
+        // Tanning slice T4: with a Bark Spud carried, a Logs row strips bark (TanningVatRules, Salting.StripBark); with an axe in hand it splits as before.
+        bool axeInHand = InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null
+                         && (InventoryManager.Instance.EquippedTool.Id == "axe" || InventoryManager.Instance.EquippedTool.Id == ToolRules.PrimitiveAxeId);
+        bool barkable = item.Id == TanningVatRules.LogsId && Salting.SpudCarried && !axeInHand;
+        bool splittable = AxeTool.IsSplittable(item.Id) && AxeTool.AxeCarried && !barkable;
         bool refillable = item.Id == PortableLight.LampOilId && inventoryHasLantern; // Lamp Oil, while a Lantern is carried
         bool cooks = atFire && (cookable || boilable || sapBoil || lyeBoil);
         // Raw meat and fish get a Salt button while a Crock Pot is carried and no fire is in reach to cook them (SaltRules, Salting).
@@ -492,6 +496,12 @@ public class InventoryScreen : GameScreen
             QuantityStepper.SetEnabled(action, lantern != null && lantern.CanRefill);
             actionText = () => room > 0 ? $"Refill {QuantityRules.MaxOf(stepper.Amount, room)}" : "Refill";
             idleInfo = room > 0 ? $"room for {room} in the tank" : "the tank is full";
+        }
+        else if (barkable)
+        {
+            action = AddButton("Strip", 126f, 118f, Act((shift, n) => { if (Salting.StripBark(shift ? int.MaxValue : n) > 0) Refresh(); }));
+            actionText = () => $"Strip {Mathf.Max(1, stepper.Amount)}";
+            idleInfo = $"strip bark: {TanningVatRules.TanbarkPerLog} Tanbark a Log";
         }
         else if (splittable)
         {

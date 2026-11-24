@@ -155,7 +155,7 @@ public class ArtSwapTests
         foreach (string kind in new[] { "KilnSite", "Cabin", "WoodStorage" })
             Assert.That(Spec(Kind(kind)), Is.Null, kind + " has no row yet");
         Assert.That(Art.GetMethod("SpecFor", new[] { typeof(string) }).Invoke(null, new object[] { "structure_nothing" }), Is.Null);
-        Assert.That(((IEnumerable)Art.GetProperty("AllSpecs").GetValue(null)).Cast<object>().Count(), Is.EqualTo(16), "the Hide Frame (2026-11-23); the Kiln, the six Wave 2 rows (2026-11-15), the Smithy, the Leach Hopper, the Kitchen and its three add-ons (2026-11-16), the Smokehouse (2026-11-22), the Saw Pit (2026-11-23)");
+        Assert.That(((IEnumerable)Art.GetProperty("AllSpecs").GetValue(null)).Cast<object>().Count(), Is.EqualTo(17), "the Tanning Vat (2026-11-23); the Hide Frame (2026-11-23); the Kiln, the six Wave 2 rows (2026-11-15), the Smithy, the Leach Hopper, the Kitchen and its three add-ons (2026-11-16), the Smokehouse (2026-11-22), the Saw Pit (2026-11-23)");
     }
 
     // The Wave 2 rows (Mike, 2026-11-15): each row's box and fixed-piece count are the primitive builder's for an empty one, so the changing contents start right after them.
@@ -166,7 +166,7 @@ public class ArtSwapTests
                            ("PotterShed", "structure_pottershed", 0), ("CharcoalPit", "structure_charcoalpit", 0), ("Bloomery", "structure_bloomery", 0),
                            ("Smithy", "structure_smithy", 0), ("LeachHopper", "structure_leachhopper", 0),
                            ("Kitchen", "structure_kitchen", 0), ("Countertop", "structure_countertop", 0), ("Grill", "structure_grill", 0),
-                           ("SlopSink", "structure_slopsink", 0), ("Smokehouse", "structure_smokehouse", 0), ("SawPit", "structure_sawpit", 0), ("HideFrame", "structure_hideframe", 0) };
+                           ("SlopSink", "structure_slopsink", 0), ("Smokehouse", "structure_smokehouse", 0), ("SawPit", "structure_sawpit", 0), ("HideFrame", "structure_hideframe", 0), ("TanningVat", "structure_tanningvat", 0) };
         foreach (var (kind, id, contentsWhenEmpty) in rows)
         {
             object spec = Spec(Kind(kind));

@@ -226,6 +226,20 @@ public static class ArtSwap
             staticPieces = 6,                                        // two uprights, two braces, two crossbars
             contentAnchors = new[] { AnchorStock },
         },
+        // Tanning_Hides_and_Furs.md 5 (slice T4): the Tanning Vat. The bark water, the hides, the Leather and the Tanbark heap stay primitives on the stock anchor.
+        new Spec
+        {
+            id = "structure_tanningvat",
+            kind = PileKind.TanningVat,
+            anchors = new[] { A(AnchorStock, false, 0f, 0f, 0f) },
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(1.82f, 0.67f, 1.49f),
+            boxCenter = new Vector3(0f, 0.25f, 0f),
+            boxSize = new Vector3(1.9f, 0.5f, 1.2f),
+            staticPieces = 7,                                        // four side logs, two end logs, the lid
+            contentAnchors = new[] { AnchorStock },
+        },
         new Spec
         {
             id = "structure_smithy",

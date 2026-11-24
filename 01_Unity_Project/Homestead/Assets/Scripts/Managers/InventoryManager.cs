@@ -165,7 +165,7 @@ public class InventoryManager : MonoBehaviour, ISaveable
     // Tools by category that are carried, not held: they never go in hand or on a hotkey (the Inventory screen shows no
     // Key slot for them). The category alone can't say so, since the Sleeping Bag, Tent and Weather Station are all Tools.
     public static bool IsCarriedOnly(string itemId) =>
-        itemId == SleepManager.SleepingBagId || itemId == WoodManager.TentId || itemId == WeatherScreen.WeatherStationId;
+        itemId == SleepManager.SleepingBagId || itemId == WoodManager.TentId || itemId == WeatherScreen.WeatherStationId || itemId == TanningVatRules.BarkSpudId; // the Bark Spud is used from the Inventory
 
     public bool Equip(string itemId)
     {

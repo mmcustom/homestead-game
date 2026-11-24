@@ -153,6 +153,7 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         Sweep();
         CompostTick();
         DryingTick();
+        TanningTick();
     }
 
     // --- The Compost Bin (CompostRules) ---
@@ -292,6 +293,34 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         }
         if (WoodManager.Instance != null)
             WoodManager.Instance.NotifyChanged(frame);
+    }
+
+    // Each game hour, every soaking Tanning Vat counts down; when the soak is done its Rawhide is Leather (TanningVatRules).
+    void TanningTick()
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null)
+            return;
+        foreach (WoodPileState vat in wood.Piles)
+            if (vat.kind == PileKind.TanningVat && vat.jobItem == TanningVatRules.SoakMarker)
+                VatHour(vat);
+    }
+
+    // One hour of a soaking vat (public static for tests).
+    public static void VatHour(WoodPileState vat)
+    {
+        vat.jobHours = TanningVatRules.AfterHour(vat.jobHours, out bool done);
+        if (done)
+        {
+            int hides = vat.Count(TanningVatRules.RawhideId);
+            vat.Take(TanningVatRules.RawhideId, hides);
+            vat.Add(TanningVatRules.LeatherId, hides, 0);
+            vat.jobItem = null;
+            vat.jobHours = 0f;
+            ToolStatus.Banner(TanningVatRules.Finished(hides), 6f);
+        }
+        if (WoodManager.Instance != null)
+            WoodManager.Instance.NotifyChanged(vat);
     }
 
     // How many fresh pieces a rack is drying.

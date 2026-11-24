@@ -250,3 +250,15 @@ Brain tanning makes a hide soft and lasting. Lace Rawhide or Dried Furs into the
 The worked hide is a Soft Hide or Soft Furs, white and floppy. Take it off with E and smoke it in the Smokehouse with the meat (R loads it). A Soft Hide takes the room of 2 pieces of meat and Soft Furs 1, and it smokes for the same day on the same Firewood.
 
 It comes out as Buckskin, golden brown and soft, or Tanned Furs. The Trading Post buys Buckskin for $24 and Tanned Furs for $6 each.
+
+---
+
+## 22. Bark Tanning: Leather
+
+Trigger: building a Tanning Vat, or Tanbark or Leather in the pack.
+
+Bark tanning makes Leather, the strongest hide of all, but it takes a week. You need Rawhide from the Hide Frame, Tanbark and water.
+
+To get Tanbark you need a Bark Spud, a short iron blade for peeling bark: forge one at the Smithy (1 Iron Bar, 1 Charcoal and a Stick) or buy one at the Trading Post. With it in your pack, the Inventory's Logs row has a Strip button (unless an axe is in your hand). Each Log gives 2 Tanbark and becomes a Peeled Log, which still works anywhere a Log does.
+
+Build a Tanning Vat (3 Logs and 2 Clay, one click with the Hammer, under Other). Load it with R: Rawhide, up to 4, with 4 Tanbark and 20 litres of water for each hide. Press E to start the soak. After 7 days the hides are Leather, which the Trading Post buys for $30 each. E takes it out.

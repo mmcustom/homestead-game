@@ -80,6 +80,8 @@ public static class SmithyRules
         // M4: the iron tools, for the player's own use (baseCents 0: no price on the Smithy screen, no Ledger line; since 2026-11-14 the Trading Post also stocks them). Each is a Bar-and-Charcoal job with a haft and lashing, like the stone tool's sticks and cordage.
         new Recipe { itemId = IronShovelId, name = "Iron Shovel", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 3, cordage = 1, hours = 3, baseCents = 0, weightKg = 1.8f },
         new Recipe { itemId = IronPickAxeId, name = "Iron Pick Axe", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 2, cordage = 1, hours = 3, baseCents = 0, weightKg = 2f },
+        // Tanning slice T4 (Mike, 2026-11-23: "Bark Spud, Smithy-forged"): the bark-peeling tool, for the player's own use like the iron tools.
+        new Recipe { itemId = TanningVatRules.BarkSpudId, name = "Bark Spud", metalId = MetalRules.IronId, bars = 1, charcoal = 1, sticks = 1, cordage = 0, hours = 2, baseCents = 0, weightKg = TanningVatRules.BarkSpudKg },
     };
 
     public static bool TryFind(string itemId, out Recipe recipe)
@@ -147,7 +149,7 @@ public static class SmithyRules
     // --- The screen's panel and how it keeps inside any window ---
 
     public const float PanelWidthPx = 1500f;
-    public const float PanelHeightPx = 920f;
+    public const float PanelHeightPx = 1010f;                // 920 until the Bark Spud made six rows (2026-11-23); six 88 px rows need the extra 90
     public const float ReferenceHeightPx = 1080f;
 
     // The canvas scaler's match setting for a window of this aspect ratio (width over height): 1 (match the height, so the panel is never taller than the window) when the window is wide

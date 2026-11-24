@@ -91,7 +91,7 @@ public static class LedgerCategories
     {
         { "axe", LedgerCategory.BuyTools }, { "hammer", LedgerCategory.BuyTools }, { "knife", LedgerCategory.BuyTools }, { AxeRules.SawId, LedgerCategory.BuyTools },
         { ToolRules.StoneShovelId, LedgerCategory.BuyTools }, { ToolRules.StonePickAxeId, LedgerCategory.BuyTools }, { ToolRules.PrimitiveAxeId, LedgerCategory.BuyTools },
-        { ToolRules.IronShovelId, LedgerCategory.BuyTools }, { ToolRules.IronPickAxeId, LedgerCategory.BuyTools },
+        { ToolRules.IronShovelId, LedgerCategory.BuyTools }, { ToolRules.IronPickAxeId, LedgerCategory.BuyTools }, { TanningVatRules.BarkSpudId, LedgerCategory.BuyTools },
         { MapleRules.SapBucketId, LedgerCategory.BuyTools }, { MapleRules.SpileId, LedgerCategory.BuyTools }, { "pouch", LedgerCategory.BuyOtherGoods },
         { "cane_pole", LedgerCategory.BuyHuntingFishing }, { "primitive_bow", LedgerCategory.BuyHuntingFishing }, { "box_trap", LedgerCategory.BuyHuntingFishing },
         { "fish_trap", LedgerCategory.BuyHuntingFishing }, { "rabbit_snare", LedgerCategory.BuyHuntingFishing },

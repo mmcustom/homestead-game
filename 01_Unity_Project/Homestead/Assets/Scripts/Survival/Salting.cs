@@ -77,4 +77,35 @@ public static class Salting
             ToolStatus.Flash(HideRules.SaltedMessage(made, item.DisplayName, made * each));
         return made;
     }
+
+    // Tanning slice T4: strips the bark from up to count Logs with a Bark Spud carried (TanningVatRules). Each Log gives 2 Tanbark and becomes a Peeled Log,
+    // which counts as a Log wherever Logs are used from the pack. Peeled Logs are not stripped again. Returns how many Logs were stripped.
+    public static bool SpudCarried =>
+        InventoryManager.Instance != null && InventoryManager.Instance.Player.Count(TanningVatRules.BarkSpudId) > 0;
+
+    public static int StripBark(int count)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (inventory == null || count <= 0)
+            return 0;
+        if (!SpudCarried)
+        {
+            ToolStatus.Flash(TanningVatRules.NeedsSpud);
+            return 0;
+        }
+        InventoryContainer pack = inventory.Player;
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        // Only plain Logs: the batches are counted by the plain id so a Peeled Log is never stripped twice.
+        int plain = 0;
+        foreach ((int day, int quantity) in pack.Batches(TanningVatRules.LogsId))
+            plain += quantity;
+        int logs = pack.RemoveBatches(TanningVatRules.LogsId, Mathf.Min(count, plain), null);
+        if (logs <= 0)
+            return 0;
+        inventory.AddToPlayer(TanningVatRules.PeeledLogId, logs);
+        inventory.AddToPlayer(TanningVatRules.TanbarkId, logs * TanningVatRules.TanbarkPerLog);
+        ToolStatus.Flash(TanningVatRules.Stripped(logs));
+        return logs;
+    }
 }

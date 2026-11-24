@@ -51,6 +51,7 @@ public static class StructureVisuals
             case PileKind.SawPitSite: BuildSawPitSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.SawPit: BuildSawPit(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.HideFrame: BuildHideFrame(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.TanningVat: BuildTanningVat(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -759,6 +760,38 @@ public static class StructureVisuals
         boxSize = new Vector3(2f * half + 0.2f, top + 0.1f, 0.7f);
     }
 
+    // --- The Tanning Vat (TanningVatRules, Tanning_Hides_and_Furs.md 5) ---
+
+    static readonly Color TanWaterColor = new Color(0.22f, 0.12f, 0.05f);
+    static readonly Color TanbarkColor = new Color(0.35f, 0.2f, 0.1f);
+    static readonly Color LeatherColor = new Color(0.3f, 0.17f, 0.08f);
+
+    // A log trough sunk in the ground, about 1.6 x 0.9 m: four side logs, two end logs and a plank lid leaning on one side. 7 static pieces. Inside, the
+    // dark bark water when there is water, the hides' edges showing while they soak, and the Leather folded on the lid when it is done; Tanbark heaped beside.
+    static void BuildTanningVat(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float hl = 0.8f, hw = 0.45f;
+        foreach (float side in new[] { -1f, 1f })
+            for (int row = 0; row < 2; row++)
+                Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.12f + row * 0.2f, side * hw), new Vector3(0f, 0f, 90f), new Vector3(0.2f, hl + 0.1f, 0.2f), bark);
+        foreach (float end in new[] { -1f, 1f })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(end * hl, 0.22f, 0f), new Vector3(90f, 0f, 0f), new Vector3(0.22f, hw + 0.05f, 0.22f), bark);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.25f, -hw - 0.35f), new Vector3(-70f, 0f, 0f), new Vector3(2f * hl, 0.05f, 0.7f), null), BenchWoodColor);
+
+        int hides = state.Count(TanningVatRules.RawhideId), water = state.Count(TanningVatRules.WaterId), tanbark = state.Count(TanningVatRules.TanbarkId), leather = state.Count(TanningVatRules.LeatherId);
+        bool soaking = state.jobItem == TanningVatRules.SoakMarker;
+        if (water > 0 || soaking)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.36f, 0f), Vector3.zero, new Vector3(2f * hl - 0.15f, 0.02f, 2f * hw - 0.15f), null), TanWaterColor);
+        for (int i = 0; i < Mathf.Min(hides, TanningVatRules.HidesCap); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.45f + i * 0.3f, 0.4f, 0.05f * (i % 2)), new Vector3(0f, 0f, 20f), new Vector3(0.25f, 0.02f, 0.5f), null), RawhideColor);
+        for (int i = 0; i < Mathf.Min(leather, TanningVatRules.HidesCap); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.32f + i * 0.03f, -hw - 0.4f), new Vector3(-70f, 0f, 0f), new Vector3(0.7f, 0.025f, 0.45f), null), LeatherColor);
+        if (tanbark > 0)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(hl + 0.35f, 0.08f, 0.2f), Vector3.zero, new Vector3(0.35f, 0.12f + Mathf.Min(tanbark, 16) * 0.01f, 0.35f), null), TanbarkColor);
+        boxCenter = new Vector3(0f, 0.25f, 0f);
+        boxSize = new Vector3(1.9f, 0.5f, 1.2f);                // the logs' length and width plus a little room; ArtSwap's spec matches it exactly
+    }
+
     // What is on a Hide Frame: the kind of hide laced in and how many pieces, or what it has become.
     internal static HideFrameRules.Kind HideFrameKindOf(WoodPileState state, out int pieces, out string outputId, out int outputCount)
     {
@@ -1316,6 +1349,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Smokehouse: return SmokehousePromptText();
                 case PileKind.SawPit: return SawPitPromptText();
                 case PileKind.HideFrame: return HideFramePromptText();
+                case PileKind.TanningVat: return VatPromptText();
                 default: return OuthousePrompt();
             }
         }
@@ -2648,6 +2682,101 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return $"Scrape the hide (hold click): {HideFrameRules.Percent(frame.state.jobHours, kind)}%";
     }
 
+    // --- The Tanning Vat (TanningVatRules, Tanning_Hides_and_Furs.md 5) ---
+
+    TanningVatRules.Phase VatPhaseNow => TanningVatRules.PhaseOf(state.jobItem == TanningVatRules.SoakMarker, state.Count(TanningVatRules.RawhideId),
+        state.Count(TanningVatRules.TanbarkId), state.Count(TanningVatRules.WaterId), state.Count(TanningVatRules.LeatherId));
+
+    string VatPromptText() => TanningVatRules.Prompt(VatPhaseNow, state.Count(TanningVatRules.RawhideId), state.Count(TanningVatRules.TanbarkId),
+        state.Count(TanningVatRules.WaterId), state.Count(TanningVatRules.LeatherId), state.jobHours);
+
+    TanningVatRules.LoadPlan VatPlan() => TanningVatRules.PlanLoad(state.Count(TanningVatRules.RawhideId), state.Count(TanningVatRules.TanbarkId), state.Count(TanningVatRules.WaterId),
+        Inventory.Player.Count(TanningVatRules.RawhideId), Inventory.Player.Count(TanningVatRules.TanbarkId), WaterQualities.LitresCarried(Inventory.Player));
+
+    string VatSecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return state.jobItem == TanningVatRules.SoakMarker ? TanningVatRules.CantDismantle : TanningVatRules.DismantlePrompt;
+        TanningVatRules.Phase phase = VatPhaseNow;
+        if (phase == TanningVatRules.Phase.Soaking || phase == TanningVatRules.Phase.Done)
+            return VatPromptText();
+        TanningVatRules.LoadPlan plan = VatPlan();
+        return plan.Any ? $"Load the vat (R): {plan.hides} Rawhide, {plan.tanbark} Tanbark, {plan.water} litres" : TanningVatRules.NothingToLoad;
+    }
+
+    // R: with the Hammer it takes the vat down; otherwise it loads Rawhide, then the Tanbark and water those hides need (the worst water first).
+    void VatSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        TanningVatRules.Phase phase = VatPhaseNow;
+        if (phase == TanningVatRules.Phase.Soaking || phase == TanningVatRules.Phase.Done)
+        {
+            ToolStatus.Flash(phase == TanningVatRules.Phase.Soaking ? TanningVatRules.FullWhileSoaking : VatPromptText(), 3f);
+            return;
+        }
+        TanningVatRules.LoadPlan plan = VatPlan();
+        if (!plan.Any)
+        {
+            ToolStatus.Flash(TanningVatRules.NothingToLoad, 4f);
+            return;
+        }
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        InventoryContainer pack = Inventory.Player;
+        var done = new TanningVatRules.LoadPlan();
+        if (plan.hides > 0)
+            done.hides = pack.RemoveBatches(TanningVatRules.RawhideId, plan.hides, (day, n) => state.Add(TanningVatRules.RawhideId, n, 0));
+        if (plan.tanbark > 0)
+            done.tanbark = pack.RemoveBatches(TanningVatRules.TanbarkId, plan.tanbark, (day, n) => state.Add(TanningVatRules.TanbarkId, n, 0));
+        int need = plan.water;
+        for (int i = WaterQualities.AllItemIds.Length - 1; i >= 0 && need > 0; i--)
+            need -= pack.Remove(WaterQualities.AllItemIds[i], need);
+        if (need > 0)
+            need -= pack.Remove(Cooking.PurifiedWaterId, need);
+        done.water = plan.water - need;
+        if (done.water > 0)
+            state.Add(TanningVatRules.WaterId, done.water, 0);
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(TanningVatRules.Loaded(done), 4f);
+    }
+
+    // E: takes the Leather when it is done; starts the soak when there is bark and water for every hide; otherwise says what is missing.
+    void VatInteract()
+    {
+        TanningVatRules.Phase phase = VatPhaseNow;
+        if (phase == TanningVatRules.Phase.Done)
+        {
+            int leather = state.Count(TanningVatRules.LeatherId);
+            ItemDefinition item = ItemDatabase.Get(TanningVatRules.LeatherId);
+            int fits = item != null ? Mathf.Min(leather, Inventory.Player.SpaceFor(item)) : 0;
+            int took = fits > 0 ? Inventory.AddToPlayer(TanningVatRules.LeatherId, fits) : 0;
+            if (took > 0)
+            {
+                state.Take(TanningVatRules.LeatherId, took);
+                WoodManager.Instance.NotifyChanged(state);
+            }
+            ToolStatus.Flash(TanningVatRules.Took(took, leather - took), 4f);
+            return;
+        }
+        if (phase != TanningVatRules.Phase.Ready)
+        {
+            ToolStatus.Flash(VatPromptText(), 4f);
+            return;
+        }
+        int hides = state.Count(TanningVatRules.RawhideId);
+        // The bark and water the hides need go into the soak; any extra stays in the vat for the next one.
+        state.Take(TanningVatRules.TanbarkId, hides * TanningVatRules.TanbarkPerHide);
+        state.Take(TanningVatRules.WaterId, hides * TanningVatRules.WaterPerHide);
+        state.jobItem = TanningVatRules.SoakMarker;
+        state.jobHours = TanningVatRules.SoakHours;
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(TanningVatRules.Started(hides), 4f);
+    }
+
     // --- The Smokehouse (Food_Spoilage_and_Preservation.md 5) ---
 
     SmokeRules.Phase SmokePhaseNow => WellsAndOuthouses.SmokePhaseOf(state);
@@ -3097,6 +3226,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return SawPitSecondaryPrompt();
             if (state.kind == PileKind.HideFrame)
                 return HideFrameSecondaryPrompt();
+            if (state.kind == PileKind.TanningVat)
+                return VatSecondaryPrompt();
             if (state.kind == PileKind.Workshop)
                 return WorkshopSecondaryPrompt();
             if (state.kind == PileKind.Grill)
@@ -3148,6 +3279,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Smokehouse: SmokehouseInteract(); break;
             case PileKind.SawPit: SawPitInteract(); break;
             case PileKind.HideFrame: HideFrameInteract(); break;
+            case PileKind.TanningVat: VatInteract(); break;
             default: DigNewPit(player); break;
         }
     }
@@ -3340,6 +3472,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             HideFrameSecondary();
         }
+        else if (state.kind == PileKind.TanningVat)
+        {
+            VatSecondary();
+        }
         else if (state.kind == PileKind.PotterShed)
         {
             PotterySecondary();
@@ -3469,6 +3605,12 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash(BloomeryRules.DismantlePrompt(SmeltPhaseNow, state.jobHours), 4f);
             return;
         }
+        // A Tanning Vat is not taken down while hides soak.
+        if (state.kind == PileKind.TanningVat && state.jobItem == TanningVatRules.SoakMarker)
+        {
+            ToolStatus.Flash(TanningVatRules.CantDismantle, 4f);
+            return;
+        }
         // A Smokehouse is not taken down while a load is in (lit, or stopped half smoked).
         if (state.kind == PileKind.Smokehouse && !SmokeRules.CanDismantle(SmokePhaseNow))
         {
@@ -3522,6 +3664,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             refund.Return(BloomeryRules.CharcoalId, state.Count(BloomeryRules.CharcoalId));
             refund.Return(BloomeryRules.BarId, state.Count(BloomeryRules.BarId));
         }
+        // A Tanning Vat gives back its Rawhide, Tanbark and Leather whole (the water is poured out), on top of half the materials.
+        if (state.kind == PileKind.TanningVat)
+            foreach (WoodStack stack in state.contents)
+                if (stack.itemId == TanningVatRules.RawhideId || stack.itemId == TanningVatRules.TanbarkId || stack.itemId == TanningVatRules.LeatherId)
+                    refund.Return(stack.itemId, stack.count, 0);
         // A Hide Frame gives back the hide laced in it (keeping its freshness), or the Rawhide or Dried Furs it has become, on top of half the materials.
         if (state.kind == PileKind.HideFrame)
             foreach (WoodStack stack in state.contents)

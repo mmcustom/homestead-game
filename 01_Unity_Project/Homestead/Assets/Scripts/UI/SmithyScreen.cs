@@ -25,7 +25,7 @@ public class SmithyScreen : MonoBehaviour
     public const int TitleSize = 36, StatusSize = 28, PackSize = 28, ListNameSize = 32, ListDetailSize = 28, DetailNameSize = 40, BodySize = 28, StartSize = 36,
                      StockSize = 32, CloseSize = 28, HintSize = 28;
     // Row heights and the gap between rows (UI pixels), and the stock button's height.
-    // Five rows (M4) in the 920 px panel: 5 x 88 + 4 x 8 = 472 px of list from y 204 to 676, the stock reason (72) and the 88 px button below it end at 850, ten px above the hint line.
+    // Six rows (the Bark Spud, 2026-11-23) in the 1010 px panel: 6 x 88 + 5 x 8 = 568 px of list from y 204 to 772, the stock reason (72) and the 88 px button below it end at 946, four px above the hint line at 950.
     public const float RowHeight = 88f, RowGap = 8f, StockButtonHeight = 88f;
 
     const float PanelWidth = SmithyRules.PanelWidthPx, PanelHeight = SmithyRules.PanelHeightPx;
@@ -116,7 +116,7 @@ public class SmithyScreen : MonoBehaviour
         packLabel = UiKit.Text(panel, "Pack", "", PackSize, UiKit.Ink, TextAnchor.MiddleLeft);
         Place(packLabel.rectTransform, 32f, 142f, PanelWidth - 64f, 48f);
 
-        // The list: five rows, each a button holding the name and, under it, the hours and the price (or "own use").
+        // The list: six rows, each a button holding the name and, under it, the hours and the price (or "own use").
         for (int i = 0; i < rows.Length; i++)
         {
             int index = i;

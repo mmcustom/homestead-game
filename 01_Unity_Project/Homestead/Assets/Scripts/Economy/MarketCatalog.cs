@@ -96,6 +96,7 @@ public static class MarketCatalog
         Row(ToolRules.PrimitiveAxeId, MarketGroup.Stocked, ToolRules.PrimitiveAxeStoreCents, MarketKind.Stocked, sellCents: ToolRules.StoneToolSellCents),
         Row(ToolRules.IronShovelId, MarketGroup.Stocked, ToolRules.IronShovelStoreCents, MarketKind.Stocked),
         Row(ToolRules.IronPickAxeId, MarketGroup.Stocked, ToolRules.IronPickAxeStoreCents, MarketKind.Stocked),
+        Row(TanningVatRules.BarkSpudId, MarketGroup.Stocked, TanningVatRules.BarkSpudStoreCents, MarketKind.Stocked), // tanning slice T4
         // The maple gear, which had no row at all (Mike, 2026-11-14): now on the shelf, selling back at the usual share. The rest of the hand tools
         // (Lantern, Torch, Cane Pole, Primitive Bow, Bow Drill, the traps and snare, the Pouch and the Clay Cooking Pot) stay Crafted rows further
         // down but became Stocked at ToolRules.StoreCents of their sell price, so selling a homemade one pays exactly what it did.
@@ -214,6 +215,8 @@ public static class MarketCatalog
         // Tanning_Hides_and_Furs.md 4 (slice T3): brain-tanned goods from the Smokehouse (SmokeRules has the prices). The soft hides between are not bought.
         Row(SmokeRules.BuckskinId, MarketGroup.Hides, SmokeRules.BuckskinCents, MarketKind.Bought),
         Row(SmokeRules.TannedFursId, MarketGroup.Hides, SmokeRules.TannedFursCents, MarketKind.Bought),
+        // Tanning_Hides_and_Furs.md 5 (slice T4): Leather from the Tanning Vat (TanningVatRules has the price). Tanbark is not bought.
+        Row(TanningVatRules.LeatherId, MarketGroup.Hides, TanningVatRules.LeatherCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =

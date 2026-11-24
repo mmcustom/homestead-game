@@ -118,6 +118,13 @@ MonoBehaviour:
     kind: 0
     seasonalBuy: 0
     sellCents: 0
+  - itemId: bark_spud
+    group: 7
+    pool: bark_spud
+    baseCents: 1000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
   - itemId: sap_bucket
     group: 7
     pool: sap_bucket
@@ -801,6 +808,13 @@ MonoBehaviour:
     group: 3
     pool: tanned_furs
     baseCents: 600
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: leather
+    group: 3
+    pool: leather
+    baseCents: 3000
     kind: 1
     seasonalBuy: 0
     sellCents: 0

@@ -27,6 +27,7 @@ public static class KnowHowRules
     public const string Smoking = "smoking";
     public const string Cellar = "cellar";
     public const string Hides = "hides";
+    public const string BarkTanning = "bark_tanning"; // Tanning_Hides_and_Furs.md 8 (slice T4): Claude's draft text, for Mike to change as he likes
     public const string BrainTanning = "brain_tanning"; // Tanning_Hides_and_Furs.md 8 (slice T3): Claude's draft text, for Mike to change as he likes
     public const string HideFrame = "hide_frame"; // Tanning_Hides_and_Furs.md 8 (slice T2): Claude's draft text, for Mike to change as he likes     // Tanning_Hides_and_Furs.md 8 (slice T1): Claude's draft text, for Mike to change as he likes
     public const string Sawing = "sawing";     // Saw_Pit_Sawmill_and_Salt_Barrel.md 1: Claude's draft text, for Mike to change as he likes     // Food_Spoilage_and_Preservation.md 6: Claude's draft text, for Mike to change as he likes   // Food_Spoilage_and_Preservation.md 5: Claude's draft text, for Mike to change as he likes
@@ -67,6 +68,7 @@ public static class KnowHowRules
         new Entry(Hides, "Hides Spoil: Salt or Tan Them", "A fresh Deer Hide or Small Furs will not keep. A Deer Hide spoils in about a week and Small Furs in about five days, faster in summer heat and slower in the cold, and then they turn to Rot. The Inventory shows how long each has left, as it does for food.\n\nTo keep a hide, salt it. Buy Salt at the Trading Post ($2 a bag), then open Inventory (I): a raw hide row shows a Salt button. A Deer Hide takes 2 Salt and Small Furs take 1. A salted hide keeps for about a year and sells for the same as a fresh one."),
         new Entry(HideFrame, "The Hide Frame: Scraping and Rawhide", "A Hide Frame is a square pole frame for working hides, built in one go with the Hammer: 4 Sticks, 2 Branches and 2 Cordage. Find it under Other in the build list.\n\nLace a hide into it with R: a Deer Hide, or up to 4 Small Furs, raw or salted. Then equip the Knife and hold click on the hide to scrape it clean: 20 strokes for a Deer Hide, 8 for furs. Scraping takes off the flesh and fat, and the hair from a Deer Hide; furs keep their hair.\n\nThe scraped hide then dries on the frame in daylight while it is not raining, about 12 hours. A dried Deer Hide is Rawhide, stiff and lasting, which the Trading Post buys for $12. Dried Furs fetch $4 each. Press E to take them off the frame."),
         new Entry(BrainTanning, "Brain Tanning: Buckskin and Furs", "Brain tanning makes a hide soft and lasting. Lace Rawhide or Dried Furs into the Hide Frame with R. With a Crock Pot and 1 litre of water in your pack (a Canteen or Bucket), equip the Knife and hold click on the hide to work the brain-and-water mix into it: 30 strokes for a hide, 10 for furs. Each animal's brains are enough for its own hide.\n\nThe worked hide is a Soft Hide or Soft Furs, white and floppy. Take it off with E and smoke it in the Smokehouse with the meat (R loads it). A Soft Hide takes the room of 2 pieces of meat and Soft Furs 1, and it smokes for the same day on the same Firewood.\n\nIt comes out as Buckskin, golden brown and soft, or Tanned Furs. The Trading Post buys Buckskin for $24 and Tanned Furs for $6 each."),
+        new Entry(BarkTanning, "Bark Tanning: Leather", "Bark tanning makes Leather, the strongest hide of all, but it takes a week. You need Rawhide from the Hide Frame, Tanbark and water.\n\nTo get Tanbark you need a Bark Spud, a short iron blade for peeling bark: forge one at the Smithy (1 Iron Bar, 1 Charcoal and a Stick) or buy one at the Trading Post. With it in your pack, the Inventory's Logs row has a Strip button (unless an axe is in your hand). Each Log gives 2 Tanbark and becomes a Peeled Log, which still works anywhere a Log does.\n\nBuild a Tanning Vat (3 Logs and 2 Clay, one click with the Hammer, under Other). Load it with R: Rawhide, up to 4, with 4 Tanbark and 20 litres of water for each hide. Press E to start the soak. After 7 days the hides are Leather, which the Trading Post buys for $30 each. E takes it out."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -86,7 +88,7 @@ public static class KnowHowRules
     // --- Triggers ---
 
     // Things that happen in the world, besides an item entering the pack.
-    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched, SmokehouseSitePlaced, RootCellarSitePlaced, SawPitSitePlaced, HideFramePlaced }
+    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched, SmokehouseSitePlaced, RootCellarSitePlaced, SawPitSitePlaced, HideFramePlaced, TanningVatPlaced }
 
     // Entries a first-held item unlocks (none for most items). Ash opens both "Ash" and "From Ash to Potash".
     public static string[] ForItem(string itemId)
@@ -126,6 +128,8 @@ public static class KnowHowRules
             case SmokeRules.SoftFursId:
             case SmokeRules.BuckskinId:
             case SmokeRules.TannedFursId: return new[] { BrainTanning };
+            case TanningVatRules.TanbarkId:
+            case TanningVatRules.LeatherId: return new[] { BarkTanning };
             default: return Array.Empty<string>();
         }
     }
@@ -144,6 +148,7 @@ public static class KnowHowRules
             case Happening.RootCellarSitePlaced: return new[] { Cellar };
             case Happening.SawPitSitePlaced: return new[] { Sawing };
             case Happening.HideFramePlaced: return new[] { HideFrame };
+            case Happening.TanningVatPlaced: return new[] { BarkTanning };
             default: return Array.Empty<string>();
         }
     }
@@ -174,6 +179,7 @@ public static class KnowHowRules
         HideRules.DeerHideId, HideRules.SmallFursId, HideRules.SaltedDeerHideId, HideRules.SaltedFursId,
         HideFrameRules.RawhideId, HideFrameRules.DriedFursId,
         SmokeRules.SoftHideId, SmokeRules.SoftFursId, SmokeRules.BuckskinId, SmokeRules.TannedFursId,
+        TanningVatRules.TanbarkId, TanningVatRules.LeatherId,
     };
 
     // The entries a loaded game has already earned: what the pack holds, and what it has built (a hopper site, a tripod, a tap). An old save

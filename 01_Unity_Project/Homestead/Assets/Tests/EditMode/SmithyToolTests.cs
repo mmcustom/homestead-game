@@ -486,9 +486,9 @@ public class SmithyToolTests
             Assert.That(table.Stock.Any(r => r.itemId == id), Is.True, id + " is on the Trading Post list");
             Assert.That(LedgerCategories.ForPurchase(id), Is.EqualTo(LedgerCategory.BuyTools), id + " is a tool purchase");
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(113));
+        Assert.That(table.Rows.Count, Is.EqualTo(115));
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(22));
-        Assert.That(table.Stock.Count, Is.EqualTo(40), "and Salt (2026-11-22)");
+        Assert.That(table.Stock.Count, Is.EqualTo(41), "and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
         Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new Ledger category");
         Assert.That(SourceText("Resources/Market/MarketData.asset").Contains("iron_shovel"), Is.True, "the asset was reseeded");
         Assert.That(SourceText("Scripts/Managers/DifficultyManager.cs").Contains("iron_"), Is.False, "the starting kits are the stone tools");
@@ -567,7 +567,7 @@ public class SmithyToolTests
             Component[] labels = go.GetComponentsInChildren(text, true);
             foreach (Component label in labels)
                 Assert.That((int)size.GetValue(label), Is.GreaterThanOrEqualTo(26), label.name);
-            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(5));
+            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(6));
             Assert.That(labels.Count(l => l.name.StartsWith("Need ")), Is.EqualTo(4));
             Assert.That(labels.Where(l => l.name.StartsWith("Need ")).Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28), "body text 28");
             Assert.That(labels.Where(l => l.name == "Detail").Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28));
@@ -581,7 +581,7 @@ public class SmithyToolTests
             }
             string[] names =
             {
-                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2", "Need 3",
+                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2", "Need 3",
                 "Reason", "Start", "Hint",
             };
             var panel = new Rect(0f, 0f, SmithyRules.PanelWidthPx, SmithyRules.PanelHeightPx);
@@ -597,13 +597,13 @@ public class SmithyToolTests
                 for (int b = a + 1; b < names.Length; b++)
                     Assert.That(Box(names[a]).Overlaps(Box(names[b])), Is.False, names[a] + " overlaps " + names[b]);
 
-            // How five rows fit the 920 px panel: five 88 px rows and four 8 px gaps run from y 204 to 676; the 72 px reason line and the 88 px stock button end at 850, above the hint at 860.
-            Assert.That(Box("Row 4").yMax, Is.EqualTo(676f));
-            Assert.That(Box("Stock").yMax, Is.EqualTo(850f));
-            Assert.That(Box("Hint").yMin, Is.EqualTo(860f));
+            // How six rows fit the 1010 px panel (the Bark Spud, 2026-11-23): six 88 px rows and five 8 px gaps run from y 204 to 772; the 72 px reason line and the 88 px stock button end at 946, above the hint at 950.
+            Assert.That(Box("Row 5").yMax, Is.EqualTo(772f));
+            Assert.That(Box("Stock").yMax, Is.EqualTo(946f));
+            Assert.That(Box("Hint").yMin, Is.EqualTo(950f));
             Assert.That(Box("Stock").yMax, Is.LessThan(Box("Hint").yMin));
             Assert.That(Box("Start").yMax, Is.LessThan(Box("Hint").yMin));
-            Assert.That(Box("Row 4").yMax - Box("Row 0").yMin, Is.EqualTo(472f));
+            Assert.That(Box("Row 5").yMax - Box("Row 0").yMin, Is.EqualTo(568f));
             Assert.That(Screen.GetField("RowHeight").GetRawConstantValue(), Is.EqualTo(88f));
             Assert.That(Screen.GetField("RowGap").GetRawConstantValue(), Is.EqualTo(8f));
             Assert.That(Box("Stock").height, Is.GreaterThanOrEqualTo(80f));
@@ -616,9 +616,9 @@ public class SmithyToolTests
             UnityEngine.Object.DestroyImmediate(go);
         }
 
-        // The panel is the same 1500 x 920 and still never clips on 21:9 or 32:9 (the scaler matches the height there).
+        // The panel is 1500 x 1010 (920 until the sixth row) and still never clips on 21:9 or 32:9 (the scaler matches the height there).
         Assert.That(SmithyRules.PanelWidthPx, Is.EqualTo(1500f));
-        Assert.That(SmithyRules.PanelHeightPx, Is.EqualTo(920f));
+        Assert.That(SmithyRules.PanelHeightPx, Is.EqualTo(1010f));
         Assert.That(SmithyRules.ScreenMatch(21f / 9f), Is.EqualTo(1f));
         Assert.That(SmithyRules.ScreenMatch(32f / 9f), Is.EqualTo(1f));
         Assert.That(SmithyRules.ScreenMatch(4f / 3f), Is.EqualTo(0f));
@@ -629,7 +629,7 @@ public class SmithyToolTests
     [Test]
     public void TheSmithyEntryNowTeachesTheToolsAndTheItemHelpExists()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(21), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(22), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry smithy), Is.True);
         Assert.That(smithy.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(smithy.body, Does.Contain("an iron Shovel and Pick Axe for your own use"));
@@ -673,7 +673,7 @@ public class SmithyToolTests
         Assert.That(text, Does.Contain("and into an iron Shovel and Pick Axe for your own use."));
         Assert.That(text, Does.Contain("An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each."));
         Assert.That(text, Does.Not.Contain("it holds 8 of each"));
-        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(21), "eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
+        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(22), "eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
     }
 
     // --- Saving ---
@@ -686,7 +686,7 @@ public class SmithyToolTests
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("stick") || f.ToLowerInvariant().Contains("cordage") || f.ToLowerInvariant().Contains("tool")), Is.False);
         Assert.That(((int)Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static).GetRawConstantValue()), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(55), "no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(56), "no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
         Assert.That((int)Enum.Parse(Find("PileKind"), "Smithy"), Is.EqualTo(44));
         Assert.That(CharcoalRules.BurnMarker, Is.EqualTo("charcoal_burn"));
         Assert.That(BloomeryRules.SmeltMarker, Is.EqualTo("iron_smelt"));
