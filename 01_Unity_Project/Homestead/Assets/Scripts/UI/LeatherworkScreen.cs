@@ -15,7 +15,7 @@ public class LeatherworkScreen : MonoBehaviour
     public const int MinimumSize = 26;
     public const int TitleSize = 36, StatusSize = 28, PackSize = 28, ListNameSize = 32, ListDetailSize = 28, DetailNameSize = 40, BodySize = 28, StartSize = 36,
                      TabSize = 28, CloseSize = 28, HintSize = 28;
-    public const float RowHeight = 88f, RowGap = 8f;
+    public const float RowHeight = 80f, RowGap = 6f;   // seven rows since T5b (88/8 for five): 7 x 80 + 6 x 6 = 596 px, from y 204 to 800
 
     const float PanelWidth = 1500f, PanelHeight = 920f;
     const float ListX = 32f, ListY = 204f, ListWidth = 700f;
@@ -110,9 +110,9 @@ public class LeatherworkScreen : MonoBehaviour
             rowNames[i] = row.GetComponentInChildren<Text>();
             rowNames[i].fontStyle = FontStyle.Bold;
             rowNames[i].alignment = TextAnchor.MiddleLeft;
-            Place(rowNames[i].rectTransform, 18f, 3f, ListWidth - 36f, 42f);
+            Place(rowNames[i].rectTransform, 18f, 2f, ListWidth - 36f, 38f);
             rowDetails[i] = UiKit.Text(row.transform, "Detail", "", ListDetailSize, UiKit.Ink, TextAnchor.MiddleLeft);
-            Place(rowDetails[i].rectTransform, 18f, 45f, ListWidth - 36f, 40f);
+            Place(rowDetails[i].rectTransform, 18f, 40f, ListWidth - 36f, 38f);
             rows[i] = row;
         }
 
@@ -263,7 +263,7 @@ public class LeatherworkScreen : MonoBehaviour
 
     static ClothingRules.Key PressedKey(Keyboard keyboard, ref int digit)
     {
-        Key[] digits = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5 };
+        Key[] digits = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4, Key.Digit5, Key.Digit6, Key.Digit7 };
         for (int i = 0; i < digits.Length; i++)
         {
             if (keyboard[digits[i]].wasPressedThisFrame)
@@ -339,7 +339,7 @@ public class LeatherworkScreen : MonoBehaviour
         ClothingRules.Piece chosen = ClothingRules.Pieces[selected];
         detailName.text = chosen.name;
         detailLine.text = ClothingRules.DetailLine(chosen);
-        effectLabel.text = "Worn: " + ClothingRules.EffectText(chosen) + ".";
+        effectLabel.text = (chosen.notWorn ? "Use: " : "Worn: ") + ClothingRules.EffectText(chosen) + ".";
         WorkshopRules.NeedRow[] needs = ClothingRules.NeedRows(chosen, PackCount);
         for (int i = 0; i < needLabels.Length; i++)
         {

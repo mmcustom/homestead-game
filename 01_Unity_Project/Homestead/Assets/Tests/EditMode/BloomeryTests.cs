@@ -492,7 +492,7 @@ public class BloomeryTests
         Assert.That(table.SellBaseCents("iron_bar"), Is.EqualTo(0L), "nothing buys it, so the sell list never shows it (TradingPostScreen lists what CanSell)");
         Assert.That(table.BuyBaseCents("iron_bar"), Is.EqualTo(0L), "and the store does not sell it");
         Assert.That(table.HasPool("iron_bar"), Is.False);
-        Assert.That(table.Rows.Count, Is.EqualTo(120), "Salt, Salt Meat and Salt Fish and the five dried foods (2026-11-22); the maple gear's two rows (2026-11-14); the five hand tools moved to the shelf (2026-11-14); M2 added no row; M3 added the three Smithy goods; Fertilizer (2026-11-22), and still none for the Iron Bar");
+        Assert.That(table.Rows.Count, Is.EqualTo(121), "Salt, Salt Meat and Salt Fish and the five dried foods (2026-11-22); the maple gear's two rows (2026-11-14); the five hand tools moved to the shelf (2026-11-14); M2 added no row; M3 added the three Smithy goods; Fertilizer (2026-11-22), and still none for the Iron Bar");
         Assert.That(table.Stock.Count, Is.EqualTo(41), "and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
         Assert.That(SourceText("Resources/Market/MarketData.asset"), Does.Not.Contain("iron_bar"));
         Assert.That(SourceText("Scripts/UI/TradingPostScreen.cs"), Does.Contain("market.CanSell(stack.itemId)"));

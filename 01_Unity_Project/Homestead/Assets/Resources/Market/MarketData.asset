@@ -671,6 +671,13 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: leather_pack
+    group: 5
+    pool: leather_pack
+    baseCents: 7500
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   - itemId: clay_cup
     group: 5
     pool: clay_cup

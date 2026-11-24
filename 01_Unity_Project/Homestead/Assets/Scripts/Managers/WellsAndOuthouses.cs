@@ -1278,7 +1278,7 @@ public class WellsAndOuthouses : MonoBehaviour
         if (bench == null || string.IsNullOrEmpty(bench.jobItem))
             return;
         if (WorkshopRules.IsProduct(bench.jobItem))
-            bench.Add(bench.jobItem, 1); // a piece this build does not know is dropped rather than left in the bench where nothing could collect it
+            bench.Add(bench.jobItem, WorkshopRules.MakesOf(bench.jobItem)); // the Rawhide Lashing makes 4 (T5b); a piece this build does not know is dropped rather than left in the bench where nothing could collect it
         bench.jobItem = "";
         bench.jobHours = 0f;
     }

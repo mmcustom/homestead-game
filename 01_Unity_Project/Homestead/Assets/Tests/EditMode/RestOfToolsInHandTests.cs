@@ -27,7 +27,7 @@ public class RestOfToolsInHandTests
         "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile", "box_trap", "fish_trap", "rabbit_snare",
         "knife", "flint_and_steel", "pouch", "clay_pot", "cooking_pot", "potash_kettle", "tarp",
     };
-    static readonly string[] CarriedOnly = { "sleeping_bag", "tent", "weather_station", "bark_spud" }; // the Bark Spud is used from the Inventory (tanning slice T4)
+    static readonly string[] CarriedOnly = { "sleeping_bag", "tent", "weather_station", "bark_spud", "leather_pack" }; // the Bark Spud is used from the Inventory (tanning slice T4)
 
     readonly List<GameObject> made = new List<GameObject>();
 

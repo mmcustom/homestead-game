@@ -58,7 +58,8 @@ public class InventoryManager : MonoBehaviour, ISaveable
     public ItemDefinition EquippedTool => equippedTool;
 
     public float CarriedWeightKg => Player.WeightKg;
-    float CarryBonusKg => Player != null && Player.Has(PouchId) ? pouchBonusKg : 0f;
+    // The Pouch's or the Leather Pack's extra room (tanning slice T5b): the bigger one counts, they do not add up.
+    float CarryBonusKg => Player != null ? ClothingRules.CarryBonusKg(Player.Has(PouchId), pouchBonusKg, Player.Has(ClothingRules.PackId)) : 0f;
     public float EncumberedWeightKg => encumberedWeightKg + CarryBonusKg;
     public float MaxCarryWeightKg => maxCarryWeightKg + CarryBonusKg;
     public bool IsEncumbered => CarriedWeightKg > EncumberedWeightKg;
@@ -170,7 +171,8 @@ public class InventoryManager : MonoBehaviour, ISaveable
     // Tools by category that are carried, not held: they never go in hand or on a hotkey (the Inventory screen shows no
     // Key slot for them). The category alone can't say so, since the Sleeping Bag, Tent and Weather Station are all Tools.
     public static bool IsCarriedOnly(string itemId) =>
-        itemId == SleepManager.SleepingBagId || itemId == WoodManager.TentId || itemId == WeatherScreen.WeatherStationId || itemId == TanningVatRules.BarkSpudId; // the Bark Spud is used from the Inventory
+        itemId == SleepManager.SleepingBagId || itemId == WoodManager.TentId || itemId == WeatherScreen.WeatherStationId || itemId == TanningVatRules.BarkSpudId // the Bark Spud is used from the Inventory
+        || itemId == ClothingRules.PackId; // the Leather Pack works by being carried
 
     public bool Equip(string itemId)
     {

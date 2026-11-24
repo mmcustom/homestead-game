@@ -77,6 +77,9 @@ public static class WorkshopRules
         }
     }
 
+    // How many one job makes: 4 for the Rawhide Lashing (ClothingRules), 1 for everything else.
+    public static int MakesOf(string itemId) => ClothingRules.MakesOf(itemId);
+
     public static bool TryFind(string itemId, out Recipe recipe)
     {
         foreach (Recipe r in Recipes)

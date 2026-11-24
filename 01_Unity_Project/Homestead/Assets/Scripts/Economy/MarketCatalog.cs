@@ -187,6 +187,8 @@ public static class MarketCatalog
         Row(ClothingRules.Pieces[2].itemId, MarketGroup.Crafted, ClothingRules.Pieces[2].baseCents, MarketKind.Bought),
         Row(ClothingRules.Pieces[3].itemId, MarketGroup.Crafted, ClothingRules.Pieces[3].baseCents, MarketKind.Bought),
         Row(ClothingRules.Pieces[4].itemId, MarketGroup.Crafted, ClothingRules.Pieces[4].baseCents, MarketKind.Bought),
+        // T5b: the Leather Pack (the Rawhide Lashing is not sold).
+        Row(ClothingRules.PackId, MarketGroup.Crafted, ClothingRules.Pieces[6].baseCents, MarketKind.Bought),
         // Pottery P2: the five fired pieces from the Kiln, in the Crafted group (10% off per unit, floor 0.1); the dry pieces and Sand have no row, so they do not sell. PotteryRules has the prices.
         Row(PotteryRules.FiredCupId, MarketGroup.Crafted, PotteryRules.Recipes[0].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredBowlId, MarketGroup.Crafted, PotteryRules.Recipes[1].firedCents, MarketKind.Bought),

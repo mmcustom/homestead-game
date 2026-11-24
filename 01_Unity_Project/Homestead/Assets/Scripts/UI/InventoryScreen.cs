@@ -305,7 +305,7 @@ public class InventoryScreen : GameScreen
     void ToggleWear(ItemDefinition item)
     {
         InventoryManager inventory = InventoryManager.Instance;
-        if (inventory == null || !ClothingRules.TryFind(item.Id, out ClothingRules.Piece piece))
+        if (inventory == null || !ClothingRules.TryFind(item.Id, out ClothingRules.Piece piece) || piece.notWorn)
             return;
         if (inventory.IsWorn(item.Id))
         {
@@ -417,7 +417,7 @@ public class InventoryScreen : GameScreen
         bool worn = InventoryManager.Instance != null && InventoryManager.Instance.IsWorn(item.Id);
         UnityEngine.Events.UnityAction click = item.Id == SleepManager.SleepingBagId ? SleepHere
                                              : InventoryManager.IsCarriedOnly(item.Id) ? null
-                                             : ClothingRules.IsPiece(item.Id) ? () => ToggleWear(item)
+                                             : ClothingRules.IsWearable(item.Id) ? () => ToggleWear(item)
                                              : isTool ? () => ToggleEquip(item)
                                              : item.IsFood ? () => Food.Consume(item)
                                              : (UnityEngine.Events.UnityAction)null;

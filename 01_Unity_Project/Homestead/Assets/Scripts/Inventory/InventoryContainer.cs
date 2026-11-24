@@ -68,10 +68,17 @@ public class InventoryContainer
     // plain Logs first. Rows, drops and moves of the Peeled Log itself go by its own id as usual.
     public const string LogsId = "logs";
     public const string PeeledLogId = "peeled_log";
+    // Tanning slice T5b (Mike, 2026-11-24): Rawhide Lashing counts as Cordage the same way, plain Cordage first.
+    public const string CordageId = "cordage";
+    public const string LashingId = "rawhide_lashing";
+
+    // The item that stands in for this one when it runs short, or null.
+    public static string StandInFor(string itemId) => itemId == LogsId ? PeeledLogId : itemId == CordageId ? LashingId : null;
 
     public int Count(string itemId)
     {
-        int total = itemId == LogsId ? Count(PeeledLogId) : 0;
+        string standIn = StandInFor(itemId);
+        int total = standIn != null ? Count(standIn) : 0;
         foreach (ItemStack stack in stacks)
         {
             if (stack.itemId == itemId)
@@ -191,8 +198,9 @@ public class InventoryContainer
             Changed?.Invoke();
             ItemsRemoved?.Invoke(itemId, removed);
         }
-        if (itemId == LogsId && removed < quantity)
-            removed += Remove(PeeledLogId, quantity - removed);
+        string standIn = StandInFor(itemId);
+        if (standIn != null && removed < quantity)
+            removed += Remove(standIn, quantity - removed);
         return removed;
     }
 
@@ -206,8 +214,9 @@ public class InventoryContainer
             Changed?.Invoke();
             ItemsRemoved?.Invoke(itemId, removed);
         }
-        if (itemId == LogsId && removed < quantity)
-            removed += RemoveBatches(PeeledLogId, quantity - removed, onTaken);
+        string standIn = StandInFor(itemId);
+        if (standIn != null && removed < quantity)
+            removed += RemoveBatches(standIn, quantity - removed, onTaken);
         return removed;
     }
 

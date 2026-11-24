@@ -27,7 +27,8 @@ public class ClothingTests
     [Test]
     public void TheFivePiecesFillTheFiveSlotsWithThePlannedNumbers()
     {
-        var p = ClothingRules.Pieces;
+        var p = ClothingRules.Wearables;
+        Assert.That(p.Length, Is.EqualTo(5));
         Assert.That(p.Select(x => x.itemId), Is.EqualTo(new[] { "buckskin_coat", "buckskin_leggings", "fur_hat", "fur_mittens", "moccasins" }));
         Assert.That(p.Select(x => x.slot), Is.EqualTo(new[] { ClothingRules.Slot.UpperBody, ClothingRules.Slot.LowerBody, ClothingRules.Slot.Head, ClothingRules.Slot.Hands, ClothingRules.Slot.Feet }));
         Assert.That(p.Select(x => x.clo), Is.EqualTo(new[] { 0.5f, 0.3f, 0.2f, 0.15f, 0.05f }));
@@ -43,7 +44,7 @@ public class ClothingTests
     [Test]
     public void AFullSetAddsAboutOnePointTwoCloAndWinterStartsAtOnePointTwo()
     {
-        string[] all = ClothingRules.Pieces.Select(x => x.itemId).ToArray();
+        string[] all = ClothingRules.Wearables.Select(x => x.itemId).ToArray();
         Assert.That(ClothingRules.WornClo(all), Is.EqualTo(1.2f).Within(0.001f));
         Assert.That(ClothingRules.WornClo(new string[5]), Is.EqualTo(0f));
         Assert.That(ClothingRules.WornClo(new[] { "fur_hat", "", null, "rock", "" }), Is.EqualTo(0.2f).Within(0.001f), "empty and unknown slots add nothing");
@@ -87,7 +88,7 @@ public class ClothingTests
     public void TheBenchKnowsTheLeatherPiecesAsItsOwnJobsButTheWoodworkListIsUnchanged()
     {
         Assert.That(WorkshopRules.Recipes.Length, Is.EqualTo(4), "the Woodwork tab still lists four");
-        Assert.That(WorkshopRules.AllPieces.Length, Is.EqualTo(9));
+        Assert.That(WorkshopRules.AllPieces.Length, Is.EqualTo(11), "four woodwork, five clothing, the Lashing and the Pack");
         Assert.That(WorkshopRules.TryFind("moccasins", out WorkshopRules.Recipe m), Is.True);
         Assert.That(m.name, Is.EqualTo("Moccasins"));
         Assert.That(m.hours, Is.EqualTo(2));
@@ -120,7 +121,7 @@ public class ClothingTests
     public void ThePiecesAreClothingItemsSoldInTheCraftedGroup()
     {
         MarketTable table = MarketCatalog.Table;
-        foreach (ClothingRules.Piece piece in ClothingRules.Pieces)
+        foreach (ClothingRules.Piece piece in ClothingRules.Wearables)
         {
             Object item = Resources.Load("Items/Clothing/" + piece.itemId);
             Assert.That(item, Is.Not.Null, piece.itemId + " asset");
@@ -136,6 +137,66 @@ public class ClothingTests
         }
     }
 
+    // --- T5b (Mike, 2026-11-24): Rawhide Lashing and the Leather Pack ---
+
+    [Test]
+    public void TheLashingAndThePackAreLeatherworkButNotWorn()
+    {
+        Assert.That(ClothingRules.Pieces.Length, Is.EqualTo(7));
+        Assert.That(ClothingRules.TryFind("rawhide_lashing", out ClothingRules.Piece lashing), Is.True);
+        Assert.That(lashing.Makes, Is.EqualTo(4));
+        Assert.That(lashing.hours, Is.EqualTo(1));
+        Assert.That(ClothingRules.NeedsText(lashing), Is.EqualTo("1 Rawhide"));
+        Assert.That(ClothingRules.TryFind("leather_pack", out ClothingRules.Piece pack), Is.True);
+        Assert.That(pack.Makes, Is.EqualTo(1));
+        Assert.That(pack.hours, Is.EqualTo(4));
+        Assert.That(pack.baseCents, Is.EqualTo(7500L));
+        Assert.That(ClothingRules.NeedsText(pack), Is.EqualTo("2 Leather, 2 Sinew, 2 Rawhide Lashing"));
+        foreach (string id in new[] { "rawhide_lashing", "leather_pack" })
+        {
+            Assert.That(ClothingRules.IsWearable(id), Is.False, id);
+            Assert.That(ClothingRules.SlotOf(id), Is.EqualTo(-1), id);
+        }
+        Assert.That(ClothingRules.WornClo(new[] { "leather_pack", "rawhide_lashing", "", "", "" }), Is.EqualTo(0f));
+        Assert.That(WorkshopRules.MakesOf("rawhide_lashing"), Is.EqualTo(4));
+        Assert.That(WorkshopRules.MakesOf("chair"), Is.EqualTo(1));
+        Assert.That(SourceText("Scripts/Managers/WellsAndOuthouses.cs"), Does.Contain("bench.Add(bench.jobItem, WorkshopRules.MakesOf(bench.jobItem));"));
+        Assert.That(ClothingRules.ListLabel(lashing, 0).Split('\n')[1], Is.EqualTo("Makes 4  -  1 h  -  not sold"));
+    }
+
+    [Test]
+    public void TheLeatherPackGivesTwentyKgInsteadOfThePouchsTen()
+    {
+        Assert.That(ClothingRules.PackBonusKg, Is.EqualTo(20f));
+        Assert.That(ClothingRules.CarryBonusKg(false, 10f, false), Is.EqualTo(0f));
+        Assert.That(ClothingRules.CarryBonusKg(true, 10f, false), Is.EqualTo(10f));
+        Assert.That(ClothingRules.CarryBonusKg(false, 10f, true), Is.EqualTo(20f));
+        Assert.That(ClothingRules.CarryBonusKg(true, 10f, true), Is.EqualTo(20f), "the two do not add up");
+        string inv = SourceText("Scripts/Managers/InventoryManager.cs");
+        Assert.That(inv, Does.Contain("ClothingRules.CarryBonusKg(Player.Has(PouchId), pouchBonusKg, Player.Has(ClothingRules.PackId))"));
+        Assert.That(inv, Does.Contain("|| itemId == ClothingRules.PackId;"), "carried, not held");
+        Assert.That(Resources.Load("Items/Tools/leather_pack"), Is.Not.Null);
+        Assert.That(MarketCatalog.Table.TryGetRow("leather_pack", out MarketRow row), Is.True);
+        Assert.That(row.group, Is.EqualTo(MarketGroup.Crafted));
+        Assert.That(row.baseCents, Is.EqualTo(7500L));
+        Assert.That(MarketCatalog.Table.TryGetRow("rawhide_lashing", out _), Is.False, "the Lashing is not sold");
+    }
+
+    [Test]
+    public void RawhideLashingCountsAsCordagePlainCordageFirst()
+    {
+        // InventoryContainer is in the game assembly, which tests reach by reflection.
+        System.Type container = System.AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType("InventoryContainer")).First(t => t != null);
+        System.Reflection.MethodInfo standIn = container.GetMethod("StandInFor");
+        Assert.That(standIn.Invoke(null, new object[] { "cordage" }), Is.EqualTo("rawhide_lashing"));
+        Assert.That(standIn.Invoke(null, new object[] { "logs" }), Is.EqualTo("peeled_log"));
+        Assert.That(standIn.Invoke(null, new object[] { "rope" }), Is.Null);
+        Assert.That(Resources.Load("Items/Materials/rawhide_lashing"), Is.Not.Null);
+        string ic = SourceText("Scripts/Inventory/InventoryContainer.cs");
+        Assert.That(ic, Does.Contain("int total = standIn != null ? Count(standIn) : 0;"));
+        Assert.That(ic, Does.Contain("removed += Remove(standIn, quantity - removed);"), "the stand-in is taken only after the plain item runs out");
+    }
+
     [Test]
     public void WornClothingIsSavedAndComesOffWhenItLeavesThePack()
     {
@@ -146,7 +207,7 @@ public class ClothingTests
         Assert.That(inv, Does.Contain("ClothingRules.SlotOf(id) == i && Player.Has(id)"), "a load keeps only clothing in its own slot that is still carried");
         string screen = SourceText("Scripts/UI/InventoryScreen.cs");
         Assert.That(screen, Does.Contain("Heading(right, \"Wearing\", WornTop);"));
-        Assert.That(screen, Does.Contain("ClothingRules.IsPiece(item.Id) ? () => ToggleWear(item)"));
+        Assert.That(screen, Does.Contain("ClothingRules.IsWearable(item.Id) ? () => ToggleWear(item)"));
         Assert.That(ClothingRules.WornLine(ClothingRules.Slot.Feet, "Moccasins"), Is.EqualTo("Feet: Moccasins"));
         Assert.That(ClothingRules.WornLine(ClothingRules.Slot.Head, null), Is.EqualTo("Head: -"));
     }

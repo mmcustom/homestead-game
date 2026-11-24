@@ -156,6 +156,13 @@ Because worn clothing adds warmth, it can also make the player too hot in summer
 - **Selling:** the five pieces sell in the Crafted group at their base prices ($90, $50, $18, $16, $30).
 - **Art:** the five pieces each have a model and an icon (approved 2026-11-24). Worn clothing is not seen in first person.
 
+### As built (slice T5b, 2026-11-24)
+
+- **Rawhide Lashing:** on the Leatherwork screen, 1 Rawhide makes **4** in 1 hour. It counts as **Cordage** wherever Cordage is counted or taken from the pack (recipes, building costs, stocking the Workshop's bench), plain Cordage first, the way a Peeled Log counts as a Log. Not sold.
+- **Leather Pack:** 2 Leather, 2 Sinew and 2 Rawhide Lashing, 4 hours. While it is in the pack the carry room goes up **20 kg**; with the Pouch too, the bigger of the two counts (20 kg), they do not add up. It is carried, not held. Sells for $75 in the Crafted group.
+- **The Leatherwork screen** lists seven goods (rows 80 px, the text unchanged); keys 1-7 choose.
+- **Art:** Rawhide Lashing and the Leather Pack, each with an icon.
+
 ## 7. The Trading Post (proposed)
 
 | Item | Raw | Step 1 | Step 2 |
