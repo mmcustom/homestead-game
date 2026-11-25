@@ -149,7 +149,7 @@ public class WaterSource : MonoBehaviour, IInteractable
     {
         InventoryManager inventory = InventoryManager.Instance;
         string equipped = inventory != null && inventory.EquippedTool != null ? inventory.EquippedTool.Id : null;
-        if (equipped != BucketItemId && equipped != WaterQualities.CanteenId)
+        if (!WaterQualities.IsVessel(equipped))
             return 0;
 
         int room = WaterQualities.Capacity(inventory.Player) - WaterQualities.LitresCarried(inventory.Player);

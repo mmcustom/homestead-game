@@ -504,7 +504,7 @@ public class FistsTests
         StringAssert.DoesNotContain("SaveVersion", all);
         StringAssert.DoesNotContain("LedgerSaveData", all);
         var specs = ((System.Collections.IEnumerable)Art.GetProperty("AllToolSpecs").GetValue(null)).Cast<object>().ToList();
-        Assert.That(specs.Count, Is.EqualTo(30), "the tool table has no fist row: the hands are hands_player.prefab through ArtSwap.TryAttachHands");
+        Assert.That(specs.Count, Is.EqualTo(33), "the tool table has no fist row: the hands are hands_player.prefab through ArtSwap.TryAttachHands");
         StringAssert.DoesNotContain("Fist", Source("Scripts/World/ArtSwap.cs"), "no new swap point");
         Assert.That(ArtFolderGuard.LeftoverTestArt(), Is.Empty, "no generated test prefab or test material folder is left under Resources/Art");
         // the other readers of the click and the equipped line are untouched

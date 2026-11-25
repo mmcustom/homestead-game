@@ -274,3 +274,13 @@ A Sawmill saws Logs into Lumber on its own, with a water wheel turned by the cre
 Build it from the Build tab, under Other. Mark the site out on the creek bank, within 4 m of the water but out of the creek itself; the wheel goes on the creek side. Deliver 12 Logs, 10 Lumber, 2 Iron Bars, 4 Cordage and 6 Stone with R, in any order, then hammer it up.
 
 Load Logs with R, up to 20. Every hour the wheel saws 2 Logs into 3 Lumber, even while you are away or asleep, and E takes the Lumber. It stops during a flash flood and starts again by itself when the creek goes down.
+
+## 24. The Kitchen Garden
+
+Trigger: marking out a Garden Bed, or first carrying the Hoe.
+
+A kitchen garden feeds you and earns money. Mark out a Garden Bed from the Build tab, under Other: each bed is a 4 by 4 ft square, and beds can stand side by side. Dig each one with the Shovel (hold click).
+
+Buy seed at the Trading Post: seed packets, tomato plants, and potatoes for planting. With the Hoe in hand, aim at a dug bed and press E to plant; R picks which seed. Crops grow day by day with the warmth: lettuce in about 50 days, tomatoes 75, potatoes 100. Tender crops (corn, beans, tomatoes, squash) die in any frost, so plant them after the last spring frost, around the middle of May; lettuce, carrots, potatoes and kale can go in from April.
+
+Rain waters the beds. In a dry spell, fill a Watering Can or Bucket and press E on a bed to water it. When a crop is ready, E harvests it; tomatoes, beans and kale keep giving pickings for weeks. A Shovel's R fills an empty bed back in.

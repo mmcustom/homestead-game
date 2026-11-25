@@ -1301,3 +1301,33 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - HomesteadWindLit: _FallAltColor and _FallMix. Each tree picks a random value from where it stands; past 0.35 its leaves
   turn toward the second colour by _FallMix, which SeasonalTrees raises with the Fall colour change (0 outside Fall).
 - SeasonalFoliage.fallAltColor / fallVariety: golden-orange maples, russet poplars, purple viburnums (set by PropertyTerrainBuilder).
+
+## Gardening Basics GB1 art (2026-11-25, one run, Mike checks all in Play Mode at the end)
+- Tools: tool_hoe (two-handed, iron blade on a wooden handle) and tool_watering_can (galvanized, hangs from the grip like the bucket).
+  Sources in `Art/Blender_Work/tool_hoe/` and `tool_watering_can/`; both have item icons.
+- Seed packets: item_seed_field_corn, _sweet_corn, _beans, _lettuce, _carrots, _squash, _kale. Paper packets with a printed crop
+  picture (packet_util.py: make_packet, then finish_packet in a separate call). Parts paper, print, picture.
+- Produce and the tomato plant (produce_items.py: make(item), then uv_and_bake(idn) in a separate call): item_tomato, item_potatoes,
+  item_field_corn (dry ear, husk peeled back), item_sweet_corn (green husk and silk), item_green_beans, item_dry_beans (a little pile),
+  item_lettuce, item_carrot, item_squash (butternut), item_kale, item_tomato_plant (seedling in a clay pot). 900 to 3,000 tris each.
+  Icons checked; kale and lettuce smoothness lowered and squash colour darkened after the first look.
+- The bed: structure_gardenbed (1.26 m square of turned soil, three ridges, slopes down below grass level at the edge; 6,272 tris)
+  and structure_gardenbed_marked (four stakes and sagging twine at 25 cm; 480 tris). gardenbed.py. The open soil grid's normals
+  came out facing down on the first try (only the edges showed in game); gardenbed.py now flips them up. Build icon build_GardenBed.
+- Growing plants: crop_<crop>_<stage> for the 9 crops (potatoes, field_corn, sweet_corn, beans, tomatoes, lettuce, carrots, squash,
+  kale) and 5 stages (sprouting, growing, maturing, ready, dead): 45 prefabs, one plant each, origin on the soil, 512 maps.
+  crops.py: make_and_bake(crop, stage) builds, bakes and exports in one call (it clears the open file instead of loading one).
+  Ready looks: potato vines yellowed, field corn dried to straw with yellow ears, sweet corn green with silk, beans with pods,
+  tomatoes red on a 1.2 m stake (green fruit while maturing), carrots show orange shoulders, squash with tan butternuts. Dead is the
+  maturing plant drooped and brown. The beans art is the same for green and dry beans (the dry-bean straw colour shows only on the
+  primitive fallback).
+- Code (GardenBeds.cs): the marked-bed art still shows the turned-soil strip while digging; the dug-bed art darkens with soil moisture
+  (WetLook, through a property block on _BaseColor), as the primitive soil's tint does.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## tool_bark_spud: the Draw Knife (2026-11-25, replaces the Bark Spud, awaiting Mike's in-game check)
+- Mike: "a draw knife tool equipped at the saw pit to get tanbark". The item keeps the Bark Spud's id (bark_spud), so the art ids are tool_bark_spud and
+  item_bark_spud. A straight steel blade between two turned handles, 34 cm apart, edge toward the player; 766 tris, parts wood and steel.
+- Anchors: Anchor_Grip_R at the right handle, Anchor_Grip_L at the left handle (Unity -0.34, 0, 0), Anchor_Tip at the blade's middle. Held two-handed.
+- item_bark_spud (the icon) is the same model without the anchors. Source: `Art/Blender_Work/tool_bark_spud/`.
+- The Tanning Vat Site (staged since 2026-11-25) uses primitive stakes, the dug pit and the delivered Logs and Clay; its build icon is the finished vat.

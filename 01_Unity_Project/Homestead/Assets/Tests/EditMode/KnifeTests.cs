@@ -407,7 +407,7 @@ public class KnifeTests
     {
         Assert.That(ToolWork.IsViewTool("knife"), Is.True);
         Assert.That(ToolWork.ViewToolIds.Count(id => id == "knife"), Is.EqualTo(1));
-        Assert.That(ToolWork.ViewToolIds.Length, Is.EqualTo(30));
+        Assert.That(ToolWork.ViewToolIds.Length, Is.EqualTo(33));
         Assert.That(ToolWork.KindFor("knife", false), Is.EqualTo(WorkKind.Chop), "the Knife is not a work tool: it has no WorkKind of its own");
         Assert.That(ToolWork.CockKind("knife", out WorkKind _), Is.False, "its ready pose is KnifeRules, not the tools' cock table");
         Assert.That(ToolWork.CockKind("axe", out WorkKind axe) && axe == WorkKind.Chop, Is.True, "the axe is as it was");

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: bark_spud
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   id: bark_spud
-  displayName: Bark Spud
+  displayName: Draw Knife
   category: 1
   weightKg: 0.6
   shelfLifeDays: 0

@@ -59,13 +59,18 @@ public class TradingPost : MonoBehaviour, ISaveable
             var list = new List<(string item, long price)>();
             if (Market != null)
                 foreach (MarketRow row in Market.Stock)
-                    list.Add((row.itemId, Market.BuyPrice(row.itemId)));
+                    if (OnShelf(row.itemId))
+                        list.Add((row.itemId, Market.BuyPrice(row.itemId)));
             return list;
         }
     }
 
-    // Cents (0: not for sale).
-    public static long BuyPrice(string itemId) => Market != null ? Market.BuyPrice(itemId) : 0;
+    // Whether a stocked item is on the shelf today: everything is, except Tomato Plants out of their Spring season (GardenRules.TomatoPlantsInSeason).
+    public static bool OnShelf(string itemId) =>
+        itemId != "tomato_plant" || GardenRules.TomatoPlantsInSeason(CalendarRules.Current, TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0);
+
+    // Cents (0: not for sale, which includes a seasonal item out of season).
+    public static long BuyPrice(string itemId) => Market != null && OnShelf(itemId) ? Market.BuyPrice(itemId) : 0;
 
     // What the store pays for one now, in cents (0: it doesn't buy it): its base price times the market multiplier.
     public static long SellPrice(string itemId) => Market != null ? Market.SellPrice(itemId) : 0;

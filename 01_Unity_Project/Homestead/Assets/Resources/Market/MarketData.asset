@@ -702,10 +702,10 @@ MonoBehaviour:
   - itemId: water_crock
     group: 5
     pool: water_crock
-    baseCents: 1200
-    kind: 1
+    baseCents: 3000
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 1200
   - itemId: brick_batch
     group: 5
     pool: brick_batch
@@ -860,6 +860,146 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: hoe
+    group: 7
+    pool: hoe
+    baseCents: 1000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: watering_can
+    group: 7
+    pool: watering_can
+    baseCents: 800
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: seed_field_corn
+    group: 7
+    pool: seed_field_corn
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: seed_sweet_corn
+    group: 7
+    pool: seed_sweet_corn
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: seed_beans
+    group: 7
+    pool: seed_beans
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: tomato_plant
+    group: 7
+    pool: tomato_plant
+    baseCents: 200
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: seed_lettuce
+    group: 7
+    pool: seed_lettuce
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: seed_carrots
+    group: 7
+    pool: seed_carrots
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: seed_squash
+    group: 7
+    pool: seed_squash
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: seed_kale
+    group: 7
+    pool: seed_kale
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: potatoes
+    group: 11
+    pool: potatoes
+    baseCents: 60
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 25
+  - itemId: field_corn
+    group: 11
+    pool: field_corn
+    baseCents: 30
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: sweet_corn
+    group: 11
+    pool: sweet_corn
+    baseCents: 40
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: green_beans
+    group: 11
+    pool: green_beans
+    baseCents: 75
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: dry_beans
+    group: 11
+    pool: dry_beans
+    baseCents: 50
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: tomato
+    group: 11
+    pool: tomato
+    baseCents: 50
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: lettuce
+    group: 11
+    pool: lettuce
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: carrot
+    group: 11
+    pool: carrot
+    baseCents: 20
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: squash
+    group: 11
+    pool: squash
+    baseCents: 200
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: kale
+    group: 11
+    pool: kale
+    baseCents: 100
+    kind: 1
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400
@@ -938,3 +1078,10 @@ MonoBehaviour:
     summer: 10000
     fall: 10000
     winter: 10000
+  - group: 11
+    dropBp: 400
+    floorBp: 2500
+    spring: 11000
+    summer: 8000
+    fall: 9000
+    winter: 15000

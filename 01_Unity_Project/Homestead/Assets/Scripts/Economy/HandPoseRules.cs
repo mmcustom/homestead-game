@@ -179,6 +179,8 @@ public static class HeldTools
         "fishing_rod", "cane_pole",
         "primitive_bow", "recurve_bow", "bolt_action_rifle",
         "bow_drill", // Mike, 2026-11-15: the left hand presses down on top of the spindle while the right saws the bow
+        "hoe",       // Gardening GB1: held like the Shovel
+        "bark_spud", // the Draw Knife (2026-11-25): a handle in each hand
     };
 
     public static bool IsTwoHanded(string toolId) => toolId != null && Array.IndexOf(TwoHandedIds, toolId) >= 0;

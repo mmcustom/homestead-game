@@ -370,7 +370,7 @@ public class WorkshopTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(58), "nothing was inserted in the middle");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(60), "nothing was inserted in the middle");
     }
 
     [Test]
@@ -446,7 +446,7 @@ public class WorkshopTests
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).OrderBy(n => n).ToArray();
         Assert.That(fields, Is.EqualTo(new[]
         {
-            "buildProgress", "builtDay", "contaminatedHours", "contents", "depthToWater", "digProgress", "hopperBatch", "hopperWater", "id", "jobCount", "jobHours", "jobItem", "kind", "leachHours", "litres", "position", "yaw",
+            "buildProgress", "builtDay", "contaminatedHours", "contents", "cropDamage", "cropFlags", "depthToWater", "digProgress", "hopperBatch", "hopperWater", "id", "jobCount", "jobHours", "jobItem", "kind", "leachHours", "litres", "picksTaken", "position", "soilMoisture", "yaw",
         }));
         Assert.That(Find("WoodPileState").GetField("jobItem").FieldType, Is.EqualTo(typeof(string)));
         Assert.That(Find("WoodPileState").GetField("jobHours").FieldType, Is.EqualTo(typeof(float)));
@@ -740,9 +740,9 @@ public class WorkshopTests
         string[] names = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
         Assert.That(names, Does.Contain("jobItem"));
         Assert.That(names, Does.Contain("jobHours"));
-        Assert.That(names.Length, Is.EqualTo(17), "a2-1 added no saved field; Pottery P1 added jobCount; the Leach Hopper stock added hopperWater and hopperBatch");
+        Assert.That(names.Length, Is.EqualTo(21), "a2-1 added no saved field; the Garden Bed (GB1) added four; Pottery P1 added jobCount; the Leach Hopper stock added hopperWater and hopperBatch");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(58), "only the Potter and Kiln kinds were added");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(60), "only the Potter and Kiln kinds were added");
     }
 
     // --- The Workshop screen's text ---

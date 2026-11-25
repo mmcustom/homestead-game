@@ -27,17 +27,22 @@ public class InteractionPromptHud : MonoBehaviour
         bool playing = GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
         IInteractable focus = player != null && playing ? player.Focus : null;
         string text = focus != null ? focus.InteractionPrompt : null;
+        string header = focus is IPromptHeader withHeader ? withHeader.PromptHeader : null;
 
-        if (string.IsNullOrEmpty(text))
+        if (string.IsNullOrEmpty(text) && string.IsNullOrEmpty(header))
         {
             prompt.alpha = 0f;
             return;
         }
 
-        label.text = WithKey(interactAction, text);
+        // The status first, with no key (IPromptHeader), then one line per key that does something.
+        string shown = string.IsNullOrEmpty(header) ? "" : header;
+        if (!string.IsNullOrEmpty(text))
+            shown += (shown.Length > 0 ? "\n" : "") + WithKey(interactAction, text);
         string second = focus is ISecondaryInteractable secondary ? secondary.SecondaryPrompt : null;
         if (!string.IsNullOrEmpty(second))
-            label.text += "\n" + WithKey(interactAltAction, second);
+            shown += "\n" + WithKey(interactAltAction, second);
+        label.text = shown;
         prompt.alpha = 1f;
 
         // Size the backing panel to the prompt, since item names vary a lot in length.

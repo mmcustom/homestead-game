@@ -13,6 +13,11 @@ public static class SawPitRules
     public const string BranchesId = "branches";
     public const string LumberId = "lumber";
     public const string SawId = AxeRules.SawId;
+    // The Draw Knife at the pit (Mike, 2026-11-25): a Log on it is stripped into a Peeled Log (still on the pit, sawn like any Log) and Tanbark stacked
+    // beside it for E, with the Lumber. Peeled Logs carried are laid on as Peeled Logs, so no Log is stripped twice.
+    public const string PeeledLogId = TanningVatRules.PeeledLogId;
+    public const string TanbarkId = TanningVatRules.TanbarkId;
+    public const string DrawKnifeId = TanningVatRules.DrawKnifeId;
 
     // --- The site (about 56 kg: 6 Logs at 8 kg, 4 Branches), after the trench ---
 
@@ -37,7 +42,17 @@ public static class SawPitRules
     // Logs it still takes, holding logsHeld.
     public static int LogRoom(int logsHeld) => Math.Max(0, LogsCap - Math.Max(0, logsHeld));
 
-    public static bool Accepts(string itemId, int logsHeld) => itemId == LogsId && LogRoom(logsHeld) > 0;
+    public static bool Accepts(string itemId, int logsHeld) => (itemId == LogsId || itemId == PeeledLogId) && LogRoom(logsHeld) > 0;
+
+    // One draw-knife stroke on a Log (weight as for the saw). Returns the strokes so far and whether the Log is peeled.
+    public static float AfterStripStroke(float strokes, float weight, out bool logDone)
+    {
+        float next = Math.Max(0f, strokes) + Math.Max(0f, weight);
+        logDone = next >= TanningVatRules.StripStrokes - 0.0001f;
+        return logDone ? 0f : next;
+    }
+
+    public static float StripProgress(float strokes) => Math.Max(0f, Math.Min(1f, strokes / TanningVatRules.StripStrokes));
 
     public static bool CanSaw(int logsHeld) => logsHeld >= LogsPerPair;
 
@@ -64,7 +79,39 @@ public static class SawPitRules
 
     static string LumberText(int n) => n == 1 ? "1 Lumber" : $"{n} Lumber";
 
-    // E's line. logs, lumber: what it holds; sawEquipped: the Wood Saw in hand.
+    // The pit's status above the key lines (IPromptHeader, 2026-11-25). barkLogs and peeled: the Logs on it with and without bark; lumber, tanbark: stacked beside
+    // it; sawStrokes, stripStrokes: the work under way; saw, knife: the Wood Saw or Draw Knife in hand.
+    public static string Header(int barkLogs, int peeled, int lumber, int tanbark, float sawStrokes, float stripStrokes, bool saw, bool knife)
+    {
+        int logs = barkLogs + peeled;
+        var parts = new System.Collections.Generic.List<string>();
+        if (logs > 0) parts.Add(peeled > 0 ? $"{LogsText(logs)} on it ({peeled} peeled)" : $"{LogsText(logs)} on it");
+        if (lumber > 0) parts.Add($"{LumberText(lumber)} stacked");
+        if (tanbark > 0) parts.Add($"{tanbark} Tanbark stacked");
+        string head = parts.Count > 0 ? "Saw Pit: " + string.Join(", ", parts) : "Saw Pit (empty)";
+        string hint;
+        if (logs <= 0)
+            hint = "Lay Logs on it to saw them into Lumber or strip their bark for Tanbark";
+        else if (knife)
+            hint = barkLogs <= 0 ? "These Logs are already peeled - saw them with the Wood Saw"
+                 : stripStrokes > 0f ? $"Stripping bark: {StripProgress(stripStrokes) * 100f:0}% of the next {TanningVatRules.TanbarkPerLog} Tanbark - hold click"
+                 : $"Hold click to strip a Log's bark ({TanningVatRules.TanbarkPerLog} Tanbark a Log)";
+        else if (saw)
+            hint = !CanSaw(logs) ? $"Needs {LogsPerPair} Logs to saw"
+                 : sawStrokes > 0f ? $"Sawing: {Progress(sawStrokes) * 100f:0}% of the next {LumberPerPair} Lumber - hold click"
+                 : $"Hold click to saw ({LogsPerPair} Logs make {LumberPerPair} Lumber)";
+        else
+            hint = "Equip the Wood Saw to saw Lumber, or the Draw Knife to strip bark for Tanbark";
+        return head + "\n" + hint;
+    }
+
+    // What E does: take what is stacked beside the pit, or nothing.
+    public static string ActionE(int lumber, int tanbark) =>
+        lumber > 0 && tanbark > 0 ? "Take the Lumber and Tanbark" : lumber > 0 ? "Take the Lumber" : tanbark > 0 ? "Take the Tanbark" : null;
+
+    public static string Stripped(int tanbarkNow) => $"Peeled a Log: {TanningVatRules.TanbarkPerLog} Tanbark ({tanbarkNow} stacked beside the pit; E takes it). The Log stays on the pit to saw.";
+
+    // The old one-line prompt, kept for the messages flashed when a key has nothing to do.
     public static string Prompt(int logs, int lumber, float strokes, bool sawEquipped)
     {
         if (lumber > 0)
@@ -80,7 +127,7 @@ public static class SawPitRules
 
     // R's line without the Hammer.
     public static string LoadPrompt(int canLoad, int carried) =>
-        carried <= 0 ? "Lay Logs on the pit  (you're not carrying any)"
+        carried <= 0 ? null
         : canLoad <= 0 ? $"Can't load  (the pit holds {LogsCap} Logs)"
         : $"Lay {LogsText(canLoad)} on the pit";
 
@@ -97,5 +144,5 @@ public static class SawPitRules
         return stayed > 0 ? $"Took {LumberText(took)} ({stayed} left by the pit, no room)." : $"Took {LumberText(took)}.";
     }
 
-    public static string DismantlePrompt => "Take down the saw pit  (half the Logs and Branches back, rounded down; the Logs and Lumber on it come back whole)";
+    public static string DismantlePrompt => "Take down the saw pit  (half the Logs and Branches back, rounded down; the Logs, Lumber and Tanbark on it come back whole)";
 }

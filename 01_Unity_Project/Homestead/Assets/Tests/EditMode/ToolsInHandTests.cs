@@ -24,7 +24,7 @@ public class ToolsInHandTests
 
     static readonly string[] EightIds = { "axe", "primitive_axe", "wood_saw", "hammer", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe" };
     static readonly string[] FourIds = { "fishing_rod", "cane_pole", "torch", "lantern" };
-    static readonly string[] RestIds = { "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile", "box_trap", "fish_trap", "rabbit_snare", "knife", "flint_and_steel", "pouch", "clay_pot", "cooking_pot", "potash_kettle", "tarp" };
+    static readonly string[] RestIds = { "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile", "box_trap", "fish_trap", "rabbit_snare", "knife", "flint_and_steel", "pouch", "clay_pot", "cooking_pot", "potash_kettle", "tarp", "hoe", "watering_can", "bark_spud" };
     static readonly string[] TwoHandedIds = { "axe", "primitive_axe", "shovel", "iron_shovel", "stone_pick_axe", "iron_pick_axe" };
 
     readonly List<GameObject> made = new List<GameObject>();
@@ -416,7 +416,7 @@ public class ToolsInHandTests
     public void TheToolTableHasARowForEachOfTheEightAndNothingElse()
     {
         var specs = ((System.Collections.IEnumerable)Art.GetProperty("AllToolSpecs").GetValue(null)).Cast<object>().ToList();
-        Assert.That(specs.Count, Is.EqualTo(30));
+        Assert.That(specs.Count, Is.EqualTo(33));
         var ids = specs.Select(s => (string)s.GetType().GetField("id").GetValue(s)).ToList();
         CollectionAssert.AreEquivalent(EightIds.Concat(FourIds).Concat(RestIds).Select(i => "tool_" + i), ids);
         Assert.That(Art.GetMethod("ToolSpecFor").Invoke(null, new object[] { "no_such_tool" }), Is.Null);
@@ -758,7 +758,7 @@ public class ToolsInHandTests
         Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.RaiseSwung\(Equipped\)").Count, Is.EqualTo(1), "one line where a blow lands");
         Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.RaiseTired\(Equipped\)").Count, Is.EqualTo(1), "one line where a blow is refused");
         Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.WorkingOn\(WorkKind\.Split\)").Count, Is.EqualTo(1), "one line before a blow at a wood pile");
-        Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.JobFinished\(\)").Count, Is.EqualTo(9), "one line at each job's finishing point (+ a pair of Logs sawn at the Saw Pit, 2026-11-23)");
+        Assert.That(System.Text.RegularExpressions.Regex.Matches(axe, @"ToolEvents\.JobFinished\(\)").Count, Is.EqualTo(10), "one line at each job's finishing point (+ a pair of Logs sawn at the Saw Pit, 2026-11-23; + a Log peeled with the Draw Knife, 2026-11-25)");
         // the blow's own lines are still there, in order: stamina, the interval, then the event
         int spend = axe.IndexOf("player.TrySpendStamina(staminaPerSwing)");
         int interval = axe.IndexOf("nextSwing = Time.time + swingSeconds;");

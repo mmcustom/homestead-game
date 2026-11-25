@@ -27,7 +27,7 @@ public class RestOfToolsInHandTests
         "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile", "box_trap", "fish_trap", "rabbit_snare",
         "knife", "flint_and_steel", "pouch", "clay_pot", "cooking_pot", "potash_kettle", "tarp",
     };
-    static readonly string[] CarriedOnly = { "sleeping_bag", "tent", "weather_station", "bark_spud", "leather_pack" }; // the Bark Spud is used from the Inventory (tanning slice T4)
+    static readonly string[] CarriedOnly = { "sleeping_bag", "tent", "weather_station", "leather_pack" }; // the Bark Spud is used from the Inventory (tanning slice T4)
 
     readonly List<GameObject> made = new List<GameObject>();
 
@@ -97,7 +97,7 @@ public class RestOfToolsInHandTests
     public void TheTableNowHasAnyToolTheHandsCanHold()
     {
         var specs = ((System.Collections.IEnumerable)Art.GetProperty("AllToolSpecs").GetValue(null)).Cast<object>().Select(s => (string)s.GetType().GetField("itemId").GetValue(s)).ToList();
-        Assert.That(specs.Count, Is.EqualTo(30));
+        Assert.That(specs.Count, Is.EqualTo(33));
         foreach (string id in Rest)
             CollectionAssert.Contains(specs, id);
         // every Tool item asset that can be equipped has a row
@@ -548,7 +548,7 @@ public class RestOfToolsInHandTests
 
     // ---- M0c-2 fix: the bows are drawn by the right hand only, and everything that hangs hangs straight down ----
 
-    static readonly string[] Hanging = { "bucket", "sap_bucket", "canteen", "cooking_pot", "potash_kettle", "pouch", "fish_trap", "box_trap", "tarp" }; // the tarp hangs from a rope loop since Hands v6
+    static readonly string[] Hanging = { "bucket", "sap_bucket", "canteen", "cooking_pot", "potash_kettle", "pouch", "fish_trap", "box_trap", "tarp", "watering_can" }; // the tarp hangs from a rope loop since Hands v6
 
     [Test]
     public void TheBowHandNeverMovesWithTheDrawOrTheRelease()

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 // What an item is grouped as for selling pressure and the seasonal price curve.
 // Ash, Maple and Potash were appended after Stocked: the ids are saved in MarketData, so never reorder them.
-public enum MarketGroup { WoodStone, Fish, GameMeat, Hides, Forage, Crafted, Farm, Stocked, Ash, Maple, Potash }
+public enum MarketGroup { WoodStone, Fish, GameMeat, Hides, Forage, Crafted, Farm, Stocked, Ash, Maple, Potash, Produce }
 
 // Stocked: the store sells it (and buys it back at the sell-back share). Bought: the store only buys it from the player.
 public enum MarketKind { Stocked, Bought }
@@ -193,7 +193,7 @@ public static class MarketCatalog
         Row(PotteryRules.FiredCupId, MarketGroup.Crafted, PotteryRules.Recipes[0].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredBowlId, MarketGroup.Crafted, PotteryRules.Recipes[1].firedCents, MarketKind.Bought),
         Homemade(PotteryRules.FiredPotId, MarketGroup.Crafted, PotteryRules.Recipes[2].firedCents),
-        Row(PotteryRules.FiredCrockId, MarketGroup.Crafted, PotteryRules.Recipes[3].firedCents, MarketKind.Bought),
+        Homemade(PotteryRules.FiredCrockId, MarketGroup.Crafted, PotteryRules.Recipes[3].firedCents), // on the shelf at $30 (Mike, 2026-11-25), still bought back at $12
         Row(PotteryRules.FiredBrickId, MarketGroup.Crafted, PotteryRules.Recipes[4].firedCents, MarketKind.Bought),
         // Metalworking M3: the three iron goods made at the Smithy, in the Crafted group (10% off per unit, floor 0.1; SmithyRules has the prices). Never in the store; the Iron Bar has no row.
         Row(SmithyRules.Recipes[0].itemId, MarketGroup.Crafted, SmithyRules.Recipes[0].baseCents, MarketKind.Bought),
@@ -225,6 +225,28 @@ public static class MarketCatalog
         Row(SmokeRules.TannedFursId, MarketGroup.Hides, SmokeRules.TannedFursCents, MarketKind.Bought),
         // Tanning_Hides_and_Furs.md 5 (slice T4): Leather from the Tanning Vat (TanningVatRules has the price). Tanbark is not bought.
         Row(TanningVatRules.LeatherId, MarketGroup.Hides, TanningVatRules.LeatherCents, MarketKind.Bought),
+        // Gardening_Basics.md (slice GB1): the Hoe and Watering Can, seed packets, tomato plants and potatoes on the shelf (potatoes also bought back at GardenRules' price),
+        // and the garden's produce in its own Produce group, which pays most in winter and least in the summer glut (GardenRules has the prices).
+        Row(GardenRules.HoeId, MarketGroup.Stocked, GardenRules.HoeStoreCents, MarketKind.Stocked),
+        Row(GardenRules.WateringCanId, MarketGroup.Stocked, GardenRules.WateringCanStoreCents, MarketKind.Stocked),
+        Row("seed_field_corn", MarketGroup.Stocked, GardenRules.SeedCents, MarketKind.Stocked),
+        Row("seed_sweet_corn", MarketGroup.Stocked, GardenRules.SeedCents, MarketKind.Stocked),
+        Row("seed_beans", MarketGroup.Stocked, GardenRules.SeedCents, MarketKind.Stocked),
+        Row("tomato_plant", MarketGroup.Stocked, GardenRules.TomatoPlantCents, MarketKind.Stocked),
+        Row("seed_lettuce", MarketGroup.Stocked, GardenRules.SeedCents, MarketKind.Stocked),
+        Row("seed_carrots", MarketGroup.Stocked, GardenRules.SeedCents, MarketKind.Stocked),
+        Row("seed_squash", MarketGroup.Stocked, GardenRules.SeedCents, MarketKind.Stocked),
+        Row("seed_kale", MarketGroup.Stocked, GardenRules.SeedCents, MarketKind.Stocked),
+        Row(GardenRules.PotatoesId, MarketGroup.Produce, GardenRules.PotatoStoreCents, MarketKind.Stocked, sellCents: GardenRules.Crops[0].produceCents),
+        Row("field_corn", MarketGroup.Produce, GardenRules.Crops[1].produceCents, MarketKind.Bought),
+        Row("sweet_corn", MarketGroup.Produce, GardenRules.Crops[2].produceCents, MarketKind.Bought),
+        Row(GardenRules.GreenBeansId, MarketGroup.Produce, GardenRules.Crops[3].produceCents, MarketKind.Bought),
+        Row(GardenRules.DryBeansId, MarketGroup.Produce, GardenRules.DryBeanCents, MarketKind.Bought),
+        Row("tomato", MarketGroup.Produce, GardenRules.Crops[4].produceCents, MarketKind.Bought),
+        Row("lettuce", MarketGroup.Produce, GardenRules.Crops[5].produceCents, MarketKind.Bought),
+        Row("carrot", MarketGroup.Produce, GardenRules.Crops[6].produceCents, MarketKind.Bought),
+        Row("squash", MarketGroup.Produce, GardenRules.Crops[7].produceCents, MarketKind.Bought),
+        Row("kale", MarketGroup.Produce, GardenRules.Crops[8].produceCents, MarketKind.Bought),
     };
 
     public static readonly MarketGroupRule[] Groups =
@@ -240,6 +262,8 @@ public static class MarketCatalog
         Rule(MarketGroup.Ash, AshRules.DropBp, AshRules.FloorBp, 10000, 10000, 10000, 10000),
         Rule(MarketGroup.Maple, MapleRules.DropBp, MapleRules.FloorBp, 10000, 10000, 10000, 10000),
         Rule(MarketGroup.Potash, PotashRules.DropBp, PotashRules.FloorBp, 10000, 10000, 10000, 10000),
+        // Gardening GB1: fresh produce pays least in the summer glut and most in winter (Greenhouses.md's payoff).
+        Rule(MarketGroup.Produce, GardenRules.ProduceDropBp, GardenRules.ProduceFloorBp, 11000, 8000, 9000, 15000),
     };
 
     static MarketTable table;

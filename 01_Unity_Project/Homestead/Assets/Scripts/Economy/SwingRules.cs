@@ -22,6 +22,8 @@ public static class ToolWork
         "fishing_rod", "cane_pole", "torch", "lantern",
         "primitive_bow", "recurve_bow", "bolt_action_rifle", "bow_drill", "bucket", "sap_bucket", "canteen", "spile",
         "box_trap", "fish_trap", "rabbit_snare", "knife", "flint_and_steel", "pouch", "clay_pot", "cooking_pot", "potash_kettle", "tarp",
+        "hoe", "watering_can",
+        "bark_spud", // the Draw Knife (2026-11-25; it kept the Bark Spud's item id), pulled at the Saw Pit
     };
 
     public static bool IsViewTool(string toolId) => toolId != null && Array.IndexOf(ViewToolIds, toolId) >= 0;
@@ -31,7 +33,8 @@ public static class ToolWork
     {
         switch (toolId)
         {
-            case "wood_saw": return WorkKind.Saw;
+            case "wood_saw":
+            case "bark_spud": return WorkKind.Saw; // the Draw Knife pulls back and forth like the saw
             case "hammer": return WorkKind.Build;
             case "shovel":
             case "iron_shovel": return WorkKind.Dig;

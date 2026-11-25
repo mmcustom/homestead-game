@@ -486,9 +486,9 @@ public class SmithyToolTests
             Assert.That(table.Stock.Any(r => r.itemId == id), Is.True, id + " is on the Trading Post list");
             Assert.That(LedgerCategories.ForPurchase(id), Is.EqualTo(LedgerCategory.BuyTools), id + " is a tool purchase");
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(121));
+        Assert.That(table.Rows.Count, Is.EqualTo(141));
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28));
-        Assert.That(table.Stock.Count, Is.EqualTo(41), "and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
+        Assert.That(table.Stock.Count, Is.EqualTo(53), "the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
         Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new Ledger category");
         Assert.That(SourceText("Resources/Market/MarketData.asset").Contains("iron_shovel"), Is.True, "the asset was reseeded");
         Assert.That(SourceText("Scripts/Managers/DifficultyManager.cs").Contains("iron_"), Is.False, "the starting kits are the stone tools");
@@ -629,7 +629,7 @@ public class SmithyToolTests
     [Test]
     public void TheSmithyEntryNowTeachesTheToolsAndTheItemHelpExists()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(23), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(24), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry smithy), Is.True);
         Assert.That(smithy.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(smithy.body, Does.Contain("an iron Shovel and Pick Axe for your own use"));
@@ -673,7 +673,7 @@ public class SmithyToolTests
         Assert.That(text, Does.Contain("and into an iron Shovel and Pick Axe for your own use."));
         Assert.That(text, Does.Contain("An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each."));
         Assert.That(text, Does.Not.Contain("it holds 8 of each"));
-        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(23), "eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
+        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(24), "eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
     }
 
     // --- Saving ---
@@ -682,11 +682,11 @@ public class SmithyToolTests
     public void NoSavedFieldWasAddedAToolJobUsesJobItemAndJobHoursAndOldSavesLoad()
     {
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
-        Assert.That(fields.Length, Is.EqualTo(17), "still the 17 fields");
+        Assert.That(fields.Length, Is.EqualTo(21), "the 17 fields and the Garden Bed's four (GB1)");
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("stick") || f.ToLowerInvariant().Contains("cordage") || f.ToLowerInvariant().Contains("tool")), Is.False);
         Assert.That(((int)Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static).GetRawConstantValue()), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(58), "no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(60), "no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
         Assert.That((int)Enum.Parse(Find("PileKind"), "Smithy"), Is.EqualTo(44));
         Assert.That(CharcoalRules.BurnMarker, Is.EqualTo("charcoal_burn"));
         Assert.That(BloomeryRules.SmeltMarker, Is.EqualTo("iron_smelt"));

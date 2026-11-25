@@ -100,6 +100,19 @@ Built with the proposed numbers and no Brains item (Mike: "ok"). The rules are i
 - **Leather:** $30 a hide, sold in the Hides group. The first Tanbark or Leather unlocks the Know-how entry **Bark Tanning: Leather** (entry 22).
 - **Taking the vat down:** with the Hammer, but not while hides are soaking. Rawhide, Tanbark and Leather come back to the pack; the water is poured out.
 
+### Changes after Mike's play-test (2026-11-25)
+
+Mike: "tanning vat needs to be staged building site; confusing instructions for scraping ... i think we need to change the way we strip logs, maybe a draw knife tool equipped at the saw pit to get tanbark instead of doing it from inventory? ... again confusing instructions for tanning and leather; a crock pot should be available to buy at the trading post also."
+
+- **The Draw Knife replaces the Bark Spud** (Mike's choice). It is the same item underneath (the id is still ark_spud), so a Bark Spud already owned is now a Draw Knife, and the Smithy recipe and the  Trading Post price carry over. It is now held in both hands (a handle in each fist).
+- **Stripping bark happens at the Saw Pit.** Lay Logs on the pit (R), equip the Draw Knife and hold click: 8 strokes peel one Log. The 2 Tanbark are stacked beside the pit, and E takes them along with any Lumber. The Log stays on the pit as a Peeled Log, ready to saw (the saw uses Peeled Logs first). Peeled Logs carried are laid on as Peeled Logs, so no Log is stripped twice. The Inventory's Strip button is gone.
+- **The Tanning Vat is a staged site** (Mike's choice: dig, stock, hammer). Mark the Tanning Vat Site out (free), dig the pit with the Shovel (10 blows), deliver 3 Logs and 2 Clay with R in any order, then hammer it up (20 blows). Vats already built in a save stay as they are.
+- **Clearer prompts** for the Hide Frame, the Tanning Vat, the Saw Pit and the Garden Bed. The status now sits on its own lines with no key, and each key line ([E], [R]) says only what that key does there. Before, the Hide Frame showed the same text on both the E and R lines, and some lines said "E ..." right after the HUD's own [E].
+  - Example, a fresh hide on the frame: "Hide Frame: a Deer Hide, scraped 0 of 20 strokes / Equip the Knife, then hold click to scrape it / [E] Take the hide back off".
+  - Rawhide ready: "For Leather: take it to the Tanning Vat / For Buckskin: soften it here - equip the Knife and hold click (needs a Crock Pot and 1 litre of water in your pack) / [E] Take the Rawhide".
+  - The vat says what it still needs: "Still needs 2 more Tanbark".
+- **The Crock Pot is on the Trading Post shelf at $30** (Mike's choice: 2.5 times the $12 the store pays, the rule for the other homemade goods it sells, like the Clay Cooking Pot at $25). The store still buys one back at $12.
+
 ## 6. Crafting with tanned goods (slice T5)
 
 ### Mike's decisions (2026-11-23)

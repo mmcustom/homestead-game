@@ -91,12 +91,12 @@ public class SawmillTests
     public void ItIsBuiltFromTheOtherTabAndHasItsKnowHowEntry()
     {
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("PileKind.SawPitSite, PileKind.SawmillSite,"));
-        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.SawmillSite:\n            case PileKind.HideFrame:"));
-        Assert.That(KnowHowRules.Entries.Select(e => e.id).Last(), Is.EqualTo("sawmill"));
-        Assert.That(KnowHowRules.Entries.Last().title, Is.EqualTo("The Sawmill"));
+        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.SawmillSite:\n            case PileKind.GardenBed:\n            case PileKind.HideFrame:"));
+        Assert.That(KnowHowRules.Entries.Select(e => e.id).ElementAt(22), Is.EqualTo("sawmill"));
+        Assert.That(KnowHowRules.Entries[22].title, Is.EqualTo("The Sawmill"));
         Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.SawmillSitePlaced), Is.EqualTo(new[] { "sawmill" }));
         string journal = File.ReadAllText(Path.Combine(Application.dataPath, "../../../05_Documentation/Game_Systems/Journal_KnowHow_Text.md")).Replace("\r\n", "\n");
-        foreach (string para in KnowHowRules.Entries.Last().body.Split(new[] { "\n\n" }, System.StringSplitOptions.None))
+        foreach (string para in KnowHowRules.Entries[22].body.Split(new[] { "\n\n" }, System.StringSplitOptions.None))
             Assert.That(journal, Does.Contain(para));
     }
 

@@ -195,6 +195,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RootCellarSite:
             case PileKind.SawPitSite:
             case PileKind.SawmillSite:
+            case PileKind.TanningVatSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -225,6 +226,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RootCellarSite: return PileKind.RootCellar;
             case PileKind.SawPitSite: return PileKind.SawPit;
             case PileKind.SawmillSite: return PileKind.Sawmill;
+            case PileKind.TanningVatSite: return PileKind.TanningVat;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -263,6 +265,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RootCellarSite: return RootCellarCost();
             case PileKind.SawPitSite: return SawPitCost();
             case PileKind.SawmillSite: return SawmillCost();
+            case PileKind.TanningVatSite: return TanningVatCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -284,7 +287,7 @@ public class WellsAndOuthouses : MonoBehaviour
     }
 
     // A stage that must be done before anything is delivered (the Well's shaft, dug with the Shovel; the Outhouse has none).
-    public static bool RequiresDig(PileKind site) => site == PileKind.WellSite || site == PileKind.RootCellarSite || site == PileKind.SawPitSite;
+    public static bool RequiresDig(PileKind site) => site == PileKind.WellSite || site == PileKind.RootCellarSite || site == PileKind.SawPitSite || site == PileKind.TanningVatSite;
 
     // The order materials are taken in: a group opens once every earlier group is full. The Well lines the shaft with Stone before
     // the cap timber is taken; the Outhouse's materials go in any order.
@@ -310,6 +313,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { SawPitRules.LogsId, SawPitRules.BranchesId } }; // both, in any order, once the trench is dug
         if (site == PileKind.SawmillSite)
             return new[] { new[] { SawmillRules.LogsId, SawmillRules.LumberId, SawmillRules.IronBarId, SawmillRules.CordageId, SawmillRules.StoneId } }; // all five, in any order
+        if (site == PileKind.TanningVatSite)
+            return new[] { new[] { TanningVatRules.LogsId, TanningVatRules.ClayId } }; // both, in any order, once the pit is dug
         if (site == PileKind.RootCellarSite)
             return new[] { new[] { RootCellarRules.StoneId, RootCellarRules.LogsId, RootCellarRules.LumberId } }; // all three, in any order, once it is dug
         if (site == PileKind.SmithySite)
@@ -465,6 +470,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RootCellarSite: return RootCellarRules.BuildBlows;
             case PileKind.SawPitSite: return SawPitRules.BuildBlows;
             case PileKind.SawmillSite: return SawmillRules.BuildBlows;
+            case PileKind.TanningVatSite: return TanningVatRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -516,6 +522,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return SawPitRules.BuiltMessage;
         if (site == PileKind.SawmillSite)
             return SawmillRules.BuiltMessage;
+        if (site == PileKind.TanningVatSite)
+            return TanningVatRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -659,6 +667,12 @@ public class WellsAndOuthouses : MonoBehaviour
     };
 
     // A Saw Pit (Saw_Pit_Sawmill_and_Salt_Barrel.md 1): 6 Logs and 4 Branches after the trench. SawPitRules has the numbers.
+    public static WoodStack[] TanningVatCost() => new[]
+    {
+        new WoodStack { itemId = TanningVatRules.LogsId, count = TanningVatRules.Logs },
+        new WoodStack { itemId = TanningVatRules.ClayId, count = TanningVatRules.Clay },
+    };
+
     public static WoodStack[] SawPitCost() => new[]
     {
         new WoodStack { itemId = SawPitRules.LogsId, count = SawPitRules.SiteLogs },
@@ -1309,7 +1323,7 @@ public class WellsAndOuthouses : MonoBehaviour
     public static WellWaterResult WellNumbers(WoodPileState well) =>
         Instance != null ? Instance.NumbersOf(well) : WellWater.ForDepth(well.depthToWater);
 
-    public int DigBlowsOf(WoodPileState well) => well.kind == PileKind.RootCellarSite ? RootCellarRules.DigBlows : well.kind == PileKind.SawPitSite ? SawPitRules.DigBlows : Mathf.Max(1, NumbersOf(well).digBlows);
+    public int DigBlowsOf(WoodPileState well) => well.kind == PileKind.RootCellarSite ? RootCellarRules.DigBlows : well.kind == PileKind.SawPitSite ? SawPitRules.DigBlows : well.kind == PileKind.TanningVatSite ? TanningVatRules.DigBlows : well.kind == PileKind.GardenBed ? GardenRules.DigBlows : Mathf.Max(1, NumbersOf(well).digBlows);
 
     public float RecoveryPerHour(WoodPileState well)
     {

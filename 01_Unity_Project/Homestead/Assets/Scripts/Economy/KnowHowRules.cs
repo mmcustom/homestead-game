@@ -27,6 +27,7 @@ public static class KnowHowRules
     public const string Smoking = "smoking";
     public const string Cellar = "cellar";
     public const string Hides = "hides";
+    public const string Garden = "garden";    // Gardening_Basics.md (slice GB1): Claude's draft text, for Mike to change as he likes
     public const string Sawmill = "sawmill";  // Saw_Pit_Sawmill_and_Salt_Barrel.md 2: Claude's draft text, for Mike to change as he likes
     public const string BarkTanning = "bark_tanning"; // Tanning_Hides_and_Furs.md 8 (slice T4): Claude's draft text, for Mike to change as he likes
     public const string BrainTanning = "brain_tanning"; // Tanning_Hides_and_Furs.md 8 (slice T3): Claude's draft text, for Mike to change as he likes
@@ -71,6 +72,7 @@ public static class KnowHowRules
         new Entry(BrainTanning, "Brain Tanning: Buckskin and Furs", "Brain tanning makes a hide soft and lasting. Lace Rawhide or Dried Furs into the Hide Frame with R. With a Crock Pot and 1 litre of water in your pack (a Canteen or Bucket), equip the Knife and hold click on the hide to work the brain-and-water mix into it: 30 strokes for a hide, 10 for furs. Each animal's brains are enough for its own hide.\n\nThe worked hide is a Soft Hide or Soft Furs, white and floppy. Take it off with E and smoke it in the Smokehouse with the meat (R loads it). A Soft Hide takes the room of 2 pieces of meat and Soft Furs 1, and it smokes for the same day on the same Firewood.\n\nIt comes out as Buckskin, golden brown and soft, or Tanned Furs. The Trading Post buys Buckskin for $24 and Tanned Furs for $6 each."),
         new Entry(BarkTanning, "Bark Tanning: Leather", "Bark tanning makes Leather, the strongest hide of all, but it takes a week. You need Rawhide from the Hide Frame, Tanbark and water.\n\nTo get Tanbark you need a Bark Spud, a short iron blade for peeling bark: forge one at the Smithy (1 Iron Bar, 1 Charcoal and a Stick) or buy one at the Trading Post. With it in your pack, the Inventory's Logs row has a Strip button (unless an axe is in your hand). Each Log gives 2 Tanbark and becomes a Peeled Log, which still works anywhere a Log does.\n\nBuild a Tanning Vat (3 Logs and 2 Clay, one click with the Hammer, under Other). Load it with R: Rawhide, up to 4, with 4 Tanbark and 20 litres of water for each hide. Press E to start the soak. After 7 days the hides are Leather, which the Trading Post buys for $30 each. E takes it out."),
         new Entry(Sawmill, "The Sawmill", "A Sawmill saws Logs into Lumber on its own, with a water wheel turned by the creek. It is the next step after the Saw Pit: you need Lumber from the pit to build it.\n\nBuild it from the Build tab, under Other. Mark the site out on the creek bank, within 4 m of the water but out of the creek itself; the wheel goes on the creek side. Deliver 12 Logs, 10 Lumber, 2 Iron Bars, 4 Cordage and 6 Stone with R, in any order, then hammer it up.\n\nLoad Logs with R, up to 20. Every hour the wheel saws 2 Logs into 3 Lumber, even while you are away or asleep, and E takes the Lumber. It stops during a flash flood and starts again by itself when the creek goes down."),
+        new Entry(Garden, "The Kitchen Garden", "A kitchen garden feeds you and earns money. Mark out a Garden Bed from the Build tab, under Other: each bed is a 4 by 4 ft square, and beds can stand side by side. Dig each one with the Shovel (hold click).\n\nBuy seed at the Trading Post: seed packets, tomato plants, and potatoes for planting. With the Hoe in hand, aim at a dug bed and press E to plant; R picks which seed. Crops grow day by day with the warmth: lettuce in about 50 days, tomatoes 75, potatoes 100. Tender crops (corn, beans, tomatoes, squash) die in any frost, so plant them after the last spring frost, around the middle of May; lettuce, carrots, potatoes and kale can go in from April.\n\nRain waters the beds. In a dry spell, fill a Watering Can or Bucket and press E on a bed to water it. When a crop is ready, E harvests it; tomatoes, beans and kale keep giving pickings for weeks. A Shovel's R fills an empty bed back in."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -90,7 +92,7 @@ public static class KnowHowRules
     // --- Triggers ---
 
     // Things that happen in the world, besides an item entering the pack.
-    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched, SmokehouseSitePlaced, RootCellarSitePlaced, SawPitSitePlaced, HideFramePlaced, TanningVatPlaced, SawmillSitePlaced }
+    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched, SmokehouseSitePlaced, RootCellarSitePlaced, SawPitSitePlaced, HideFramePlaced, TanningVatPlaced, SawmillSitePlaced, GardenBedPlaced }
 
     // Entries a first-held item unlocks (none for most items). Ash opens both "Ash" and "From Ash to Potash".
     public static string[] ForItem(string itemId)
@@ -132,6 +134,7 @@ public static class KnowHowRules
             case SmokeRules.TannedFursId: return new[] { BrainTanning };
             case TanningVatRules.TanbarkId:
             case TanningVatRules.LeatherId: return new[] { BarkTanning };
+            case GardenRules.HoeId: return new[] { Garden };
             default: return Array.Empty<string>();
         }
     }
@@ -152,6 +155,7 @@ public static class KnowHowRules
             case Happening.HideFramePlaced: return new[] { HideFrame };
             case Happening.TanningVatPlaced: return new[] { BarkTanning };
             case Happening.SawmillSitePlaced: return new[] { Sawmill };
+            case Happening.GardenBedPlaced: return new[] { Garden };
             default: return Array.Empty<string>();
         }
     }

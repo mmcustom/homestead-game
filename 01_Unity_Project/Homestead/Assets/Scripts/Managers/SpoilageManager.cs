@@ -154,6 +154,9 @@ public class SpoilageManager : MonoBehaviour, ISaveable
         CompostTick();
         DryingTick();
         TanningTick();
+        // Gardening_Basics.md (GB1): the garden beds' soil and crops, on the same hour so away and asleep count.
+        WeatherManager weather = WeatherManager.Instance;
+        GardenBeds.Hour((float)AirC, weather != null ? weather.RainMmPerHour(weather.PrecipitationWeather) : 0f);
     }
 
     // --- The Compost Bin (CompostRules) ---

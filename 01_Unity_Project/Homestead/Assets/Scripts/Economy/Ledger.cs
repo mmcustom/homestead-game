@@ -83,6 +83,7 @@ public static class LedgerCategories
             case MarketGroup.Ash: return LedgerCategory.SalesWoodStone; // a by-product of burnt wood; the item CSV tells it apart
             case MarketGroup.Maple: return LedgerCategory.SalesFarm;    // Syrup counts as farm produce
             case MarketGroup.Potash: return LedgerCategory.SalesWoodStone; // Lye and Potash come from burnt wood; the item CSV tells them apart
+            case MarketGroup.Produce: return LedgerCategory.SalesFarm;     // garden produce (GB1) is farm income; the item CSV tells it apart
             default: return LedgerCategory.SalesStockedBack;
         }
     }
@@ -96,7 +97,7 @@ public static class LedgerCategories
         { "cane_pole", LedgerCategory.BuyHuntingFishing }, { "primitive_bow", LedgerCategory.BuyHuntingFishing }, { "box_trap", LedgerCategory.BuyHuntingFishing },
         { "fish_trap", LedgerCategory.BuyHuntingFishing }, { "rabbit_snare", LedgerCategory.BuyHuntingFishing },
         { "lantern", LedgerCategory.BuyCookingWaterFire }, { "torch", LedgerCategory.BuyCookingWaterFire }, { "bow_drill", LedgerCategory.BuyCookingWaterFire },
-        { PotteryRules.FiredPotId, LedgerCategory.BuyCookingWaterFire },
+        { PotteryRules.FiredPotId, LedgerCategory.BuyCookingWaterFire }, { PotteryRules.FiredCrockId, LedgerCategory.BuyCookingWaterFire },
         { "fishing_rod", LedgerCategory.BuyHuntingFishing }, { "recurve_bow", LedgerCategory.BuyHuntingFishing },
         { "bolt_action_rifle", LedgerCategory.BuyHuntingFishing }, { "arrows", LedgerCategory.BuyHuntingFishing },
         { "rifle_rounds", LedgerCategory.BuyHuntingFishing },
@@ -109,6 +110,11 @@ public static class LedgerCategories
         { "lumber", LedgerCategory.BuyBuildingMaterials }, { "cordage", LedgerCategory.BuyBuildingMaterials },
         { "weather_station", LedgerCategory.BuyOtherGoods },
         { MetalRules.IronOreId, LedgerCategory.BuyOtherGoods }, // Metalworking M1: listed on purpose (the default category), as every stocked item must be
+        // Gardening GB1: the garden tools, seed, plants and potatoes.
+        { GardenRules.HoeId, LedgerCategory.BuyTools }, { GardenRules.WateringCanId, LedgerCategory.BuyTools },
+        { "seed_field_corn", LedgerCategory.BuyOtherGoods }, { "seed_sweet_corn", LedgerCategory.BuyOtherGoods }, { "seed_beans", LedgerCategory.BuyOtherGoods },
+        { "tomato_plant", LedgerCategory.BuyOtherGoods }, { "seed_lettuce", LedgerCategory.BuyOtherGoods }, { "seed_carrots", LedgerCategory.BuyOtherGoods },
+        { "seed_squash", LedgerCategory.BuyOtherGoods }, { "seed_kale", LedgerCategory.BuyOtherGoods }, { GardenRules.PotatoesId, LedgerCategory.BuyOtherGoods },
     };
 
     // The expense category for buying a stocked item; anything unlisted (a future stock item) is "other goods".

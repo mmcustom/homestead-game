@@ -89,7 +89,7 @@ public class SmithyTests
     {
         Assert.That(SmithyRules.Recipes.Length, Is.EqualTo(6), "and the Bark Spud (tanning slice T4)");
         Assert.That(SmithyRules.Recipes.Select(r => r.itemId), Is.EqualTo(new[] { "door_hinges", "hook_set", "nails_box", "iron_shovel", "iron_pick_axe", "bark_spud" }));
-        Assert.That(SmithyRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Door Hinges", "Hook Set", "Box of Nails (20)", "Iron Shovel", "Iron Pick Axe", "Bark Spud" }));
+        Assert.That(SmithyRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Door Hinges", "Hook Set", "Box of Nails (20)", "Iron Shovel", "Iron Pick Axe", "Draw Knife" }));
         Assert.That(SmithyRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 2, 3, 3, 2 }));
         Assert.That(SmithyRules.Recipes.Take(3).Select(r => r.baseCents), Is.EqualTo(new[] { 2600L, 1800L, 1600L }), "the goods' prices are unchanged");
         Assert.That(SmithyRules.Recipes.Skip(3).Select(r => r.baseCents), Is.EqualTo(new[] { 0L, 0L, 0L }), "the tools have no price");
@@ -256,12 +256,12 @@ public class SmithyTests
     public void TheTwoSmithyKindsAreFortyThreeAndFortyFourAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(58));
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(60));
         Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "SmithySite"), Is.EqualTo(43));
         Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44));
         string[] names = Enum.GetNames(kind);
-        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names.Last(), Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat");
+        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names[57], Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat"); Assert.That(names[58], Is.EqualTo("GardenBed"), "the Garden Bed (58) came after the Sawmill"); Assert.That(names.Last(), Is.EqualTo("TanningVatSite"), "the Tanning Vat Site (59, 2026-11-25) came after the Garden Bed");
         Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil") || n.Contains("Skillet")), Is.False, "one combined Smithy: no separate Forge or Anvil kinds");
     }
 
@@ -355,7 +355,7 @@ public class SmithyTests
     public void TheSmithyUsesTheExistingFieldsAndTheSavedPileGainedNone()
     {
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
-        Assert.That(fields.Length, Is.EqualTo(17), "still the 17 fields");
+        Assert.That(fields.Length, Is.EqualTo(21), "the 17 fields and the Garden Bed's four (GB1)");
         Assert.That(fields, Does.Contain("jobItem").And.Contain("jobHours").And.Contain("contents"));
         Assert.That(fields, Does.Contain("jobCount"), "the Pottery field, which the Smithy does not use");
         Assert.That(fields, Does.Contain("hopperWater").And.Contain("hopperBatch"), "the Hopper's fields are untouched");
@@ -434,9 +434,9 @@ public class SmithyTests
             Assert.That(table.BuyBaseCents(id), Is.EqualTo(0L), "not sold in the store");
             Assert.That(table.SellBaseCents(id), Is.EqualTo(cents));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(121), "89 and the three, then the hand tools and the maple gear (2026-11-14), then Fertilizer, the five dried foods and the three salt rows (2026-11-22)");
+        Assert.That(table.Rows.Count, Is.EqualTo(141), "89 and the three, then the hand tools and the maple gear (2026-11-14), then Fertilizer, the five dried foods and the three salt rows (2026-11-22)");
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28), "22 and the three, less the three hand tools now stocked");
-        Assert.That(table.Stock.Count, Is.EqualTo(41), "the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14");
+        Assert.That(table.Stock.Count, Is.EqualTo(53), "the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14");
         Assert.That(table.TryGetRow("iron_bar", out _), Is.False, "the Iron Bar still has no row");
         Assert.That(table.TryGetRule(MarketGroup.Crafted, out MarketGroupRule rule), Is.True);
         Assert.That(rule.dropBp, Is.EqualTo(1000), "10% off per unit sold");
@@ -454,7 +454,7 @@ public class SmithyTests
             Assert.That(asset, Does.Contain($"  - itemId: {id}\n    group: 5\n    pool: {id}\n    baseCents: {cents}\n    kind: 1\n    seasonalBuy: 0\n"));
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(121));
+        Assert.That(rows, Is.EqualTo(141));
         Assert.That(asset, Does.Not.Contain("iron_bar"));
     }
 
@@ -903,7 +903,7 @@ public class SmithyTests
     [Test]
     public void TheSmithyEntryUnlocksOnAPlacedSiteOrAnIronBarAndTheBloomeryAndBarHelpPointToIt()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(23)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(24)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }));
@@ -1035,12 +1035,12 @@ public class SmithyTests
         Assert.That(WorkshopRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 4, 5 }));
         Assert.That(WorkshopRules.SiteLogs, Is.EqualTo(5));
         Assert.That(WorkshopRules.LogsCap, Is.EqualTo(6));
-        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(41), "and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
+        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(53), "the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
         Assert.That(MarketCatalog.Table.BuyBaseCents("iron_ore"), Is.EqualTo(400L));
         Assert.That(MarketCatalog.Table.SellBaseCents("charcoal"), Is.EqualTo(100L));
         Assert.That(MarketCatalog.Table.SellBaseCents("rough_stool"), Is.EqualTo(1400L));
         Assert.That(MarketCatalog.Table.SellBaseCents("clay_cup"), Is.EqualTo(400L));
-        Assert.That(Enum.GetValues(typeof(MarketGroup)).Length, Is.EqualTo(11), "no new market group");
+        Assert.That(Enum.GetValues(typeof(MarketGroup)).Length, Is.EqualTo(12), "only Produce (GB1)");
         Assert.That(MetalRules.Metals.Length, Is.EqualTo(1));
         Assert.That(SourceText("Scripts/Player/AxeTool.cs").Contains("SmithyRules"), Is.False, "the Axe and Saw code knows nothing of the Smithy");
         Assert.That(SourceText("Scripts/Editor/MarketDataSeeder.cs"), Does.Not.Contain("Smithy"), "the seeder was not touched");

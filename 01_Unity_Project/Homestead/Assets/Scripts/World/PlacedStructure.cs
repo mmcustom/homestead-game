@@ -54,6 +54,8 @@ public static class StructureVisuals
             case PileKind.Sawmill: BuildSawmill(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.HideFrame: BuildHideFrame(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.TanningVat: BuildTanningVat(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.TanningVatSite: BuildTanningVatSite(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.GardenBed: GardenBeds.Build(parent, state, pieces, out boxCenter, out boxSize); return; // Gardening_Basics.md (GB1)
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -760,7 +762,7 @@ public static class StructureVisuals
         for (int i = 0; i < 3; i++)
             Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-0.6f + i * 0.6f, 0.35f, -0.45f), Vector3.zero, new Vector3(0.05f, 0.35f, 0.05f), bark);
         // The log being sawn, when there are Logs, and the rest piled at the back end.
-        int logs = state.Count(SawPitRules.LogsId);
+        int logs = state.Count(SawPitRules.LogsId) + state.Count(SawPitRules.PeeledLogId);
         if (logs > 0)
         {
             Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.55f, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.3f, hl - 0.1f, 0.3f), bark);
@@ -859,6 +861,31 @@ public static class StructureVisuals
         boxCenter = new Vector3(0f, 0.25f, 0f);
         boxSize = new Vector3(1.9f, 0.5f, 1.2f);                // the logs' length and width plus a little room; ArtSwap's spec matches it exactly
     }
+
+    // The Tanning Vat's site: four stakes at the trough's corners, the pit darkening and widening as it is dug with its spoil heaped beside, and the Logs
+    // and Clay delivered laid out at the side (2026-11-25).
+    static void BuildTanningVatSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float hl = 0.8f, hw = 0.45f;
+        foreach (Vector2 corner in new[] { new Vector2(-hl, -hw), new Vector2(hl, -hw), new Vector2(-hl, hw), new Vector2(hl, hw) })
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(corner.x, 0.2f, corner.y), Vector3.zero, new Vector3(0.04f, 0.2f, 0.04f), bark);
+        float dug = Mathf.Clamp01(state.digProgress);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.012f, 0f), Vector3.zero, new Vector3(2f * hl * (0.4f + 0.6f * dug), 0.01f, 2f * hw * (0.4f + 0.6f * dug)), null),
+               dug > 0f ? Color.Lerp(SoilColor, SootColor, 0.6f * dug) : SoilColor);
+        int heap = Mathf.CeilToInt(dug * 3f);
+        for (int i = 0; i < heap; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(-0.5f + i * 0.5f, 0.1f, hw + 0.45f), Vector3.zero, new Vector3(0.5f, 0.25f, 0.4f), null), SoilColor);
+        int logs = Mathf.Min(state.Count(TanningVatRules.LogsId), TanningVatRules.Logs);
+        for (int i = 0; i < logs; i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, 0.12f + (i / 2) * 0.22f, -hw - 0.4f - (i % 2) * 0.24f), new Vector3(0f, 0f, 90f), new Vector3(0.22f, hl + 0.1f, 0.22f), bark);
+        int clay = Mathf.Min(state.Count(TanningVatRules.ClayId), TanningVatRules.Clay);
+        for (int i = 0; i < clay; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Sphere, new Vector3(hl + 0.4f, 0.1f, -0.2f + i * 0.4f), Vector3.zero, new Vector3(0.35f, 0.22f, 0.35f), null), ClaySiteColor);
+        boxCenter = new Vector3(0f, 0.25f, 0f);
+        boxSize = new Vector3(2f * hl + 0.4f, 0.5f, 2f * hw + 0.4f);
+    }
+
+    static readonly Color ClaySiteColor = new Color(0.55f, 0.38f, 0.26f);
 
     // What is on a Hide Frame: the kind of hide laced in and how many pieces, or what it has become.
     internal static HideFrameRules.Kind HideFrameKindOf(WoodPileState state, out int pieces, out string outputId, out int outputCount)
@@ -1240,7 +1267,7 @@ public static class StructureVisuals
 //   Outhouse Site  The same staged mechanism with no dig stage (WellsAndOuthouses.IsStagedSite/DeliveryOrder/FinishedCost): R stores
 //              2 Logs, 6 Branches and 3 Tall Grass over any number of trips, E takes them back (until the Hammer begins), the Hammer pounds it into the Outhouse. The barrel and cache sites work the same.
 //   Outhouse   The Shovel (hold click, real time only) digs a new pit and moves the shack once the pit is full. R with the Hammer dismantles it.
-public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteractable
+public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteractable, IPromptHeader
 {
     WoodPileState state;
     Material bark;
@@ -1424,10 +1451,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Bloomery: return BloomeryPromptText();
                 case PileKind.Smithy: return SmithyPromptText();
                 case PileKind.Smokehouse: return SmokehousePromptText();
-                case PileKind.SawPit: return SawPitPromptText();
+                case PileKind.SawPit: return SawPitRules.ActionE(state.Count(SawPitRules.LumberId), state.Count(SawPitRules.TanbarkId));
                 case PileKind.Sawmill: return SawmillPromptText();
-                case PileKind.HideFrame: return HideFramePromptText();
-                case PileKind.TanningVat: return VatPromptText();
+                case PileKind.HideFrame: return HideFrameActionE();
+                case PileKind.TanningVat: return TanningVatRules.ActionE(VatPhaseNow);
+                case PileKind.GardenBed: return GardenBeds.ActionE(state);
                 default: return OuthousePrompt();
             }
         }
@@ -1465,7 +1493,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         }
         if (WellsAndOuthouses.RequiresDig(state.kind) && state.digProgress < 1f)
         {
-            string what = state.kind == PileKind.RootCellarSite ? "Dig out the cellar" : state.kind == PileKind.SawPitSite ? "Dig the saw pit" : "Dig the shaft";
+            string what = state.kind == PileKind.RootCellarSite ? "Dig out the cellar" : state.kind == PileKind.SawPitSite ? "Dig the saw pit" : state.kind == PileKind.TanningVatSite ? "Dig the vat pit" : "Dig the shaft";
             return EquippedShovel ? $"{what}: hold click ({state.digProgress * 100f:0}%)" : $"{what}: equip the Shovel, hold click ({state.digProgress * 100f:0}%)";
         }
         if (state.kind == PileKind.WellSite)
@@ -2502,12 +2530,22 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
 
     static bool SawEquipped => InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null && InventoryManager.Instance.EquippedTool.Id == SawPitRules.SawId;
 
-    string SawPitPromptText() => SawPitRules.Prompt(state.Count(SawPitRules.LogsId), state.Count(SawPitRules.LumberId), state.jobHours, SawEquipped);
+    static bool DrawKnifeEquipped => InventoryManager.Instance != null && InventoryManager.Instance.EquippedTool != null && InventoryManager.Instance.EquippedTool.Id == SawPitRules.DrawKnifeId;
 
+    int SawPitLogsOn => state.Count(SawPitRules.LogsId) + state.Count(SawPitRules.PeeledLogId);
+
+    string SawPitPromptText() => SawPitHeader();
+
+    // Its status (IPromptHeader): what is on it and stacked by it, and what the tool in hand does there. The draw-knife strokes so far are the pit's
+    // buildProgress (a finished pit's is otherwise unused), the saw's its jobHours.
+    string SawPitHeader() => SawPitRules.Header(state.Count(SawPitRules.LogsId), state.Count(SawPitRules.PeeledLogId), state.Count(SawPitRules.LumberId),
+        state.Count(SawPitRules.TanbarkId), state.jobHours, state.buildProgress, SawEquipped, DrawKnifeEquipped);
+
+    // Logs carried (plain and peeled) and how many of them fit on the pit.
     int SawPitLoadable(out int carried)
     {
-        carried = Inventory.Player.Count(SawPitRules.LogsId);
-        return Mathf.Min(carried, SawPitRules.LogRoom(state.Count(SawPitRules.LogsId)));
+        carried = Inventory.Player.Count(SawPitRules.LogsId) + Inventory.Player.Count(SawPitRules.PeeledLogId);
+        return Mathf.Min(carried, SawPitRules.LogRoom(SawPitLogsOn));
     }
 
     string SawPitSecondaryPrompt()
@@ -2518,13 +2556,30 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return SawPitRules.LoadPrompt(canLoad, carried);
     }
 
-    // E: takes the Lumber stacked by the pit to the pack; with none, says how to saw.
+    // E: takes the Tanbark and then the Lumber stacked by the pit to the pack; with neither, says what to do.
     void SawPitInteract()
     {
+        int tanbark = state.Count(SawPitRules.TanbarkId);
+        if (tanbark > 0)
+        {
+            ItemDefinition bark = ItemDatabase.Get(SawPitRules.TanbarkId);
+            int fitsBark = bark != null ? Mathf.Min(tanbark, Inventory.Player.SpaceFor(bark)) : 0;
+            int tookBark = fitsBark > 0 ? Inventory.AddToPlayer(SawPitRules.TanbarkId, fitsBark) : 0;
+            if (tookBark > 0)
+            {
+                state.Take(SawPitRules.TanbarkId, tookBark);
+                WoodManager.Instance.NotifyChanged(state);
+            }
+            if (state.Count(SawPitRules.LumberId) <= 0)
+            {
+                ToolStatus.Flash(tookBark > 0 ? $"Took {tookBark} Tanbark." : "No room to carry the Tanbark", 4f);
+                return;
+            }
+        }
         int lumber = state.Count(SawPitRules.LumberId);
         if (lumber <= 0)
         {
-            ToolStatus.Flash(SawEquipped ? SawPitPromptText() : SawPitRules.NoSaw, 4f);
+            ToolStatus.Flash(SawPitHeader(), 4f);
             return;
         }
         ItemDefinition item = ItemDatabase.Get(SawPitRules.LumberId);
@@ -2549,16 +2604,19 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         int canLoad = SawPitLoadable(out int carried);
         if (canLoad <= 0)
         {
-            ToolStatus.Flash(SawPitRules.LoadPrompt(canLoad, carried), 4f);
+            ToolStatus.Flash(SawPitRules.LoadPrompt(canLoad, carried) ?? "You're not carrying any Logs", 4f);
             return;
         }
         if (AudioManager.Instance != null)
             AudioManager.Instance.SilenceNextRemoval();
-        int laid = Inventory.Player.RemoveBatches(SawPitRules.LogsId, canLoad, (day, count) => state.Add(SawPitRules.LogsId, count, day));
+        // Peeled Logs go on as Peeled Logs (so their bark is not stripped twice), then plain Logs.
+        int laid = Inventory.Player.RemoveBatches(SawPitRules.PeeledLogId, Mathf.Min(canLoad, Inventory.Player.Count(SawPitRules.PeeledLogId)), (day, count) => state.Add(SawPitRules.PeeledLogId, count, day));
+        if (laid < canLoad)
+            laid += Inventory.Player.RemoveBatches(SawPitRules.LogsId, canLoad - laid, (day, count) => state.Add(SawPitRules.LogsId, count, day));
         if (laid <= 0)
             return;
         WoodManager.Instance.NotifyChanged(state);
-        ToolStatus.Flash(SawPitRules.Loaded(laid, state.Count(SawPitRules.LogsId)), 4f);
+        ToolStatus.Flash(SawPitRules.Loaded(laid, SawPitLogsOn), 4f);
     }
 
     // --- The Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2): R loads Logs, the water wheel saws them hour by hour (WellsAndOuthouses.OnHour), E takes the Lumber ---
@@ -2641,13 +2699,27 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                                      outputId != null && HideFrameRules.Softens(outputId));
     }
 
+    // E's line: what E does at this step, or nothing.
+    string HideFrameActionE()
+    {
+        HideFrameKindOf(state, out _, out string outputId, out _);
+        ItemDefinition output = outputId != null ? ItemDatabase.Get(outputId) : null;
+        return HideFrameRules.ActionE(HideFramePhaseOf(state), state.jobHours, output != null ? output.DisplayName : outputId);
+    }
+
+    // R's line: with the Hammer, take the frame down; on an empty frame, lace in the hide R would take; otherwise R does nothing (no line).
     string HideFrameSecondaryPrompt()
     {
         if (WoodManager.HammerEquipped)
             return HideFrameRules.DismantlePrompt;
         if (HideFramePhaseOf(state) != HideFrameRules.Phase.Empty)
-            return HideFramePromptText();
-        return NextHideCarried(out _, out _) != null ? "Lace a hide into the Hide Frame (R)" : HideFrameRules.NoHide;
+            return null;
+        string next = NextHideCarried(out _, out int count);
+        if (next == null)
+            return HideFrameRules.NoHide;
+        ItemDefinition item = ItemDatabase.Get(next);
+        string name = item != null ? item.DisplayName : next;
+        return HideFrameRules.LacePrompt(count > 1 ? $"{count} {name}" : name);
     }
 
     static readonly string[] LaceOrder =
@@ -2866,15 +2938,26 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     TanningVatRules.LoadPlan VatPlan() => TanningVatRules.PlanLoad(state.Count(TanningVatRules.RawhideId), state.Count(TanningVatRules.TanbarkId), state.Count(TanningVatRules.WaterId),
         Inventory.Player.Count(TanningVatRules.RawhideId), Inventory.Player.Count(TanningVatRules.TanbarkId), WaterQualities.LitresCarried(Inventory.Player));
 
+    // Why R loads nothing: a raw Deer Hide or furs carried get their own pointer to the Hide Frame.
+    string VatNothingToLoad()
+    {
+        InventoryContainer pack = Inventory.Player;
+        bool raw = pack.Count(HideRules.DeerHideId) + pack.Count(HideRules.SaltedDeerHideId) > 0;
+        bool furs = pack.Count(HideRules.SmallFursId) + pack.Count(HideRules.SaltedFursId) + pack.Count(HideFrameRules.DriedFursId) > 0;
+        return TanningVatRules.WrongHideHint(raw, furs) ?? TanningVatRules.NothingToLoad;
+    }
+
     string VatSecondaryPrompt()
     {
         if (WoodManager.HammerEquipped)
             return state.jobItem == TanningVatRules.SoakMarker ? TanningVatRules.CantDismantle : TanningVatRules.DismantlePrompt;
         TanningVatRules.Phase phase = VatPhaseNow;
         if (phase == TanningVatRules.Phase.Soaking || phase == TanningVatRules.Phase.Done)
-            return VatPromptText();
+            return null;
         TanningVatRules.LoadPlan plan = VatPlan();
-        return plan.Any ? $"Load the vat (R): {plan.hides} Rawhide, {plan.tanbark} Tanbark, {plan.water} litres" : TanningVatRules.NothingToLoad;
+        if (plan.Any)
+            return TanningVatRules.LoadPrompt(plan);
+        return phase == TanningVatRules.Phase.Ready ? null : VatNothingToLoad();
     }
 
     // R: with the Hammer it takes the vat down; otherwise it loads Rawhide, then the Tanbark and water those hides need (the worst water first).
@@ -2894,7 +2977,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         TanningVatRules.LoadPlan plan = VatPlan();
         if (!plan.Any)
         {
-            ToolStatus.Flash(TanningVatRules.NothingToLoad, 4f);
+            ToolStatus.Flash(VatNothingToLoad(), 4f);
             return;
         }
         if (AudioManager.Instance != null)
@@ -3365,6 +3448,24 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return $"Outhouse  (pit {fill * 100f:0}% full{(w.IsSanitary() ? ", the homestead is sanitary" : "")})";
     }
 
+    // The status above the key lines (IPromptHeader), for the structures whose E and R do different things at each step.
+    public string PromptHeader
+    {
+        get
+        {
+            if (state == null || Rules == null)
+                return null;
+            switch (state.kind)
+            {
+                case PileKind.HideFrame: return HideFramePromptText();
+                case PileKind.TanningVat: return VatPromptText();
+                case PileKind.GardenBed: return GardenBeds.Header(state);
+                case PileKind.SawPit: return SawPitHeader();
+                default: return null;
+            }
+        }
+    }
+
     public string SecondaryPrompt
     {
         get
@@ -3379,6 +3480,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                     ? (WoodManager.HammerEquipped ? "Dismantle the hearth  (half the Stone and Clay back, rounded down; the fire must be out)" : "Dismantle the hearth  (needs the Hammer)")
                     : "";
             }
+            if (state.kind == PileKind.GardenBed)
+                return GardenBeds.SecondaryPrompt(state);
             if (state.kind == PileKind.SlopSink)
                 return SinkSecondaryPrompt();
             if (state.kind == PileKind.LeachHopper)
@@ -3456,6 +3559,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Sawmill: SawmillInteract(); break;
             case PileKind.HideFrame: HideFrameInteract(); break;
             case PileKind.TanningVat: VatInteract(); break;
+            case PileKind.GardenBed: GardenBeds.Interact(state, transform); break;
             default: DigNewPit(player); break;
         }
     }
@@ -3514,7 +3618,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         WaterQuality quality = w.WellQuality(state, out _);
         string itemId = WaterQualities.ItemId(quality);
         string equipped = Inventory.EquippedTool != null ? Inventory.EquippedTool.Id : null;
-        if (equipped == WaterSource.BucketItemId || equipped == WaterQualities.CanteenId)
+        if (WaterQualities.IsVessel(equipped))
         {
             ItemDefinition water = ItemDatabase.Get(itemId);
             int room = WaterQualities.Capacity(Inventory.Player) - WaterQualities.LitresCarried(Inventory.Player);
@@ -3611,6 +3715,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 Dismantle(); // a hearth-built site with nothing to deliver: R takes the hearth down
             else
                 StoreMaterials();
+        }
+        else if (state.kind == PileKind.GardenBed)
+        {
+            GardenBeds.Secondary(state);
         }
         else if (state.kind == PileKind.SlopSink)
         {
@@ -3857,7 +3965,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         // A Saw Pit gives back the Logs on it and the Lumber beside it whole, on top of half the materials.
         if (state.kind == PileKind.SawPit)
             foreach (WoodStack stack in state.contents)
-                if (stack.itemId == SawPitRules.LogsId || stack.itemId == SawPitRules.LumberId)
+                if (stack.itemId == SawPitRules.LogsId || stack.itemId == SawPitRules.LumberId || stack.itemId == SawPitRules.PeeledLogId || stack.itemId == SawPitRules.TanbarkId)
                     refund.Return(stack.itemId, stack.count, 0);
         // A Sawmill gives back its Logs and Lumber whole too.
         if (state.kind == PileKind.Sawmill)

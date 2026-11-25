@@ -81,7 +81,7 @@ public static class SmithyRules
         new Recipe { itemId = IronShovelId, name = "Iron Shovel", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 3, cordage = 1, hours = 3, baseCents = 0, weightKg = 1.8f },
         new Recipe { itemId = IronPickAxeId, name = "Iron Pick Axe", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 2, cordage = 1, hours = 3, baseCents = 0, weightKg = 2f },
         // Tanning slice T4 (Mike, 2026-11-23: "Bark Spud, Smithy-forged"): the bark-peeling tool, for the player's own use like the iron tools.
-        new Recipe { itemId = TanningVatRules.BarkSpudId, name = "Bark Spud", metalId = MetalRules.IronId, bars = 1, charcoal = 1, sticks = 1, cordage = 0, hours = 2, baseCents = 0, weightKg = TanningVatRules.BarkSpudKg },
+        new Recipe { itemId = TanningVatRules.DrawKnifeId, name = TanningVatRules.DrawKnifeName, metalId = MetalRules.IronId, bars = 1, charcoal = 1, sticks = 1, cordage = 0, hours = 2, baseCents = 0, weightKg = TanningVatRules.BarkSpudKg },
     };
 
     public static bool TryFind(string itemId, out Recipe recipe)

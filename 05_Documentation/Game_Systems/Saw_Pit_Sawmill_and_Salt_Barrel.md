@@ -80,3 +80,12 @@ Built as planned. SawmillSite (56) and Sawmill (57) are appended to PileKind; th
 - **Holds** (*proposed*): Salt and other dry goods that don't spoil (Tanbark, Cordage, Sinew and the like), up to 100 kg. It doesn't take food, wood, Stone, water or Tools.
 - **Why have one when the Storage Bin also takes dry goods?** (*proposed*) The barrel keeps its contents dry. Salt left in the Storage Bin or on the ground slowly clumps in wet weather. That's a later rule, only if Mike wants it.
 - **Art:** structure_saltbarrel and its build icon.
+
+### As built (2026-11-23)
+
+Built as proposed. SaltBarrel (53) is appended to PileKind; the rules live in SaltBarrelRules.cs.
+
+- Build: 3 Logs and 2 Cordage, built in one go with the Hammer, like the Storage Bin.
+- Holds: Salt and the other dry goods, up to 100 kg. Not Tools, wood, Stone, food or water. The storage screen shows the kilograms and "kept dry under its lid".
+- Wet-weather clumping for Salt kept elsewhere: not wanted (Mike, 2026-11-25).
+- Art: structure_saltbarrel (2,500 tris) with build icon build_saltbarrel.

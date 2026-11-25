@@ -180,6 +180,11 @@ public class AxeTool : MonoBehaviour
             UpdateHammering();
             return;
         }
+        if (equipped == TanningVatRules.DrawKnifeId)
+        {
+            UpdateDrawKnife();
+            return;
+        }
         if (!AxeRules.IsFellingTool(equipped))
             return;
 
@@ -247,7 +252,7 @@ public class AxeTool : MonoBehaviour
             if (!pick && target == null)
             {
                 PlacedStructure site = hit.collider.GetComponentInParent<PlacedStructure>();
-                if (site != null && site.State != null && WellsAndOuthouses.RequiresDig(site.State.kind) && site.State.digProgress < 1f)
+                if (site != null && site.State != null && (WellsAndOuthouses.RequiresDig(site.State.kind) || site.State.kind == PileKind.GardenBed) && site.State.digProgress < 1f)
                     target = site;
                 // A full Outhouse pit: the Shovel digs the new one the shack moves onto (WellsAndOuthouses.PitDigBlow).
                 else if (site != null && site.State != null && site.State.kind == PileKind.Outhouse && WellsAndOuthouses.Instance != null &&
@@ -403,9 +408,9 @@ public class AxeTool : MonoBehaviour
         if (rules == null || state == null)
             return;
 
-        bool cellar = state.kind == PileKind.RootCellarSite, sawPit = state.kind == PileKind.SawPitSite;
-        ToolStatus.Report(state.digProgress > 0f ? (cellar ? "Digging out the cellar" : sawPit ? "Digging the saw pit" : "Digging the well shaft")
-                                                 : (cellar ? "Root Cellar site - hold click to dig it out" : sawPit ? "Saw Pit site - hold click to dig the trench" : "Well site - hold click to dig the shaft"),
+        bool cellar = state.kind == PileKind.RootCellarSite, sawPit = state.kind == PileKind.SawPitSite, bed = state.kind == PileKind.GardenBed, vat = state.kind == PileKind.TanningVatSite;
+        ToolStatus.Report(state.digProgress > 0f ? (cellar ? "Digging out the cellar" : sawPit ? "Digging the saw pit" : bed ? "Digging the garden bed" : vat ? "Digging the vat pit" : "Digging the well shaft")
+                                                 : (cellar ? "Root Cellar site - hold click to dig it out" : sawPit ? "Saw Pit site - hold click to dig the trench" : bed ? "Garden Bed - hold click to dig it" : vat ? "Tanning Vat site - hold click to dig the pit" : "Well site - hold click to dig the shaft"),
                           state.digProgress > 0f ? state.digProgress : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
@@ -416,7 +421,7 @@ public class AxeTool : MonoBehaviour
         if (finished)
         {
             ToolEvents.JobFinished();
-            ToolStatus.Banner(cellar ? RootCellarRules.DugBanner : sawPit ? SawPitRules.DugBanner : "The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
+            ToolStatus.Banner(cellar ? RootCellarRules.DugBanner : sawPit ? SawPitRules.DugBanner : bed ? GardenRules.DugBanner : "The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
             WoodManager.Instance.NotifyChanged(state);
         }
         else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - swing / rules.DigBlowsOf(state)) * 10f))
@@ -425,12 +430,52 @@ public class AxeTool : MonoBehaviour
         }
     }
 
+    // The Draw Knife (Mike, 2026-11-25): held click on a Saw Pit with a Log still in its bark strips it, a stroke a pull, TanningVatRules.StripStrokes a Log.
+    // The Log stays on the pit as a Peeled Log and its Tanbark is stacked beside it for E. The strokes so far are the pit's buildProgress (saved).
+    void UpdateDrawKnife()
+    {
+        if (player.AimRaycast(reach, out RaycastHit hit))
+        {
+            PlacedStructure pit = hit.collider.GetComponentInParent<PlacedStructure>();
+            if (pit != null && pit.State != null && pit.State.kind == PileKind.SawPit)
+            {
+                StripAtPit(pit, hit.point);
+                return;
+            }
+        }
+        ToolStatus.ReportIdle(TanningVatRules.NeedsDrawKnife);
+    }
+
+    void StripAtPit(PlacedStructure pit, Vector3 point)
+    {
+        WoodPileState state = pit.State;
+        if (state.Count(SawPitRules.LogsId) <= 0)
+        {
+            ToolStatus.ReportIdle(state.Count(SawPitRules.PeeledLogId) > 0 ? "The Logs on the pit are already peeled - saw them with the Wood Saw"
+                                                                            : "Lay Logs on the pit (R) to strip their bark");
+            return;
+        }
+        ToolStatus.Report(state.buildProgress > 0f ? "Stripping bark" : "Saw Pit - hold click to strip a Log's bark", state.buildProgress > 0f ? SawPitRules.StripProgress(state.buildProgress) : -1f);
+        if (!Swing(point))
+            return;
+        state.buildProgress = SawPitRules.AfterStripStroke(state.buildProgress, DigSwing, out bool logDone);
+        if (logDone)
+        {
+            state.Take(SawPitRules.LogsId, 1);
+            state.Add(SawPitRules.PeeledLogId, 1, 0);
+            state.Add(SawPitRules.TanbarkId, TanningVatRules.TanbarkPerLog, 0);
+            ToolEvents.JobFinished();
+            ToolStatus.Banner(SawPitRules.Stripped(state.Count(SawPitRules.TanbarkId)), 4f);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+    }
+
     // One stroke of the Wood Saw on a Saw Pit holding at least two Logs: every pair of Logs takes SawPitRules.StrokesPerPair strokes and becomes
-    // 3 Lumber stacked beside the pit. The strokes so far are the pit's jobHours (saved), so sawing can stop and carry on later.
+    // 3 Lumber stacked beside the pit. The strokes so far are the pit's jobHours (saved), so sawing can stop and carry on later. Peeled Logs are sawn first.
     void SawAtPit(PlacedStructure pit, Vector3 point)
     {
         WoodPileState state = pit.State;
-        int logs = state.Count(SawPitRules.LogsId);
+        int logs = state.Count(SawPitRules.LogsId) + state.Count(SawPitRules.PeeledLogId);
         if (!SawPitRules.CanSaw(logs))
         {
             ToolStatus.ReportIdle(SawPitRules.Prompt(logs, state.Count(SawPitRules.LumberId), state.jobHours, true));
@@ -443,7 +488,11 @@ public class AxeTool : MonoBehaviour
         state.jobHours = SawPitRules.AfterStroke(state.jobHours, DigSwing, out bool pairDone);
         if (pairDone)
         {
-            state.Take(SawPitRules.LogsId, SawPitRules.LogsPerPair);
+            int peeled = Mathf.Min(SawPitRules.LogsPerPair, state.Count(SawPitRules.PeeledLogId));
+            if (peeled > 0)
+                state.Take(SawPitRules.PeeledLogId, peeled);
+            if (SawPitRules.LogsPerPair - peeled > 0)
+                state.Take(SawPitRules.LogsId, SawPitRules.LogsPerPair - peeled);
             state.Add(SawPitRules.LumberId, SawPitRules.LumberPerPair, 0);
             ToolEvents.JobFinished();
             ToolStatus.Banner(SawPitRules.PairDone(state.Count(SawPitRules.LumberId)), 4f);

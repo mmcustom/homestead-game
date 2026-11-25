@@ -37,7 +37,11 @@ public static class WaterQualities
 
     // Litres the player's water containers hold between them: every Bucket and Canteen carried.
     public static int Capacity(InventoryContainer container) =>
-        container.Count(WaterSource.BucketItemId) * WaterSource.LitresPerBucket + container.Count(CanteenId) * LitresPerCanteen;
+        container.Count(WaterSource.BucketItemId) * WaterSource.LitresPerBucket + container.Count(CanteenId) * LitresPerCanteen +
+        container.Count(GardenRules.WateringCanId) * GardenRules.WateringCanLitres;
+
+    // The vessels that fill at water when equipped: the Bucket, the Canteen and the Watering Can (Gardening_Basics.md, GB1).
+    public static bool IsVessel(string toolId) => toolId == WaterSource.BucketItemId || toolId == CanteenId || toolId == GardenRules.WateringCanId;
 
     // Litres of water the player is carrying in their buckets and canteens, across every quality and purified.
     public static int LitresCarried(InventoryContainer container)

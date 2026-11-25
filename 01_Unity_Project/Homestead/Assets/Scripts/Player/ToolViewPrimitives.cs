@@ -22,6 +22,7 @@ public static class ToolViewPrimitives
     public static readonly Color TarpGreen = new Color(0.30f, 0.40f, 0.28f);
     public static readonly Color IronGrey = new Color(0.36f, 0.37f, 0.40f); // the pots and the kettle: iron, lit enough to read against the grass
     public static readonly Color Rope = new Color(0.72f, 0.62f, 0.42f);
+    public static readonly Color Galvanized = new Color(0.55f, 0.57f, 0.58f); // the Watering Can (Gardening GB1)
 
     // The bows' limb tips, in the bow's own space (the grip at the origin, +Y up the upper limb, -Z toward the archer, where the string is): the upper tip. The lower tip mirrors it in Y. The string runs
     // tip to tip, so Anchor_Nock (its middle at rest) is at the tips' Z, behind the grip by the brace height.
@@ -96,6 +97,11 @@ public static class ToolViewPrimitives
             case "cooking_pot": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.14f, 0f) };
             case "potash_kettle": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.16f, 0f) };
             case "tarp": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.235f, 0f) }; // Hands v6: hangs from its rope loop
+            // Gardening GB1 (2026-11-25): the Hoe is held two-handed like the Shovel, its blade turned down at the far end; the Watering Can hangs by its handle like the Bucket.
+            case "hoe": return new Layout { twoHanded = true, holdPitch = -14f, gripLeft = new Vector3(0f, 0f, 0.42f), tip = new Vector3(0f, -0.10f, 1.10f) };
+            case "watering_can": return new Layout { twoHanded = false, holdPitch = 0f, tip = new Vector3(0f, -0.20f, 0f) };
+            // The Draw Knife (2026-11-25): a handle in each fist, the blade across in front of them, edge toward the player (Blender: tool_bark_spud).
+            case "bark_spud": return new Layout { twoHanded = true, holdPitch = -10f, gripLeft = new Vector3(-0.34f, 0f, 0f), tip = new Vector3(-0.17f, -0.02f, 0.07f) };
             default: return new Layout { twoHanded = false, holdPitch = -12f, gripLeft = Vector3.zero, tip = Vector3.zero };
         }
     }
@@ -317,6 +323,23 @@ public static class ToolViewPrimitives
             case "potash_kettle":
                 BuildVessel(root.transform, 0.11f, 0.085f, 0.17f, IronGrey, true);
                 Part(root.transform, PrimitiveType.Cube, "Spout", new Vector3(0f, -0.10f, 0.12f), new Vector3(0.03f, 0.03f, 0.09f), Steel, new Vector3(-20f, 0f, 0f));
+                break;
+            case "hoe":
+                Handle(root.transform, -0.16f, 1.10f, 0.030f);
+                Part(root.transform, PrimitiveType.Cube, "Neck", new Vector3(0f, -0.03f, 1.10f), new Vector3(0.016f, 0.07f, 0.016f), head);
+                Part(root.transform, PrimitiveType.Cube, "Head", new Vector3(0f, -0.09f, 1.08f), new Vector3(0.16f, 0.09f, 0.010f), head);
+                break;
+            case "bark_spud":
+                Part(root.transform, PrimitiveType.Cylinder, "Handle", new Vector3(0f, 0f, 0f), new Vector3(0.028f, 0.055f, 0.028f), Wood);
+                Part(root.transform, PrimitiveType.Cylinder, "Handle Left", new Vector3(-0.34f, 0f, 0f), new Vector3(0.028f, 0.055f, 0.028f), Wood);
+                Part(root.transform, PrimitiveType.Cube, "Tang", new Vector3(0f, -0.055f, 0.035f), new Vector3(0.008f, 0.008f, 0.07f), Steel);
+                Part(root.transform, PrimitiveType.Cube, "Tang Left", new Vector3(-0.34f, -0.055f, 0.035f), new Vector3(0.008f, 0.008f, 0.07f), Steel);
+                Part(root.transform, PrimitiveType.Cube, "Blade", new Vector3(-0.17f, -0.055f, 0.075f), new Vector3(0.34f, 0.006f, 0.035f), Steel);
+                break;
+            case "watering_can":
+                BuildVessel(root.transform, 0.085f, 0.085f, 0.18f, Galvanized, true);
+                Part(root.transform, PrimitiveType.Cylinder, "Spout", new Vector3(0f, -0.13f, 0.16f), new Vector3(0.022f, 0.12f, 0.022f), Galvanized, new Vector3(55f, 0f, 0f));
+                Part(root.transform, PrimitiveType.Cylinder, "Rose", new Vector3(0f, -0.06f, 0.26f), new Vector3(0.05f, 0.012f, 0.05f), Color.Lerp(Galvanized, Color.black, 0.2f), new Vector3(55f, 0f, 0f));
                 break;
             case "tarp":
                 // Hands v6 (2026-11-22): carried by a rope loop, the folded bundle hanging below the hand like a bag, its width across the view's depth.
