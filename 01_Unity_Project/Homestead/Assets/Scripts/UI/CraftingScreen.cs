@@ -720,6 +720,7 @@ public class CraftingScreen : GameScreen
             case PileKind.SmithySite:
             case PileKind.SmokehouseSite:
             case PileKind.SawPitSite:
+            case PileKind.SawmillSite:
             case PileKind.HideFrame:
             case PileKind.TanningVat:
             case PileKind.WorkshopSite:
@@ -1004,6 +1005,10 @@ public class CraftingScreen : GameScreen
                 return $"a trench with a log frame over it, for sawing Logs lengthwise into Lumber with the Wood Saw: every {SawPitRules.LogsPerPair} Logs make {SawPitRules.LumberPerPair} Lumber, so you need not buy it. Mark the site out (free, no Hammer; turn it with the wheel so the long side faces where you want to stand), dig the trench with the Shovel (hold click), deliver {SawPitRules.SiteLogs} Logs and {SawPitRules.SiteBranches} Branches with R in any order, then equip the Hammer and hold click on the site until it is built. Needs dry ground out of hollows, with no trees on it.";
             case PileKind.SawPit:
                 return $"saws Logs into Lumber. Put the Hammer away and press R to lay the Logs you carry on it (up to {SawPitRules.LogsCap}); then equip the Wood Saw and hold click on it. Every {SawPitRules.LogsPerPair} Logs take {SawPitRules.StrokesPerPair} strokes and make {SawPitRules.LumberPerPair} Lumber, stacked beside the pit until E takes it. R with the Hammer takes it down for half its materials, with the Logs and Lumber in it.";
+            case PileKind.SawmillSite:
+                return SawmillRules.SiteHelp;
+            case PileKind.Sawmill:
+                return SawmillRules.Help;
             case PileKind.RootCellarSite:
                 return $"an earth-covered room you walk into, with shelves for food: anything kept on them ages a third as fast as outdoors, all year, and never freezes (raw meat about 10 days, apples about 6 weeks). It holds {RootCellarRules.CapacityKg:0} kg of food. Mark the site out (free, no Hammer; turn it with the wheel so the door faces where you want to walk in), dig it out with the Shovel (hold click), deliver {RootCellarRules.SiteStone} Stone, {RootCellarRules.SiteLogs} Logs and {RootCellarRules.SiteLumber} Lumber with R in any order (a Hand Cart takes the Stone and Logs), then equip the Hammer and hold click on the site until it is built. Needs dry ground out of hollows, with no trees on it.";
             case PileKind.RootCellar:

@@ -262,3 +262,15 @@ Bark tanning makes Leather, the strongest hide of all, but it takes a week. You 
 To get Tanbark you need a Bark Spud, a short iron blade for peeling bark: forge one at the Smithy (1 Iron Bar, 1 Charcoal and a Stick) or buy one at the Trading Post. With it in your pack, the Inventory's Logs row has a Strip button (unless an axe is in your hand). Each Log gives 2 Tanbark and becomes a Peeled Log, which still works anywhere a Log does.
 
 Build a Tanning Vat (3 Logs and 2 Clay, one click with the Hammer, under Other). Load it with R: Rawhide, up to 4, with 4 Tanbark and 20 litres of water for each hide. Press E to start the soak. After 7 days the hides are Leather, which the Trading Post buys for $30 each. E takes it out.
+
+---
+
+## 23. The Sawmill
+
+Trigger: marking out a Sawmill site.
+
+A Sawmill saws Logs into Lumber on its own, with a water wheel turned by the creek. It is the next step after the Saw Pit: you need Lumber from the pit to build it.
+
+Build it from the Build tab, under Other. Mark the site out on the creek bank, within 4 m of the water but out of the creek itself; the wheel goes on the creek side. Deliver 12 Logs, 10 Lumber, 2 Iron Bars, 4 Cordage and 6 Stone with R, in any order, then hammer it up.
+
+Load Logs with R, up to 20. Every hour the wheel saws 2 Logs into 3 Lumber, even while you are away or asleep, and E takes the Lumber. It stops during a flash flood and starts again by itself when the creek goes down.

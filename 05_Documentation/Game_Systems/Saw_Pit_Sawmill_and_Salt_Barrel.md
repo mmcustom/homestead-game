@@ -40,11 +40,39 @@ Built as proposed. SawPitSite (51) and SawPit (52) are appended to PileKind; the
 - Know-how entry 18, "Sawing Lumber in a Saw Pit", and a journal happening when the site is marked.
 - Art: structure_sawpit (4,686 tris) with build icons build_sawpit and build_sawpitsite.
 
-## 2. The Sawmill (later, an upgrade)
+## 2. The Sawmill (an upgrade on the Saw Pit)
 
-- *Proposed*: a large staged building beside a stream, with a water wheel driving an up-and-down saw. It needs flowing water within a few metres.
-- Load Logs and it saws them on its own, hour by hour, even while you are away (like the Smokehouse). It is faster than the pit and needs no sawing by hand: about 1 Log an hour, and every 2 Logs make 3 Lumber.
-- To be designed in detail when the homestead's other big buildings come along (it needs the stream and water-flow work).
+### Mike's decisions (2026-11-24)
+
+- **Placement:** on the creek bank. It must stand within about 4 m of the creek's water, but not in the channel itself. The water wheel turns in the creek.
+- **Cost:** the big build, with Lumber and Iron. You use the Saw Pit to make the Lumber first.
+- **Speed:** **2 Logs an hour**, holding **20 Logs**. Every 2 Logs make 3 Lumber, so a full load of 20 Logs makes 30 Lumber in 10 game hours. It keeps running while you are away or asleep.
+- **Floods:** it **stops during a flash flood** (the wheel is pulled out of gear) and starts again by itself when the flood passes. No damage.
+- The Saw Pit stays: it is still the cheap way to start.
+
+### Plan (*proposed* where marked)
+
+- **Site** (staged like the Workshop): Other tab, free to mark on the creek bank. Deliver **12 Logs, 10 Lumber, 2 Iron Bars, 4 Cordage and 6 Stone** with R, in any order, then **60 blows** with the Hammer. Footprint about 4 m by 3 m (*proposed*), the wheel on the creek side.
+- **Placement check** (*proposed*): the nearest point of the creek's channel must be within 4 m of the mill's wheel side, and the mill's own footprint must stay out of the channel. Not in a hollow, and the shed setbacks apply. The prompt says why when a spot won't do ("Too far from the creek", "In the creek").
+- **Use:** R loads Logs from the pack, up to 20. While it holds 2 or more Logs and the creek isn't in flood, each game hour saws **2 Logs into 3 Lumber**. E takes the Lumber to the pack. The prompt shows the Logs, the Lumber waiting, and "running", "waiting for Logs" or "stopped: flash flood".
+- **Dismantle:** the Hammer takes it down for half its materials (*proposed*), with the Logs and Lumber in it.
+- **Know-how:** a new entry, "The Sawmill" (*proposed*).
+- **Art:** structure_sawmill (a timber-framed open shed, the up-and-down saw frame inside, a water wheel on the creek side), structure_sawmillsite, and the build icons.
+
+### As built (2026-11-24)
+
+Built as planned. SawmillSite (56) and Sawmill (57) are appended to PileKind; the rules live in SawmillRules.cs.
+
+- Site: Other tab, free to mark. Deliver 12 Logs, 10 Lumber, 2 Iron Bars, 4 Cordage and 6 Stone with R (any order), then the Hammer 60 blows. Footprint 4 m by 3 m.
+- Placement: the mill's middle must be at least 1 m from the creek's water ("Too close: ... out of the creek itself") and no more than 4 m from it ("Too far from the creek"). It has its own check ahead of the usual flooding check, so the creek bank is allowed. No trees within reach, and the shed setbacks apply.
+- Loading: R loads Logs from the pack, up to 20.
+- Sawing: each game hour, with 2 or more Logs and no flash flood, 2 Logs become 3 Lumber. A banner says when the Logs run out.
+- Taking: E takes the Lumber to your pack.
+- Floods: it stops during a flash flood and restarts by itself afterwards. No damage.
+- Dismantle: the Hammer takes it down, giving back the Logs and Lumber in it.
+- Know-how entry 23, "The Sawmill", and a journal happening when the site is marked.
+- The water wheel: the mill turns its wheel to the wall nearest the creek (in quarter turns) and spins it while sawing (SawmillWheel).
+- Art: structure_sawmill (2,476 tris, the wheel a separate part so it can turn) with build icons build_sawmill and build_sawmillsite.
 
 ## 3. The Salt Barrel
 

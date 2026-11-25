@@ -27,6 +27,7 @@ public static class KnowHowRules
     public const string Smoking = "smoking";
     public const string Cellar = "cellar";
     public const string Hides = "hides";
+    public const string Sawmill = "sawmill";  // Saw_Pit_Sawmill_and_Salt_Barrel.md 2: Claude's draft text, for Mike to change as he likes
     public const string BarkTanning = "bark_tanning"; // Tanning_Hides_and_Furs.md 8 (slice T4): Claude's draft text, for Mike to change as he likes
     public const string BrainTanning = "brain_tanning"; // Tanning_Hides_and_Furs.md 8 (slice T3): Claude's draft text, for Mike to change as he likes
     public const string HideFrame = "hide_frame"; // Tanning_Hides_and_Furs.md 8 (slice T2): Claude's draft text, for Mike to change as he likes     // Tanning_Hides_and_Furs.md 8 (slice T1): Claude's draft text, for Mike to change as he likes
@@ -69,6 +70,7 @@ public static class KnowHowRules
         new Entry(HideFrame, "The Hide Frame: Scraping and Rawhide", "A Hide Frame is a square pole frame for working hides, built in one go with the Hammer: 4 Sticks, 2 Branches and 2 Cordage. Find it under Other in the build list.\n\nLace a hide into it with R: a Deer Hide, or up to 4 Small Furs, raw or salted. Then equip the Knife and hold click on the hide to scrape it clean: 20 strokes for a Deer Hide, 8 for furs. Scraping takes off the flesh and fat, and the hair from a Deer Hide; furs keep their hair.\n\nThe scraped hide then dries on the frame in daylight while it is not raining, about 12 hours. A dried Deer Hide is Rawhide, stiff and lasting, which the Trading Post buys for $12. Dried Furs fetch $4 each. Press E to take them off the frame."),
         new Entry(BrainTanning, "Brain Tanning: Buckskin and Furs", "Brain tanning makes a hide soft and lasting. Lace Rawhide or Dried Furs into the Hide Frame with R. With a Crock Pot and 1 litre of water in your pack (a Canteen or Bucket), equip the Knife and hold click on the hide to work the brain-and-water mix into it: 30 strokes for a hide, 10 for furs. Each animal's brains are enough for its own hide.\n\nThe worked hide is a Soft Hide or Soft Furs, white and floppy. Take it off with E and smoke it in the Smokehouse with the meat (R loads it). A Soft Hide takes the room of 2 pieces of meat and Soft Furs 1, and it smokes for the same day on the same Firewood.\n\nIt comes out as Buckskin, golden brown and soft, or Tanned Furs. The Trading Post buys Buckskin for $24 and Tanned Furs for $6 each."),
         new Entry(BarkTanning, "Bark Tanning: Leather", "Bark tanning makes Leather, the strongest hide of all, but it takes a week. You need Rawhide from the Hide Frame, Tanbark and water.\n\nTo get Tanbark you need a Bark Spud, a short iron blade for peeling bark: forge one at the Smithy (1 Iron Bar, 1 Charcoal and a Stick) or buy one at the Trading Post. With it in your pack, the Inventory's Logs row has a Strip button (unless an axe is in your hand). Each Log gives 2 Tanbark and becomes a Peeled Log, which still works anywhere a Log does.\n\nBuild a Tanning Vat (3 Logs and 2 Clay, one click with the Hammer, under Other). Load it with R: Rawhide, up to 4, with 4 Tanbark and 20 litres of water for each hide. Press E to start the soak. After 7 days the hides are Leather, which the Trading Post buys for $30 each. E takes it out."),
+        new Entry(Sawmill, "The Sawmill", "A Sawmill saws Logs into Lumber on its own, with a water wheel turned by the creek. It is the next step after the Saw Pit: you need Lumber from the pit to build it.\n\nBuild it from the Build tab, under Other. Mark the site out on the creek bank, within 4 m of the water but out of the creek itself; the wheel goes on the creek side. Deliver 12 Logs, 10 Lumber, 2 Iron Bars, 4 Cordage and 6 Stone with R, in any order, then hammer it up.\n\nLoad Logs with R, up to 20. Every hour the wheel saws 2 Logs into 3 Lumber, even while you are away or asleep, and E takes the Lumber. It stops during a flash flood and starts again by itself when the creek goes down."),
     };
 
     public static bool TryGet(string id, out Entry entry)
@@ -88,7 +90,7 @@ public static class KnowHowRules
     // --- Triggers ---
 
     // Things that happen in the world, besides an item entering the pack.
-    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched, SmokehouseSitePlaced, RootCellarSitePlaced, SawPitSitePlaced, HideFramePlaced, TanningVatPlaced }
+    public enum Happening { PotHung, HopperSitePlaced, PitSitePlaced, BloomerySitePlaced, SmithySitePlaced, Punched, SmokehouseSitePlaced, RootCellarSitePlaced, SawPitSitePlaced, HideFramePlaced, TanningVatPlaced, SawmillSitePlaced }
 
     // Entries a first-held item unlocks (none for most items). Ash opens both "Ash" and "From Ash to Potash".
     public static string[] ForItem(string itemId)
@@ -149,6 +151,7 @@ public static class KnowHowRules
             case Happening.SawPitSitePlaced: return new[] { Sawing };
             case Happening.HideFramePlaced: return new[] { HideFrame };
             case Happening.TanningVatPlaced: return new[] { BarkTanning };
+            case Happening.SawmillSitePlaced: return new[] { Sawmill };
             default: return Array.Empty<string>();
         }
     }

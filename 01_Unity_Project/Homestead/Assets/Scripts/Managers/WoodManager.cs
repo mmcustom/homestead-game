@@ -44,7 +44,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill }
 
 [Serializable]
 public class WoodPileState
@@ -285,7 +285,7 @@ public class WoodPileState
     public bool IsOpenWoodPile => IsWoodPile;
     public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
-    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || kind == PileKind.Smithy || kind == PileKind.Smokehouse || kind == PileKind.SawPit || kind == PileKind.HideFrame || kind == PileKind.TanningVat || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || kind == PileKind.Smithy || kind == PileKind.Smokehouse || kind == PileKind.SawPit || kind == PileKind.HideFrame || kind == PileKind.TanningVat || kind == PileKind.Sawmill || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsKitchen => kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen;
     // A Countertop, Shelving, Grill or Slop Sink: stands in one of a finished Kitchen's four fixed slots (Setbacks.KitchenLayout).
     public bool IsKitchenAddon => WoodManager.IsKitchenAddon(kind);
@@ -332,6 +332,7 @@ public class WoodPileState
             case PileKind.SmokehouseSite:
             case PileKind.RootCellarSite:
             case PileKind.SawPitSite:
+            case PileKind.SawmillSite:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
             // The Workshop's bench takes Logs, Branches and Cordage up to WorkshopRules' caps (its finished piece is not something to put back).
             case PileKind.Workshop: return WorkshopRules.Accepts(itemId, Count(itemId));
@@ -352,6 +353,8 @@ public class WoodPileState
             case PileKind.RootCellar: return WoodManager.IsStorableFood(itemId);
             // The Saw Pit takes Logs to saw (up to 6); its Lumber is not something to put back.
             case PileKind.SawPit: return SawPitRules.Accepts(itemId, Count(SawPitRules.LogsId));
+            // The Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2) takes Logs to saw (up to 20); its Lumber is not something to put back.
+            case PileKind.Sawmill: return SawmillRules.Accepts(itemId, Count(SawmillRules.LogsId));
             // The Hand Cart (Vehicles_and_Hauling.md, Phase 1): bulk building goods only, and held to CartRules.CapacityKg by weight in WoodPile
             // (this answers "is it the kind of thing the cart takes"; whether it still fits is the weight check).
             case PileKind.HandCart: return CartRules.Carries(itemId);
@@ -1173,7 +1176,7 @@ public class WoodManager : MonoBehaviour, ISaveable
     // ever comes from CompleteCabin, converting an already-stocked site in place.
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.SaltBarrel, PileKind.CompostBin, PileKind.DryingRack, PileKind.HideFrame, PileKind.TanningVat, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -1200,6 +1203,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.DryingRack: return "Drying Rack";
             case PileKind.HideFrame: return "Hide Frame";
             case PileKind.TanningVat: return "Tanning Vat";
+            case PileKind.SawmillSite: return "Sawmill Site";
+            case PileKind.Sawmill: return "Sawmill";
             case PileKind.ToolRack: return "Tool Rack";
             case PileKind.Tent: return "Tent";
             case PileKind.TarpShelter: return "Tarp Shelter";
@@ -1307,6 +1312,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             // A Root Cellar Site is free to mark out (the digging is the work); PileKind.RootCellar holds its total and what Dismantle halves.
             case PileKind.RootCellar: return WellsAndOuthouses.RootCellarCost();
             case PileKind.SawPit: return WellsAndOuthouses.SawPitCost();
+            // A Sawmill Site is free to mark out on the creek bank; PileKind.Sawmill holds its total and what Dismantle halves.
+            case PileKind.Sawmill: return WellsAndOuthouses.SawmillCost();
             // A Kitchen Site is free to mark out too; PileKind.Kitchen holds both stages' materials in total, what Dismantle halves line by line.
             case PileKind.Kitchen: return WellsAndOuthouses.KitchenCost();
             // The Kitchen add-ons are single-step builds (each under the 15 kg staged line); WellsAndOuthouses holds the numbers.
@@ -1498,7 +1505,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (kind == PileKind.SmokehouseSite && WellsAndOuthouses.Instance != null && !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         // The Root Cellar (Food_Spoilage_and_Preservation.md 6): dry ground out of hollows, trees cleared off its mound, spaced like a wide shed (the same call).
-        if ((kind == PileKind.RootCellarSite || kind == PileKind.SawPitSite) && WellsAndOuthouses.Instance != null && !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
+        // The Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2): on the creek bank, within reach of the water but out of the channel (the same call).
+        if ((kind == PileKind.RootCellarSite || kind == PileKind.SawPitSite || kind == PileKind.SawmillSite) && WellsAndOuthouses.Instance != null && !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         // The Kiln's clearance holds both ways (Pottery P2): a Kiln or its site that stands already keeps everything built later (a Cabin, Workshop, Potter's Shed, Kitchen and the rest) its
         // 3 m of clear air away, as it keeps itself clear of them. A parked Hand Cart is exempt, as it is from the 2 m spacing, so it can stand beside the site it feeds.
@@ -1666,6 +1674,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.RootCellarSitePlaced);
         if (kind == PileKind.SawPitSite && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.SawPitSitePlaced);
+        if (kind == PileKind.SawmillSite && JournalManager.Instance != null)
+            JournalManager.Instance.NoteHappening(KnowHowRules.Happening.SawmillSitePlaced);
         if (kind == PileKind.HideFrame && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.HideFramePlaced);
         if (kind == PileKind.TanningVat && JournalManager.Instance != null)

@@ -239,7 +239,7 @@ public class BloomeryTests
     public void TheTwoBloomeryKindsAreFortyOneAndFortyTwoAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(56), "41 kinds before the Bloomery, plus its two, the Smithy's two (43, 44), the Compost Bin (45) and the Drying Rack (46)");
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(58), "41 kinds before the Bloomery, plus its two, the Smithy's two (43, 44), the Compost Bin (45) and the Drying Rack (46)");
         Assert.That((int)Enum.Parse(kind, "Kiln"), Is.EqualTo(38), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "CharcoalPitSite"), Is.EqualTo(39));
         Assert.That((int)Enum.Parse(kind, "CharcoalPit"), Is.EqualTo(40));
@@ -248,7 +248,7 @@ public class BloomeryTests
         string[] names = Enum.GetNames(kind);
         Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44), "the Smithy came last (M3)");
         Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil")), Is.False, "no separate Forge or Anvil kinds");
-        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin"), "the Compost Bin (45) came after the Smithy"); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names.Last(), Is.EqualTo("TanningVat"));
+        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin"), "the Compost Bin (45) came after the Smithy"); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names.Last(), Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat");
     }
 
     // --- The staged site ---
@@ -670,7 +670,7 @@ public class BloomeryTests
     [Test]
     public void TheSmeltingEntryUnlocksOnAPlacedSiteOrAnIronBar()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(22)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(23)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smelting, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("Smelting Iron in the Bloomery"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }), "holding an Iron Bar opens both the smelting and the Smithy entries");

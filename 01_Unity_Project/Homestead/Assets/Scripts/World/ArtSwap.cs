@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -240,6 +240,21 @@ public static class ArtSwap
             staticPieces = 7,                                        // four side logs, two end logs, the lid
             contentAnchors = new[] { AnchorStock },
         },
+        // Saw_Pit_Sawmill_and_Salt_Barrel.md 2: the Sawmill. The Logs behind it and the Lumber in front stay primitives on the stock anchor. The prefab's WheelSide/Wheel is the water
+        // wheel: TryBuild gives WheelSide a SawmillWheel, which turns it toward the creek and spins Wheel about its local X while the mill saws.
+        new Spec
+        {
+            id = "structure_sawmill",
+            kind = PileKind.Sawmill,
+            anchors = new[] { A(AnchorStock, false, 0f, 0f, 0f) },
+            states = new string[0],
+            flags = new string[0],
+            expectedSize = new Vector3(4.9f, 3.4f, 3.8f),
+            boxCenter = new Vector3(0f, 1.3f, 0f),
+            boxSize = new Vector3(4f, 2.6f, 3f),
+            staticPieces = 19,                                       // four footings, deck, four posts, two roof slopes, saw frame (two uprights, two rails, blade), carriage rail, log, WheelSide
+            contentAnchors = new[] { AnchorStock },
+        },
         new Spec
         {
             id = "structure_smithy",
@@ -412,9 +427,26 @@ public static class ArtSwap
 
         ApplyState(art, spec, state);
         BuildContents(art, spec, state, bark, pieces);
+        if (state.kind == PileKind.Sawmill)
+            BindSawmillWheel(art, state);
         boxCenter = spec.boxCenter;
         boxSize = spec.boxSize;
         return true;
+    }
+
+    // The art's water wheel: WheelSide gets a SawmillWheel (once) bound to this pile and to WheelSide/Wheel. A prefab without them just has a still wheel.
+    static void BindSawmillWheel(Transform art, WoodPileState state)
+    {
+        List<Transform> sides = Named(art, "WheelSide");
+        if (sides.Count == 0)
+            return;
+        Transform wheel = sides[0].Find("Wheel");
+        if (wheel == null)
+            return;
+        SawmillWheel spin = sides[0].GetComponent<SawmillWheel>();
+        if (spin == null)
+            spin = sides[0].gameObject.AddComponent<SawmillWheel>();   // not ??: a missing component is Unity's fake null in the Editor
+        spin.Bind(state, wheel);
     }
 
     // The instance under parent, made if it is not there yet; null when there is no prefab. Every collider in it is removed, then Solid_* children get a box fitted to their mesh.

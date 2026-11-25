@@ -50,6 +50,8 @@ public static class StructureVisuals
             case PileKind.RootCellarSite: BuildRootCellarSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.SawPitSite: BuildSawPitSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
             case PileKind.SawPit: BuildSawPit(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.SawmillSite: BuildSawmillSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.Sawmill: BuildSawmill(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.HideFrame: BuildHideFrame(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.TanningVat: BuildTanningVat(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
@@ -138,6 +140,71 @@ public static class StructureVisuals
         BuildOuthouseSite(parent, state, bark, pieces, random, 1.2f, out boxCenter, out boxSize);
         boxCenter = new Vector3(0f, 0.4f, 0f);
         boxSize = new Vector3(2.8f, 0.9f, 2.4f);
+    }
+
+    // --- The Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2) ---
+
+    static void BuildSawmillSite(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, System.Random random, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        BuildOuthouseSite(parent, state, bark, pieces, random, 1.6f, out boxCenter, out boxSize);
+        boxCenter = new Vector3(0f, 0.4f, 0f);
+        boxSize = new Vector3(SawmillRules.HalfWidth * 2f, 0.9f, SawmillRules.HalfDepth * 2f);
+    }
+
+    static readonly Color MillStoneColor = new Color(0.45f, 0.44f, 0.41f);
+    static readonly Color MillBladeColor = new Color(0.3f, 0.3f, 0.32f);
+
+    // The finished Sawmill: a 4 m by 3 m timber mill on stone footings, open-sided under a plank roof, with the up-and-down saw frame in the middle and a Log on its carriage.
+    // The water wheel hangs off one side (WheelSide/Wheel); SawmillWheel turns WheelSide to face the creek and spins the wheel while the mill saws. The Logs wait at the
+    // back, the Lumber is stacked at the front.
+    static void BuildSawmill(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        const float hw = SawmillRules.HalfWidth, hd = SawmillRules.HalfDepth, deck = 0.55f, top = 2.7f;
+        foreach (Vector2 c in new[] { new Vector2(-hw + 0.25f, -hd + 0.25f), new Vector2(hw - 0.25f, -hd + 0.25f), new Vector2(-hw + 0.25f, hd - 0.25f), new Vector2(hw - 0.25f, hd - 0.25f) })
+            Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(c.x, deck / 2f - 0.05f, c.y), new Vector3(0f, 12f * c.x, 0f), new Vector3(0.5f, deck + 0.1f, 0.5f), null), MillStoneColor));
+        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, deck, 0f), Vector3.zero, new Vector3(hw * 2f, 0.12f, hd * 2f), null), BenchWoodColor));
+        foreach (Vector2 c in new[] { new Vector2(-hw + 0.15f, -hd + 0.15f), new Vector2(hw - 0.15f, -hd + 0.15f), new Vector2(-hw + 0.15f, hd - 0.15f), new Vector2(hw - 0.15f, hd - 0.15f) })
+            Solid(Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(c.x, deck + (top - deck) / 2f, c.y), Vector3.zero, new Vector3(0.2f, (top - deck) / 2f, 0.2f), bark));
+        // the roof: two plank slopes meeting over the middle (ridge along X)
+        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, top + 0.3f, -hd / 2f - 0.05f), new Vector3(-20f, 0f, 0f), new Vector3(hw * 2f + 0.4f, 0.08f, hd + 0.5f), null), LumberColor));
+        Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, top + 0.3f, hd / 2f + 0.05f), new Vector3(20f, 0f, 0f), new Vector3(hw * 2f + 0.4f, 0.08f, hd + 0.5f), null), LumberColor));
+        // the saw frame: two uprights, a top and bottom rail, and the blade between them
+        foreach (float x in new[] { -0.45f, 0.45f })
+            Solid(Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(x, deck + 0.95f, 0f), Vector3.zero, new Vector3(0.12f, 1.8f, 0.12f), null), BenchWoodColor));
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, deck + 1.82f, 0f), Vector3.zero, new Vector3(1.02f, 0.12f, 0.14f), null), BenchWoodColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, deck + 0.15f, 0f), Vector3.zero, new Vector3(1.02f, 0.1f, 0.14f), null), BenchWoodColor);
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, deck + 0.95f, 0f), Vector3.zero, new Vector3(0.03f, 1.6f, 0.2f), null), MillBladeColor);
+        // the carriage, a rail along Z with a Log on it
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, deck + 0.12f, 0f), Vector3.zero, new Vector3(0.5f, 0.1f, hd * 2f - 0.3f), null), BenchWoodColor);
+        Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(0f, deck + 0.38f, 0.35f), new Vector3(90f, 0f, 0f), new Vector3(0.38f, 0.9f, 0.38f), bark);
+
+        // the water wheel: WheelSide turns to the creek (SawmillWheel), Wheel spins about its axle (local X)
+        var side = new GameObject("WheelSide");
+        side.transform.SetParent(parent, false);
+        pieces.Add(side);
+        var wheel = new GameObject("Wheel");
+        wheel.transform.SetParent(side.transform, false);
+        wheel.transform.localPosition = new Vector3(hw + 0.45f, 1.05f, 0f);
+        // the wheel's own parts are not listed: taking WheelSide away takes them with it
+        Tinted(Piece(wheel.transform, null, PrimitiveType.Cylinder, Vector3.zero, new Vector3(0f, 0f, 90f), new Vector3(2.1f, 0.18f, 2.1f), null), BenchWoodColor);
+        Piece(side.transform, null, PrimitiveType.Cylinder, new Vector3(hw + 0.15f, 1.05f, 0f), new Vector3(0f, 0f, 90f), new Vector3(0.14f, 0.45f, 0.14f), bark);
+        for (int i = 0; i < 8; i++)
+        {
+            float a = i * 45f;
+            Vector3 at = Quaternion.Euler(a, 0f, 0f) * new Vector3(0f, 1.05f, 0f);
+            Tinted(Piece(wheel.transform, null, PrimitiveType.Cube, at, new Vector3(a, 0f, 0f), new Vector3(0.42f, 0.06f, 0.32f), null), LumberColor);
+        }
+        side.AddComponent<SawmillWheel>().Bind(state, wheel.transform);
+
+        // the changing pieces: Logs waiting at the back (one per 2), Lumber stacked at the front (one per 3)
+        int logs = state.Count(SawmillRules.LogsId), lumber = state.Count(SawmillRules.LumberId);
+        for (int i = 0; i < Mathf.Min(10, (logs + 1) / 2); i++)
+            Piece(parent, pieces, PrimitiveType.Cylinder, new Vector3(-1.4f + (i % 5) * 0.32f, 0.17f + (i / 5) * 0.3f, -hd - 0.45f), new Vector3(0f, 0f, 90f), new Vector3(0.3f, 0.75f, 0.3f), bark);
+        for (int i = 0; i < Mathf.Min(10, (lumber + 2) / 3); i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(-0.6f, 0.06f + i * 0.09f, hd + 0.5f), new Vector3(0f, (i % 2) * 4f, 0f), new Vector3(1.6f, 0.08f, 0.4f), null), LumberColor);
+
+        boxCenter = new Vector3(0f, 1.3f, 0f);
+        boxSize = new Vector3(hw * 2f, 2.6f, hd * 2f);
     }
 
     static readonly Color ThatchColor = new Color(0.52f, 0.46f, 0.24f);
@@ -1358,6 +1425,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.Smithy: return SmithyPromptText();
                 case PileKind.Smokehouse: return SmokehousePromptText();
                 case PileKind.SawPit: return SawPitPromptText();
+                case PileKind.Sawmill: return SawmillPromptText();
                 case PileKind.HideFrame: return HideFramePromptText();
                 case PileKind.TanningVat: return VatPromptText();
                 default: return OuthousePrompt();
@@ -2493,6 +2561,69 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         ToolStatus.Flash(SawPitRules.Loaded(laid, state.Count(SawPitRules.LogsId)), 4f);
     }
 
+    // --- The Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2): R loads Logs, the water wheel saws them hour by hour (WellsAndOuthouses.OnHour), E takes the Lumber ---
+
+    static bool CreekInFlood => StreamManager.State == StreamState.FlashFlood;
+
+    string SawmillPromptText() => SawmillRules.Prompt(state.Count(SawmillRules.LogsId), state.Count(SawmillRules.LumberId), CreekInFlood);
+
+    int SawmillLoadable(out int carried)
+    {
+        carried = Inventory.Player.Count(SawmillRules.LogsId);
+        return Mathf.Min(carried, SawmillRules.LogRoom(state.Count(SawmillRules.LogsId)));
+    }
+
+    string SawmillSecondaryPrompt()
+    {
+        if (WoodManager.HammerEquipped)
+            return SawmillRules.DismantlePrompt;
+        int canLoad = SawmillLoadable(out int carried);
+        return SawmillRules.LoadPrompt(canLoad, carried);
+    }
+
+    // E: takes the Lumber waiting in the mill to the pack; with none, says what the mill is doing.
+    void SawmillInteract()
+    {
+        int lumber = state.Count(SawmillRules.LumberId);
+        if (lumber <= 0)
+        {
+            ToolStatus.Flash(SawmillRules.NothingToTake(state.Count(SawmillRules.LogsId), CreekInFlood), 4f);
+            return;
+        }
+        ItemDefinition item = ItemDatabase.Get(SawmillRules.LumberId);
+        int fits = item != null ? Mathf.Min(lumber, Inventory.Player.SpaceFor(item)) : 0;
+        int took = fits > 0 ? Inventory.AddToPlayer(SawmillRules.LumberId, fits) : 0;
+        if (took > 0)
+        {
+            state.Take(SawmillRules.LumberId, took);
+            WoodManager.Instance.NotifyChanged(state);
+        }
+        ToolStatus.Flash(SawmillRules.Took(took, lumber - took), 4f);
+    }
+
+    // R: with the Hammer it takes the mill down; without, it loads the Logs carried.
+    void SawmillSecondary()
+    {
+        if (WoodManager.HammerEquipped)
+        {
+            Dismantle();
+            return;
+        }
+        int canLoad = SawmillLoadable(out int carried);
+        if (canLoad <= 0)
+        {
+            ToolStatus.Flash(SawmillRules.LoadPrompt(canLoad, carried), 4f);
+            return;
+        }
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SilenceNextRemoval();
+        int laid = Inventory.Player.RemoveBatches(SawmillRules.LogsId, canLoad, (day, count) => state.Add(SawmillRules.LogsId, count, day));
+        if (laid <= 0)
+            return;
+        WoodManager.Instance.NotifyChanged(state);
+        ToolStatus.Flash(SawmillRules.Loaded(laid, state.Count(SawmillRules.LogsId)), 4f);
+    }
+
     // --- The Hide Frame (HideFrameRules, Tanning_Hides_and_Furs.md 3); MeleeAttack scrapes with the Knife through ScrapeHideFrame ---
 
     static HideFrameRules.Kind HideFrameKindOf(WoodPileState s, out int pieces, out string outputId, out int outputCount) =>
@@ -3266,6 +3397,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return SmokehouseSecondaryPrompt();
             if (state.kind == PileKind.SawPit)
                 return SawPitSecondaryPrompt();
+            if (state.kind == PileKind.Sawmill)
+                return SawmillSecondaryPrompt();
             if (state.kind == PileKind.HideFrame)
                 return HideFrameSecondaryPrompt();
             if (state.kind == PileKind.TanningVat)
@@ -3320,6 +3453,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.Smithy: SmithyInteract(); break;
             case PileKind.Smokehouse: SmokehouseInteract(); break;
             case PileKind.SawPit: SawPitInteract(); break;
+            case PileKind.Sawmill: SawmillInteract(); break;
             case PileKind.HideFrame: HideFrameInteract(); break;
             case PileKind.TanningVat: VatInteract(); break;
             default: DigNewPit(player); break;
@@ -3509,6 +3643,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         else if (state.kind == PileKind.SawPit)
         {
             SawPitSecondary();
+        }
+        else if (state.kind == PileKind.Sawmill)
+        {
+            SawmillSecondary();
         }
         else if (state.kind == PileKind.HideFrame)
         {
@@ -3720,6 +3858,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (state.kind == PileKind.SawPit)
             foreach (WoodStack stack in state.contents)
                 if (stack.itemId == SawPitRules.LogsId || stack.itemId == SawPitRules.LumberId)
+                    refund.Return(stack.itemId, stack.count, 0);
+        // A Sawmill gives back its Logs and Lumber whole too.
+        if (state.kind == PileKind.Sawmill)
+            foreach (WoodStack stack in state.contents)
+                if (stack.itemId == SawmillRules.LogsId || stack.itemId == SawmillRules.LumberId)
                     refund.Return(stack.itemId, stack.count, 0);
         // A Smokehouse gives back its Firewood and the meat and smoked food in it whole (keeping their freshness), on top of half the materials.
         if (state.kind == PileKind.Smokehouse)

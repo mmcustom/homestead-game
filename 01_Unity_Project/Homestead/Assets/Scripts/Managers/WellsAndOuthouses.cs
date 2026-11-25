@@ -194,6 +194,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmokehouseSite:
             case PileKind.RootCellarSite:
             case PileKind.SawPitSite:
+            case PileKind.SawmillSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -223,6 +224,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmokehouseSite: return PileKind.Smokehouse;
             case PileKind.RootCellarSite: return PileKind.RootCellar;
             case PileKind.SawPitSite: return PileKind.SawPit;
+            case PileKind.SawmillSite: return PileKind.Sawmill;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -260,6 +262,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmokehouseSite: return SmokehouseCost();
             case PileKind.RootCellarSite: return RootCellarCost();
             case PileKind.SawPitSite: return SawPitCost();
+            case PileKind.SawmillSite: return SawmillCost();
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -305,6 +308,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { SmokeRules.StoneId, SmokeRules.ClayId, SmokeRules.LogsId, SmokeRules.LumberId } }; // all four, in any order (Mike, 2026-11-23: the Lumber was refused before the Stone and Clay)
         if (site == PileKind.SawPitSite)
             return new[] { new[] { SawPitRules.LogsId, SawPitRules.BranchesId } }; // both, in any order, once the trench is dug
+        if (site == PileKind.SawmillSite)
+            return new[] { new[] { SawmillRules.LogsId, SawmillRules.LumberId, SawmillRules.IronBarId, SawmillRules.CordageId, SawmillRules.StoneId } }; // all five, in any order
         if (site == PileKind.RootCellarSite)
             return new[] { new[] { RootCellarRules.StoneId, RootCellarRules.LogsId, RootCellarRules.LumberId } }; // all three, in any order, once it is dug
         if (site == PileKind.SmithySite)
@@ -459,6 +464,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SmokehouseSite: return SmokeRules.BuildBlows;
             case PileKind.RootCellarSite: return RootCellarRules.BuildBlows;
             case PileKind.SawPitSite: return SawPitRules.BuildBlows;
+            case PileKind.SawmillSite: return SawmillRules.BuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -508,6 +514,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return RootCellarRules.BuiltMessage;
         if (site == PileKind.SawPitSite)
             return SawPitRules.BuiltMessage;
+        if (site == PileKind.SawmillSite)
+            return SawmillRules.BuiltMessage;
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -655,6 +663,17 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         new WoodStack { itemId = SawPitRules.LogsId, count = SawPitRules.SiteLogs },
         new WoodStack { itemId = SawPitRules.BranchesId, count = SawPitRules.SiteBranches },
+    };
+
+    // A Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2, Mike 2026-11-24): 12 Logs, 10 Lumber, 2 Iron Bars, 4 Cordage and 6 Stone, about 254 kg, a staged site on the
+    // creek bank. SawmillRules has the numbers.
+    public static WoodStack[] SawmillCost() => new[]
+    {
+        new WoodStack { itemId = SawmillRules.LogsId, count = SawmillRules.SiteLogs },
+        new WoodStack { itemId = SawmillRules.LumberId, count = SawmillRules.SiteLumber },
+        new WoodStack { itemId = SawmillRules.IronBarId, count = SawmillRules.SiteIronBars },
+        new WoodStack { itemId = SawmillRules.CordageId, count = SawmillRules.SiteCordage },
+        new WoodStack { itemId = SawmillRules.StoneId, count = SawmillRules.SiteStone },
     };
 
     // A Smithy (Metalworking M3): 6 Stone, 3 Clay, 2 Logs, 4 Branches and 6 Tall Grass (the thatch roof), about 61 kg, a staged site. SmithyRules has the numbers.
@@ -889,6 +908,8 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.RootCellarSite: return RootCellarRules.ReachMetres;
             case PileKind.SawPit:
             case PileKind.SawPitSite: return SawPitRules.ReachMetres;
+            case PileKind.Sawmill:
+            case PileKind.SawmillSite: return SawmillRules.ReachMetres;
             case PileKind.WoodShed:
             case PileKind.WoodShedSite:
             case PileKind.Tent:
@@ -947,6 +968,24 @@ public class WellsAndOuthouses : MonoBehaviour
     // uses it to warn once as the cart goes in (CartHandler); nothing is done to the cart.
     public bool InFloodBand(Vector3 point) => Floods(point);
 
+    // How far a point is from the nearest edge of the creek's water, in metres (negative inside the channel).
+    public static float CreekEdgeMetres(Vector3 point)
+    {
+        int segment = CreekFlow.NearestSegment(new Vector2(point.x, point.z), out float distance);
+        return distance - CreekFlow.HalfWidthOfSegment(segment);
+    }
+
+    // The direction from a point to the nearest point of the creek (flat, world space), for the Sawmill's wheel.
+    public static Vector3 TowardCreek(Vector3 point)
+    {
+        int segment = CreekFlow.NearestSegment(new Vector2(point.x, point.z), out _);
+        Vector2 a = CreekFlow.PathPoint(segment), b = CreekFlow.PathPoint(segment + 1);
+        Vector2 p = new Vector2(point.x, point.z), ab = b - a;
+        float t = ab.sqrMagnitude > 0f ? Mathf.Clamp01(Vector2.Dot(p - a, ab) / ab.sqrMagnitude) : 0f;
+        Vector2 d = a + ab * t - p;
+        return d.sqrMagnitude > 1e-6f ? new Vector3(d.x, 0f, d.y).normalized : Vector3.forward;
+    }
+
     bool Floods(Vector3 point)
     {
         int segment = CreekFlow.NearestSegment(new Vector2(point.x, point.z), out float distance);
@@ -986,6 +1025,25 @@ public class WellsAndOuthouses : MonoBehaviour
                 return false;
             }
         }
+        // The Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2, Mike 2026-11-24) stands on the creek bank, so the floodplain test does not apply to it: its middle must be within
+        // SawmillRules.CreekReachMetres of the creek's water and at least MinBankMetres out of it, its footprint clear of trees, and it keeps a shed's spacing from the cabin.
+        if (kind == PileKind.SawmillSite || kind == PileKind.Sawmill)
+        {
+            float edge = CreekEdgeMetres(point);
+            SawmillRules.CreekFit fit = SawmillRules.FitToCreek(edge);
+            if (fit != SawmillRules.CreekFit.Ok)
+            {
+                reason = SawmillRules.CreekReason(fit, edge);
+                return false;
+            }
+            if (WoodManager.Instance != null && WoodManager.Instance.FindTree(point, SawmillRules.ReachMetres) >= 0)
+            {
+                reason = "Clear the trees off the sawmill site first.";
+                return false;
+            }
+            return Setbacks.CanPlaceShed(point, Sites(ignore), rules, out reason);
+        }
+
         if (Floods(point))
         {
             reason = "This ground floods.";
@@ -1595,6 +1653,23 @@ public class WellsAndOuthouses : MonoBehaviour
             if (WorkshopRules.IsDone(bench.jobHours))
                 FinishJob(bench);
             wood.NotifyChanged(bench);
+        }
+
+        // The Sawmill (Saw_Pit_Sawmill_and_Salt_Barrel.md 2) saws 2 Logs into 3 Lumber each game hour while it holds them, unless the creek is in flash flood; sleep and
+        // day skips cross every hour, so being away counts. When it runs out of Logs it says so once.
+        bool millFlood = StreamManager.State == StreamState.FlashFlood;
+        foreach (WoodPileState mill in wood.Piles)
+        {
+            if (mill.kind != PileKind.Sawmill)
+                continue;
+            SawmillRules.AfterHour(mill.Count(SawmillRules.LogsId), millFlood, out int used, out int made);
+            if (used <= 0)
+                continue;
+            mill.Take(SawmillRules.LogsId, used);
+            mill.Add(SawmillRules.LumberId, made);
+            wood.NotifyChanged(mill);
+            if (mill.Count(SawmillRules.LogsId) < SawmillRules.LogsPerHour)
+                ToolStatus.Banner(SawmillRules.LoadDone(mill.Count(SawmillRules.LumberId)), 6f);
         }
 
         // A Potter's Shed's shaping job runs one game hour at a time too, so being away, sleeping or skipping days all count; the finished pieces are stamped with the hour

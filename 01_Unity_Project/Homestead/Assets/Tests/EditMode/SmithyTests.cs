@@ -256,12 +256,12 @@ public class SmithyTests
     public void TheTwoSmithyKindsAreFortyThreeAndFortyFourAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(56));
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(58));
         Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "SmithySite"), Is.EqualTo(43));
         Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44));
         string[] names = Enum.GetNames(kind);
-        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names.Last(), Is.EqualTo("TanningVat"));
+        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names.Last(), Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat");
         Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil") || n.Contains("Skillet")), Is.False, "one combined Smithy: no separate Forge or Anvil kinds");
     }
 
@@ -903,7 +903,7 @@ public class SmithyTests
     [Test]
     public void TheSmithyEntryUnlocksOnAPlacedSiteOrAnIronBarAndTheBloomeryAndBarHelpPointToIt()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(22)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(23)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }));
