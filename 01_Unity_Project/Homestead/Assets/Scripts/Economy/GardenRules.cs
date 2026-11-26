@@ -27,8 +27,70 @@ public static class GardenRules
     public const int ProduceDropBp = 400;          // 4% off per unit sold in one go, recovering over time
     public const int ProduceFloorBp = 2500;      // potatoes on the shelf, for seed or eating; the store pays PotatoCents for yours
 
-    // Flags in the pile's cropFlags.
-    public const int FlagDead = 1, FlagDryBeans = 2;
+    // Flags in the pile's cropFlags. Dead and DryBeans belong to the crop and go with it; Raised and Covered belong to the bed and stay (KeptFlags).
+    public const int FlagDead = 1, FlagDryBeans = 2, FlagRaised = 4, FlagCovered = 8;
+    public const int KeptFlags = FlagRaised | FlagCovered;
+
+    // --- Slice GB2 (Mike, 2026-11-25: Gardening_Basics.md section 9b) ---
+
+    // Soil fertility, kept as how SPENT the soil is (the pile's soilSpent, 0 rich to 1 spent, so a bed from before GB2 loads rich). Each crop taken to its
+    // end uses a third (Mike: "Gentler: 3 crops"); beans put a little back instead. A spent bed still gives 75%. One Fertilizer (the Compost Bin's, or the
+    // Trading Post's) puts back a quarter, so 4 bring a spent bed back to rich.
+    public const float SpentPerCrop = 1f / 3f;
+    public const float BeansGiveBack = 0.1f;
+    public const float SpentYieldCut = 0.25f;
+    public const float FertilizerPerUnit = 0.25f;
+    public const string FertilizerId = CompostRules.FertilizerId;
+
+    public static float AfterCrop(Crop crop, float spent) =>
+        crop != null && crop.id == BeansCropId ? Clamp01(spent - BeansGiveBack) : Clamp01(spent + SpentPerCrop);
+
+    public static float AfterFertilizer(float spent) => Clamp01(spent - FertilizerPerUnit);
+
+    public static float YieldFactor(float spent) => 1f - SpentYieldCut * Clamp01(spent);
+
+    // Fertilizer units that would bring the soil back to rich (rounded up).
+    public static int FertilizerToRich(float spent) => (int)Math.Ceiling(Clamp01(spent) / FertilizerPerUnit - 0.0001f);
+
+    public static string FertilityText(float spent) =>
+        spent < 0.05f ? "rich soil" : spent < 0.5f ? "good soil" : spent < 0.95f ? "worn soil - feed it" : "spent soil (75% harvest) - feed it";
+
+    // Raised beds (Mike: "Stage it, any bed"): a frame of 2 Lumber, marked out and stocked like a site, hammered up in 10 blows, then filled with the Shovel
+    // (the bed's dig). Or R with the Hammer upgrades a bed already dug, for 2 Lumber. The soil is warmer (about a week ahead in spring) and drains, so it
+    // never waterlogs; a dug bed soaked past WaterloggedAbove grows slower.
+    public const int RaisedBedLumber = 2;
+    public const int RaisedBedBuildBlows = 10;
+    public const float RaisedWarmthC = 1.5f;
+    public const float WaterloggedAbove = 0.9f;
+    public const float WaterloggedFactor = 0.6f;
+    public const float RaisedDrainAbove = 0.8f;
+    public const float RaisedDrainPerHour = 0.01f;
+
+    // Row Cover (Mike: "Lay on with R, reusable"): a light cloth laid over a bed. It keeps about 3 C of frost off the crop, rain still comes through, and
+    // left on in hot weather the crop under it grows a little slower.
+    public const string RowCoverId = "row_cover";
+    public const long RowCoverStoreCents = 600;
+    public const float CoverProtectionC = 3f;
+    public const float CoverHeatC = 27f;
+    public const float CoverHeatFactor = 0.8f;
+
+    // The frost alert (Mike: "Yes, a frost alert"): at AlertHour, if the night's expected low comes within FrostMarginC of hurting a bed's crop (the cover
+    // counted), a message says which beds. Ground frost comes before the air reaches freezing, so the margin warns early.
+    public const int AlertHour = 18;
+    public const float FrostMarginC = 1.5f;
+
+    public static bool FrostRisk(Crop crop, bool ready, bool covered, float lowC) =>
+        crop != null && FrostDamage(crop, lowC + (covered ? CoverProtectionC : 0f) - FrostMarginC, ready) > 0f;
+
+    public static string FrostAlert(int uncovered, int covered, float lowC)
+    {
+        string low = $"about {Math.Round(lowC):0} C";
+        if (uncovered > 0)
+            return (uncovered == 1 ? "Frost likely tonight (" + low + "): a garden bed's crop is at risk" : $"Frost likely tonight ({low}): {uncovered} garden beds' crops are at risk")
+                   + (uncovered == 1 ? " - lay a Row Cover over it (R) or harvest what is ready" : " - lay Row Covers over them (R) or harvest what is ready");
+        return covered == 1 ? $"Hard frost likely tonight ({low}): even under its Row Cover a bed's crop is at risk"
+                            : $"Hard frost likely tonight ({low}): even under Row Covers {covered} beds' crops are at risk";
+    }
 
     // How hard a frost a crop takes before it is hurt (air at or below this, in C).
     public enum Hardiness { Tender, SemiHardy, Tolerant, Hardy }
@@ -203,17 +265,27 @@ public static class GardenRules
     }
 
     // One game hour for a bed: the soil wets or dries, then a living crop grows (by temperature and water), and frost, drought or bolting hurt it.
-    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm)
+    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm) =>
+        Hour(crop, growingDays, damage, moisture, dryBeans, dead, airC, rainMm, false, false);
+
+    // The same for a raised bed (warmer soil, drains, never waterlogged) and under a Row Cover (frost kept off, a little slower in the heat) (GB2).
+    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm, bool raised, bool covered)
     {
         var r = new HourResult { growingDays = growingDays, damage = damage, moisture = moisture };
-        r.moisture = Clamp01(AfterRain(moisture, rainMm) - DryingPerHour(airC));
+        float drain = raised && moisture > RaisedDrainAbove ? RaisedDrainPerHour : 0f;
+        r.moisture = Clamp01(AfterRain(moisture, rainMm) - DryingPerHour(airC) - drain);
         if (crop == null || dead)
             return r;
 
         float days = DaysToReady(crop, dryBeans);
         bool ready = growingDays >= days;
-        r.growingDays = growingDays + GrowthRate(crop, airC) * WaterFactor(r.moisture) / 24f;
-        float hurt = FrostDamage(crop, airC, ready);
+        float rate = GrowthRate(crop, airC + (raised ? RaisedWarmthC : 0f)) * WaterFactor(r.moisture);
+        if (!raised && r.moisture > WaterloggedAbove)
+            rate *= WaterloggedFactor;
+        if (covered && airC > CoverHeatC)
+            rate *= CoverHeatFactor;
+        r.growingDays = growingDays + rate / 24f;
+        float hurt = FrostDamage(crop, airC + (covered ? CoverProtectionC : 0f), ready);
         if (r.moisture < 0.1f)
             hurt += DroughtDamagePerHour;
         if (crop.boltAfterDays > 0f && airC > crop.heatC)
@@ -250,10 +322,11 @@ public static class GardenRules
     public static bool Spent(Crop crop, bool dryBeans, int picksTaken) => crop != null && picksTaken >= Picks(crop, dryBeans);
 
     // Units one pick gives: the square's yield shared over its picks, cut by the damage the crop has taken (a crop at half damage gives half). At least 1 while it lives.
-    public static int PickYield(Crop crop, bool dryBeans, float damage)
+    // GB2: a worn bed cuts it too (YieldFactor: 75% when spent).
+    public static int PickYield(Crop crop, bool dryBeans, float damage, float spent = 0f)
     {
         int picks = Math.Max(1, Picks(crop, dryBeans));
-        float each = (float)YieldOf(crop, dryBeans) / picks * (1f - Clamp01(damage));
+        float each = (float)YieldOf(crop, dryBeans) / picks * (1f - Clamp01(damage)) * YieldFactor(spent);
         return Math.Max(1, (int)Math.Round(each));
     }
 
@@ -317,6 +390,9 @@ public static class GardenRules
     }
 
     public const string Undug = "Garden Bed - not dug yet\nEquip the Shovel and hold click on it to dig it";
+    public const string RaisedUnfilled = "Raised Bed - empty frame\nEquip the Shovel and hold click on it to fill it with soil";
+    public const string RaisedFilledBanner = "The raised bed is filled - equip the Hoe and press E on it to plant.";
+    public static readonly string RaisedHelp = $"a 4 by 4 ft garden bed in a board frame: the soil warms sooner in spring (about a week ahead) and drains, so heavy rain cannot waterlog it. Mark it out (free), deliver {RaisedBedLumber} Lumber with R, equip the Hammer and hold click until the frame is built, then fill it with soil using the Shovel (hold click). A dug Garden Bed can be raised too: R with the Hammer and {RaisedBedLumber} Lumber.";
     public const string DugBanner = "The bed is dug - equip the Hoe and press E on it to plant.";
     public const string NeedHoe = "Equip the Hoe to plant";
     public const string NoSeed = "No seed to plant - buy seed packets, potatoes or (in Spring) tomato plants at the Trading Post";
@@ -383,7 +459,7 @@ public static class GardenRules
     public static string Harvested(int units, string name, int picksLeft) =>
         picksLeft > 0 ? $"Picked {name} x{units} - more to come ({picksLeft} more picking{(picksLeft == 1 ? "" : "s")})" : $"Harvested {name} x{units}";
 
-    public const string Help = "a 4 by 4 ft garden bed. Mark it out anywhere open, then dig it with the Shovel (hold click). With the Hoe in hand, E plants the seed you carry (R picks which: seed packets, potatoes, or tomato plants, which the Trading Post sells from mid-April to early June). Crops grow day by day with the warmth and the soil's moisture: rain waters them, and in a dry spell pour water on with the Watering Can or Bucket (E). Frost kills tender crops. E harvests when ready; a Shovel's R fills an empty bed in.";
+    public const string Help = "a 4 by 4 ft garden bed. Mark it out anywhere open, then dig it with the Shovel (hold click). With the Hoe in hand, E plants the seed you carry (R picks which: seed packets, potatoes, or tomato plants, which the Trading Post sells from mid-April to early June). Crops grow day by day with the warmth and the soil's moisture: rain waters them, and in a dry spell pour water on with the Watering Can or Bucket (E). Frost kills tender crops: a Row Cover (Trading Post) laid on with R keeps a light frost off. E harvests when ready. Each crop wears the soil a little: E spreads Fertilizer to feed it. R with the Hammer and 2 Lumber makes it a raised bed (warmer, drains); a Shovel's R fills an empty bed in.";
 
     public const string KnowHowTitle = "The Kitchen Garden";
 }

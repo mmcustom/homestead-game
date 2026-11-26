@@ -115,6 +115,15 @@ Each slice is played and approved by Mike before the next one starts, with its a
 
 ---
 
+## 9b. Mike's answers for slice GB2 (2026-11-25)
+
+1. **Fertility:** gentler. A full bed grows 3 crops before it runs low, and an empty bed still gives 75% of a full harvest. Fertilizer (Compost Bin, or $0.50 at the Trading Post) puts it back; beans put a little back.
+2. **Raised beds:** staged, and any bed. Mark one out, bring 2 Lumber, hammer it up, then fill it with soil using the Shovel. An existing dug bed can also be upgraded with 2 Lumber and the Hammer. The soil is warmer (about a week earlier in spring) and it drains, so heavy rain can't waterlog it.
+3. **Row Cover:** $6 at the Trading Post, laid over a bed with R and taken off again, reusable. It keeps a light frost off (about 3 °C of protection); left on in hot weather it slows the crop a little.
+4. **Frost alert:** yes. In the evening, if frost is forecast and tender crops are uncovered, a message says so.
+
+---
+
 ## 10. As built: slice GB1 (2026-11-25)
 
 **Beds.** Garden Bed is in the Build menu (Other). Place a 1.2 m square (at least 1.25 m from another bed, 1.5 m from a tree): it shows as stakes and twine. Dig it with a Shovel (12 blows) to turn the soil. R with a Shovel fills a bed back in (or removes an undug one).
@@ -136,6 +145,20 @@ Each slice is played and approved by Mike before the next one starts, with its a
 **Art.** Hoe, Watering Can, 7 seed packets, 10 produce items and the Tomato Plant with icons; the bed (marked and dug, darker when wet); and 45 growing-plant models, one per crop per stage (sprouting, growing, maturing, ready, dead). Details in Art_Needed_List.md.
 
 **Not in GB1 (next slices).** Fertility and Fertilizer, raised beds and Row Cover (GB2); seed saving (GB3); deer, rabbits and fences (GB4).
+
+---
+
+## 11. As built: slice GB2 (2026-11-25)
+
+**Soil fertility.** Each bed keeps how worn its soil is. A crop taken to its end (all its picks) wears a third of it, so a rich bed grows 3 crops before it is spent; beans put a tenth back instead. A spent bed gives 75% of a full harvest (the cut grows as the soil wears). The bed's prompt shows the soil: rich, good, worn or spent. **E spreads one Fertilizer** when there is nothing else to do there (no water to pour, nothing to plant or harvest): each one puts back a quarter, so 4 bring a spent bed back to rich. Beds from before GB2 load rich.
+
+**Raised beds.** Build tab > Other > **Raised Bed Site**: mark it out (free), deliver 2 Lumber with R, hammer the frame up (10 blows), then fill it with soil using the Shovel (12 blows, like digging). Or hold the Hammer at a dug Garden Bed and press R with 2 Lumber in your pack. A raised bed's soil is 1.5 °C warmer for growing (about a week ahead in spring), and it drains: soil soaked past 90% slows a dug bed's crop (waterlogged, 60% growth) but never a raised bed's. Taking a raised bed apart with the Shovel gives the 2 Lumber back.
+
+**Row Cover.** $6 at the Trading Post. R lays it over a dug bed and R takes it off again; it is reused, and comes back if the bed is filled in. Under it the crop takes 3 °C less frost (a tender crop survives a -2 °C night but not -4 °C); rain still comes through; above 27 °C the crop under it grows at 80%.
+
+**The frost alert.** At 6 pm, if the night's expected low (the weather model's coldest hour, with today's weather; it can still change) comes within 1.5 °C of hurting a bed's crop, a message names how many beds are at risk, and says so too when even a Row Cover will not be enough.
+
+**Art.** The raised bed's board frame, the Row Cover draped over its hoops on a bed, the folded Row Cover item and the Raised Bed Site's build icon.
 
 ---
 

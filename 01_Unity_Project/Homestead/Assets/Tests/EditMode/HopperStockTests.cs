@@ -256,7 +256,7 @@ public class HopperStockTests
         string[] expected =
         {
             "id", "kind", "position", "yaw", "contents", "litres", "contaminatedHours", "digProgress", "builtDay", "buildProgress", "depthToWater", "leachHours",
-            "hopperWater", "hopperBatch", "jobItem", "jobHours", "jobCount", "soilMoisture", "cropDamage", "cropFlags", "picksTaken",
+            "hopperWater", "hopperBatch", "jobItem", "jobHours", "jobCount", "soilMoisture", "cropDamage", "cropFlags", "picksTaken", "soilSpent",
         };
         string[] actual = Find("WoodPileState").GetFields().Where(f => !f.IsStatic).Select(f => f.Name).ToArray();
         Assert.That(actual, Is.EquivalentTo(expected));

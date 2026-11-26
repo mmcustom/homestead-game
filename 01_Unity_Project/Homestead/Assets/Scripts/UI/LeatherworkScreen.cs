@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -6,15 +7,16 @@ using UnityEngine.UI;
 // The Workshop's Leatherwork screen (tanning slice T5a, Mike 2026-11-23): the second tab of the Workshop, opened from the Workshop screen's Leatherwork button (and back with
 // its Woodwork button or W). The same window as the Workshop screen (own canvas, 1920x1080 scaler, sort order 150) and the same large text: nothing under 26. The five pieces
 // of clothing are listed on the left (name and slot, hours, what the Trading Post pays now); the chosen piece's details are on the right (slot, warmth, hours, weight, what
-// it needs against what the pack carries, and why it cannot start) with a Start button. A leather piece takes its materials straight from the pack when it starts, so there
-// is no stocking step; it needs the Knife in the pack. It then runs as the bench's one job, hour by hour, and E at the bench collects it, as for the woodwork.
-// Keys: 1-5 choose, Up and Down move, Enter starts, W switches to Woodwork, Esc closes. The bench's job starts through PlacedStructure.TryStartLeather, which works the gate
+// it needs against what the bench and the pack hold, and why it cannot start) with a Start button. Since Mike's play-test (2026-11-25) the bench stocks leather goods too:
+// R at the bench, or this screen's stock button (PlacedStructure.StockFromPack), puts them in, and a piece takes from the bench first, then the pack. It needs the Knife in
+// the pack. It then runs as the bench's one job, hour by hour, and E at the bench collects it, as for the woodwork.
+// Keys: 1-7 choose, Up and Down move, Enter starts, R stocks, W switches to Woodwork, Esc closes. The bench's job starts through PlacedStructure.TryStartLeather, which works the gate
 // out again on the bench and the pack as they are at the click.
 public class LeatherworkScreen : MonoBehaviour
 {
     public const int MinimumSize = 26;
     public const int TitleSize = 36, StatusSize = 28, PackSize = 28, ListNameSize = 32, ListDetailSize = 28, DetailNameSize = 40, BodySize = 28, StartSize = 36,
-                     TabSize = 28, CloseSize = 28, HintSize = 28;
+                     TabSize = 28, CloseSize = 28, HintSize = 28, StockSize = 28;
     public const float RowHeight = 80f, RowGap = 6f;   // seven rows since T5b (88/8 for five): 7 x 80 + 6 x 6 = 596 px, from y 204 to 800
 
     const float PanelWidth = 1500f, PanelHeight = 920f;
@@ -59,6 +61,8 @@ public class LeatherworkScreen : MonoBehaviour
     readonly Text[] rowDetails = new Text[ClothingRules.Pieces.Length];
     Button startButton;
     Text startLabel;
+    Button stockButton;
+    Text stockLabel;
 
     void Build()
     {
@@ -138,6 +142,10 @@ public class LeatherworkScreen : MonoBehaviour
         Place((RectTransform)startButton.transform, DetailX, ListY + 470f, DetailWidth, 104f);
         startLabel = startButton.GetComponentInChildren<Text>();
         startLabel.fontStyle = FontStyle.Bold;
+
+        stockButton = UiKit.Button(panel, "Stock", "", StockSize, StockClicked);
+        Place((RectTransform)stockButton.transform, DetailX, ListY + 582f, DetailWidth, 64f);
+        stockLabel = stockButton.GetComponentInChildren<Text>();
 
         Text hint = UiKit.Text(panel, "Hint", ClothingRules.KeyHint, HintSize, UiKit.Ink, TextAnchor.MiddleLeft);
         hint.horizontalOverflow = HorizontalWrapMode.Overflow;
@@ -258,6 +266,9 @@ public class LeatherworkScreen : MonoBehaviour
             case ClothingRules.ActionKind.Woodwork:
                 SwitchToWoodwork();
                 break;
+            case ClothingRules.ActionKind.Stock:
+                StockClicked();
+                break;
         }
     }
 
@@ -276,6 +287,7 @@ public class LeatherworkScreen : MonoBehaviour
         if (keyboard.downArrowKey.wasPressedThisFrame) return ClothingRules.Key.Down;
         if (keyboard.enterKey.wasPressedThisFrame) return ClothingRules.Key.Enter;
         if (keyboard.wKey.wasPressedThisFrame) return ClothingRules.Key.Woodwork;
+        if (keyboard.rKey.wasPressedThisFrame) return ClothingRules.Key.Stock;
         return ClothingRules.Key.None;
     }
 
@@ -303,6 +315,21 @@ public class LeatherworkScreen : MonoBehaviour
         Refresh();
     }
 
+    // The stock button and R: everything the pack carries that the bench stocks goes in (the same method as R at the bench in the world).
+    void StockClicked()
+    {
+        if (!BenchAlive())
+        {
+            Hide(true);
+            return;
+        }
+        noticeGood = bench.StockFromPack(out string message);
+        notice = message;
+        if (noticeGood && AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+        Refresh();
+    }
+
     static int PackCount(string itemId) => InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(itemId) : 0;
 
     void Refresh()
@@ -318,8 +345,8 @@ public class LeatherworkScreen : MonoBehaviour
         WoodPileState state = bench.State;
         bool working = bench.WorkshopRunning(out WorkshopRules.Recipe made);
         bool waiting = bench.WorkshopWaiting(out WorkshopRules.Recipe waitingPiece);
-        statusLabel.text = WorkshopRules.BenchLine(working, made, state.jobHours, waiting, waitingPiece,
-                                                   state.Count(WorkshopRules.LogsId), state.Count(WorkshopRules.BranchesId), state.Count(WorkshopRules.CordageId));
+        Func<string, int> have = bench.LeatherCount;
+        statusLabel.text = ClothingRules.BenchLine(working, made, state.jobHours, waiting, waitingPiece, bench.LeatherBenchCount);
         statusLabel.color = working || waiting ? UiKit.InkAccent : UiKit.Ink;
         packLabel.text = ClothingRules.PackLine(PackCount);
 
@@ -330,7 +357,7 @@ public class LeatherworkScreen : MonoBehaviour
             string[] lines = ClothingRules.ListLabel(piece, price).Split('\n');
             rowNames[i].text = lines[0];
             rowDetails[i].text = lines[1];
-            bool covered = ClothingRules.Covers(piece, PackCount);
+            bool covered = ClothingRules.Covers(piece, have);
             rowNames[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
             rowDetails[i].color = covered ? UiKit.Ink : UiKit.InkMuted;
             UiKit.SetSelected(rows[i], i == selected);
@@ -340,13 +367,13 @@ public class LeatherworkScreen : MonoBehaviour
         detailName.text = chosen.name;
         detailLine.text = ClothingRules.DetailLine(chosen);
         effectLabel.text = (chosen.notWorn ? "Use: " : "Worn: ") + ClothingRules.EffectText(chosen) + ".";
-        WorkshopRules.NeedRow[] needs = ClothingRules.NeedRows(chosen, PackCount);
+        WorkshopRules.NeedRow[] needs = ClothingRules.NeedRows(chosen, have);
         for (int i = 0; i < needLabels.Length; i++)
         {
             needLabels[i].gameObject.SetActive(i < needs.Length);
             if (i < needs.Length)
             {
-                needLabels[i].text = ClothingRules.NeedText(needs[i]);
+                needLabels[i].text = ClothingRules.NeedText(needs[i], bench.LeatherBenchCount(chosen.needs[i].itemId));
                 needLabels[i].color = needs[i].enough ? UiKit.Ink : UiKit.InkWarning;
             }
         }
@@ -354,8 +381,12 @@ public class LeatherworkScreen : MonoBehaviour
         WorkshopRules.Gate gate = bench.LeatherGateFor(chosen);
         startLabel.text = ClothingRules.StartButtonText(gate, chosen);
         startButton.interactable = gate == WorkshopRules.Gate.Ok;
-        string reason = ClothingRules.ReasonText(gate, chosen, made, PackCount, state.jobHours);
+        string reason = ClothingRules.ReasonText(gate, chosen, made, have, state.jobHours);
         reasonLabel.text = !string.IsNullOrEmpty(notice) ? notice : reason;
         reasonLabel.color = !string.IsNullOrEmpty(notice) && noticeGood ? UiKit.InkAccent : gate == WorkshopRules.Gate.Ok ? UiKit.Ink : UiKit.InkWarning;
+
+        WorkshopRules.StockGate stock = bench.LeatherStockGateNow();
+        stockLabel.text = ClothingRules.StockButtonText(stock);
+        stockButton.interactable = stock == WorkshopRules.StockGate.Can;
     }
 }

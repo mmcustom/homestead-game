@@ -91,7 +91,7 @@ public class SawmillTests
     public void ItIsBuiltFromTheOtherTabAndHasItsKnowHowEntry()
     {
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("PileKind.SawPitSite, PileKind.SawmillSite,"));
-        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.SawmillSite:\n            case PileKind.GardenBed:\n            case PileKind.HideFrame:"));
+        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.SawmillSite:\n            case PileKind.GardenBed:\n            case PileKind.RaisedBedSite:\n            case PileKind.HideFrame:"));
         Assert.That(KnowHowRules.Entries.Select(e => e.id).ElementAt(22), Is.EqualTo("sawmill"));
         Assert.That(KnowHowRules.Entries[22].title, Is.EqualTo("The Sawmill"));
         Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.SawmillSitePlaced), Is.EqualTo(new[] { "sawmill" }));

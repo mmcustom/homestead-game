@@ -409,8 +409,9 @@ public class AxeTool : MonoBehaviour
             return;
 
         bool cellar = state.kind == PileKind.RootCellarSite, sawPit = state.kind == PileKind.SawPitSite, bed = state.kind == PileKind.GardenBed, vat = state.kind == PileKind.TanningVatSite;
-        ToolStatus.Report(state.digProgress > 0f ? (cellar ? "Digging out the cellar" : sawPit ? "Digging the saw pit" : bed ? "Digging the garden bed" : vat ? "Digging the vat pit" : "Digging the well shaft")
-                                                 : (cellar ? "Root Cellar site - hold click to dig it out" : sawPit ? "Saw Pit site - hold click to dig the trench" : bed ? "Garden Bed - hold click to dig it" : vat ? "Tanning Vat site - hold click to dig the pit" : "Well site - hold click to dig the shaft"),
+        bool raised = bed && (state.cropFlags & GardenRules.FlagRaised) != 0; // a Raised Bed's frame is filled with soil, not dug (GB2)
+        ToolStatus.Report(state.digProgress > 0f ? (cellar ? "Digging out the cellar" : sawPit ? "Digging the saw pit" : raised ? "Filling the raised bed" : bed ? "Digging the garden bed" : vat ? "Digging the vat pit" : "Digging the well shaft")
+                                                 : (cellar ? "Root Cellar site - hold click to dig it out" : sawPit ? "Saw Pit site - hold click to dig the trench" : raised ? "Raised Bed - hold click to fill it with soil" : bed ? "Garden Bed - hold click to dig it" : vat ? "Tanning Vat site - hold click to dig the pit" : "Well site - hold click to dig the shaft"),
                           state.digProgress > 0f ? state.digProgress : -1f);
         if (!Swing(point, AudioManager.Instance != null ? (System.Action<Vector3>)AudioManager.Instance.PlayDig : null))
             return;
@@ -421,7 +422,7 @@ public class AxeTool : MonoBehaviour
         if (finished)
         {
             ToolEvents.JobFinished();
-            ToolStatus.Banner(cellar ? RootCellarRules.DugBanner : sawPit ? SawPitRules.DugBanner : bed ? GardenRules.DugBanner : "The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
+            ToolStatus.Banner(cellar ? RootCellarRules.DugBanner : sawPit ? SawPitRules.DugBanner : raised ? GardenRules.RaisedFilledBanner : bed ? GardenRules.DugBanner : vat ? TanningVatRules.DugBanner : "The shaft is dug - line it with Stone (R stores Stone you carry).", 6f);
             WoodManager.Instance.NotifyChanged(state);
         }
         else if (Mathf.FloorToInt(state.digProgress * 10f) != Mathf.FloorToInt((state.digProgress - swing / rules.DigBlowsOf(state)) * 10f))

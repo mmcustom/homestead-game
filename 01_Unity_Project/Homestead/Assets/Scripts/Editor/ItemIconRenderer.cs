@@ -89,7 +89,8 @@ public static class ItemIconRenderer
         {
             if (kind == PileKind.Felled)
                 continue;
-            Add(kind.ToString().ToLowerInvariant(), ArtSwap.StructureId(BuiltFrom(kind)));
+            // A Raised Bed's site becomes a Garden Bed with a frame: its icon is the frame (Gardening GB2).
+            Add(kind.ToString().ToLowerInvariant(), kind == PileKind.RaisedBedSite ? "structure_gardenbed_raised" : ArtSwap.StructureId(BuiltFrom(kind)));
         }
         Add("campfire", "effect_campfire");
         Add("tripod", "structure_tripod");

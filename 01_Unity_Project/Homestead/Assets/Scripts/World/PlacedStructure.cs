@@ -55,6 +55,7 @@ public static class StructureVisuals
             case PileKind.HideFrame: BuildHideFrame(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.TanningVat: BuildTanningVat(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.TanningVatSite: BuildTanningVatSite(parent, state, bark, pieces, out boxCenter, out boxSize); return;
+            case PileKind.RaisedBedSite: BuildRaisedBedSite(parent, state, pieces, out boxCenter, out boxSize); return;
             case PileKind.GardenBed: GardenBeds.Build(parent, state, pieces, out boxCenter, out boxSize); return; // Gardening_Basics.md (GB1)
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
@@ -886,6 +887,19 @@ public static class StructureVisuals
     }
 
     static readonly Color ClaySiteColor = new Color(0.55f, 0.38f, 0.26f);
+
+    // A Raised Bed's site (Gardening GB2): four corner stakes on the square and the Lumber delivered laid beside it.
+    static void BuildRaisedBedSite(Transform parent, WoodPileState state, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
+    {
+        float h = GardenRules.BedSize / 2f;
+        foreach (Vector2 c in new[] { new Vector2(-h, -h), new Vector2(h, -h), new Vector2(h, h), new Vector2(-h, h) })
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(c.x, 0.15f, c.y), Vector3.zero, new Vector3(0.04f, 0.3f, 0.04f), null), LumberColor);
+        int lumber = Mathf.Min(state.Count(SawPitRules.LumberId), GardenRules.RaisedBedLumber);
+        for (int i = 0; i < lumber; i++)
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.03f + i * 0.06f, -h - 0.3f), Vector3.zero, new Vector3(1.6f, 0.05f, 0.24f), null), LumberColor);
+        boxCenter = new Vector3(0f, 0.15f, 0f);
+        boxSize = new Vector3(GardenRules.BedSize, 0.3f, GardenRules.BedSize);
+    }
 
     // What is on a Hide Frame: the kind of hide laced in and how many pieces, or what it has become.
     internal static HideFrameRules.Kind HideFrameKindOf(WoodPileState state, out int pieces, out string outputId, out int outputCount)
@@ -1857,7 +1871,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         what = "";
         int total = 0;
         var names = new List<string>();
-        foreach (string id in WorkshopRules.StockIds)
+        foreach (string id in WorkshopRules.AllStockIds)
         {
             if (!state.Accepts(id))
                 continue;
@@ -1927,12 +1941,24 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return true;
     }
 
-    // --- Leatherwork at the same bench (tanning slice T5a): a leather piece takes its materials from the pack when it starts, needs the Knife, and then runs as the bench's job ---
+    // --- Leatherwork at the same bench (tanning slice T5a): a leather piece takes its materials when it starts, needs the Knife, and then runs as the bench's job. Since
+    // Mike's play-test (2026-11-25) the bench holds leather goods as stock too (WorkshopRules.LeatherStockIds, stored with R), and a piece takes from the bench first ---
 
     static int PackCount(string itemId) => Inventory != null ? Inventory.Player.Count(itemId) : 0;
 
+    // What the bench holds of a leather good (0 for anything it does not stock, such as a finished Lashing).
+    public int LeatherBenchCount(string itemId) => state != null && WorkshopRules.IsLeatherStockId(itemId) ? state.Count(itemId) : 0;
+
+    // The bench and the pack together: what a leather piece can draw on.
+    public int LeatherCount(string itemId) => LeatherBenchCount(itemId) + PackCount(itemId);
+
     public WorkshopRules.Gate LeatherGateFor(ClothingRules.Piece piece) =>
-        ClothingRules.CanStart(piece, Inventory != null && Inventory.Player.Has(ClothingRules.KnifeId), WorkshopWorking, WorkshopProduct(out _, out _), PackCount);
+        ClothingRules.CanStart(piece, Inventory != null && Inventory.Player.Has(ClothingRules.KnifeId), WorkshopWorking, WorkshopProduct(out _, out _), LeatherCount);
+
+    // Whether the pack has any bench material to store (the Leatherwork screen's stock button; it stores wood and leather alike, as R does).
+    public WorkshopRules.StockGate LeatherStockGateNow() =>
+        state == null || Inventory == null ? WorkshopRules.StockGate.NothingCarried
+            : WorkshopRules.StockStateOf(WorkshopRules.AllStockIds, PackCount, id => state.Count(id));
 
     // The one way a leather piece starts (the Leatherwork screen's Start button calls it): the gate is worked out again now; on success the pack's materials are taken and the
     // bench's job set, and the message is the woodwork's "Started" one.
@@ -1945,12 +1971,19 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         if (gate != WorkshopRules.Gate.Ok)
         {
             WorkshopMade(out WorkshopRules.Recipe made);
-            message = ClothingRules.ReasonText(gate, piece, made, PackCount, state.jobHours);
+            message = ClothingRules.ReasonText(gate, piece, made, LeatherCount, state.jobHours);
             return false;
         }
 
+        // The bench's stock first, then the pack for the rest.
         foreach (ClothingRules.Need need in piece.needs)
-            Inventory.RemoveFromPlayer(need.itemId, need.count);
+        {
+            int fromBench = ClothingRules.TakeFromBench(need.count, LeatherBenchCount(need.itemId));
+            if (fromBench > 0)
+                state.Take(need.itemId, fromBench);
+            if (need.count - fromBench > 0)
+                Inventory.RemoveFromPlayer(need.itemId, need.count - fromBench);
+        }
         WorkshopRules.Recipe recipe = ClothingRules.AsBenchRecipe(piece);
         state.jobItem = recipe.itemId;
         state.jobHours = recipe.hours;
@@ -1988,7 +2021,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
 
         int stored = 0;
         var names = new List<string>();
-        foreach (string id in WorkshopRules.StockIds)
+        foreach (string id in WorkshopRules.AllStockIds)
         {
             if (!state.Accepts(id))
                 continue;
@@ -3918,7 +3951,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         // A Workshop gives back the stock in its bench and any finished piece whole, on top of half the materials.
         if (state.kind == PileKind.Workshop)
         {
-            foreach (string stockId in WorkshopRules.StockIds)
+            foreach (string stockId in WorkshopRules.AllStockIds)
                 refund.Return(stockId, state.Count(stockId));
             foreach (WorkshopRules.Recipe piece in WorkshopRules.AllPieces)
                 refund.Return(piece.itemId, state.Count(piece.itemId));

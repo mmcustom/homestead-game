@@ -314,7 +314,7 @@ public class KilnTests
         Assert.That((int)Kind("PotterShed"), Is.EqualTo(36));
         Assert.That((int)Kind("KilnSite"), Is.EqualTo(37));
         Assert.That((int)Kind("Kiln"), Is.EqualTo(38));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(60));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(61));
     }
 
     [Test]
@@ -572,7 +572,7 @@ public class KilnTests
         Assert.That(Static("WellsAndOuthouses", "KilnPhaseOf", doneBack), Is.EqualTo(PotteryRules.KilnPhase.Done));
 
         string[] fields = pile.GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
-        Assert.That(fields.Length, Is.EqualTo(21), "WoodPileState: the Kiln added none; the Garden Bed (GB1) added four; the Leach Hopper stock added hopperWater and hopperBatch");
+        Assert.That(fields.Length, Is.EqualTo(22), "WoodPileState: the Kiln added none; the Garden Bed (GB1) added four; the Leach Hopper stock added hopperWater and hopperBatch");
         FieldInfo version = Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
         Assert.That(version.GetRawConstantValue(), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
@@ -612,8 +612,8 @@ public class KilnTests
             Assert.That(table.SellBaseCents(pair.Key), Is.EqualTo(pair.Value), pair.Key);
             Assert.That(table.BuyBaseCents(pair.Key), Is.EqualTo(stocked ? pair.Value * 5 / 2 : 0L), pair.Key + (stocked ? " is stocked" : " is not stocked"));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(141));
-        Assert.That(table.Stock.Count, Is.EqualTo(53), "the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
+        Assert.That(table.Rows.Count, Is.EqualTo(142));
+        Assert.That(table.Stock.Count, Is.EqualTo(54), "the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28));
         MarketGroupRule crafted = table.RuleOf("clay_cup");
         Assert.That(crafted.dropBp, Is.EqualTo(1000), "10% off per unit");

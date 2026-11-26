@@ -491,7 +491,7 @@ public class PotteryTests
         Assert.That((int)Kind("WorkshopSite"), Is.EqualTo(33));
         Assert.That((int)Kind("Workshop"), Is.EqualTo(34));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(60));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(61));
     }
 
     [Test]
@@ -563,7 +563,7 @@ public class PotteryTests
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).OrderBy(n => n).ToArray();
         Assert.That(fields, Is.EqualTo(new[]
         {
-            "buildProgress", "builtDay", "contaminatedHours", "contents", "cropDamage", "cropFlags", "depthToWater", "digProgress", "hopperBatch", "hopperWater", "id", "jobCount", "jobHours", "jobItem", "kind", "leachHours", "litres", "picksTaken", "position", "soilMoisture", "yaw",
+            "buildProgress", "builtDay", "contaminatedHours", "contents", "cropDamage", "cropFlags", "depthToWater", "digProgress", "hopperBatch", "hopperWater", "id", "jobCount", "jobHours", "jobItem", "kind", "leachHours", "litres", "picksTaken", "position", "soilMoisture", "soilSpent", "yaw",
         }));
         Assert.That(Find("WoodPileState").GetField("jobCount").FieldType, Is.EqualTo(typeof(int)));
         FieldInfo version = Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);

@@ -331,9 +331,9 @@ public class PotashTests
     [Test]
     public void TheStockedShelfIsTwentyTwoItemsTotallingThreeHundredFourteenDollars()
     {
-        Assert.That(Table.Stock.Count, Is.EqualTo(53), "the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; 21 and Iron Ore (Metalworking M1)");
-        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(52410L), "and the Crock Pot ($30.00), and Salt ($2.00), and the Bark Spud ($10.00), and the garden stock ($41.60, GB1)");
-        Assert.That(Table.Stock.Count(r => Table.SellBaseCents(r.itemId) > 0), Is.EqualTo(47), "the Crock Pot; the Bark Spud sells back too, and the garden stock (GB1)");
+        Assert.That(Table.Stock.Count, Is.EqualTo(54), "the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; 21 and Iron Ore (Metalworking M1)");
+        Assert.That(Table.Stock.Sum(r => r.baseCents), Is.EqualTo(53010L), "and the Row Cover ($6.00, GB2), and the Crock Pot ($30.00), and Salt ($2.00), and the Bark Spud ($10.00), and the garden stock ($41.60, GB1)");
+        Assert.That(Table.Stock.Count(r => Table.SellBaseCents(r.itemId) > 0), Is.EqualTo(48), "the Row Cover (GB2); the Crock Pot; the Bark Spud sells back too, and the garden stock (GB1)");
     }
 
     [Test]

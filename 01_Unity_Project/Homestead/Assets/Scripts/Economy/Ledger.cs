@@ -114,7 +114,7 @@ public static class LedgerCategories
         { GardenRules.HoeId, LedgerCategory.BuyTools }, { GardenRules.WateringCanId, LedgerCategory.BuyTools },
         { "seed_field_corn", LedgerCategory.BuyOtherGoods }, { "seed_sweet_corn", LedgerCategory.BuyOtherGoods }, { "seed_beans", LedgerCategory.BuyOtherGoods },
         { "tomato_plant", LedgerCategory.BuyOtherGoods }, { "seed_lettuce", LedgerCategory.BuyOtherGoods }, { "seed_carrots", LedgerCategory.BuyOtherGoods },
-        { "seed_squash", LedgerCategory.BuyOtherGoods }, { "seed_kale", LedgerCategory.BuyOtherGoods }, { GardenRules.PotatoesId, LedgerCategory.BuyOtherGoods },
+        { "seed_squash", LedgerCategory.BuyOtherGoods }, { GardenRules.RowCoverId, LedgerCategory.BuyOtherGoods }, { "seed_kale", LedgerCategory.BuyOtherGoods }, { GardenRules.PotatoesId, LedgerCategory.BuyOtherGoods },
     };
 
     // The expense category for buying a stocked item; anything unlisted (a future stock item) is "other goods".

@@ -152,8 +152,8 @@ public class GardenTests
         Assert.That(placed, Does.Contain("GardenBeds.Secondary(state);"));
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
         Assert.That(wood, Does.Contain("PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed,"), "on the Build tab");
-        Assert.That(wood, Does.Contain("kind == PileKind.GardenBed && other.kind == PileKind.GardenBed"), "beds stand side by side");
-        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.GardenBed:\n            case PileKind.HideFrame:"), "under Other");
+        Assert.That(wood, Does.Contain("if (IsBedKind(kind) && IsBedKind(other.kind))"), "beds stand side by side (a Raised Bed Site too, GB2)");
+        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.GardenBed:\n            case PileKind.RaisedBedSite:\n            case PileKind.HideFrame:"), "under Other (the Raised Bed Site too, GB2)");
         Assert.That(SourceText("Scripts/Survival/WaterQuality.cs"), Does.Contain("container.Count(GardenRules.WateringCanId) * GardenRules.WateringCanLitres"));
         Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.GardenBedPlaced), Is.EqualTo(new[] { KnowHowRules.Garden }));
         Assert.That(KnowHowRules.Entries.Last().title, Is.EqualTo("The Kitchen Garden"));

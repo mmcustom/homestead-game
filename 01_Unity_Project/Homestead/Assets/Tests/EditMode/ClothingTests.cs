@@ -97,7 +97,7 @@ public class ClothingTests
         string ps = SourceText("Scripts/World/PlacedStructure.cs");
         Assert.That(ps, Does.Contain("foreach (WorkshopRules.Recipe recipe in WorkshopRules.AllPieces)"), "collecting and drawing a finished piece");
         Assert.That(ps, Does.Contain("foreach (WorkshopRules.Recipe piece in WorkshopRules.AllPieces)"), "the dismantle refund");
-        Assert.That(ps, Does.Contain("Inventory.RemoveFromPlayer(need.itemId, need.count);"), "a leather piece takes its materials from the pack");
+        Assert.That(ps, Does.Contain("Inventory.RemoveFromPlayer(need.itemId, need.count - fromBench);"), "a leather piece takes what the bench lacks from the pack");
     }
 
     [Test]

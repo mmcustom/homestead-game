@@ -8,6 +8,9 @@ using UnityEngine;
 //   Growing      E with the Bucket or Watering Can in hand pours water on it; beans: R switches between picking green and leaving them to dry.
 //   Ready        E harvests (what does not fit in the pack is left on the ground); picked crops (tomatoes, beans, kale) give again every few days.
 //   Dead         E clears the dead plants.
+// Slice GB2 (Mike, 2026-11-25, Gardening_Basics.md 9b): each crop taken to its end wears the soil (soilSpent), E spreads Fertilizer when nothing else is to do;
+// a bed is raised (built as a Raised Bed Site, or R with the Hammer and 2 Lumber), and R lays a Row Cover over it or takes it off. At 6 pm the frost alert
+// says which beds tonight's expected low would hurt.
 // THE SWAP POINT for the plants: Resources/Art/crop_<crop id>_<stage>.prefab (stage: sprouting, growing, maturing, ready, dead), placed at each plant's spot, replaces that crop's
 // primitive plant for that stage; Resources/Art/structure_gardenbed.prefab replaces the dug soil and Resources/Art/structure_gardenbed_marked.prefab the stakes of an undug bed.
 public static class GardenBeds
@@ -36,6 +39,12 @@ public static class GardenBeds
     static bool WateringEquipped => EquippedId == GardenRules.WateringCanId || EquippedId == WaterSource.BucketItemId;
 
     public static bool IsDug(WoodPileState s) => s.digProgress >= 1f;
+    public static bool Raised(WoodPileState s) => (s.cropFlags & GardenRules.FlagRaised) != 0;
+    public static bool Covered(WoodPileState s) => (s.cropFlags & GardenRules.FlagCovered) != 0;
+    static bool HammerEquipped => EquippedId == WoodManager.HammerId;
+    static int Carried(string itemId) => Inventory != null ? Inventory.Player.Count(itemId) : 0;
+    static string BedName(WoodPileState s) => Raised(s) ? "Raised Bed" : "Garden Bed";
+    const float RaisedLift = 0.15f;   // a raised bed's soil and plants sit this much higher, inside its frame
     public static GardenRules.Crop CropOf(WoodPileState s) => GardenRules.Find(s.jobItem);
     public static bool DryBeans(WoodPileState s) => (s.cropFlags & GardenRules.FlagDryBeans) != 0;
     public static bool Dead(WoodPileState s) => (s.cropFlags & GardenRules.FlagDead) != 0;
@@ -51,6 +60,10 @@ public static class GardenBeds
         if (wood == null)
             return;
         int frostKilled = 0, droughtKilled = 0, bolted = 0;
+        // The frost alert (GB2): once, at the alert hour, against the night's expected low.
+        bool alertHour = TimeManager.Instance != null && TimeManager.Instance.Hour == GardenRules.AlertHour && WeatherManager.Instance != null;
+        float lowTonight = alertHour ? WeatherManager.Instance.ExpectedNightLowC() : 99f;
+        int atRiskUncovered = 0, atRiskCovered = 0;
         foreach (WoodPileState bed in wood.Piles)
         {
             if (bed.kind != PileKind.GardenBed || !IsDug(bed))
@@ -58,8 +71,14 @@ public static class GardenBeds
             GardenRules.Crop crop = CropOf(bed);
             string before = LookKey(bed);
             bool ready = crop != null && bed.jobHours >= GardenRules.DaysToReady(crop, DryBeans(bed));
-            bool frost = crop != null && GardenRules.FrostDamage(crop, airC, ready) > 0f;
-            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), airC, rainMm);
+            bool covered = Covered(bed);
+            bool frost = crop != null && GardenRules.FrostDamage(crop, airC + (covered ? GardenRules.CoverProtectionC : 0f), ready) > 0f;
+            if (alertHour && crop != null && !Dead(bed) && GardenRules.FrostRisk(crop, ready, covered, lowTonight))
+            {
+                if (covered) atRiskCovered++;
+                else atRiskUncovered++;
+            }
+            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), airC, rainMm, Raised(bed), covered);
             bed.soilMoisture = r.moisture;
             bed.jobHours = r.growingDays;
             bed.cropDamage = r.damage;
@@ -82,11 +101,13 @@ public static class GardenBeds
             ToolStatus.Banner(droughtKilled == 1 ? "A garden bed's crop died - the soil dried out" : $"{droughtKilled} garden beds' crops died - the soil dried out", 8f);
         if (bolted > 0)
             ToolStatus.Banner("Lettuce bolted in the heat and went to seed", 6f);
+        if (atRiskUncovered + atRiskCovered > 0)
+            ToolStatus.Banner(GardenRules.FrostAlert(atRiskUncovered, atRiskCovered, lowTonight), 12f);
     }
 
     // What the bed looks like, coarsely: redrawn only when this changes (stage, plant size in tenths, soil wet or dry, a pick waiting).
     static string LookKey(WoodPileState s) =>
-        $"{StageOf(s)}|{Mathf.FloorToInt(GardenRules.SizeOf(CropOf(s), DryBeans(s), s.jobHours) * 10f)}|{(s.soilMoisture >= 0.3f ? 1 : 0)}|{(PicksReady(s) > 0 ? 1 : 0)}";
+        $"{s.cropFlags}|{StageOf(s)}|{Mathf.FloorToInt(GardenRules.SizeOf(CropOf(s), DryBeans(s), s.jobHours) * 10f)}|{(s.soilMoisture >= 0.3f ? 1 : 0)}|{(PicksReady(s) > 0 ? 1 : 0)}";
 
     // --- Prompts ---
 
@@ -95,22 +116,34 @@ public static class GardenBeds
     public static string Header(WoodPileState s)
     {
         if (!IsDug(s))
+        {
+            if (Raised(s))
+                return ShovelEquipped ? $"Raised Bed - empty frame\nHold click to fill it with soil ({s.digProgress * 100f:0}%)" : GardenRules.RaisedUnfilled;
             return ShovelEquipped ? $"Garden Bed - not dug yet\nHold click to dig it ({s.digProgress * 100f:0}%)" : GardenRules.Undug;
+        }
         GardenRules.Crop crop = CropOf(s);
         string soil = GardenRules.MoistureText(s.soilMoisture);
+        // The second line: the soil's fertility and the Row Cover (GB2).
+        string bed = GardenRules.FertilityText(s.soilSpent) + (Covered(s) ? "; under a Row Cover" : "");
         if (crop == null)
         {
             string hint = !HoeEquipped ? "\n" + GardenRules.NeedHoe : SeedToPlant() == null ? "\n" + GardenRules.NoSeed : "";
-            return $"Garden Bed  (bare, {soil}){hint}";
+            return $"{BedName(s)}  (bare, {soil})\n{bed}{hint}";
         }
         bool dry = DryBeans(s);
         GardenRules.Stage stage = StageOf(s);
         string name = crop.id == GardenRules.BeansCropId ? (dry ? "Beans (left to dry)" : "Beans (picked green)") : crop.name;
         if (stage == GardenRules.Stage.Dead)
-            return $"Garden Bed  ({name}, dead)";
+            return $"{BedName(s)}  ({name}, dead)\n{bed}";
         string status = GardenRules.StageText(stage) + GardenRules.DaysLeftText(crop, dry, s.jobHours) + GardenRules.DamageText(s.cropDamage);
-        return $"Garden Bed  ({name}: {status}; {soil})";
+        return $"{BedName(s)}  ({name}: {status}; {soil})\n{bed}";
     }
+
+    // Fertilizer goes on when the soil is worn and nothing else is to be done with E (GB2).
+    static bool CanFertilize(WoodPileState s) => IsDug(s) && s.soilSpent > 0.01f && Carried(GardenRules.FertilizerId) > 0 && !Dead(s);
+
+    static string FertilizePrompt(WoodPileState s) =>
+        $"Spread Fertilizer  ({GardenRules.FertilizerToRich(s.soilSpent)} to make it rich; you carry {Carried(GardenRules.FertilizerId)})";
 
     // What E does now, in Interact's order (water, plant, clear, harvest), or null when E does nothing.
     public static string ActionE(WoodPileState s)
@@ -124,25 +157,37 @@ public static class GardenBeds
         if (crop == null)
         {
             GardenRules.Crop next = HoeEquipped ? SeedToPlant() : null;
-            return next != null ? GardenRules.PlantPrompt(next, Inventory.Player.Count(next.seedId), GardenRules.TimingWarning(next, CalendarRules.Current, TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0)) : null;
+            if (next != null)
+                return GardenRules.PlantPrompt(next, Inventory.Player.Count(next.seedId), GardenRules.TimingWarning(next, CalendarRules.Current, TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0));
+            return CanFertilize(s) ? FertilizePrompt(s) : null;
         }
         if (dead)
             return "Clear the dead plants";
         int ready = PicksReady(s);
-        return ready > 0 ? $"Harvest {ProduceName(crop, DryBeans(s))} x{GardenRules.PickYield(crop, DryBeans(s), s.cropDamage) * ready}" : null;
+        if (ready > 0)
+            return $"Harvest {ProduceName(crop, DryBeans(s))} x{GardenRules.PickYield(crop, DryBeans(s), s.cropDamage, s.soilSpent) * ready}";
+        return CanFertilize(s) ? FertilizePrompt(s) : null;
     }
 
     public static string Prompt(WoodPileState s) => Header(s) + (ActionE(s) is string e ? "\n" + e : "");
 
+    // R, in Secondary's order: the Shovel takes the bed away; the Hammer raises it; the Hoe picks the seed; beans switch green or dry; then the Row Cover.
     public static string SecondaryPrompt(WoodPileState s)
     {
         GardenRules.Crop crop = CropOf(s);
         if (ShovelEquipped && (crop == null || !IsDug(s)))
-            return IsDug(s) ? "Fill the bed in" : "Take the marked-out bed away";
+            return Raised(s) ? $"Take the raised bed apart  ({GardenRules.RaisedBedLumber} Lumber back)" : IsDug(s) ? "Fill the bed in" : "Take the marked-out bed away";
+        if (HammerEquipped && !Raised(s))
+            return Carried(SawPitRules.LumberId) >= GardenRules.RaisedBedLumber ? $"Make it a raised bed  (uses {GardenRules.RaisedBedLumber} Lumber)"
+                                                                                : $"Make it a raised bed  (needs {GardenRules.RaisedBedLumber} Lumber)";
         if (crop == null && IsDug(s) && HoeEquipped && CarriedCrops().Count > 1)
             return "Pick another seed";
         if (crop != null && crop.id == GardenRules.BeansCropId && !Dead(s) && s.picksTaken == 0 && PicksReady(s) == 0)
             return DryBeans(s) ? "Pick these beans green instead" : "Leave these beans to dry";
+        if (Covered(s))
+            return "Take the Row Cover off";
+        if (IsDug(s) && Carried(GardenRules.RowCoverId) > 0)
+            return "Lay a Row Cover over it  (keeps about 3 C of frost off)";
         return "";
     }
 
@@ -168,7 +213,10 @@ public static class GardenBeds
         }
         if (crop == null)
         {
-            Plant(s);
+            if (!(HoeEquipped && SeedToPlant() != null) && CanFertilize(s))
+                Fertilize(s);
+            else
+                Plant(s);
             return;
         }
         if (Dead(s))
@@ -184,7 +232,24 @@ public static class GardenBeds
             Harvest(s, crop, ready, view);
             return;
         }
+        if (CanFertilize(s))
+        {
+            Fertilize(s);
+            return;
+        }
         ToolStatus.Flash($"{crop.name}: {GardenRules.StageText(StageOf(s))}{GardenRules.DaysLeftText(crop, DryBeans(s), s.jobHours)} ({GardenRules.HardinessText(crop.hardiness)}).", 4f);
+    }
+
+    // One Fertilizer spread on the bed puts back a quarter of a spent soil (GB2).
+    static void Fertilize(WoodPileState s)
+    {
+        if (Inventory.RemoveFromPlayer(GardenRules.FertilizerId, 1) < 1)
+            return;
+        s.soilSpent = GardenRules.AfterFertilizer(s.soilSpent);
+        WoodManager.Instance.NotifyChanged(s);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayDig(s.position);
+        ToolStatus.Flash($"Spread Fertilizer on the bed - {GardenRules.FertilityText(s.soilSpent)}", 3f);
     }
 
     // Every litre of water carried, raw or purified.
@@ -262,7 +327,7 @@ public static class GardenBeds
         s.jobItem = null;
         s.jobHours = 0f;
         s.cropDamage = 0f;
-        s.cropFlags = 0;
+        s.cropFlags &= GardenRules.KeptFlags; // the bed's own flags (raised, covered) stay; the crop's go with it
         s.picksTaken = 0;
     }
 
@@ -270,7 +335,7 @@ public static class GardenBeds
     {
         bool dry = DryBeans(s);
         string produce = GardenRules.ProduceOf(crop, dry);
-        int units = GardenRules.PickYield(crop, dry, s.cropDamage) * picks;
+        int units = GardenRules.PickYield(crop, dry, s.cropDamage, s.soilSpent) * picks;
         ItemDefinition item = ItemDatabase.Get(produce);
         int fits = item != null ? Mathf.Min(units, Inventory.Player.SpaceFor(item)) : 0;
         int took = fits > 0 ? Inventory.AddToPlayer(produce, fits) : 0;
@@ -280,7 +345,10 @@ public static class GardenBeds
         int left = GardenRules.Picks(crop, dry) - s.picksTaken;
         string name = item != null ? item.DisplayName : produce;
         if (GardenRules.Spent(crop, dry, s.picksTaken))
+        {
+            s.soilSpent = GardenRules.AfterCrop(crop, s.soilSpent); // a crop taken to its end wears the soil (beans put a little back)
             ClearCrop(s);
+        }
         WoodManager.Instance.NotifyChanged(s);
         string message = GardenRules.Harvested(units, name, left);
         if (units - took > 0)
@@ -303,9 +371,29 @@ public static class GardenBeds
                 ToolStatus.Flash("Harvest or clear the crop first (E)", 3f);
                 return;
             }
-            bool dug = IsDug(s);
+            bool dug = IsDug(s), raised = Raised(s);
+            // A raised bed's frame comes back as its Lumber, and a Row Cover on the bed comes back too (GB2).
+            if (raised)
+                Inventory.AddToPlayer(SawPitRules.LumberId, GardenRules.RaisedBedLumber);
+            if (Covered(s))
+                Inventory.AddToPlayer(GardenRules.RowCoverId, 1);
             wood.RemovePile(s);
-            ToolStatus.Flash(dug ? "Filled the garden bed in" : "Took the marked-out bed away", 3f);
+            ToolStatus.Flash(raised ? $"Took the raised bed apart - {GardenRules.RaisedBedLumber} Lumber back" : dug ? "Filled the garden bed in" : "Took the marked-out bed away", 3f);
+            return;
+        }
+        if (HammerEquipped && !Raised(s))
+        {
+            if (Inventory.Player.Count(SawPitRules.LumberId) < GardenRules.RaisedBedLumber)
+            {
+                ToolStatus.Flash($"A raised bed's frame takes {GardenRules.RaisedBedLumber} Lumber (saw it at the Saw Pit, or buy it)", 3f);
+                return;
+            }
+            Inventory.RemoveFromPlayer(SawPitRules.LumberId, GardenRules.RaisedBedLumber);
+            s.cropFlags |= GardenRules.FlagRaised;
+            wood.NotifyChanged(s);
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayDig(s.position);
+            ToolStatus.Flash("Built a frame round the bed: it is a raised bed now (warmer soil, and it drains)", 4f);
             return;
         }
         if (crop == null && IsDug(s) && HoeEquipped)
@@ -328,6 +416,21 @@ public static class GardenBeds
             wood.NotifyChanged(s);
             ToolStatus.Flash(DryBeans(s) ? $"These beans will be left to dry on the plant (about {(int)GardenRules.DryBeanDays} growing days); dry beans keep a year"
                                          : $"These beans will be picked green (about {(int)crop.days} growing days, picked {crop.picks} times)", 4f);
+            return;
+        }
+        if (Covered(s))
+        {
+            s.cropFlags &= ~GardenRules.FlagCovered;
+            Inventory.AddToPlayer(GardenRules.RowCoverId, 1);
+            wood.NotifyChanged(s);
+            ToolStatus.Flash("Took the Row Cover off the bed", 2.5f);
+            return;
+        }
+        if (IsDug(s) && Inventory.RemoveFromPlayer(GardenRules.RowCoverId, 1) > 0)
+        {
+            s.cropFlags |= GardenRules.FlagCovered;
+            wood.NotifyChanged(s);
+            ToolStatus.Flash("Laid a Row Cover over the bed: it keeps about 3 C of frost off (take it off in hot weather)", 4f);
             return;
         }
         ToolStatus.Flash(crop == null ? "Equip the Hoe to plant, or a Shovel to fill the bed in" : "Nothing to do here with R", 2.5f);
@@ -355,6 +458,22 @@ public static class GardenBeds
         float h = GardenRules.BedSize / 2f;
         boxCenter = new Vector3(0f, GardenRules.BoxHeight / 2f, 0f);
         boxSize = new Vector3(GardenRules.BedSize, GardenRules.BoxHeight, GardenRules.BedSize);
+        bool raised = Raised(s);
+        float lift = raised ? RaisedLift : 0f;
+        if (raised)
+        {
+            RaisedFrame(parent, pieces, h);
+            boxCenter = new Vector3(0f, 0.2f, 0f);
+            boxSize = new Vector3(GardenRules.BedSize + 0.1f, 0.4f, GardenRules.BedSize + 0.1f);
+        }
+        if (Covered(s))
+            Cover(parent, pieces, h, lift);
+        if (!IsDug(s) && raised)
+        {
+            // An empty frame: the soil rises in it as the Shovel fills it.
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.01f + 0.1f * s.digProgress, 0f), Vector3.zero, new Vector3(h * 2f - 0.04f, 0.02f + 0.2f * s.digProgress, h * 2f - 0.04f)), SoilDry);
+            return;
+        }
         if (!IsDug(s))
         {
             if (!Placed(parent, pieces, Art("structure_gardenbed_marked"), Vector3.zero))
@@ -372,15 +491,17 @@ public static class GardenBeds
             return;
         }
 
-        if (Placed(parent, pieces, Art("structure_gardenbed"), Vector3.zero))
+        if (Placed(parent, pieces, Art("structure_gardenbed"), Vector3.up * lift))
             WetLook(parent.GetChild(parent.childCount - 1), s.soilMoisture);
         else
         {
             Color soil = Color.Lerp(SoilDry, SoilWet, Mathf.Clamp01(s.soilMoisture / 0.7f));
-            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.04f, 0f), Vector3.zero, new Vector3(h * 2f, 0.09f, h * 2f)), soil);
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.04f + lift, 0f), Vector3.zero, new Vector3(h * 2f, 0.09f, h * 2f)), soil);
             for (int i = -1; i <= 1; i++) // three low ridges of turned soil
-                Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(i * h * 0.62f, 0.09f, 0f), Vector3.zero, new Vector3(0.22f, 0.04f, h * 2f - 0.08f)), soil * 0.92f);
+                Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(i * h * 0.62f, 0.09f + lift, 0f), Vector3.zero, new Vector3(0.22f, 0.04f, h * 2f - 0.08f)), soil * 0.92f);
         }
+        if (raised) // the soil under a raised bed's lifted top, filling the frame down to the ground
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, lift / 2f, 0f), Vector3.zero, new Vector3(h * 2f - 0.04f, lift, h * 2f - 0.04f)), SoilWet);
 
         GardenRules.Crop crop = CropOf(s);
         if (crop == null)
@@ -391,11 +512,40 @@ public static class GardenBeds
         bool ready = stage == GardenRules.Stage.Ready;
         bool dead = stage == GardenRules.Stage.Dead;
         GameObject art = Art($"crop_{crop.id}_{stage.ToString().ToLowerInvariant()}");
-        foreach (Vector3 spot in Spots(crop, h))
+        foreach (Vector3 flat in Spots(crop, h))
         {
+            Vector3 spot = flat + Vector3.up * lift;
             if (Placed(parent, pieces, art, spot))
                 continue;
             Plant(parent, pieces, crop, spot, size, ready, dead, dry, PicksReady(s) > 0);
+        }
+    }
+
+    static readonly Color PlankColor = new Color(0.62f, 0.47f, 0.29f);
+    static readonly Color CoverColor = new Color(0.90f, 0.90f, 0.86f);
+
+    // A raised bed's frame: four boards round the square, 30 cm high (GB2). THE SWAP POINT: Resources/Art/structure_gardenbed_raised.prefab.
+    static void RaisedFrame(Transform parent, List<GameObject> pieces, float h)
+    {
+        if (Placed(parent, pieces, Art("structure_gardenbed_raised"), Vector3.zero))
+            return;
+        foreach (float side in new[] { -1f, 1f })
+        {
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, 0.15f, side * (h + 0.025f)), Vector3.zero, new Vector3(h * 2f + 0.1f, 0.3f, 0.05f)), PlankColor);
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side * (h + 0.025f), 0.15f, 0f), Vector3.zero, new Vector3(0.05f, 0.3f, h * 2f)), PlankColor);
+        }
+    }
+
+    // A Row Cover: pale cloth over low hoops, draped to the ground at the sides (GB2). THE SWAP POINT: Resources/Art/structure_gardenbed_cover.prefab.
+    static void Cover(Transform parent, List<GameObject> pieces, float h, float lift)
+    {
+        if (Placed(parent, pieces, Art("structure_gardenbed_cover"), Vector3.up * lift))
+            return;
+        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, lift + 0.55f, 0f), Vector3.zero, new Vector3(h * 2f, 0.01f, h * 2f)), CoverColor);
+        foreach (float side in new[] { -1f, 1f })
+        {
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, lift + 0.275f, side * h), Vector3.zero, new Vector3(h * 2f, 0.55f, 0.01f)), CoverColor);
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(side * h, lift + 0.275f, 0f), Vector3.zero, new Vector3(0.01f, 0.55f, h * 2f)), CoverColor);
         }
     }
 

@@ -47,6 +47,7 @@ public static class TanningVatRules
     public const int DigBlows = 10;
     public const int BuildBlows = 20;
     public const float ReachMetres = 1.0f;   // the trough's half-diagonal (1.6 m by 0.9 m), for the trees on its spot
+    public static readonly string DugBanner = $"The vat pit is dug - now deliver {Logs} Logs and {Clay} Clay with R, in any order.";
     public const string BuiltMessage = "Tanning Vat built - load Rawhide, Tanbark and water (R), then start the soak (E).";
 
     // --- The soak ---

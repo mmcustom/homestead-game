@@ -1000,6 +1000,13 @@ MonoBehaviour:
     kind: 1
     seasonalBuy: 0
     sellCents: 0
+  - itemId: row_cover
+    group: 7
+    pool: row_cover
+    baseCents: 600
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400

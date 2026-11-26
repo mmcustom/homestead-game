@@ -176,6 +176,16 @@ Because worn clothing adds warmth, it can also make the player too hot in summer
 - **The Leatherwork screen** lists seven goods (rows 80 px, the text unchanged); keys 1-7 choose.
 - **Art:** Rawhide Lashing and the Leather Pack, each with an icon.
 
+### Leather stock at the bench (Mike's play-test, 2026-11-25)
+
+Mike: "we can't stage materials for leatherwork?" Now the bench holds leather goods as stock, like the wood:
+- **What it holds:** Buckskin 6, Tanned Furs 4, Sinew 4, Rawhide 4, Leather 4. At least twice the biggest need of any piece.
+- **The Rawhide Lashing is not stocked.** It is one of the bench's own finished pieces, so a Lashing lying in the bench would read as a piece waiting to be collected. The Leather Pack's Lashing still comes from the pack.
+- **Putting it in:** R at the bench (no Hammer), or the Leatherwork screen's new **PUT MY MATERIALS IN THE BENCH** button (or R on that screen). Both store everything the pack carries that the bench stocks, wood and leather alike, up to the caps.
+- **Starting a piece:** it counts the bench and the pack together, and takes from the bench first, then the pack for the rest.
+- **The screen:** the status line shows what the bench holds of each leather good. Each need line reads like "Buckskin - need 3 - bench 2 + pack 1 - enough".
+- **Dismantling** the Workshop gives the leather stock back whole, as it does the wood.
+
 ## 7. The Trading Post (proposed)
 
 | Item | Raw | Step 1 | Step 2 |

@@ -247,6 +247,8 @@ public static class MarketCatalog
         Row("carrot", MarketGroup.Produce, GardenRules.Crops[6].produceCents, MarketKind.Bought),
         Row("squash", MarketGroup.Produce, GardenRules.Crops[7].produceCents, MarketKind.Bought),
         Row("kale", MarketGroup.Produce, GardenRules.Crops[8].produceCents, MarketKind.Bought),
+        // Gardening GB2 (2026-11-25): the Row Cover on the shelf (GardenRules has the price).
+        Row(GardenRules.RowCoverId, MarketGroup.Stocked, GardenRules.RowCoverStoreCents, MarketKind.Stocked),
     };
 
     public static readonly MarketGroupRule[] Groups =

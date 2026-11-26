@@ -217,9 +217,38 @@ public static class ClothingRules
         return rows;
     }
 
-    // The need line on the Leatherwork screen: the pack, not the bench, supplies a leather piece.
+    // The need line on the Leatherwork screen when only the pack counts.
     public static string NeedText(WorkshopRules.NeedRow row) =>
         $"{row.label} - need {row.need} - you carry {row.have} - " + (row.enough ? "enough" : $"short by {row.Short}");
+
+    // The need line with the bench's stock (Mike's play-test, 2026-11-25): row.have is the bench and the pack together, bench is the bench's part.
+    // "Buckskin - need 3 - bench 1 + pack 1 - short by 1".
+    public static string NeedText(WorkshopRules.NeedRow row, int bench) =>
+        $"{row.label} - need {row.need} - bench {bench} + pack {Math.Max(0, row.have - bench)} - " + (row.enough ? "enough" : $"short by {row.Short}");
+
+    // How many of one need come out of the bench: as many as it holds, up to the need. The rest comes from the pack.
+    public static int TakeFromBench(int need, int bench) => Math.Max(0, Math.Min(need, bench));
+
+    // The Leatherwork screen's status line: a finished piece, the running job, or the idle bench and the leather goods in it.
+    public static string BenchLine(bool working, WorkshopRules.Recipe made, float hoursLeft, bool waiting, WorkshopRules.Recipe waitingPiece, Func<string, int> bench)
+    {
+        if (waiting)
+            return $"A {waitingPiece.name} is ready - collect it";
+        if (working)
+            return $"Making a {made.name}, {WorkshopRules.HoursText(hoursLeft)} to go";
+        return $"Bench holds: {bench(BuckskinId)} Buckskin, {bench(TannedFursId)} Tanned Furs, {bench(SinewId)} Sinew, {bench(RawhideId)} Rawhide, {bench(LeatherId)} Leather";
+    }
+
+    // The stock button on the Leatherwork screen (it stores every bench material the pack carries, wood and leather alike).
+    public static string StockButtonText(WorkshopRules.StockGate gate)
+    {
+        switch (gate)
+        {
+            case WorkshopRules.StockGate.Can: return "PUT MY MATERIALS IN THE BENCH";
+            case WorkshopRules.StockGate.BenchFull: return "BENCH IS FULL OF WHAT YOU CARRY";
+            default: return "NOTHING TO PUT IN THE BENCH";
+        }
+    }
 
     // A list row: the name and slot, then the hours and what the Trading Post pays now (cents; 0 shows the base price).
     public static string ListLabel(Piece piece, long sellCents) =>
@@ -270,15 +299,15 @@ public static class ClothingRules
             case WorkshopRules.Gate.Busy: return $"A {made.name} is {WorkshopRules.HoursText(hoursLeft)} from done.";
             case WorkshopRules.Gate.ProductWaiting: return "A finished piece is waiting: collect it first.";
             case WorkshopRules.Gate.NoTool: return "Carry a Knife to cut and sew leather.";
-            case WorkshopRules.Gate.ShortOfStock: return $"Your pack is short {ShortText(chosen, count)}.";
-            default: return "Takes the materials from your pack.";
+            case WorkshopRules.Gate.ShortOfStock: return $"The bench and your pack are short {ShortText(chosen, count)}. Bring more: R puts it in the bench.";
+            default: return "Takes the materials from the bench first, then your pack.";
         }
     }
 
     // --- Keys on the Leatherwork screen: 1-7 choose, Up and Down move, Enter starts, W switches to Woodwork ---
 
-    public enum Key { None, Digit, Up, Down, Enter, Woodwork }
-    public enum ActionKind { None, Choose, Start, Woodwork }
+    public enum Key { None, Digit, Up, Down, Enter, Woodwork, Stock }
+    public enum ActionKind { None, Choose, Start, Woodwork, Stock }
 
     public static (ActionKind kind, int choice) Resolve(Key key, int digit, int selected, int count)
     {
@@ -289,11 +318,12 @@ public static class ClothingRules
             case Key.Down: return (ActionKind.Choose, Math.Min(count - 1, selected + 1));
             case Key.Enter: return (ActionKind.Start, selected);
             case Key.Woodwork: return (ActionKind.Woodwork, selected);
+            case Key.Stock: return (ActionKind.Stock, selected);
             default: return (ActionKind.None, selected);
         }
     }
 
-    public const string KeyHint = "1-7 choose    Up/Down move    Enter start    W woodwork    Esc close";
+    public const string KeyHint = "1-7 choose    Up/Down move    Enter start    R stock    W woodwork    Esc close";
 
     // --- The Inventory's Wearing panel ---
 

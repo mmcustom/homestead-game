@@ -196,6 +196,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawPitSite:
             case PileKind.SawmillSite:
             case PileKind.TanningVatSite:
+            case PileKind.RaisedBedSite:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -227,6 +228,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawPitSite: return PileKind.SawPit;
             case PileKind.SawmillSite: return PileKind.Sawmill;
             case PileKind.TanningVatSite: return PileKind.TanningVat;
+            case PileKind.RaisedBedSite: return PileKind.GardenBed; // a Garden Bed with the Raised flag, its frame still to fill (FinishSite)
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -266,6 +268,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawPitSite: return SawPitCost();
             case PileKind.SawmillSite: return SawmillCost();
             case PileKind.TanningVatSite: return TanningVatCost();
+            case PileKind.RaisedBedSite: return new[] { new WoodStack { itemId = SawPitRules.LumberId, count = GardenRules.RaisedBedLumber } };
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -315,6 +318,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { SawmillRules.LogsId, SawmillRules.LumberId, SawmillRules.IronBarId, SawmillRules.CordageId, SawmillRules.StoneId } }; // all five, in any order
         if (site == PileKind.TanningVatSite)
             return new[] { new[] { TanningVatRules.LogsId, TanningVatRules.ClayId } }; // both, in any order, once the pit is dug
+        if (site == PileKind.RaisedBedSite)
+            return new[] { new[] { SawPitRules.LumberId } };
         if (site == PileKind.RootCellarSite)
             return new[] { new[] { RootCellarRules.StoneId, RootCellarRules.LogsId, RootCellarRules.LumberId } }; // all three, in any order, once it is dug
         if (site == PileKind.SmithySite)
@@ -471,6 +476,7 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawPitSite: return SawPitRules.BuildBlows;
             case PileKind.SawmillSite: return SawmillRules.BuildBlows;
             case PileKind.TanningVatSite: return TanningVatRules.BuildBlows;
+            case PileKind.RaisedBedSite: return GardenRules.RaisedBedBuildBlows;
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -524,6 +530,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return SawmillRules.BuiltMessage;
         if (site == PileKind.TanningVatSite)
             return TanningVatRules.BuiltMessage;
+        if (site == PileKind.RaisedBedSite)
+            return "Raised bed frame built - fill it with soil: equip the Shovel and hold click on it.";
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -543,6 +551,14 @@ public class WellsAndOuthouses : MonoBehaviour
             site.contaminatedHours = 0f;
         }
         site.builtDay = Today;
+        // A Raised Bed's frame becomes a Garden Bed with the Raised flag, empty until the Shovel fills it (its dig) (GB2).
+        if (was == PileKind.RaisedBedSite)
+        {
+            site.cropFlags = GardenRules.FlagRaised;
+            site.digProgress = 0f;
+            site.soilMoisture = GardenRules.StartMoisture;
+            site.soilSpent = 0f;
+        }
         // The hearth stage's last blow puts the hearth on its slab: an ordinary Campfire, unlit and out of fuel until it is tended.
         if (was == PileKind.KitchenSite && FireManager.Instance != null && FireManager.Instance.FireNear(WoodManager.KitchenHearthSpot(site), 0.75f) == null)
             FireManager.Instance.BuildFurnished(WoodManager.KitchenHearthSpot(site), site.yaw);

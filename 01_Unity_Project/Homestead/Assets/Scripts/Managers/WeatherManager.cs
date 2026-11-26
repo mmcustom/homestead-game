@@ -711,6 +711,27 @@ public class WeatherManager : MonoBehaviour, ISaveable
         return Mathf.Min(temperature, maxTemperatureC);
     }
 
+    // The coldest the coming night is expected to get (Gardening GB2's frost alert): TargetTemperatureC's formula at the bottom of the daily curve, with
+    // today's offset and the weather now. The weather can still change before morning, so it is a forecast, not a promise. No side effects.
+    public float ExpectedNightLowC()
+    {
+        TimeManager time = TimeManager.Instance;
+        if (time == null)
+            return 10f;
+        int season = (int)time.CurrentSeason;
+        float progress = time.SeasonProgress;
+        int neighbour = progress < 0.5f ? (season + SeasonCount - 1) % SeasonCount : (season + 1) % SeasonCount;
+        float blend = Mathf.Abs(progress - 0.5f);
+        float high = Mathf.Lerp(seasons[season].highC, seasons[neighbour].highC, blend);
+        float low = Mathf.Lerp(seasons[season].lowC, seasons[neighbour].lowC, blend);
+        float wave = HeatWaveIntensity;
+        float t = high - (high - low) * (1f - heatWaveNightCoolingCut * wave) + dailyTemperatureOffset + weatherTypes[(int)current].temperatureOffsetC + heatWaveStrengthC * wave;
+        t += DifficultyOffsetC(t);
+        if (current == WeatherType.Snow)
+            t = Mathf.Min(t, 0f);
+        return Mathf.Min(t, maxTemperatureC);
+    }
+
     // Difficulty's temperature offset in the harmful direction (Core Temperature Model): Pioneer is colder in cold weather
     // and hotter in hot weather, Homesteader the reverse, easing through zero between the two temperatures below.
     float DifficultyOffsetC(float baseC) =>

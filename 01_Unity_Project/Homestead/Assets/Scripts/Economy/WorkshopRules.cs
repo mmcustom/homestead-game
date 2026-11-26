@@ -34,10 +34,67 @@ public static class WorkshopRules
 
     public static readonly string[] StockIds = { LogsId, BranchesId, CordageId };
 
-    public static bool IsStockId(string itemId) => Array.IndexOf(StockIds, itemId) >= 0;
+    // Leatherwork stock (Mike's play-test, 2026-11-25: "we can't stage materials for leatherwork?"): the bench also holds the leather goods a piece is sewn from, so they can
+    // be brought over a few trips. A leather piece takes from the bench first, then the pack. The Rawhide Lashing is left out: it is one of the bench's own finished pieces,
+    // and a Lashing lying in the bench would read as a piece waiting to be collected, so it is only ever counted from the pack.
+    public const int BuckskinCap = 6;
+    public const int TannedFursCap = 4;
+    public const int SinewCap = 4;
+    public const int RawhideCap = 4;
+    public const int LeatherCap = 4;
 
-    public static int CapOf(string itemId) =>
-        itemId == LogsId ? LogsCap : itemId == BranchesId ? BranchesCap : itemId == CordageId ? CordageCap : 0;
+    public static readonly string[] LeatherStockIds =
+        { ClothingRules.BuckskinId, ClothingRules.TannedFursId, ClothingRules.SinewId, ClothingRules.RawhideId, ClothingRules.LeatherId };
+
+    // Everything the bench holds as stock: the woodwork's three, then the leather goods.
+    public static string[] AllStockIds
+    {
+        get
+        {
+            var all = new string[StockIds.Length + LeatherStockIds.Length];
+            StockIds.CopyTo(all, 0);
+            LeatherStockIds.CopyTo(all, StockIds.Length);
+            return all;
+        }
+    }
+
+    public static bool IsLeatherStockId(string itemId) => Array.IndexOf(LeatherStockIds, itemId) >= 0;
+
+    public static bool IsStockId(string itemId) => Array.IndexOf(StockIds, itemId) >= 0 || IsLeatherStockId(itemId);
+
+    public static int CapOf(string itemId)
+    {
+        switch (itemId)
+        {
+            case LogsId: return LogsCap;
+            case BranchesId: return BranchesCap;
+            case CordageId: return CordageCap;
+            case ClothingRules.BuckskinId: return BuckskinCap;
+            case ClothingRules.TannedFursId: return TannedFursCap;
+            case ClothingRules.SinewId: return SinewCap;
+            case ClothingRules.RawhideId: return RawhideCap;
+            case ClothingRules.LeatherId: return LeatherCap;
+            default: return 0;
+        }
+    }
+
+    public static string LeatherCapsText =>
+        $"{BuckskinCap} Buckskin, {TannedFursCap} Tanned Furs, {SinewCap} Sinew, {RawhideCap} Rawhide and {LeatherCap} Leather";
+
+    // Whether the pack can put anything in the bench, over any list of stock: something carried that the bench is below its cap on.
+    public static StockGate StockStateOf(string[] ids, Func<string, int> carried, Func<string, int> held)
+    {
+        bool any = false, room = false;
+        foreach (string id in ids)
+        {
+            if (carried(id) <= 0)
+                continue;
+            any = true;
+            if (held(id) < CapOf(id))
+                room = true;
+        }
+        return !any ? StockGate.NothingCarried : room ? StockGate.Can : StockGate.BenchFull;
+    }
 
     // Whether the bench takes one more of this: it is a stock material and below its cap.
     public static bool Accepts(string itemId, int held) => IsStockId(itemId) && held < CapOf(itemId);

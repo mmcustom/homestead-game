@@ -44,7 +44,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite, RaisedBedSite }
 
 [Serializable]
 public class WoodPileState
@@ -84,6 +84,7 @@ public class WoodPileState
     public float cropDamage;
     public int cropFlags;
     public int picksTaken;
+    public float soilSpent;   // Gardening GB2: how worn a Garden Bed's soil is, 0 rich (a bed from before GB2) to 1 spent (GardenRules)
 
     public int Count(string itemId)
     {
@@ -340,6 +341,7 @@ public class WoodPileState
             case PileKind.SawPitSite:
             case PileKind.SawmillSite:
             case PileKind.TanningVatSite:
+            case PileKind.RaisedBedSite:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
             // The Workshop's bench takes Logs, Branches and Cordage up to WorkshopRules' caps (its finished piece is not something to put back).
             case PileKind.Workshop: return WorkshopRules.Accepts(itemId, Count(itemId));
@@ -1183,9 +1185,12 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     // CabinSite, not Cabin, is what the player actually builds from the Inventory screen — the finished Cabin only
     // ever comes from CompleteCabin, converting an already-stocked site in place.
+    // A garden bed square, dug or raised, or a Raised Bed's site (GB2): they stand side by side.
+    public static bool IsBedKind(PileKind kind) => kind == PileKind.GardenBed || kind == PileKind.RaisedBedSite;
+
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.SaltBarrel, PileKind.CompostBin, PileKind.DryingRack, PileKind.HideFrame, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.TanningVatSite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.TanningVatSite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -1213,6 +1218,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.HideFrame: return "Hide Frame";
             case PileKind.TanningVat: return "Tanning Vat";
             case PileKind.TanningVatSite: return "Tanning Vat Site";
+            case PileKind.RaisedBedSite: return "Raised Bed Site";
             case PileKind.SawmillSite: return "Sawmill Site";
             case PileKind.Sawmill: return "Sawmill";
             case PileKind.GardenBed: return "Garden Bed";
@@ -1477,8 +1483,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             reason = aimed ? "The ground there is too steep." : "The ground in front of you is too steep.";
             return false;
         }
-        // A Garden Bed wants open sky: no tree trunk on it or right beside it.
-        if (kind == PileKind.GardenBed && FindTree(spot.point, GardenRules.TreeClearance) >= 0)
+        // A Garden Bed (and a Raised Bed's site) wants open sky: no tree trunk on it or right beside it.
+        if (IsBedKind(kind) && FindTree(spot.point, GardenRules.TreeClearance) >= 0)
         {
             reason = "Too close to a tree - a garden bed needs open sky.";
             return false;
@@ -1532,8 +1538,8 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
         foreach (WoodPileState other in piles)
         {
-            // Garden Beds stand side by side (a bed square each): only the beds themselves must not overlap.
-            if (kind == PileKind.GardenBed && other.kind == PileKind.GardenBed)
+            // Garden Beds stand side by side (a bed square each, a Raised Bed's site too): only the beds themselves must not overlap.
+            if (IsBedKind(kind) && IsBedKind(other.kind))
             {
                 if (Vector3.Distance(other.position, spot.point) < GardenRules.BedClearance)
                 {
@@ -1703,7 +1709,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.SawPitSitePlaced);
         if (kind == PileKind.SawmillSite && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.SawmillSitePlaced);
-        if (kind == PileKind.GardenBed && JournalManager.Instance != null)
+        if ((kind == PileKind.GardenBed || kind == PileKind.RaisedBedSite) && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.GardenBedPlaced);
         if (kind == PileKind.GardenBed)
             pile.soilMoisture = GardenRules.StartMoisture;

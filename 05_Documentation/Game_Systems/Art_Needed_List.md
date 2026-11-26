@@ -1331,3 +1331,10 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Anchors: Anchor_Grip_R at the right handle, Anchor_Grip_L at the left handle (Unity -0.34, 0, 0), Anchor_Tip at the blade's middle. Held two-handed.
 - item_bark_spud (the icon) is the same model without the anchors. Source: `Art/Blender_Work/tool_bark_spud/`.
 - The Tanning Vat Site (staged since 2026-11-25) uses primitive stakes, the dug pit and the delivered Logs and Clay; its build icon is the finished vat.
+
+## Gardening GB2 art (2026-11-25, awaiting Mike's in-game check)
+- structure_gardenbed_raised: the raised bed's frame, four boards 30 cm high round the 1.2 m square with corner posts; 96 tris, parts plank and post.
+  The soil art (structure_gardenbed) and the plants sit 15 cm higher inside it. Its build icon is the Raised Bed Site's.
+- structure_gardenbed_cover: the Row Cover, a pale cloth tunnel over three hoops, sagging between them and draped to the ground at the ends; 2,096 tris.
+- item_row_cover: the folded Row Cover tied with twine (the icon). The first try read as a stack of plates; remade as squarer folded layers.
+- Sources: `Art/Blender_Work/structure_gardenbed_raised/`, `structure_gardenbed_cover/`, `item_row_cover/`.
