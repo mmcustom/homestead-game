@@ -370,7 +370,7 @@ public class WorkshopTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(61), "nothing was inserted in the middle");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(64), "nothing was inserted in the middle (the three garden fence kinds came last, GB4a)");
     }
 
     [Test]
@@ -742,7 +742,7 @@ public class WorkshopTests
         Assert.That(names, Does.Contain("jobHours"));
         Assert.That(names.Length, Is.EqualTo(23), "GB3b added chillDays; a2-1 added no saved field; the Garden Bed (GB1) added four; Pottery P1 added jobCount; the Leach Hopper stock added hopperWater and hopperBatch");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(61), "only the Potter and Kiln kinds were added");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(64), "the Potter and Kiln kinds, then the rest appended through the garden fences (GB4a)");
     }
 
     // --- The Workshop screen's text ---

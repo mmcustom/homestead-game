@@ -14,6 +14,8 @@ using UnityEngine;
 // Slice GB3a (Mike, 2026-11-25, Gardening_Basics.md 9c): with the Hoe in hand, R on a growing square marks it "save for seed"; it is left past ready until the seed is ripe and E
 // collects seed for 4 squares and a little food. Corn needs 2 squares of its kind saved together (checked as it flowers). Seed keeps the day it was bought or saved and old seed
 // sprouts less; Tomato Seed saved from your own tomatoes is sown straight into the bed.
+// Slice GB4a (Mike, 2026-11-25, Gardening_Basics.md 9d): at dawn and at dusk a rabbit or a deer may nibble an open bed's crop (FenceRules: light nibbling); a closed ring of
+// fence round the bed keeps them out (wattle keeps rabbits out, deer fence both). The bed's second line says how it is fenced.
 // THE SWAP POINT for the plants: Resources/Art/crop_<crop id>_<stage>.prefab (stage: sprouting, growing, maturing, ready, dead), placed at each plant's spot, replaces that crop's
 // primitive plant for that stage; Resources/Art/structure_gardenbed.prefab replaces the dug soil and Resources/Art/structure_gardenbed_marked.prefab the stakes of an undug bed.
 public static class GardenBeds
@@ -76,6 +78,11 @@ public static class GardenBeds
         bool alertHour = TimeManager.Instance != null && TimeManager.Instance.Hour == GardenRules.AlertHour && WeatherManager.Instance != null;
         float lowTonight = alertHour ? WeatherManager.Instance.ExpectedNightLowC() : 99f;
         int atRiskUncovered = 0, atRiskCovered = 0;
+        // Raids (GB4a): at dawn and at dusk, against the fences standing now.
+        int hourNow = TimeManager.Instance != null ? TimeManager.Instance.Hour : -1;
+        bool raidHour = FenceRules.IsRaidHour(hourNow);
+        List<FenceRules.Segment> fences = raidHour ? wood.FenceSegments() : null;
+        int rabbitBeds = 0, deerBeds = 0;
         var lonelyCorn = new List<string>();
         var wintered = new List<string>();
         foreach (WoodPileState bed in wood.Piles)
@@ -133,9 +140,16 @@ public static class GardenBeds
                 else
                     droughtKilled++;
             }
+            if (raidHour && crop != null && !Dead(bed) && Raid(bed, crop, fences, out bool rabbit, out bool deer))
+            {
+                if (rabbit) rabbitBeds++;
+                if (deer) deerBeds++;
+            }
             if (LookKey(bed) != before)
                 wood.NotifyChanged(bed);
         }
+        if (rabbitBeds + deerBeds > 0)
+            ToolStatus.Banner(FenceRules.RaidBanner(rabbitBeds, deerBeds, hourNow == FenceRules.DawnHour), 8f);
         if (frostKilled > 0)
             ToolStatus.Banner(frostKilled == 1 ? "Frost killed the crop in a garden bed" : $"Frost killed the crops in {frostKilled} garden beds", 8f);
         if (droughtKilled > 0)
@@ -148,6 +162,21 @@ public static class GardenBeds
             ToolStatus.Banner($"The {name} saved for seed has had its winter: it will flower and set seed as it grows on", 8f);
         foreach (string name in lonelyCorn)
             ToolStatus.Banner($"Your {name} saved for seed flowered without enough {name} beside it: it won't set good seed (save 2 or more squares together)", 10f);
+    }
+
+    // One raid hour for one bed (GB4a): a rabbit, a deer, both or neither come, if the fences let them and the crop is one they eat, and each nibbles its share.
+    static bool Raid(WoodPileState bed, GardenRules.Crop crop, List<FenceRules.Segment> fences, out bool rabbit, out bool deer)
+    {
+        FenceRules.Protection fenced = FenceRules.ProtectionAt(fences, new FenceRules.Point(bed.position.x, bed.position.z));
+        bool young = StageOf(bed) == GardenRules.Stage.Sprouting;
+        rabbit = !fenced.rabbits && FenceRules.RabbitEats(crop.id, young) && Random.value < FenceRules.RabbitChance;
+        deer = !fenced.deer && FenceRules.DeerEats(crop.id) && Random.value < FenceRules.DeerChance;
+        if (!rabbit && !deer)
+            return false;
+        bed.cropDamage = GardenRules.Clamp01(bed.cropDamage + (rabbit ? FenceRules.RabbitBite : 0f) + (deer ? FenceRules.DeerBite : 0f));
+        if (bed.cropDamage >= 1f)
+            bed.cropFlags |= GardenRules.FlagDead;
+        return true;
     }
 
     // Living squares of this crop saved for seed and grown at least this far (corn that is flowering, or near it).
@@ -180,6 +209,9 @@ public static class GardenBeds
         string soil = GardenRules.MoistureText(s.soilMoisture);
         // The second line: the soil's fertility and the Row Cover (GB2).
         string bed = GardenRules.FertilityText(s.soilSpent) + (Covered(s) ? "; under a Row Cover" : "") + (Mulched(s) ? "; mulched for winter" : "");
+        // How it is fenced (GB4a), while something grows in it.
+        if (CropOf(s) != null && !Dead(s) && WoodManager.Instance != null)
+            bed += "\n" + FenceRules.ProtectionText(WoodManager.Instance.FenceProtectionAt(s.position));
         if (crop == null)
         {
             string hint = !HoeEquipped ? "\n" + GardenRules.NeedHoe : !SeedToPlant().HasValue ? "\n" + GardenRules.NoSeed : "";

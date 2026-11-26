@@ -129,6 +129,15 @@ Each slice is played and approved by Mike before the next one starts, with its a
 3. **Seed age:** yes, seed ages. Old seed sprouts less often, then not at all.
 4. **Order:** the one-year crops first (GB3a). Carrots and kale, which make seed only in their second year, come in GB3b after Mike plays GB3a.
 
+## 9d. Mike's answers for slice GB4 (2026-11-25)
+
+1. **Fences are built panel by panel:** fence sections and a gate, placed one at a time. A bed is protected only once the ring round it is closed.
+2. **Raids are light nibbling:** a rabbit takes about a twentieth of a square, a deer about a tenth. They are a nuisance more than a threat.
+3. **You see the raiders when you're near:** at dawn and dusk a deer or rabbit walks to an open bed and eats, and you can chase or hunt it. Away from the garden, raids are worked out hour by hour.
+4. **Costs:** the wattle fence is homemade (Sticks and Branches woven between stakes; keeps rabbits out). The deer fence uses Logs for posts plus Wire Mesh rolls from the Trading Post (keeps both out).
+
+Split for building: **GB4a** is the fences, the closed-ring check and the raids worked out by the hour with a morning message. **GB4b** is the visible raiders, after Mike plays GB4a.
+
 ---
 
 ## 10. As built: slice GB1 (2026-11-25)
@@ -196,6 +205,32 @@ Mike said to proceed as planned, so these numbers are my defaults (*for Mike to 
 - **Frost:** a carrot root left in for seed is no longer frost-proof. Below about -6 Â°C at the roots it is hurt, and a hard Ohio winter can kill it. Kale is hardy to about -12 Â°C on its own.
 - **Mulch:** E with 4 Tall Grass on a saved carrot or kale square mulches it, keeping about **8 Â°C** of cold off the roots for the rest of its life. It stacks with a Row Cover (3 Â°C). The mulch goes with the crop. The bed shows "mulched for winter", and the 6 pm frost alert counts the mulch.
 - **Saved data:** one new field on a bed, its cold days so far (chillDays); older saves load 0.
+
+## 14. As built: slice GB4a (2026-11-25)
+
+- **Three new builds** under Other on the Build tab, each placed with the Hammer:
+
+  | Build | Size | Cost | Keeps out |
+  |---|---|---|---|
+  | **Wattle Fence** | 2.4 m section, 1 m high | 4 Sticks, 6 Branches | rabbits (deer jump it) |
+  | **Deer Fence** | 2.4 m section, 2.1 m (7 ft) | 1 Log, 1 Wire Mesh | deer and rabbits |
+  | **Gate** | 1.2 m wide, deer-fence height | 2 Lumber, 1 Cordage | counts as deer fence |
+
+- **Wire Mesh:** $15 a roll at the Trading Post, one roll a panel.
+- **The Gate** swings open as you walk into it and shuts behind you, like the cabin and smokehouse doors. Every panel blocks the player.
+- **Placing:** a new panel snaps to the nearest free end of a fence within 1.6 m of where you aim, and runs toward the aim. If another free end lies along its line (within 0.8 m), the panel is cut to fit and closes the gap; the ghost shows it shorter and says "closes the ring - cut to fit". With no fence near, a panel stands on its own and the mouse wheel turns it. A panel may run right beside a bed but not over one, and not through a tree or a building. R with the Hammer takes a panel or gate down (half the materials back).
+- **Protection:** dangling panels are pruned away until only closed rings are left. A bed inside a ring is protected: any ring keeps rabbits out, and a ring of only deer fence and gates keeps deer out too. A planted bed's text says "fenced against deer and rabbits", "fenced against rabbits (deer jump wattle)" or "not fenced - deer and rabbits can get at it".
+- **Raids (light nibbling):** at 6 am and 7 pm, each open bed may be visited.
+
+  | Raider | Chance per raid hour | Bite | Eats |
+  |---|---|---|---|
+  | Rabbit | 2% | a twentieth of the square | lettuce, kale, beans, carrots, and any young plant |
+  | Deer | 0.8% | a tenth | beans, both corns, tomatoes, kale, lettuce, carrots |
+
+  On average an unfenced bed loses about a quarter of a 70-day crop. A banner says what came ("Rabbits nibbled 2 garden beds at dawn - a fence keeps them out").
+- **Saved data:** fence panels are ordinary saved piles (three kinds appended: WattleFence, DeerFence, FenceGate). A cut panel's length is saved in its jobHours, which a fence has no other use for.
+- **Art:** the wattle fence, deer fence, gate frame and Wire Mesh roll, with their build and item icons.
+- **Not yet (GB4b):** seeing the deer and rabbits walk in and eat when you are nearby.
 
 ---
 

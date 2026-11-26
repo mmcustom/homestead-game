@@ -1007,6 +1007,13 @@ MonoBehaviour:
     kind: 0
     seasonalBuy: 0
     sellCents: 0
+  - itemId: wire_mesh
+    group: 7
+    pool: wire_mesh
+    baseCents: 1500
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
   groups:
   - group: 0
     dropBp: 400

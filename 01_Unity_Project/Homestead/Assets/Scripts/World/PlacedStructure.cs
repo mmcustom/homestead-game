@@ -57,6 +57,9 @@ public static class StructureVisuals
             case PileKind.TanningVatSite: BuildTanningVatSite(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.RaisedBedSite: BuildRaisedBedSite(parent, state, pieces, out boxCenter, out boxSize); return;
             case PileKind.GardenBed: GardenBeds.Build(parent, state, pieces, out boxCenter, out boxSize); return; // Gardening_Basics.md (GB1)
+            case PileKind.WattleFence:
+            case PileKind.DeerFence:
+            case PileKind.FenceGate: FenceVisuals.Build(parent, state, bark, pieces, out boxCenter, out boxSize); return; // garden fences (GB4a)
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -1293,6 +1296,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     KilnSmoke smithySmoke;   // a Smithy's, from its chimney
     KilnSmoke smokehouseSmoke; // a Smokehouse's, from its roof vent
     SwingDoor smokehouseDoor;  // a Smokehouse's plank door, swinging open as the player comes up to it (Mike, 2026-11-23)
+    SwingDoor gateLeaf;        // a garden Gate's leaf (GB4a), the same swinging door
 
     public WoodPileState State => state;
 
@@ -1402,6 +1406,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 smokehouseDoor = SwingDoor.Create(transform, new Vector3(-SmokeRules.DoorHalfWidth, SmokeRules.DoorSill, SmokeRules.DoorZ), SmokeRules.DoorHalfWidth * 2f,
                                                   SmokeRules.DoorHeight, 0.045f, Resources.Load<Material>("Art/structure_smokehouse_planks"));
         }
+        if (state.kind == PileKind.FenceGate && gateLeaf == null)
+            gateLeaf = FenceVisuals.GateLeaf(transform, state);
         // Wave 8: a flickering glow and embers in the mouth while it burns (the Smithy's and Bloomery's breathe with the bellows).
         if (state.kind == PileKind.Kiln)
             StructureGlow.Drive(transform, state.kind, WellsAndOuthouses.KilnPhaseOf(state) == PotteryRules.KilnPhase.Firing);
@@ -1470,6 +1476,9 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.HideFrame: return HideFrameActionE();
                 case PileKind.TanningVat: return TanningVatRules.ActionE(VatPhaseNow);
                 case PileKind.GardenBed: return GardenBeds.ActionE(state);
+                case PileKind.WattleFence:
+                case PileKind.DeerFence:
+                case PileKind.FenceGate: return null; // a fence has nothing for E (GB4a)
                 default: return OuthousePrompt();
             }
         }
@@ -3494,6 +3503,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.TanningVat: return VatPromptText();
                 case PileKind.GardenBed: return GardenBeds.Header(state);
                 case PileKind.SawPit: return SawPitHeader();
+                case PileKind.WattleFence:
+                case PileKind.DeerFence:
+                case PileKind.FenceGate:
+                    return FenceRules.Header(WoodManager.FenceTypeOf(state.kind), FenceRules.LengthOf(WoodManager.FenceTypeOf(state.kind), state.jobHours));
                 default: return null;
             }
         }
@@ -3515,6 +3528,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             }
             if (state.kind == PileKind.GardenBed)
                 return GardenBeds.SecondaryPrompt(state);
+            if (WoodManager.IsFenceKind(state.kind))
+                return WoodManager.HammerEquipped ? FenceRules.DismantlePrompt(WoodManager.FenceTypeOf(state.kind)) : "";
             if (state.kind == PileKind.SlopSink)
                 return SinkSecondaryPrompt();
             if (state.kind == PileKind.LeachHopper)
@@ -3593,6 +3608,9 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.HideFrame: HideFrameInteract(); break;
             case PileKind.TanningVat: VatInteract(); break;
             case PileKind.GardenBed: GardenBeds.Interact(state, transform); break;
+            case PileKind.WattleFence:
+            case PileKind.DeerFence:
+            case PileKind.FenceGate: break; // nothing for E at a fence (GB4a)
             default: DigNewPit(player); break;
         }
     }
@@ -3752,6 +3770,10 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         else if (state.kind == PileKind.GardenBed)
         {
             GardenBeds.Secondary(state);
+        }
+        else if (WoodManager.IsFenceKind(state.kind))
+        {
+            Dismantle(); // R with the Hammer takes a fence panel or gate down (Dismantle says so without it)
         }
         else if (state.kind == PileKind.SlopSink)
         {

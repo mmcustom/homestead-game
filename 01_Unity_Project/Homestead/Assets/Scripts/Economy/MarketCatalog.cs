@@ -249,6 +249,8 @@ public static class MarketCatalog
         Row("kale", MarketGroup.Produce, GardenRules.Crops[8].produceCents, MarketKind.Bought),
         // Gardening GB2 (2026-11-25): the Row Cover on the shelf (GardenRules has the price).
         Row(GardenRules.RowCoverId, MarketGroup.Stocked, GardenRules.RowCoverStoreCents, MarketKind.Stocked),
+        // Gardening GB4a (2026-11-25): Wire Mesh for the deer fence, one roll a panel (FenceRules has the price).
+        Row(FenceRules.WireMeshId, MarketGroup.Stocked, FenceRules.WireMeshStoreCents, MarketKind.Stocked),
     };
 
     public static readonly MarketGroupRule[] Groups =

@@ -13,6 +13,8 @@ using UnityEngine.InputSystem;
 //
 // The rules are WoodManager.CanBuildPileAt and FireManager.CanBuildAt — the same ones the build itself asks — evaluated at the
 // ghost, so the red reason and the real refusal can never differ. The Rain Barrel ghost snaps to the nearest eave spot.
+// A garden fence panel or gate (GB4a) snaps to the free end of a fence already standing and runs toward the aim; one that reaches another free end is cut to fit
+// and closes the ring (FenceRules.Place). On its own, it is centred on the aim and the mouse wheel turns it.
 // Creates itself at startup, so nothing has to be added to a scene.
 public class PlacementMode : MonoBehaviour
 {
@@ -45,6 +47,9 @@ public class PlacementMode : MonoBehaviour
     // The Well Site's preview for the spot under the ghost (WellsAndOuthouses.PreviewWell): extra HUD lines, and whether the ghost is amber.
     string previewInfo;
     bool previewWarn;
+    // A fence panel's placement (GB4a): its facing and length where it snapped, used in place of yaw for the ghost and the build.
+    bool fence;
+    float fenceYaw, fenceLength;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     static void ResetStatics()
@@ -120,6 +125,9 @@ public class PlacementMode : MonoBehaviour
             case PileKind.GardenBed:
             case PileKind.TanningVatSite:
             case PileKind.RaisedBedSite:
+            case PileKind.WattleFence:
+            case PileKind.DeerFence:
+            case PileKind.FenceGate:
                 return true;
             default:
                 return false;
@@ -141,6 +149,7 @@ public class PlacementMode : MonoBehaviour
         tripod = isTripod;
         tripodFire = null;
         kind = pileKind;
+        fence = !isCampfire && !isTripod && WoodManager.IsFenceKind(pileKind);
         yaw = player.transform.eulerAngles.y;
         if (!isCampfire && pileKind == PileKind.WoodShedSite)
             yaw = WellsAndOuthouses.DownwindYaw(); // the open front starts facing away from the wind; the wheel turns it
@@ -193,7 +202,10 @@ public class PlacementMode : MonoBehaviour
 
         if (haveSpot)
         {
-            ghost.SetPose(spot.point, yaw);
+            ghost.SetPose(spot.point, fence ? fenceYaw : yaw);
+            // A panel cut to fit is drawn that much shorter.
+            if (fence && ghost.Root != null)
+                ghost.Root.transform.localScale = new Vector3(fenceLength / FenceRules.FullLength(WoodManager.FenceTypeOf(kind)), 1f, 1f);
             ghost.SetValid(valid, previewWarn);
         }
         ghost.SetVisible(haveSpot);
@@ -249,7 +261,7 @@ public class PlacementMode : MonoBehaviour
         }
         else
         {
-            built = WoodManager.Instance.BuildPile(kind, player, spot, yaw);
+            built = fence ? WoodManager.Instance.BuildPile(kind, player, spot, fenceYaw, fenceLength) : WoodManager.Instance.BuildPile(kind, player, spot, yaw);
             builtMessage = $"{Name} built — {CraftingScreen.PileHelp(kind)}";
         }
 
@@ -321,6 +333,12 @@ public class PlacementMode : MonoBehaviour
             return;
         }
 
+        if (fence)
+        {
+            EvaluateFence(aim, out spot, out haveSpot, out valid, out reason, out note);
+            return;
+        }
+
         spot = aim;
         haveSpot = true;
         if (TooFar(spot.point))
@@ -354,6 +372,33 @@ public class PlacementMode : MonoBehaviour
     string TooFarText => $"Too far — come within {reach:0} m.";
 
     bool TooFar(Vector3 point) => Vector3.Distance(player.transform.position, point) > reach;
+
+    // A fence panel: where FenceRules.Place puts it for this aim (snapped to a free end, maybe cut to fit), on the ground at its middle.
+    void EvaluateFence(BuildSpot aim, out BuildSpot spot, out bool haveSpot, out bool valid, out string reason, out string note)
+    {
+        spot = default;
+        haveSpot = false;
+        valid = false;
+        reason = "";
+        note = null;
+        FenceRules.Type type = WoodManager.FenceTypeOf(kind);
+        FenceRules.Placement place = FenceRules.Place(WoodManager.Instance.FenceSegments(), new FenceRules.Point(aim.point.x, aim.point.z), type, yaw);
+        fenceYaw = place.yaw;
+        fenceLength = place.length;
+        if (!GroundAt(new Vector3(place.x, aim.point.y, place.z), out spot))
+        {
+            reason = "Aim at the ground nearby.";
+            return;
+        }
+        haveSpot = true;
+        if (TooFar(spot.point))
+        {
+            reason = TooFarText;
+            return;
+        }
+        valid = WoodManager.Instance.CanBuildPileAt(kind, player, spot, fenceYaw, true, out reason, fenceLength);
+        note = place.closes ? FenceRules.CloseNote : place.snapped ? FenceRules.SnapNote : null;
+    }
 
     // The Tripod's ghost sits on the nearest fire within TripodRules.SnapMetres of where the player aims, facing the way the fire does; it is
     // red for a fire that has a tripod already or for the Grill's fire (the reason says which).
