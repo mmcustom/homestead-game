@@ -771,7 +771,7 @@ public class CreekBankTests
         Assert.That(snow.Select(f => f.Name).ToArray(), Is.EqualTo(new[] { "amount" }), "SeasonalGround still saves only the snow amount");
 
         string[] pile = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
-        Assert.That(pile.Length, Is.EqualTo(22), "WoodPileState gained only the Garden Bed's four (GB1)");
+        Assert.That(pile.Length, Is.EqualTo(23), "GB3b added chillDays; WoodPileState gained only the Garden Bed's four (GB1)");
         FieldInfo version = Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
         Assert.That(version.GetRawConstantValue(), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));

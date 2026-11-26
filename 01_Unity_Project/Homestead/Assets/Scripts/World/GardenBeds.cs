@@ -53,7 +53,10 @@ public static class GardenBeds
     public static bool Dead(WoodPileState s) => (s.cropFlags & GardenRules.FlagDead) != 0;
     public static bool Saving(WoodPileState s) => (s.cropFlags & GardenRules.FlagSeed) != 0;
     public static bool Pollinated(WoodPileState s) => (s.cropFlags & GardenRules.FlagPollinated) != 0;
-    static bool SeedRipe(WoodPileState s) => Saving(s) && !Dead(s) && GardenRules.SeedRipe(CropOf(s), s.jobHours);
+    public static bool Mulched(WoodPileState s) => (s.cropFlags & GardenRules.FlagMulched) != 0;
+    static bool SeedRipe(WoodPileState s) => Saving(s) && !Dead(s) && GardenRules.SeedRipe(CropOf(s), s.jobHours, s.chillDays);
+    // GB3b: a carrot or kale square saved for seed, not yet mulched, with the Tall Grass to mulch it carried.
+    static bool CanMulch(WoodPileState s) => Saving(s) && !Dead(s) && GardenRules.NeedsWinter(CropOf(s)) && !Mulched(s) && Carried(GardenRules.MulchId) >= GardenRules.MulchGrass;
     static int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
     static int DaysPerYear => CalendarRules.Current != null ? CalendarRules.Current.DaysPerYear : 365;
     public static GardenRules.Stage StageOf(WoodPileState s) => GardenRules.StageOf(CropOf(s), DryBeans(s), s.jobHours, s.picksTaken, Dead(s));
@@ -74,6 +77,7 @@ public static class GardenBeds
         float lowTonight = alertHour ? WeatherManager.Instance.ExpectedNightLowC() : 99f;
         int atRiskUncovered = 0, atRiskCovered = 0;
         var lonelyCorn = new List<string>();
+        var wintered = new List<string>();
         foreach (WoodPileState bed in wood.Piles)
         {
             if (bed.kind != PileKind.GardenBed || !IsDug(bed))
@@ -82,17 +86,31 @@ public static class GardenBeds
             string before = LookKey(bed);
             float daysBefore = bed.jobHours;
             bool ready = crop != null && bed.jobHours >= GardenRules.DaysToReady(crop, DryBeans(bed));
-            bool covered = Covered(bed);
-            bool frost = crop != null && GardenRules.FrostDamage(crop, airC + (covered ? GardenRules.CoverProtectionC : 0f), ready) > 0f;
-            if (alertHour && crop != null && !Dead(bed) && GardenRules.FrostRisk(crop, ready, covered, lowTonight))
+            bool covered = Covered(bed), mulched = Mulched(bed), forSeed = Saving(bed);
+            bool frost = crop != null && GardenRules.FrostDamage(crop, airC + (covered ? GardenRules.CoverProtectionC : 0f) + (mulched ? GardenRules.MulchProtectionC : 0f),
+                                                                 GardenRules.FrostProofNow(crop, ready, forSeed)) > 0f;
+            if (alertHour && crop != null && !Dead(bed) && GardenRules.FrostRisk(crop, ready, covered, lowTonight, forSeed, mulched))
             {
                 if (covered) atRiskCovered++;
                 else atRiskUncovered++;
             }
-            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), airC, rainMm, Raised(bed), covered, Saving(bed));
+            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), airC, rainMm, Raised(bed), covered, forSeed, mulched);
             bed.soilMoisture = r.moisture;
             bed.jobHours = r.growingDays;
             bed.cropDamage = r.damage;
+            // Carrots and kale saved for seed (GB3b): once ready, cold hours count toward their winter. When the winter is done, growth starts again from ready
+            // (the spring regrowth), and the seed ripens as it grows on.
+            if (crop != null && forSeed && !Dead(bed) && !r.died && GardenRules.NeedsWinter(crop) && !GardenRules.Chilled(crop, bed.chillDays))
+            {
+                float readyDays = GardenRules.DaysToReady(crop, false);
+                bed.chillDays = GardenRules.ChillAfterHour(bed.chillDays, airC, bed.jobHours >= readyDays);
+                if (GardenRules.Chilled(crop, bed.chillDays))
+                {
+                    bed.jobHours = Mathf.Min(bed.jobHours, readyDays);
+                    if (!wintered.Contains(crop.name))
+                        wintered.Add(crop.name);
+                }
+            }
             // Corn saved for seed sets good seed if, as it flowers (its ready day), enough squares of its kind saved for seed are standing (GB3a).
             if (crop != null && Saving(bed) && !Dead(bed) && GardenRules.PlanFor(crop).squares > 1 && !Pollinated(bed))
             {
@@ -126,6 +144,8 @@ public static class GardenBeds
             ToolStatus.Banner("Lettuce bolted in the heat and went to seed", 6f);
         if (atRiskUncovered + atRiskCovered > 0)
             ToolStatus.Banner(GardenRules.FrostAlert(atRiskUncovered, atRiskCovered, lowTonight), 12f);
+        foreach (string name in wintered)
+            ToolStatus.Banner($"The {name} saved for seed has had its winter: it will flower and set seed as it grows on", 8f);
         foreach (string name in lonelyCorn)
             ToolStatus.Banner($"Your {name} saved for seed flowered without enough {name} beside it: it won't set good seed (save 2 or more squares together)", 10f);
     }
@@ -159,7 +179,7 @@ public static class GardenBeds
         GardenRules.Crop crop = CropOf(s);
         string soil = GardenRules.MoistureText(s.soilMoisture);
         // The second line: the soil's fertility and the Row Cover (GB2).
-        string bed = GardenRules.FertilityText(s.soilSpent) + (Covered(s) ? "; under a Row Cover" : "");
+        string bed = GardenRules.FertilityText(s.soilSpent) + (Covered(s) ? "; under a Row Cover" : "") + (Mulched(s) ? "; mulched for winter" : "");
         if (crop == null)
         {
             string hint = !HoeEquipped ? "\n" + GardenRules.NeedHoe : !SeedToPlant().HasValue ? "\n" + GardenRules.NoSeed : "";
@@ -170,7 +190,7 @@ public static class GardenBeds
         string name = Saving(s) ? $"{crop.name}, saved for seed" : crop.id == GardenRules.BeansCropId ? (dry ? "Beans (left to dry)" : "Beans (picked green)") : crop.name;
         if (stage == GardenRules.Stage.Dead)
             return $"{BedName(s)}  ({name}, dead)\n{bed}";
-        string status = Saving(s) ? GardenRules.SeedStatusText(crop, s.jobHours) + GardenRules.DamageText(s.cropDamage)
+        string status = Saving(s) ? GardenRules.SeedStatusText(crop, s.jobHours, s.chillDays) + GardenRules.DamageText(s.cropDamage)
                                   : GardenRules.StageText(stage) + GardenRules.DaysLeftText(crop, dry, s.jobHours) + GardenRules.DamageText(s.cropDamage);
         return $"{BedName(s)}  ({name}: {status}; {soil})\n{bed}";
     }
@@ -210,6 +230,8 @@ public static class GardenBeds
         int ready = PicksReady(s);
         if (ready > 0)
             return $"Harvest {ProduceName(crop, DryBeans(s))} x{GardenRules.PickYield(crop, DryBeans(s), s.cropDamage, s.soilSpent) * ready}";
+        if (CanMulch(s))
+            return GardenRules.MulchPrompt(Carried(GardenRules.MulchId));
         return CanFertilize(s) ? FertilizePrompt(s) : null;
     }
 
@@ -307,12 +329,22 @@ public static class GardenBeds
             Harvest(s, crop, ready, view);
             return;
         }
+        if (CanMulch(s))
+        {
+            Inventory.RemoveFromPlayer(GardenRules.MulchId, GardenRules.MulchGrass);
+            s.cropFlags |= GardenRules.FlagMulched;
+            wood.NotifyChanged(s);
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayDig(s.position);
+            ToolStatus.Flash(GardenRules.Mulched, 4f);
+            return;
+        }
         if (CanFertilize(s))
         {
             Fertilize(s);
             return;
         }
-        string status = Saving(s) ? GardenRules.SeedStatusText(crop, s.jobHours) : GardenRules.StageText(StageOf(s)) + GardenRules.DaysLeftText(crop, DryBeans(s), s.jobHours);
+        string status = Saving(s) ? GardenRules.SeedStatusText(crop, s.jobHours, s.chillDays) : GardenRules.StageText(StageOf(s)) + GardenRules.DaysLeftText(crop, DryBeans(s), s.jobHours);
         ToolStatus.Flash($"{crop.name}: {status} ({GardenRules.HardinessText(crop.hardiness)}).", 4f);
     }
 
@@ -451,6 +483,7 @@ public static class GardenBeds
         s.cropDamage = 0f;
         s.cropFlags &= GardenRules.KeptFlags; // the bed's own flags (raised, covered) stay; the crop's go with it
         s.picksTaken = 0;
+        s.chillDays = 0f;
     }
 
     static void Harvest(WoodPileState s, GardenRules.Crop crop, int picks, Transform view)

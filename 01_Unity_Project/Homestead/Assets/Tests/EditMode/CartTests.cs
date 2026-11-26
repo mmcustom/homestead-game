@@ -393,7 +393,7 @@ public class CartTests
             "id", "kind", "position", "yaw", "contents", "litres", "contaminatedHours", "digProgress", "builtDay", "buildProgress", "depthToWater", "leachHours", "hopperWater", "hopperBatch",
             "jobItem", "jobHours", // the Workshop's two (W1(a1)), appended after the cart: the cart itself added none
             "jobCount", // the Potter's Shed piece count (Pottery P1), appended after the Workshop's two
-            "soilMoisture", "cropDamage", "cropFlags", "picksTaken", "soilSpent", // the Garden Bed (GB1)
+            "soilMoisture", "cropDamage", "cropFlags", "picksTaken", "soilSpent", "chillDays", // the Garden Bed (GB1, GB2, GB3b)
         };
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
         Assert.That(fields, Is.EquivalentTo(expected), "Phase 1 saves a cart with the fields every pile already has (plus the Workshop's two job fields)");

@@ -187,6 +187,16 @@ Each slice is played and approved by Mike before the next one starts, with its a
 - **Seed age:** every seed packet (bought or saved) keeps the day it was got. It is good for its full life in years, about half comes up in the year after, then none. Planting uses the oldest seed carried first. The plant prompt warns in red when the seed is old, and the Inventory shows the oldest packet's age once it is a year or more (for example "3 yrs old - half sprout"). Seed that fails is used up, and the bed stays bare.
 - **Art:** Tomato Seed packet and icon (item_seed_tomatoes). The plants going to seed reuse the ready look.
 
+## 13. As built: slice GB3b (2026-11-25)
+
+Mike said to proceed as planned, so these numbers are my defaults (*for Mike to confirm in play*):
+- **Saving:** carrots and kale are saved the same way (R with the Hoe on a growing square, before its first pick). They stay in the ground past ready.
+- **Their winter:** once ready, every hour at **7 Â°C or colder** counts toward a winter. After **45 cold days** (about 6 weeks), growth starts again from ready (the spring regrowth), and a banner says the winter is done.
+- **The seed:** it ripens 60 growing days later for carrots and 50 for kale, so it is ready next summer. Carrots give no food (the root is woody by then); kale gives 2 Kale (spring leaves). Seed for 4 squares, as for the other crops.
+- **Frost:** a carrot root left in for seed is no longer frost-proof. Below about -6 Â°C at the roots it is hurt, and a hard Ohio winter can kill it. Kale is hardy to about -12 Â°C on its own.
+- **Mulch:** E with 4 Tall Grass on a saved carrot or kale square mulches it, keeping about **8 Â°C** of cold off the roots for the rest of its life. It stacks with a Row Cover (3 Â°C). The mulch goes with the crop. The bed shows "mulched for winter", and the 6 pm frost alert counts the mulch.
+- **Saved data:** one new field on a bed, its cold days so far (chillDays); older saves load 0.
+
 ---
 
 ## Sources

@@ -32,6 +32,8 @@ public static class GardenRules
     public const int FlagDead = 1, FlagDryBeans = 2, FlagRaised = 4, FlagCovered = 8;
     // GB3: the square is left to go to seed; corn that flowered beside enough corn of its own kind set good seed. Both go with the crop.
     public const int FlagSeed = 16, FlagPollinated = 32;
+    // GB3b: a carrot or kale square saved for seed has been mulched with Tall Grass for the winter. It goes with the crop.
+    public const int FlagMulched = 64;
     public const int KeptFlags = FlagRaised | FlagCovered;
 
     // --- Slice GB2 (Mike, 2026-11-25: Gardening_Basics.md section 9b) ---
@@ -82,8 +84,11 @@ public static class GardenRules
     public const int AlertHour = 18;
     public const float FrostMarginC = 1.5f;
 
-    public static bool FrostRisk(Crop crop, bool ready, bool covered, float lowC) =>
-        crop != null && FrostDamage(crop, lowC + (covered ? CoverProtectionC : 0f) - FrostMarginC, ready) > 0f;
+    public static bool FrostRisk(Crop crop, bool ready, bool covered, float lowC) => FrostRisk(crop, ready, covered, lowC, false, false);
+
+    // With a square saved for seed (a wintering carrot is not frost-proof) and its mulch (GB3b).
+    public static bool FrostRisk(Crop crop, bool ready, bool covered, float lowC, bool forSeed, bool mulched) =>
+        crop != null && FrostDamage(crop, lowC + (covered ? CoverProtectionC : 0f) + (mulched ? MulchProtectionC : 0f) - FrostMarginC, FrostProofNow(crop, ready, forSeed)) > 0f;
 
     public static string FrostAlert(int uncovered, int covered, float lowC)
     {
@@ -307,7 +312,12 @@ public static class GardenRules
         Hour(crop, growingDays, damage, moisture, dryBeans, dead, airC, rainMm, raised, covered, false);
 
     // GB3: a square left to go to seed (forSeed) is meant to bolt, so lettuce going to seed in the heat is neither hurt nor killed by it.
-    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm, bool raised, bool covered, bool forSeed)
+    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm, bool raised, bool covered, bool forSeed) =>
+        Hour(crop, growingDays, damage, moisture, dryBeans, dead, airC, rainMm, raised, covered, forSeed, false);
+
+    // GB3b: mulch keeps MulchProtectionC of cold off a wintering square, and a root left in for seed is no longer frost-proof.
+    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm, bool raised, bool covered, bool forSeed,
+                                  bool mulched)
     {
         var r = new HourResult { growingDays = growingDays, damage = damage, moisture = moisture };
         float drain = raised && moisture > RaisedDrainAbove ? RaisedDrainPerHour : 0f;
@@ -323,7 +333,7 @@ public static class GardenRules
         if (covered && airC > CoverHeatC)
             rate *= CoverHeatFactor;
         r.growingDays = growingDays + rate / 24f;
-        float hurt = FrostDamage(crop, airC + (covered ? CoverProtectionC : 0f), ready);
+        float hurt = FrostDamage(crop, airC + (covered ? CoverProtectionC : 0f) + (mulched ? MulchProtectionC : 0f), FrostProofNow(crop, ready, forSeed));
         if (r.moisture < 0.1f)
             hurt += DroughtDamagePerHour;
         if (crop.boltAfterDays > 0f && airC > crop.heatC && !forSeed)
@@ -428,19 +438,49 @@ public static class GardenRules
             case "tomatoes": return P(TomatoSeedId, 20f, 1, 4, 0.25f);          // overripe fruit: the seed is scooped out, a few are still fit to eat
             case "lettuce": return P("seed_lettuce", 35f, 1, 3, 0f);            // bolted lettuce is bitter
             case "squash": return P("seed_squash", 20f, 1, 4, 0.5f);            // the seed comes from fully ripe fruit, most of which still eats
-            case "carrots": return P("seed_carrots", 0f, 1, 3, 0f, true);
-            case "kale": return P("seed_kale", 0f, 1, 4, 0f, true);
+            case "carrots": return P("seed_carrots", 60f, 1, 3, 0f, true);       // the second summer's flower stalk; the root is woody by then
+            case "kale": return P("seed_kale", 50f, 1, 4, 0.25f, true);          // a few spring leaves before it bolts
             default: return default;                                            // potatoes: their own tubers are the seed
         }
     }
 
-    // Whether R with the Hoe can mark this crop for seed now (GB3a: one-year crops only).
-    public static bool CanSaveSeed(Crop crop) => crop != null && PlanFor(crop).savedSeedId != null && !PlanFor(crop).secondYear;
+    // Whether R with the Hoe can mark this crop for seed (GB3a the one-year crops; GB3b carrots and kale too).
+    public static bool CanSaveSeed(Crop crop) => crop != null && PlanFor(crop).savedSeedId != null;
+
+    // --- Second-year seed (slice GB3b): carrots and kale flower only after a winter in the ground ---
+    // A square saved for seed stays in the bed past ready. Once ready, every hour at or below ChillC counts toward its winter; after ChillDaysNeeded cold days it
+    // has had its winter, its growth starts again from ready (the spring regrowth), and the seed ripens extraDays growing days later. Left in the ground for seed,
+    // a carrot root is no longer frost-proof: a hard winter kills it unless it is mulched (Tall Grass, E), which keeps MulchProtectionC of cold off the roots.
+    // Kale is hardy and usually comes through on its own; mulch helps it too.
+
+    public const float ChillC = 7f;
+    public const float ChillDaysNeeded = 45f;
+    public const string MulchId = "tall_grass";
+    public const int MulchGrass = 4;
+    public const float MulchProtectionC = 8f;
+
+    public static bool NeedsWinter(Crop crop) => crop != null && PlanFor(crop).secondYear;
+
+    // One hour's winter for a ready square saved for seed: a cold hour counts as a twenty-fourth of a cold day.
+    public static float ChillAfterHour(float chillDays, float airC, bool ready) => ready && airC <= ChillC ? chillDays + 1f / 24f : chillDays;
+
+    public static bool Chilled(Crop crop, float chillDays) => !NeedsWinter(crop) || chillDays >= ChillDaysNeeded;
+
+    public static bool SeedRipe(Crop crop, float growingDays, float chillDays) => crop != null && Chilled(crop, chillDays) && growingDays >= SeedDays(crop);
+
+    // Whether frost can reach the crop: a ready carrot is frost-proof under the ground when it is to be dug, but not when it must live through winter for seed.
+    public static bool FrostProofNow(Crop crop, bool ready, bool forSeed) => ready && !(forSeed && NeedsWinter(crop));
+
+    public static string MulchPrompt(int carried) =>
+        $"Mulch it with Tall Grass  (uses {MulchGrass}, you carry {carried}; keeps about {MulchProtectionC:0} C of winter cold off the roots)";
+
+    public const string Mulched = "Mulched the square with Tall Grass: its roots are kept about 8 C warmer through the winter";
 
     // The growing days at which the seed is ripe. Beans saved for seed are left to dry, so they count from the dry-bean day.
     public static float SeedDays(Crop crop) => crop == null ? 0f : DaysToReady(crop, crop.id == BeansCropId) + PlanFor(crop).extraDays;
 
-    public static bool SeedRipe(Crop crop, float growingDays) => crop != null && growingDays >= SeedDays(crop);
+    // The one-year crops (GB3a); a crop that needs a winter is never ripe by days alone (see the overload with its cold days).
+    public static bool SeedRipe(Crop crop, float growingDays) => SeedRipe(crop, growingDays, 0f);
 
     // Seed a ripe square gives: SeedSquaresBack squares' worth, less for a damaged crop (at least 1); none from corn that flowered without enough of its kind.
     public static int SeedYield(Crop crop, float damage, bool pollinated)
@@ -459,7 +499,18 @@ public static class GardenRules
     // Corn sets good seed when, as it flowers (reaching its ready day), at least SeedSquares squares of its own kind saved for seed are standing.
     public static bool Pollinates(Crop crop, int savedSquaresOfItsKind) => crop != null && savedSquaresOfItsKind >= Math.Max(1, PlanFor(crop).squares);
 
-    // Status of a square left to go to seed: growing as usual until ready, then "going to seed", then "seed ripe".
+    // Status of a square left to go to seed: growing as usual until ready, then "going to seed", then "seed ripe". Carrots and kale wait for their winter between.
+    public static string SeedStatusText(Crop crop, float growingDays, float chillDays)
+    {
+        if (!NeedsWinter(crop) || Chilled(crop, chillDays))
+            return SeedStatusText(crop, growingDays);
+        float ready = DaysToReady(crop, false);
+        if (growingDays < ready)
+            return "growing for seed - it must stay in the ground over winter and flowers next year";
+        int left = (int)Math.Ceiling(ChillDaysNeeded - chillDays);
+        return chillDays <= 0f ? $"waiting for winter (it needs about {left} cold days)" : $"wintering over, about {left} cold days to go";
+    }
+
     public static string SeedStatusText(Crop crop, float growingDays)
     {
         float ready = DaysToReady(crop, crop.id == BeansCropId);
@@ -468,7 +519,7 @@ public static class GardenRules
             int d = (int)Math.Ceiling(SeedDays(crop) - growingDays);
             return $"growing for seed, about {d} growing days until the seed is ripe";
         }
-        if (!SeedRipe(crop, growingDays))
+        if (growingDays < SeedDays(crop))
         {
             int d = (int)Math.Ceiling(SeedDays(crop) - growingDays);
             return d == 1 ? "going to seed, about 1 growing day to go" : $"going to seed, about {d} growing days to go";
@@ -484,12 +535,12 @@ public static class GardenRules
     public const string PotatoSeedTip = "Potatoes are their own seed: keep 8 from the harvest to plant a square";
 
     public static string CantSaveText(Crop crop) =>
-        crop == null ? "" : crop.id == PotatoesId ? PotatoSeedTip
-        : PlanFor(crop).secondYear ? $"{crop.name} make seed only in their second year, after a winter - not in the game yet"
-        : $"{crop.name} can't be saved for seed";
+        crop == null ? "" : crop.id == PotatoesId ? PotatoSeedTip : $"{crop.name} can't be saved for seed";
 
     public static string SavingStarted(Crop crop) =>
-        $"This {crop.name} square will be left to go to seed (about {(int)Math.Ceiling(SeedDays(crop))} growing days in all). E collects the seed when it is ripe."
+        NeedsWinter(crop)
+        ? $"This {crop.name} square will be left in the ground for seed: it needs a winter (about {(int)ChillDaysNeeded} cold days) and flowers next year. Mulch it with {MulchGrass} Tall Grass (E) before the hard frosts."
+        : $"This {crop.name} square will be left to go to seed (about {(int)Math.Ceiling(SeedDays(crop))} growing days in all). E collects the seed when it is ripe."
         + (PlanFor(crop).squares > 1 ? $" Save at least {PlanFor(crop).squares} squares of {crop.name} together, or the corn won't set good seed." : "");
 
     public static string SeedCollected(Crop crop, int seed, string seedName, int food, string foodName) =>

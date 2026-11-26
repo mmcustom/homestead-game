@@ -29,14 +29,12 @@ public class GardenGB3Tests
     }
 
     [Test]
-    public void TheOneYearCropsCanBeSavedButNotPotatoesCarrotsOrKale()
+    public void EveryCropButPotatoesCanBeSaved()
     {
-        foreach (string id in new[] { "field_corn", "sweet_corn", "beans", "tomatoes", "lettuce", "squash" })
+        foreach (string id in new[] { "field_corn", "sweet_corn", "beans", "tomatoes", "lettuce", "squash", "carrots", "kale" })
             Assert.That(GardenRules.CanSaveSeed(C(id)), Is.True, id);
-        foreach (string id in new[] { "potatoes", "carrots", "kale" })
-            Assert.That(GardenRules.CanSaveSeed(C(id)), Is.False, id);
+        Assert.That(GardenRules.CanSaveSeed(C("potatoes")), Is.False);
         Assert.That(GardenRules.CantSaveText(C("potatoes")), Is.EqualTo(GardenRules.PotatoSeedTip));
-        Assert.That(GardenRules.CantSaveText(C("carrots")), Does.Contain("second year"));
         Assert.That(GardenRules.PlanFor(C("tomatoes")).savedSeedId, Is.EqualTo("seed_tomatoes"));
         Assert.That(GardenRules.PlanFor(C("beans")).savedSeedId, Is.EqualTo("seed_beans"));
     }
@@ -139,7 +137,7 @@ public class GardenGB3Tests
         Assert.That(gb, Does.Contain("s.jobHours = sowing.startDays;"), "Tomato Seed starts behind a plant");
         Assert.That(gb, Does.Contain("bed.cropFlags |= GardenRules.FlagPollinated;"));
         Assert.That(gb, Does.Contain("Saving(s) ? 0 :"), "a square saved for seed is not picked");
-        Assert.That(gb, Does.Contain("covered, Saving(bed));"), "the hour knows the square is going to seed");
+        Assert.That(gb, Does.Contain("covered, forSeed, mulched);"), "the hour knows the square is going to seed");
         Assert.That(gb, Does.Contain("s.soilSpent = GardenRules.AfterCrop(crop, s.soilSpent);\n        ClearCrop(s);"), "collecting seed wears the soil as any crop does");
         Assert.That(SourceText("Scripts/UI/InventoryScreen.cs"), Does.Contain("SeedAgeOfPack(item)"));
         foreach (string id in new[] { "seed_beans", "seed_carrots", "seed_field_corn", "seed_kale", "seed_lettuce", "seed_squash", "seed_sweet_corn", "seed_tomatoes" })

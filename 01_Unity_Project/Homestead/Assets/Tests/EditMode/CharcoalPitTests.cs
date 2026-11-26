@@ -323,7 +323,7 @@ public class CharcoalPitTests
     public void ThePitUsesTheExistingFieldsAndTheSavedPileGainedNone()
     {
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).OrderBy(n => n).ToArray();
-        Assert.That(fields.Length, Is.EqualTo(22), "the Garden Bed's four (GB1) were the last additions");
+        Assert.That(fields.Length, Is.EqualTo(23), "GB3b added chillDays; the Garden Bed's four (GB1) were the last additions");
         Assert.That(fields, Does.Contain("jobItem").And.Contain("jobHours").And.Contain("jobCount").And.Contain("contents"));
         Assert.That(fields, Does.Contain("hopperWater").And.Contain("hopperBatch"), "the Hopper's fields are untouched");
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("pit") || f.ToLowerInvariant().Contains("charcoal")), Is.False);

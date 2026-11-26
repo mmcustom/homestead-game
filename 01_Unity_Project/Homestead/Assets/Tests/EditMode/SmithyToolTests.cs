@@ -682,7 +682,7 @@ public class SmithyToolTests
     public void NoSavedFieldWasAddedAToolJobUsesJobItemAndJobHoursAndOldSavesLoad()
     {
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
-        Assert.That(fields.Length, Is.EqualTo(22), "the 17 fields and the Garden Bed's four (GB1)");
+        Assert.That(fields.Length, Is.EqualTo(23), "GB3b added chillDays; the 17 fields and the Garden Bed's four (GB1)");
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("stick") || f.ToLowerInvariant().Contains("cordage") || f.ToLowerInvariant().Contains("tool")), Is.False);
         Assert.That(((int)Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static).GetRawConstantValue()), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));

@@ -572,7 +572,7 @@ public class KilnTests
         Assert.That(Static("WellsAndOuthouses", "KilnPhaseOf", doneBack), Is.EqualTo(PotteryRules.KilnPhase.Done));
 
         string[] fields = pile.GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
-        Assert.That(fields.Length, Is.EqualTo(22), "WoodPileState: the Kiln added none; the Garden Bed (GB1) added four; the Leach Hopper stock added hopperWater and hopperBatch");
+        Assert.That(fields.Length, Is.EqualTo(23), "GB3b added chillDays; WoodPileState: the Kiln added none; the Garden Bed (GB1) added four; the Leach Hopper stock added hopperWater and hopperBatch");
         FieldInfo version = Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
         Assert.That(version.GetRawConstantValue(), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));

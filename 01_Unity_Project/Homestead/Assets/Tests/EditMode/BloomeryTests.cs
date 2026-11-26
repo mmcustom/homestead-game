@@ -420,7 +420,7 @@ public class BloomeryTests
     public void TheBloomeryUsesTheExistingFieldsAndTheSavedPileGainedNone()
     {
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
-        Assert.That(fields.Length, Is.EqualTo(22), "the 17 fields and the Garden Bed's four (GB1)");
+        Assert.That(fields.Length, Is.EqualTo(23), "GB3b added chillDays; the 17 fields and the Garden Bed's four (GB1)");
         Assert.That(fields, Does.Contain("jobItem").And.Contain("jobHours").And.Contain("jobCount").And.Contain("contents"));
         Assert.That(fields, Does.Contain("hopperWater").And.Contain("hopperBatch"), "the Hopper's fields are untouched");
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("bloom") || f.ToLowerInvariant().Contains("smelt") || f.ToLowerInvariant().Contains("bar")), Is.False);

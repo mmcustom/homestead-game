@@ -85,6 +85,7 @@ public class WoodPileState
     public int cropFlags;
     public int picksTaken;
     public float soilSpent;   // Gardening GB2: how worn a Garden Bed's soil is, 0 rich (a bed from before GB2) to 1 spent (GardenRules)
+    public float chillDays;   // Gardening GB3b: the cold days a carrot or kale square saved for seed has had over winter (GardenRules.ChillDaysNeeded)
 
     public int Count(string itemId)
     {

@@ -446,7 +446,7 @@ public class WorkshopTests
         string[] fields = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).OrderBy(n => n).ToArray();
         Assert.That(fields, Is.EqualTo(new[]
         {
-            "buildProgress", "builtDay", "contaminatedHours", "contents", "cropDamage", "cropFlags", "depthToWater", "digProgress", "hopperBatch", "hopperWater", "id", "jobCount", "jobHours", "jobItem", "kind", "leachHours", "litres", "picksTaken", "position", "soilMoisture", "soilSpent", "yaw",
+            "buildProgress", "builtDay", "chillDays", "contaminatedHours", "contents", "cropDamage", "cropFlags", "depthToWater", "digProgress", "hopperBatch", "hopperWater", "id", "jobCount", "jobHours", "jobItem", "kind", "leachHours", "litres", "picksTaken", "position", "soilMoisture", "soilSpent", "yaw",
         }));
         Assert.That(Find("WoodPileState").GetField("jobItem").FieldType, Is.EqualTo(typeof(string)));
         Assert.That(Find("WoodPileState").GetField("jobHours").FieldType, Is.EqualTo(typeof(float)));
@@ -740,7 +740,7 @@ public class WorkshopTests
         string[] names = Find("WoodPileState").GetFields(BindingFlags.Public | BindingFlags.Instance).Select(f => f.Name).ToArray();
         Assert.That(names, Does.Contain("jobItem"));
         Assert.That(names, Does.Contain("jobHours"));
-        Assert.That(names.Length, Is.EqualTo(22), "a2-1 added no saved field; the Garden Bed (GB1) added four; Pottery P1 added jobCount; the Leach Hopper stock added hopperWater and hopperBatch");
+        Assert.That(names.Length, Is.EqualTo(23), "GB3b added chillDays; a2-1 added no saved field; the Garden Bed (GB1) added four; Pottery P1 added jobCount; the Leach Hopper stock added hopperWater and hopperBatch");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
         Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(61), "only the Potter and Kiln kinds were added");
     }
