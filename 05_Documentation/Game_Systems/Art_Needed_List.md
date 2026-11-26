@@ -1307,6 +1307,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
   Sources in `Art/Blender_Work/tool_hoe/` and `tool_watering_can/`; both have item icons.
 - Seed packets: item_seed_field_corn, _sweet_corn, _beans, _lettuce, _carrots, _squash, _kale. Paper packets with a printed crop
   picture (packet_util.py: make_packet, then finish_packet in a separate call). Parts paper, print, picture.
+- item_seed_tomatoes (2026-11-25, gardening slice GB3a): Tomato Seed, the same paper packet with an olive-green print and a round red tomato. make_packet(print (0.24,0.30,0.12)/(0.32,0.40,0.16), picture red (0.62,0.05,0.03)/(0.88,0.18,0.08), picture scale 0.0125 x 0.0125 for a round fruit). 476 tris, parts paper, print, picture. Item icon item_seed_tomatoes rendered. In Unity, awaiting in-game check.
 - Produce and the tomato plant (produce_items.py: make(item), then uv_and_bake(idn) in a separate call): item_tomato, item_potatoes,
   item_field_corn (dry ear, husk peeled back), item_sweet_corn (green husk and silk), item_green_beans, item_dry_beans (a little pile),
   item_lettuce, item_carrot, item_squash (butternut), item_kale, item_tomato_plant (seedling in a clay pot). 900 to 3,000 tris each.

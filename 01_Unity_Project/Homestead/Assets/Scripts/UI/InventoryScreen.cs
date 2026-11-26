@@ -410,6 +410,20 @@ public class InventoryScreen : GameScreen
         return text;
     }
 
+    // "2 yrs old - half sprout" for the oldest batch of a seed carried, or null while it is under a year old.
+    internal static string SeedAgeOfPack(ItemDefinition item)
+    {
+        InventoryManager inventory = InventoryManager.Instance;
+        if (item == null || inventory == null || !GardenRules.AgesAsSeed(item.Id))
+            return null;
+        var batches = inventory.Player.Batches(item.Id);
+        if (batches.Count == 0)
+            return null;
+        int today = TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
+        int perYear = CalendarRules.Current != null ? CalendarRules.Current.DaysPerYear : 365;
+        return GardenRules.AgeTag(GardenRules.ForSeed(item.Id), GardenRules.AgeYears(batches[0].day, today, perYear));
+    }
+
     void AddRow(ItemDefinition item, int quantity, bool equipped, bool atFire, PlayerController player)
     {
         inventoryHasLantern = InventoryManager.Instance != null && InventoryManager.Instance.Player.Has(PortableLight.LanternId);
@@ -475,6 +489,10 @@ public class InventoryScreen : GameScreen
         string fresh = FreshnessOfPack(item);
         if (fresh != null)
             tag += "  " + fresh;
+        // Seed age (gardening slice GB3a): the oldest packet carried, once it is a year old or more.
+        string seedAge = SeedAgeOfPack(item);
+        if (seedAge != null)
+            tag += $"  <size=18><color=#94520E>{seedAge}</color></size>";
 
         bool cookable = Cooking.IsCookable(item.Id), boilable = Cooking.IsBoilable(item.Id);
         bool sapBoil = Cooking.IsSapBoil(item.Id); // Maple Sap boils down to Syrup in 10 L batches

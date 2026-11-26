@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 // Gardening basics, slice GB1 (Gardening_Basics.md). Mike, 2026-11-25: nine crops (potatoes, field corn, sweet corn, beans, tomatoes, lettuce, carrots, squash and kale), dug beds,
 // seed bought at the Trading Post, crops growing in real time, and the Hoe a new tool needed to plant. Deer and rabbits wait for the fence slice.
@@ -29,6 +30,8 @@ public static class GardenRules
 
     // Flags in the pile's cropFlags. Dead and DryBeans belong to the crop and go with it; Raised and Covered belong to the bed and stay (KeptFlags).
     public const int FlagDead = 1, FlagDryBeans = 2, FlagRaised = 4, FlagCovered = 8;
+    // GB3: the square is left to go to seed; corn that flowered beside enough corn of its own kind set good seed. Both go with the crop.
+    public const int FlagSeed = 16, FlagPollinated = 32;
     public const int KeptFlags = FlagRaised | FlagCovered;
 
     // --- Slice GB2 (Mike, 2026-11-25: Gardening_Basics.md section 9b) ---
@@ -153,19 +156,50 @@ public static class GardenRules
         return null;
     }
 
-    // The crop a seed item plants, or null.
+    // The crop a seed item plants, or null (Tomato Seed, GB3, plants Tomatoes as the bought plants do).
     public static Crop ForSeed(string seedId)
     {
-        foreach (Crop crop in Crops)
-            if (crop.seedId == seedId)
-                return crop;
+        foreach (Sowing sowing in Sowings)
+            if (sowing.seedId == seedId)
+                return sowing.crop;
         return null;
+    }
+
+    // --- What can be sown (GB3): each crop's own seed, and Tomato Seed saved from your own tomatoes ---
+
+    // A way to plant a square: the crop, the item and how many one square takes, and the growing days it starts at. Tomato Seed is sown straight into the bed
+    // (there is no greenhouse yet to start it in), so it begins TomatoSeedlingDays behind a bought plant, the weeks a seedling takes to reach transplant size.
+    public struct Sowing
+    {
+        public Crop crop;
+        public string seedId;
+        public int seeds;
+        public float startDays;
+        public float Days => crop.days - startDays;
+    }
+
+    public const string TomatoSeedId = "seed_tomatoes";
+    public const float TomatoSeedlingDays = 30f;
+
+    // In the order the Hoe's R cycles them: the crops' order, with Tomato Seed after the Tomato Plants.
+    public static readonly Sowing[] Sowings = BuildSowings();
+
+    static Sowing[] BuildSowings()
+    {
+        var list = new List<Sowing>();
+        foreach (Crop crop in Crops)
+        {
+            list.Add(new Sowing { crop = crop, seedId = crop.seedId, seeds = crop.seedsPerSquare, startDays = 0f });
+            if (crop.id == "tomatoes")
+                list.Add(new Sowing { crop = crop, seedId = TomatoSeedId, seeds = 1, startDays = -TomatoSeedlingDays });
+        }
+        return list.ToArray();
     }
 
     public static bool IsSeed(string itemId) => ForSeed(itemId) != null;
 
     // The seed packets and plants (not the potatoes, which are food too).
-    public static readonly string[] SeedItemIds = { "seed_field_corn", "seed_sweet_corn", "seed_beans", "tomato_plant", "seed_lettuce", "seed_carrots", "seed_squash", "seed_kale" };
+    public static readonly string[] SeedItemIds = { "seed_field_corn", "seed_sweet_corn", "seed_beans", "tomato_plant", TomatoSeedId, "seed_lettuce", "seed_carrots", "seed_squash", "seed_kale" };
 
     // Every item a bed can give (dry beans as well as green).
     public static readonly string[] ProduceIds = { PotatoesId, "field_corn", "sweet_corn", GreenBeansId, DryBeansId, "tomato", "lettuce", "carrot", "squash", "kale" };
@@ -269,7 +303,11 @@ public static class GardenRules
         Hour(crop, growingDays, damage, moisture, dryBeans, dead, airC, rainMm, false, false);
 
     // The same for a raised bed (warmer soil, drains, never waterlogged) and under a Row Cover (frost kept off, a little slower in the heat) (GB2).
-    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm, bool raised, bool covered)
+    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm, bool raised, bool covered) =>
+        Hour(crop, growingDays, damage, moisture, dryBeans, dead, airC, rainMm, raised, covered, false);
+
+    // GB3: a square left to go to seed (forSeed) is meant to bolt, so lettuce going to seed in the heat is neither hurt nor killed by it.
+    public static HourResult Hour(Crop crop, float growingDays, float damage, float moisture, bool dryBeans, bool dead, float airC, float rainMm, bool raised, bool covered, bool forSeed)
     {
         var r = new HourResult { growingDays = growingDays, damage = damage, moisture = moisture };
         float drain = raised && moisture > RaisedDrainAbove ? RaisedDrainPerHour : 0f;
@@ -288,10 +326,10 @@ public static class GardenRules
         float hurt = FrostDamage(crop, airC + (covered ? CoverProtectionC : 0f), ready);
         if (r.moisture < 0.1f)
             hurt += DroughtDamagePerHour;
-        if (crop.boltAfterDays > 0f && airC > crop.heatC)
+        if (crop.boltAfterDays > 0f && airC > crop.heatC && !forSeed)
             hurt += BoltDamagePerHour;
         r.damage = Clamp01(damage + hurt);
-        if (crop.boltAfterDays > 0f && r.growingDays >= days + crop.boltAfterDays)
+        if (crop.boltAfterDays > 0f && r.growingDays >= days + crop.boltAfterDays && !forSeed)
             r.bolted = true;
         r.died = r.damage >= 1f || r.bolted;
         return r;
@@ -358,6 +396,147 @@ public static class GardenRules
         return 0.15f + 0.85f * Clamp01(growingDays / DaysToReady(crop, dryBeans));
     }
 
+    // --- Seed saving (slice GB3a, Mike's answers 2026-11-25, Gardening_Basics.md 9c) ---
+    // With the Hoe in hand, R marks a growing square "save for seed" (before its first pick). It is not harvested when ready: it is left until the seed is
+    // ripe (beans dry in the pod, tomatoes ripen past eating, lettuce bolts and flowers, corn dries on the stalk, squash cures on the vine), and then E
+    // collects seed for SeedSquaresBack squares and only a little food. Corn needs SeedSquares of its own kind saved together, or it sets no good seed.
+    // Potatoes need none of this: keep 8 from the harvest. Carrots and kale make seed only in their second year (GB3b, not built yet).
+
+    public const int SeedSquaresBack = 4;
+
+    public struct SeedPlan
+    {
+        public string savedSeedId;   // what the saved seed is (null: not saved this way)
+        public float extraDays;      // growing days past ready before the seed is ripe (beans: from their dry-bean ready day)
+        public int squares;          // squares of this crop that must be saved together
+        public int lifeYears;        // years the seed keeps fully good
+        public float foodShare;      // the share of a normal harvest that still comes back as food
+        public bool secondYear;      // seed only in the second year (GB3b)
+    }
+
+    static SeedPlan P(string seed, float extra, int squares, int life, float food, bool secondYear = false) =>
+        new SeedPlan { savedSeedId = seed, extraDays = extra, squares = squares, lifeYears = life, foodShare = food, secondYear = secondYear };
+
+    // Seed life from the extension seed-storage charts: corn about 2 years, beans and lettuce about 3, tomatoes, squash and kale about 4, carrots about 3.
+    public static SeedPlan PlanFor(Crop crop)
+    {
+        switch (crop?.id)
+        {
+            case "field_corn": return P("seed_field_corn", 15f, 2, 2, 0.25f);
+            case "sweet_corn": return P("seed_sweet_corn", 25f, 2, 2, 0f);      // sweet corn left to dry is no longer good to eat
+            case BeansCropId: return P("seed_beans", 0f, 1, 3, 0.25f);          // the dry pods are the seed, and some dry beans to eat
+            case "tomatoes": return P(TomatoSeedId, 20f, 1, 4, 0.25f);          // overripe fruit: the seed is scooped out, a few are still fit to eat
+            case "lettuce": return P("seed_lettuce", 35f, 1, 3, 0f);            // bolted lettuce is bitter
+            case "squash": return P("seed_squash", 20f, 1, 4, 0.5f);            // the seed comes from fully ripe fruit, most of which still eats
+            case "carrots": return P("seed_carrots", 0f, 1, 3, 0f, true);
+            case "kale": return P("seed_kale", 0f, 1, 4, 0f, true);
+            default: return default;                                            // potatoes: their own tubers are the seed
+        }
+    }
+
+    // Whether R with the Hoe can mark this crop for seed now (GB3a: one-year crops only).
+    public static bool CanSaveSeed(Crop crop) => crop != null && PlanFor(crop).savedSeedId != null && !PlanFor(crop).secondYear;
+
+    // The growing days at which the seed is ripe. Beans saved for seed are left to dry, so they count from the dry-bean day.
+    public static float SeedDays(Crop crop) => crop == null ? 0f : DaysToReady(crop, crop.id == BeansCropId) + PlanFor(crop).extraDays;
+
+    public static bool SeedRipe(Crop crop, float growingDays) => crop != null && growingDays >= SeedDays(crop);
+
+    // Seed a ripe square gives: SeedSquaresBack squares' worth, less for a damaged crop (at least 1); none from corn that flowered without enough of its kind.
+    public static int SeedYield(Crop crop, float damage, bool pollinated)
+    {
+        if (!CanSaveSeed(crop) || (PlanFor(crop).squares > 1 && !pollinated))
+            return 0;
+        return Math.Max(1, (int)Math.Round(SeedSquaresBack * (1f - Clamp01(damage))));
+    }
+
+    // The food that comes back with the seed (beans: dry beans).
+    public static string SeedFoodId(Crop crop) => ProduceOf(crop, crop != null && crop.id == BeansCropId);
+
+    public static int SeedFood(Crop crop, float damage) =>
+        crop == null ? 0 : (int)Math.Round(YieldOf(crop, crop.id == BeansCropId) * PlanFor(crop).foodShare * (1f - Clamp01(damage)));
+
+    // Corn sets good seed when, as it flowers (reaching its ready day), at least SeedSquares squares of its own kind saved for seed are standing.
+    public static bool Pollinates(Crop crop, int savedSquaresOfItsKind) => crop != null && savedSquaresOfItsKind >= Math.Max(1, PlanFor(crop).squares);
+
+    // Status of a square left to go to seed: growing as usual until ready, then "going to seed", then "seed ripe".
+    public static string SeedStatusText(Crop crop, float growingDays)
+    {
+        float ready = DaysToReady(crop, crop.id == BeansCropId);
+        if (growingDays < ready)
+        {
+            int d = (int)Math.Ceiling(SeedDays(crop) - growingDays);
+            return $"growing for seed, about {d} growing days until the seed is ripe";
+        }
+        if (!SeedRipe(crop, growingDays))
+        {
+            int d = (int)Math.Ceiling(SeedDays(crop) - growingDays);
+            return d == 1 ? "going to seed, about 1 growing day to go" : $"going to seed, about {d} growing days to go";
+        }
+        return "seed ripe";
+    }
+
+    public static string SaveSeedPrompt(Crop crop) =>
+        PlanFor(crop).squares > 1 ? $"Save this square for seed  (corn sets good seed only with {PlanFor(crop).squares} or more squares of {crop.name} saved together)"
+                                  : $"Save this square for seed  (gives seed for {SeedSquaresBack} squares, and little to eat)";
+
+    public const string StopSavingPrompt = "Stop saving seed  (harvest it as usual)";
+    public const string PotatoSeedTip = "Potatoes are their own seed: keep 8 from the harvest to plant a square";
+
+    public static string CantSaveText(Crop crop) =>
+        crop == null ? "" : crop.id == PotatoesId ? PotatoSeedTip
+        : PlanFor(crop).secondYear ? $"{crop.name} make seed only in their second year, after a winter - not in the game yet"
+        : $"{crop.name} can't be saved for seed";
+
+    public static string SavingStarted(Crop crop) =>
+        $"This {crop.name} square will be left to go to seed (about {(int)Math.Ceiling(SeedDays(crop))} growing days in all). E collects the seed when it is ripe."
+        + (PlanFor(crop).squares > 1 ? $" Save at least {PlanFor(crop).squares} squares of {crop.name} together, or the corn won't set good seed." : "");
+
+    public static string SeedCollected(Crop crop, int seed, string seedName, int food, string foodName) =>
+        seed <= 0 ? $"No good seed: corn needs {PlanFor(crop).squares} or more squares of {crop.name} saved for seed flowering together." + (food > 0 ? $" Took {foodName} x{food}." : "")
+                  : $"Collected {seedName} x{seed} (seed for {seed} squares)" + (food > 0 ? $" and {foodName} x{food}" : "") + ".";
+
+    // --- Seed age (GB3a): a packet keeps the day it was bought or saved, and old seed sprouts less ---
+    // Good for its full life in years; in the year after that about half comes up; after that none. A packet bought at the Trading Post is fresh the day it is bought.
+
+    public const float StaleSprouts = 0.5f;
+
+    // Whether this item ages as seed: the seed packets and Tomato Seed (not the Tomato Plants, which keep only days, nor the potatoes, which are food).
+    public static bool AgesAsSeed(string itemId) => itemId != null && itemId.StartsWith("seed_");
+
+    public static int AgeYears(int stampDay, int today, int daysPerYear) => daysPerYear <= 0 ? 0 : Math.Max(0, today - stampDay) / daysPerYear;
+
+    // The share of the seed that comes up.
+    public static float Sprouts(Crop crop, int ageYears)
+    {
+        int life = Math.Max(1, PlanFor(crop).lifeYears);
+        return ageYears < life ? 1f : ageYears == life ? StaleSprouts : 0f;
+    }
+
+    // Under the plant prompt when the seed to be used is old (null when it is good).
+    public static string AgeWarning(Crop crop, int ageYears)
+    {
+        float s = Sprouts(crop, ageYears);
+        if (s >= 1f)
+            return null;
+        string age = ageYears == 1 ? "1 year old" : $"{ageYears} years old";
+        return s > 0f ? $"<color=#AD2E14>This seed is {age}: only about half of it will come up</color>"
+                      : $"<color=#AD2E14>This seed is {age}: too old, it won't come up</color>";
+    }
+
+    // The Inventory's tag for a seed carried in several ages: the oldest batch's age, once it is a year or more.
+    public static string AgeTag(Crop crop, int ageYears)
+    {
+        if (crop == null || ageYears < 1)
+            return null;
+        float s = Sprouts(crop, ageYears);
+        string age = ageYears == 1 ? "1 yr old" : $"{ageYears} yrs old";
+        return s >= 1f ? age : s > 0f ? age + " - half sprout" : age + " - dead";
+    }
+
+    public static string FailedToSprout(Crop crop, int ageYears) =>
+        $"None of the {crop.name} seed came up - it was {ageYears} year{(ageYears == 1 ? "" : "s")} old. Plant fresher seed.";
+
     // --- Words ---
 
     public static string MoistureText(float moisture) =>
@@ -395,7 +574,7 @@ public static class GardenRules
     public static readonly string RaisedHelp = $"a 4 by 4 ft garden bed in a board frame: the soil warms sooner in spring (about a week ahead) and drains, so heavy rain cannot waterlog it. Mark it out (free), deliver {RaisedBedLumber} Lumber with R, equip the Hammer and hold click until the frame is built, then fill it with soil using the Shovel (hold click). A dug Garden Bed can be raised too: R with the Hammer and {RaisedBedLumber} Lumber.";
     public const string DugBanner = "The bed is dug - equip the Hoe and press E on it to plant.";
     public const string NeedHoe = "Equip the Hoe to plant";
-    public const string NoSeed = "No seed to plant - buy seed packets, potatoes or (in Spring) tomato plants at the Trading Post";
+    public const string NoSeed = "No seed to plant - buy seed packets, potatoes or (in Spring) tomato plants at the Trading Post, or save your own seed";
 
     // Tomato Plants are on the Trading Post shelf only from mid-April to early June, after the last frost, since a tomato dies in the first frost and needs
     // about 70 growing days (Mike, 2026-11-25: "Sell them only in Spring"). A plant bought then goes straight into a bed: it keeps only 7 days.
@@ -411,6 +590,13 @@ public static class GardenRules
     public const string TomatoPlantSeason = "mid-April to early June";
 
     // The key line for planting (the HUD adds the key, so the text does not name it), with a warning under it when frost will likely spoil it (TimingWarning).
+    public static string PlantPrompt(Sowing sowing, int carried, string warning = null) =>
+        sowing.startDays >= 0f ? PlantPrompt(sowing.crop, carried, warning)
+        : $"Sow {ItemName(sowing.seedId)}  (uses {sowing.seeds} packet, you carry {carried}; {HardinessText(sowing.crop.hardiness)}, about {(int)sowing.Days} growing days from seed)"
+          + (string.IsNullOrEmpty(warning) ? "" : "\n" + warning);
+
+    static string ItemName(string itemId) => itemId == TomatoSeedId ? "Tomato Seed" : itemId;
+
     public static string PlantPrompt(Crop crop, int carried, string warning = null) =>
         $"Plant {crop.name}  (uses {SeedWord(crop, crop.seedsPerSquare)}, you carry {carried}; {HardinessText(crop.hardiness)}, about {(int)crop.days} growing days)"
         + (string.IsNullOrEmpty(warning) ? "" : "\n" + warning);
@@ -459,7 +645,7 @@ public static class GardenRules
     public static string Harvested(int units, string name, int picksLeft) =>
         picksLeft > 0 ? $"Picked {name} x{units} - more to come ({picksLeft} more picking{(picksLeft == 1 ? "" : "s")})" : $"Harvested {name} x{units}";
 
-    public const string Help = "a 4 by 4 ft garden bed. Mark it out anywhere open, then dig it with the Shovel (hold click). With the Hoe in hand, E plants the seed you carry (R picks which: seed packets, potatoes, or tomato plants, which the Trading Post sells from mid-April to early June). Crops grow day by day with the warmth and the soil's moisture: rain waters them, and in a dry spell pour water on with the Watering Can or Bucket (E). Frost kills tender crops: a Row Cover (Trading Post) laid on with R keeps a light frost off. E harvests when ready. Each crop wears the soil a little: E spreads Fertilizer to feed it. R with the Hammer and 2 Lumber makes it a raised bed (warmer, drains); a Shovel's R fills an empty bed in.";
+    public const string Help = "a 4 by 4 ft garden bed. Mark it out anywhere open, then dig it with the Shovel (hold click). With the Hoe in hand, E plants the seed you carry (R picks which: seed packets, potatoes, or tomato plants, which the Trading Post sells from mid-April to early June). Crops grow day by day with the warmth and the soil's moisture: rain waters them, and in a dry spell pour water on with the Watering Can or Bucket (E). Frost kills tender crops: a Row Cover (Trading Post) laid on with R keeps a light frost off. E harvests when ready. Each crop wears the soil a little: E spreads Fertilizer to feed it. R with the Hammer and 2 Lumber makes it a raised bed (warmer, drains); a Shovel's R fills an empty bed in. To grow your own seed, R with the Hoe on a growing square saves it for seed: it is left to go to seed, and E collects seed for 4 squares (corn needs 2 squares of its kind saved together). Seed keeps a few years, then sprouts less; potatoes are their own seed.";
 
     public const string KnowHowTitle = "The Kitchen Garden";
 }

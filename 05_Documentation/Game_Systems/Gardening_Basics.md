@@ -122,6 +122,13 @@ Each slice is played and approved by Mike before the next one starts, with its a
 3. **Row Cover:** $6 at the Trading Post, laid over a bed with R and taken off again, reusable. It keeps a light frost off (about 3 °C of protection); left on in hot weather it slows the crop a little.
 4. **Frost alert:** yes. In the evening, if frost is forecast and tender crops are uncovered, a message says so.
 
+## 9c. Mike's answers for slice GB3 (2026-11-25)
+
+1. **Seed back:** a square left to go to seed gives seed for **4 squares**, plus a little food.
+2. **Corn:** no crossing between field corn and sweet corn. Corn just needs **2 squares** of the same kind saved together to set good seed; squash needs 1.
+3. **Seed age:** yes, seed ages. Old seed sprouts less often, then not at all.
+4. **Order:** the one-year crops first (GB3a). Carrots and kale, which make seed only in their second year, come in GB3b after Mike plays GB3a.
+
 ---
 
 ## 10. As built: slice GB1 (2026-11-25)
@@ -159,6 +166,26 @@ Each slice is played and approved by Mike before the next one starts, with its a
 **The frost alert.** At 6 pm, if the night's expected low (the weather model's coldest hour, with today's weather; it can still change) comes within 1.5 °C of hurting a bed's crop, a message names how many beds are at risk, and says so too when even a Row Cover will not be enough.
 
 **Art.** The raised bed's board frame, the Row Cover draped over its hoops on a bed, the folded Row Cover item and the Raised Bed Site's build icon.
+
+## 12. As built: slice GB3a (2026-11-25)
+
+- **Saving a square:** with the Hoe in hand, R on a growing square marks it "saved for seed" (before its first pick). R again unmarks it until the seed is ripe. A saved square is never picked: it stays until the seed is ripe, then E collects it.
+- **Seed back:** seed for **4 squares**, less if the crop was damaged (at least 1), plus a little food. Collecting the seed wears the soil like any crop.
+
+| Crop | Seed ripe at (growing days) | Food that comes with it | Seed keeps (years) |
+|---|---|---|---|
+| Beans | 90 (left to dry; marking beans also sets them to dry) | 2 Dry Beans | 3 |
+| Tomatoes | 95 (ready + 20) | 18 Tomatoes | 4 |
+| Lettuce | 85 (bolts and flowers; it isn't hurt or killed by bolting) | none | 3 |
+| Field Corn | 110 (ready + 15) | 4 Field Corn | 2 |
+| Sweet Corn | 103 (ready + 25) | none | 2 |
+| Squash | 120 (ready + 20) | 3 Squash | 4 |
+
+- **Corn:** as each saved corn square reaches its ready day (flowering), at least **2** saved squares of the same corn at half-grown or more must be standing, or it sets no good seed. A banner says so when it happens, and collecting then gives only the food.
+- **Potatoes** are their own seed (keep 8 from the harvest). **Carrots and kale** can't be saved yet: they need a second year (GB3b).
+- **Tomato Seed** (new item): saved from your own tomatoes. With the Hoe, R picks it after the Tomato Plants. It is sown straight into a bed and starts **30 growing days** behind a bought plant (about 105 growing days in all), since there is no greenhouse yet to start it in.
+- **Seed age:** every seed packet (bought or saved) keeps the day it was got. It is good for its full life in years, about half comes up in the year after, then none. Planting uses the oldest seed carried first. The plant prompt warns in red when the seed is old, and the Inventory shows the oldest packet's age once it is a year or more (for example "3 yrs old - half sprout"). Seed that fails is used up, and the bed stays bare.
+- **Art:** Tomato Seed packet and icon (item_seed_tomatoes). The plants going to seed reuse the ready look.
 
 ---
 

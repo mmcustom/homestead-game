@@ -11,6 +11,9 @@ using UnityEngine;
 // Slice GB2 (Mike, 2026-11-25, Gardening_Basics.md 9b): each crop taken to its end wears the soil (soilSpent), E spreads Fertilizer when nothing else is to do;
 // a bed is raised (built as a Raised Bed Site, or R with the Hammer and 2 Lumber), and R lays a Row Cover over it or takes it off. At 6 pm the frost alert
 // says which beds tonight's expected low would hurt.
+// Slice GB3a (Mike, 2026-11-25, Gardening_Basics.md 9c): with the Hoe in hand, R on a growing square marks it "save for seed"; it is left past ready until the seed is ripe and E
+// collects seed for 4 squares and a little food. Corn needs 2 squares of its kind saved together (checked as it flowers). Seed keeps the day it was bought or saved and old seed
+// sprouts less; Tomato Seed saved from your own tomatoes is sown straight into the bed.
 // THE SWAP POINT for the plants: Resources/Art/crop_<crop id>_<stage>.prefab (stage: sprouting, growing, maturing, ready, dead), placed at each plant's spot, replaces that crop's
 // primitive plant for that stage; Resources/Art/structure_gardenbed.prefab replaces the dug soil and Resources/Art/structure_gardenbed_marked.prefab the stakes of an undug bed.
 public static class GardenBeds
@@ -48,8 +51,14 @@ public static class GardenBeds
     public static GardenRules.Crop CropOf(WoodPileState s) => GardenRules.Find(s.jobItem);
     public static bool DryBeans(WoodPileState s) => (s.cropFlags & GardenRules.FlagDryBeans) != 0;
     public static bool Dead(WoodPileState s) => (s.cropFlags & GardenRules.FlagDead) != 0;
+    public static bool Saving(WoodPileState s) => (s.cropFlags & GardenRules.FlagSeed) != 0;
+    public static bool Pollinated(WoodPileState s) => (s.cropFlags & GardenRules.FlagPollinated) != 0;
+    static bool SeedRipe(WoodPileState s) => Saving(s) && !Dead(s) && GardenRules.SeedRipe(CropOf(s), s.jobHours);
+    static int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
+    static int DaysPerYear => CalendarRules.Current != null ? CalendarRules.Current.DaysPerYear : 365;
     public static GardenRules.Stage StageOf(WoodPileState s) => GardenRules.StageOf(CropOf(s), DryBeans(s), s.jobHours, s.picksTaken, Dead(s));
-    static int PicksReady(WoodPileState s) => CropOf(s) == null || Dead(s) ? 0 : GardenRules.PicksReady(CropOf(s), DryBeans(s), s.jobHours, s.picksTaken);
+    // A square saved for seed is not picked: it is left until the seed is ripe.
+    static int PicksReady(WoodPileState s) => CropOf(s) == null || Dead(s) || Saving(s) ? 0 : GardenRules.PicksReady(CropOf(s), DryBeans(s), s.jobHours, s.picksTaken);
 
     // --- The game hour ---
 
@@ -64,12 +73,14 @@ public static class GardenBeds
         bool alertHour = TimeManager.Instance != null && TimeManager.Instance.Hour == GardenRules.AlertHour && WeatherManager.Instance != null;
         float lowTonight = alertHour ? WeatherManager.Instance.ExpectedNightLowC() : 99f;
         int atRiskUncovered = 0, atRiskCovered = 0;
+        var lonelyCorn = new List<string>();
         foreach (WoodPileState bed in wood.Piles)
         {
             if (bed.kind != PileKind.GardenBed || !IsDug(bed))
                 continue;
             GardenRules.Crop crop = CropOf(bed);
             string before = LookKey(bed);
+            float daysBefore = bed.jobHours;
             bool ready = crop != null && bed.jobHours >= GardenRules.DaysToReady(crop, DryBeans(bed));
             bool covered = Covered(bed);
             bool frost = crop != null && GardenRules.FrostDamage(crop, airC + (covered ? GardenRules.CoverProtectionC : 0f), ready) > 0f;
@@ -78,10 +89,22 @@ public static class GardenBeds
                 if (covered) atRiskCovered++;
                 else atRiskUncovered++;
             }
-            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), airC, rainMm, Raised(bed), covered);
+            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), airC, rainMm, Raised(bed), covered, Saving(bed));
             bed.soilMoisture = r.moisture;
             bed.jobHours = r.growingDays;
             bed.cropDamage = r.damage;
+            // Corn saved for seed sets good seed if, as it flowers (its ready day), enough squares of its kind saved for seed are standing (GB3a).
+            if (crop != null && Saving(bed) && !Dead(bed) && GardenRules.PlanFor(crop).squares > 1 && !Pollinated(bed))
+            {
+                float flowers = GardenRules.DaysToReady(crop, false);
+                if (daysBefore < flowers && bed.jobHours >= flowers)
+                {
+                    if (GardenRules.Pollinates(crop, SavedSquares(wood, crop, flowers * 0.5f)))
+                        bed.cropFlags |= GardenRules.FlagPollinated;
+                    else if (!lonelyCorn.Contains(crop.name))
+                        lonelyCorn.Add(crop.name);
+                }
+            }
             if (r.died && !Dead(bed))
             {
                 bed.cropFlags |= GardenRules.FlagDead;
@@ -103,6 +126,18 @@ public static class GardenBeds
             ToolStatus.Banner("Lettuce bolted in the heat and went to seed", 6f);
         if (atRiskUncovered + atRiskCovered > 0)
             ToolStatus.Banner(GardenRules.FrostAlert(atRiskUncovered, atRiskCovered, lowTonight), 12f);
+        foreach (string name in lonelyCorn)
+            ToolStatus.Banner($"Your {name} saved for seed flowered without enough {name} beside it: it won't set good seed (save 2 or more squares together)", 10f);
+    }
+
+    // Living squares of this crop saved for seed and grown at least this far (corn that is flowering, or near it).
+    static int SavedSquares(WoodManager wood, GardenRules.Crop crop, float atLeastDays)
+    {
+        int n = 0;
+        foreach (WoodPileState bed in wood.Piles)
+            if (bed.kind == PileKind.GardenBed && IsDug(bed) && bed.jobItem == crop.id && Saving(bed) && !Dead(bed) && bed.jobHours >= atLeastDays)
+                n++;
+        return n;
     }
 
     // What the bed looks like, coarsely: redrawn only when this changes (stage, plant size in tenths, soil wet or dry, a pick waiting).
@@ -127,15 +162,16 @@ public static class GardenBeds
         string bed = GardenRules.FertilityText(s.soilSpent) + (Covered(s) ? "; under a Row Cover" : "");
         if (crop == null)
         {
-            string hint = !HoeEquipped ? "\n" + GardenRules.NeedHoe : SeedToPlant() == null ? "\n" + GardenRules.NoSeed : "";
+            string hint = !HoeEquipped ? "\n" + GardenRules.NeedHoe : !SeedToPlant().HasValue ? "\n" + GardenRules.NoSeed : "";
             return $"{BedName(s)}  (bare, {soil})\n{bed}{hint}";
         }
         bool dry = DryBeans(s);
         GardenRules.Stage stage = StageOf(s);
-        string name = crop.id == GardenRules.BeansCropId ? (dry ? "Beans (left to dry)" : "Beans (picked green)") : crop.name;
+        string name = Saving(s) ? $"{crop.name}, saved for seed" : crop.id == GardenRules.BeansCropId ? (dry ? "Beans (left to dry)" : "Beans (picked green)") : crop.name;
         if (stage == GardenRules.Stage.Dead)
             return $"{BedName(s)}  ({name}, dead)\n{bed}";
-        string status = GardenRules.StageText(stage) + GardenRules.DaysLeftText(crop, dry, s.jobHours) + GardenRules.DamageText(s.cropDamage);
+        string status = Saving(s) ? GardenRules.SeedStatusText(crop, s.jobHours) + GardenRules.DamageText(s.cropDamage)
+                                  : GardenRules.StageText(stage) + GardenRules.DaysLeftText(crop, dry, s.jobHours) + GardenRules.DamageText(s.cropDamage);
         return $"{BedName(s)}  ({name}: {status}; {soil})\n{bed}";
     }
 
@@ -156,13 +192,21 @@ public static class GardenBeds
             return "Pour water on it";
         if (crop == null)
         {
-            GardenRules.Crop next = HoeEquipped ? SeedToPlant() : null;
-            if (next != null)
-                return GardenRules.PlantPrompt(next, Inventory.Player.Count(next.seedId), GardenRules.TimingWarning(next, CalendarRules.Current, TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0));
+            GardenRules.Sowing? next = HoeEquipped ? SeedToPlant() : null;
+            if (next.HasValue)
+            {
+                GardenRules.Sowing sow = next.Value;
+                string timing = GardenRules.TimingWarning(sow.crop, CalendarRules.Current, Today);
+                string age = GardenRules.AgeWarning(sow.crop, NextSeedAge(sow));
+                string warning = age != null && timing != null ? age + "\n" + timing : age ?? timing;
+                return GardenRules.PlantPrompt(sow, Inventory.Player.Count(sow.seedId), warning);
+            }
             return CanFertilize(s) ? FertilizePrompt(s) : null;
         }
         if (dead)
             return "Clear the dead plants";
+        if (SeedRipe(s))
+            return CollectSeedPrompt(s, crop);
         int ready = PicksReady(s);
         if (ready > 0)
             return $"Harvest {ProduceName(crop, DryBeans(s))} x{GardenRules.PickYield(crop, DryBeans(s), s.cropDamage, s.soilSpent) * ready}";
@@ -171,7 +215,31 @@ public static class GardenBeds
 
     public static string Prompt(WoodPileState s) => Header(s) + (ActionE(s) is string e ? "\n" + e : "");
 
-    // R, in Secondary's order: the Shovel takes the bed away; the Hammer raises it; the Hoe picks the seed; beans switch green or dry; then the Row Cover.
+    static string ItemName(string itemId) => ItemDatabase.Get(itemId)?.DisplayName ?? itemId;
+
+    static string CollectSeedPrompt(WoodPileState s, GardenRules.Crop crop)
+    {
+        int seed = GardenRules.SeedYield(crop, s.cropDamage, Pollinated(s));
+        int food = GardenRules.SeedFood(crop, s.cropDamage);
+        string what = seed > 0 ? $"{ItemName(GardenRules.PlanFor(crop).savedSeedId)} x{seed}" : "no good seed";
+        return $"Collect the seed  ({what}" + (food > 0 ? $", {ItemName(GardenRules.SeedFoodId(crop))} x{food}" : "") + ")";
+    }
+
+    // The age in years of the seed the next planting takes (the oldest carried, as planting takes it); 0 for what does not age as seed.
+    static int NextSeedAge(GardenRules.Sowing sowing)
+    {
+        if (Inventory == null || !GardenRules.AgesAsSeed(sowing.seedId))
+            return 0;
+        var batches = Inventory.Player.Batches(sowing.seedId);
+        return batches.Count == 0 ? 0 : GardenRules.AgeYears(batches[0].day, Today, DaysPerYear);
+    }
+
+    // Whether R with the Hoe marks or unmarks this square for seed (GB3a): a one-year crop, alive, not yet picked, its seed not yet ripe.
+    static bool SeedToggle(WoodPileState s, GardenRules.Crop crop) =>
+        crop != null && HoeEquipped && IsDug(s) && !Dead(s) && GardenRules.CanSaveSeed(crop) && !SeedRipe(s) && (Saving(s) || s.picksTaken == 0);
+
+    // R, in Secondary's order: the Shovel takes the bed away; the Hammer raises it; the Hoe picks the seed, or marks a growing square for seed; beans switch green or dry;
+    // then the Row Cover.
     public static string SecondaryPrompt(WoodPileState s)
     {
         GardenRules.Crop crop = CropOf(s);
@@ -180,8 +248,10 @@ public static class GardenBeds
         if (HammerEquipped && !Raised(s))
             return Carried(SawPitRules.LumberId) >= GardenRules.RaisedBedLumber ? $"Make it a raised bed  (uses {GardenRules.RaisedBedLumber} Lumber)"
                                                                                 : $"Make it a raised bed  (needs {GardenRules.RaisedBedLumber} Lumber)";
-        if (crop == null && IsDug(s) && HoeEquipped && CarriedCrops().Count > 1)
+        if (crop == null && IsDug(s) && HoeEquipped && CarriedSowings().Count > 1)
             return "Pick another seed";
+        if (SeedToggle(s, crop))
+            return Saving(s) ? GardenRules.StopSavingPrompt : GardenRules.SaveSeedPrompt(crop);
         if (crop != null && crop.id == GardenRules.BeansCropId && !Dead(s) && s.picksTaken == 0 && PicksReady(s) == 0)
             return DryBeans(s) ? "Pick these beans green instead" : "Leave these beans to dry";
         if (Covered(s))
@@ -226,6 +296,11 @@ public static class GardenBeds
             ToolStatus.Flash("Cleared the dead plants - the bed is ready to plant again", 3f);
             return;
         }
+        if (SeedRipe(s))
+        {
+            CollectSeed(s, crop, view);
+            return;
+        }
         int ready = PicksReady(s);
         if (ready > 0)
         {
@@ -237,7 +312,40 @@ public static class GardenBeds
             Fertilize(s);
             return;
         }
-        ToolStatus.Flash($"{crop.name}: {GardenRules.StageText(StageOf(s))}{GardenRules.DaysLeftText(crop, DryBeans(s), s.jobHours)} ({GardenRules.HardinessText(crop.hardiness)}).", 4f);
+        string status = Saving(s) ? GardenRules.SeedStatusText(crop, s.jobHours) : GardenRules.StageText(StageOf(s)) + GardenRules.DaysLeftText(crop, DryBeans(s), s.jobHours);
+        ToolStatus.Flash($"{crop.name}: {status} ({GardenRules.HardinessText(crop.hardiness)}).", 4f);
+    }
+
+    // E on a square whose seed is ripe (GB3a): the saved seed, dated today so it ages from now, and the little food that comes with it; the crop is over, so the
+    // soil is worn as after any crop. What does not fit in the pack is left on the ground.
+    static void CollectSeed(WoodPileState s, GardenRules.Crop crop, Transform view)
+    {
+        int seed = GardenRules.SeedYield(crop, s.cropDamage, Pollinated(s));
+        int food = GardenRules.SeedFood(crop, s.cropDamage);
+        string seedId = GardenRules.PlanFor(crop).savedSeedId, foodId = GardenRules.SeedFoodId(crop);
+        int onGround = Give(seedId, seed, s, view) + Give(foodId, food, s, view);
+        s.soilSpent = GardenRules.AfterCrop(crop, s.soilSpent);
+        ClearCrop(s);
+        WoodManager.Instance.NotifyChanged(s);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayDig(s.position);
+        string message = GardenRules.SeedCollected(crop, seed, ItemName(seedId), food, ItemName(foodId));
+        if (onGround > 0)
+            message += $" ({onGround} left on the ground - no room in the pack)";
+        ToolStatus.Flash(message, 5f);
+    }
+
+    // Into the pack, the rest on the ground beside the bed. Returns how many went on the ground.
+    static int Give(string itemId, int count, WoodPileState s, Transform view)
+    {
+        if (count <= 0)
+            return 0;
+        ItemDefinition item = ItemDatabase.Get(itemId);
+        int fits = item != null ? Mathf.Min(count, Inventory.Player.SpaceFor(item)) : 0;
+        int took = fits > 0 ? Inventory.AddToPlayer(itemId, fits) : 0;
+        if (count - took > 0)
+            DroppedItems.Place(itemId, count - took, s.position, view);
+        return count - took;
     }
 
     // One Fertilizer spread on the bed puts back a quarter of a spent soil (GB2).
@@ -276,26 +384,26 @@ public static class GardenBeds
         ToolStatus.Flash($"Poured {poured} L on the bed - {GardenRules.MoistureText(s.soilMoisture)}", 3f);
     }
 
-    // The crops whose seed is carried in the amount one square takes, in GardenRules' order.
-    static List<GardenRules.Crop> CarriedCrops()
+    // The ways to plant a square whose seed is carried in the amount one square takes, in GardenRules.Sowings' order (Tomato Seed after the Tomato Plants).
+    static List<GardenRules.Sowing> CarriedSowings()
     {
-        var list = new List<GardenRules.Crop>();
+        var list = new List<GardenRules.Sowing>();
         if (Inventory == null)
             return list;
-        foreach (GardenRules.Crop crop in GardenRules.Crops)
-            if (Inventory.Player.Count(crop.seedId) >= crop.seedsPerSquare)
-                list.Add(crop);
+        foreach (GardenRules.Sowing sowing in GardenRules.Sowings)
+            if (Inventory.Player.Count(sowing.seedId) >= sowing.seeds)
+                list.Add(sowing);
         return list;
     }
 
     // The chosen seed if it is carried, otherwise the first one carried.
-    static GardenRules.Crop SeedToPlant()
+    static GardenRules.Sowing? SeedToPlant()
     {
-        List<GardenRules.Crop> carried = CarriedCrops();
-        foreach (GardenRules.Crop crop in carried)
-            if (crop.seedId == SelectedSeed)
-                return crop;
-        return carried.Count > 0 ? carried[0] : null;
+        List<GardenRules.Sowing> carried = CarriedSowings();
+        foreach (GardenRules.Sowing sowing in carried)
+            if (sowing.seedId == SelectedSeed)
+                return sowing;
+        return carried.Count > 0 ? carried[0] : (GardenRules.Sowing?)null;
     }
 
     static void Plant(WoodPileState s)
@@ -305,17 +413,31 @@ public static class GardenBeds
             ToolStatus.Flash(GardenRules.NeedHoe, 3f);
             return;
         }
-        GardenRules.Crop crop = SeedToPlant();
-        if (crop == null)
+        GardenRules.Sowing? next = SeedToPlant();
+        if (!next.HasValue)
         {
             ToolStatus.Flash(GardenRules.NoSeed, 4f);
             return;
         }
-        if (Inventory.RemoveFromPlayer(crop.seedId, crop.seedsPerSquare) < crop.seedsPerSquare)
+        GardenRules.Sowing sowing = next.Value;
+        GardenRules.Crop crop = sowing.crop;
+        // The oldest seed carried goes in first (GB3a); old seed may not come up at all.
+        int oldest = int.MaxValue;
+        if (Inventory.Player.RemoveBatches(sowing.seedId, sowing.seeds, (day, n) => oldest = Mathf.Min(oldest, day)) < sowing.seeds)
             return;
+        SelectedSeed = sowing.seedId;
+        int age = GardenRules.AgesAsSeed(sowing.seedId) && oldest != int.MaxValue ? GardenRules.AgeYears(oldest, Today, DaysPerYear) : 0;
+        float sprouts = GardenRules.AgesAsSeed(sowing.seedId) ? GardenRules.Sprouts(crop, age) : 1f;
+        if (sprouts < 1f && Random.value >= sprouts)
+        {
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlayDig(s.position);
+            ToolStatus.Flash(GardenRules.FailedToSprout(crop, age), 5f);
+            return;
+        }
         ClearCrop(s);
         s.jobItem = crop.id;
-        SelectedSeed = crop.seedId;
+        s.jobHours = sowing.startDays; // Tomato Seed starts behind a bought plant
         WoodManager.Instance.NotifyChanged(s);
         if (AudioManager.Instance != null)
             AudioManager.Instance.PlayDig(s.position);
@@ -398,16 +520,34 @@ public static class GardenBeds
         }
         if (crop == null && IsDug(s) && HoeEquipped)
         {
-            List<GardenRules.Crop> carried = CarriedCrops();
+            List<GardenRules.Sowing> carried = CarriedSowings();
             if (carried.Count == 0)
             {
                 ToolStatus.Flash(GardenRules.NoSeed, 4f);
                 return;
             }
-            int at = carried.IndexOf(SeedToPlant());
-            GardenRules.Crop next = carried[(at + 1) % carried.Count];
+            GardenRules.Sowing? now = SeedToPlant();
+            int at = now.HasValue ? carried.FindIndex(x => x.seedId == now.Value.seedId) : -1;
+            GardenRules.Sowing next = carried[(at + 1) % carried.Count];
             SelectedSeed = next.seedId;
-            ToolStatus.Flash($"Next to plant: {next.name}", 2.5f);
+            ToolStatus.Flash(next.startDays < 0f ? $"Next to plant: {next.crop.name} from seed" : $"Next to plant: {next.crop.name}", 2.5f);
+            return;
+        }
+        if (SeedToggle(s, crop))
+        {
+            if (Saving(s))
+            {
+                s.cropFlags &= ~(GardenRules.FlagSeed | GardenRules.FlagPollinated);
+                ToolStatus.Flash($"Stopped saving seed: this {crop.name} will be harvested as usual", 3f);
+            }
+            else
+            {
+                s.cropFlags |= GardenRules.FlagSeed;
+                if (crop.id == GardenRules.BeansCropId)
+                    s.cropFlags |= GardenRules.FlagDryBeans; // bean seed is the dry bean in its pod
+                ToolStatus.Flash(GardenRules.SavingStarted(crop), 5f);
+            }
+            wood.NotifyChanged(s);
             return;
         }
         if (crop != null && crop.id == GardenRules.BeansCropId && !Dead(s) && s.picksTaken == 0 && PicksReady(s) == 0)
