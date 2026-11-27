@@ -44,7 +44,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate, ColdFrameSmall, ColdFrameMedium, ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate, ColdFrameSmall, ColdFrameMedium, ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall, PoleBarnSiteMedium, PoleBarnSiteLarge, PoleBarnSmall, PoleBarnMedium, PoleBarnLarge }
 
 [Serializable]
 public class WoodPileState
@@ -320,6 +320,7 @@ public class WoodPileState
             case PileKind.DryingRack: return DryingRules.Accepts(itemId);  // fresh fruit, mushrooms, meat and fish, and dried food (section 3)
             case PileKind.Shelving: return WoodManager.IsDryGoods(itemId) || WoodManager.IsStorableFood(itemId);
             case PileKind.ToolRack: return WoodManager.IsTool(itemId);
+            case PileKind.DeliveryPad: return !WoodManager.IsWater(itemId); // Trading Post deliveries, and anything put back (slice D1)
             case PileKind.CabinSite:
                 return WoodManager.Instance != null && Array.IndexOf(WoodManager.CabinMaterialIds, itemId) >= 0 &&
                        Count(itemId) < WoodManager.Instance.CabinRequired(itemId);
@@ -349,7 +350,14 @@ public class WoodPileState
             case PileKind.GlassHouseSiteSmall:
             case PileKind.GlassHouseSiteMedium:
             case PileKind.GlassHouseSiteLarge:
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
+            // A Pole Barn (B1a) stores anything but water, up to BarnRules.CapacityKg by weight (WoodPile.RoomFor).
+            case PileKind.PoleBarnSmall:
+            case PileKind.PoleBarnMedium:
+            case PileKind.PoleBarnLarge: return !WoodManager.IsWater(itemId);
             // The Workshop's bench takes Logs, Branches and Cordage up to WorkshopRules' caps (its finished piece is not something to put back).
             case PileKind.Workshop: return WorkshopRules.Accepts(itemId, Count(itemId));
             // The Potter's Shed takes Clay and Sand up to PotteryRules' caps (its shelf is not something to put back).
@@ -1308,8 +1316,46 @@ public class WoodManager : MonoBehaviour, ISaveable
     static bool IsHoopKind(PileKind kind) => IsHoopHouse(kind) || IsHoopSite(kind);
 
     // A walk-in house's (or its site's) footprint and squares, from its own rules.
-    public static float HouseWidth(PileKind kind) => IsHoopKind(kind) ? HoopHouseRules.Width(HoopSizeOf(kind)) : GlassHouseRules.Width(GlassSizeOf(kind));
-    public static float HouseLength(PileKind kind) => IsHoopKind(kind) ? HoopHouseRules.Length(HoopSizeOf(kind)) : GlassHouseRules.Length(GlassSizeOf(kind));
+    public static float HouseWidth(PileKind kind) => IsBarnKind(kind) ? BarnRules.Width(BarnSizeOf(kind)) : IsHoopKind(kind) ? HoopHouseRules.Width(HoopSizeOf(kind)) : GlassHouseRules.Width(GlassSizeOf(kind));
+    public static float HouseLength(PileKind kind) => IsBarnKind(kind) ? BarnRules.Length(BarnSizeOf(kind)) : IsHoopKind(kind) ? HoopHouseRules.Length(HoopSizeOf(kind)) : GlassHouseRules.Length(GlassSizeOf(kind));
+
+    // --- The Pole Barn (slice B1a; BarnRules): a site in three stages, then a walk-in store ---
+
+    public static bool IsBarnSite(PileKind kind) => kind == PileKind.PoleBarnSiteSmall || kind == PileKind.PoleBarnSiteMedium || kind == PileKind.PoleBarnSiteLarge;
+    public static bool IsBarn(PileKind kind) => kind == PileKind.PoleBarnSmall || kind == PileKind.PoleBarnMedium || kind == PileKind.PoleBarnLarge;
+    public static bool IsBarnKind(PileKind kind) => IsBarnSite(kind) || IsBarn(kind);
+
+    public static BarnRules.Size BarnSizeOf(PileKind kind) =>
+        kind == PileKind.PoleBarnSiteSmall || kind == PileKind.PoleBarnSmall ? BarnRules.Size.Small
+        : kind == PileKind.PoleBarnSiteMedium || kind == PileKind.PoleBarnMedium ? BarnRules.Size.Medium : BarnRules.Size.Large;
+
+    public static PileKind BarnOf(BarnRules.Size size) => size == BarnRules.Size.Small ? PileKind.PoleBarnSmall : size == BarnRules.Size.Medium ? PileKind.PoleBarnMedium : PileKind.PoleBarnLarge;
+
+    public static WoodStack[] BarnKit(BarnRules.Size size) => new[]
+    {
+        new WoodStack { itemId = BarnRules.PostId, count = BarnRules.Posts(size) },
+        new WoodStack { itemId = BarnRules.TrussId, count = BarnRules.Trusses(size) },
+        new WoodStack { itemId = BarnRules.SheetId, count = BarnRules.Sheets(size) },
+    };
+
+    // Whether a point is inside a Pole Barn (or its site).
+    public bool InsideAnyBarn(Vector3 point, float margin)
+    {
+        foreach (WoodPileState pile in piles)
+            if (IsBarnKind(pile.kind) && HouseContains(pile.position, pile.yaw, pile.kind, point, margin))
+                return true;
+        return false;
+    }
+
+    // The barn sites marked out, for the Trading Post's kit and crew rows.
+    public List<WoodPileState> BarnSites()
+    {
+        var list = new List<WoodPileState>();
+        foreach (WoodPileState pile in piles)
+            if (IsBarnSite(pile.kind))
+                list.Add(pile);
+        return list;
+    }
     public static int HouseSquares(PileKind kind) => IsHoopKind(kind) ? HoopHouseRules.Squares(HoopSizeOf(kind)) : GlassHouseRules.Squares(GlassSizeOf(kind));
     public static (float x, float z) HouseSquareAt(PileKind kind, int i) => IsHoopKind(kind) ? HoopHouseRules.SquareAt(HoopSizeOf(kind), i) : GlassHouseRules.SquareAt(GlassSizeOf(kind), i);
 
@@ -1453,7 +1499,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             }
             if (FindTree(p, 0.6f) >= 0)
             {
-                reason = "Clear the trees off the site first - a greenhouse needs open sky.";
+                reason = IsBarnKind(kind) ? "Clear the trees off the site first." : "Clear the trees off the site first - a greenhouse needs open sky.";
                 return false;
             }
             if (terrain != null)
@@ -1465,13 +1511,13 @@ public class WoodManager : MonoBehaviour, ISaveable
         }
         if (terrain != null && high - low > 1.0f)
         {
-            reason = "The ground there is too uneven for a greenhouse - find flatter ground.";
+            reason = IsBarnKind(kind) ? "The ground there is too uneven for a barn - find flatter ground." : "The ground there is too uneven for a greenhouse - find flatter ground.";
             return false;
         }
         Vector3[] mine = HouseCorners(spot.point, yaw, kind);
         foreach (WoodPileState other in piles)
         {
-            if (IsWalkIn(other.kind) || IsWalkInSite(other.kind))
+            if (IsWalkIn(other.kind) || IsWalkInSite(other.kind) || IsBarnKind(other.kind))
             {
                 bool overlap = HouseContains(spot.point, yaw, kind, other.position, 1f) || HouseContains(other.position, other.yaw, other.kind, spot.point, 1f);
                 foreach (Vector3 c in mine)
@@ -1480,7 +1526,7 @@ public class WoodManager : MonoBehaviour, ISaveable
                     overlap |= HouseContains(spot.point, yaw, kind, c, 1f);
                 if (overlap)
                 {
-                    reason = "Too close to the other greenhouse.";
+                    reason = IsBarnKind(kind) || IsBarnKind(other.kind) ? $"Too close to the {PileName(other.kind)}." : "Too close to the other greenhouse.";
                     return false;
                 }
                 continue;
@@ -1517,6 +1563,34 @@ public class WoodManager : MonoBehaviour, ISaveable
     // --- Greenhouse heat (Greenhouses.md, slice G4; GreenhouseHeatRules): a Wood Stove or Propane Heater in a house's heater spot, Water Barrels in its barrel spot ---
 
     public static bool IsHeatKind(PileKind kind) => kind == PileKind.GreenhouseStove || kind == PileKind.PropaneHeater || kind == PileKind.WaterBarrels;
+
+    // The Delivery Pad (slice D1), or null: Trading Post deliveries come to it.
+    public WoodPileState DeliveryPad
+    {
+        get
+        {
+            foreach (WoodPileState pile in piles)
+                if (pile.kind == PileKind.DeliveryPad)
+                    return pile;
+            return null;
+        }
+    }
+
+    // The Know-how entry a garden or greenhouse build opens (2026-11-27), or null. JournalManager's backfill asks it of every pile in a loaded game.
+    public static KnowHowRules.Happening? KnowHowHappeningFor(PileKind kind)
+    {
+        if (kind == PileKind.RaisedBedSite) return KnowHowRules.Happening.RaisedBedPlaced;
+        if (IsFenceKind(kind)) return KnowHowRules.Happening.FencePlaced;
+        if (IsColdFrame(kind)) return KnowHowRules.Happening.ColdFramePlaced;
+        if (IsHoopSite(kind) || IsHoopHouse(kind)) return KnowHowRules.Happening.HoopSitePlaced;
+        if (IsGlassSite(kind) || IsGlassHouse(kind) || kind == PileKind.SeedlingBench) return KnowHowRules.Happening.GlassSitePlaced;
+        if (IsHeatKind(kind)) return KnowHowRules.Happening.HeatPlaced;
+        if (kind == PileKind.HoseBib || kind == PileKind.HoseReel || kind == PileKind.HandPump || kind == PileKind.FuelPump) return KnowHowRules.Happening.WateringPlaced;
+        if (kind == PileKind.VentOpener) return KnowHowRules.Happening.VentOpenerPlaced;
+        if (kind == PileKind.DeliveryPad) return KnowHowRules.Happening.DeliveryPadPlaced;
+        if (IsBarnKind(kind)) return KnowHowRules.Happening.BarnPlaced;
+        return null;
+    }
 
     // What is fitted in a spot inside a greenhouse: the heat (G4), the Hose Bib (G5) and the Vent Opener (G6, which also fits a Cold Frame).
     public static bool IsHouseFitting(PileKind kind) => IsHeatKind(kind) || kind == PileKind.HoseBib || kind == PileKind.VentOpener;
@@ -1787,7 +1861,7 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.SaltBarrel, PileKind.CompostBin, PileKind.DryingRack, PileKind.HideFrame, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.ColdFrameSmall, PileKind.ColdFrameMedium, PileKind.ColdFrameLarge, PileKind.HoopHouseSiteSmall, PileKind.HoopHouseSiteMedium, PileKind.HoopHouseSiteLarge, PileKind.GlassHouseSiteSmall, PileKind.GlassHouseSiteMedium, PileKind.GlassHouseSiteLarge, PileKind.GreenhouseStove, PileKind.PropaneHeater, PileKind.WaterBarrels, PileKind.HoseBib, PileKind.HoseReel, PileKind.HandPump, PileKind.FuelPump, PileKind.VentOpener, PileKind.TanningVatSite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.ColdFrameSmall, PileKind.ColdFrameMedium, PileKind.ColdFrameLarge, PileKind.HoopHouseSiteSmall, PileKind.HoopHouseSiteMedium, PileKind.HoopHouseSiteLarge, PileKind.GlassHouseSiteSmall, PileKind.GlassHouseSiteMedium, PileKind.GlassHouseSiteLarge, PileKind.GreenhouseStove, PileKind.PropaneHeater, PileKind.WaterBarrels, PileKind.HoseBib, PileKind.HoseReel, PileKind.HandPump, PileKind.FuelPump, PileKind.VentOpener, PileKind.DeliveryPad, PileKind.PoleBarnSiteSmall, PileKind.PoleBarnSiteMedium, PileKind.PoleBarnSiteLarge, PileKind.TanningVatSite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -1846,6 +1920,13 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.HandPump: return "Hand Pump";
             case PileKind.FuelPump: return "Fuel Pump";
             case PileKind.VentOpener: return VentRules.Name;
+            case PileKind.DeliveryPad: return DeliveryRules.PadName;
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge: return BarnRules.SiteName(BarnSizeOf(kind));
+            case PileKind.PoleBarnSmall:
+            case PileKind.PoleBarnMedium:
+            case PileKind.PoleBarnLarge: return BarnRules.Name(BarnSizeOf(kind));
             case PileKind.ToolRack: return "Tool Rack";
             case PileKind.Tent: return "Tent";
             case PileKind.TarpShelter: return "Tarp Shelter";
@@ -1946,6 +2027,10 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.FuelPump: return new[] { new WoodStack { itemId = WateringRules.FuelPumpId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = WateringRules.PumpLumber } };
             // Automatic venting (G6).
             case PileKind.VentOpener: return new[] { new WoodStack { itemId = VentRules.ItemId, count = 1 } };
+            // A Pole Barn (B1a): its kit, which Dismantle halves (the site itself is free to mark out).
+            case PileKind.PoleBarnSmall:
+            case PileKind.PoleBarnMedium:
+            case PileKind.PoleBarnLarge: return BarnKit(BarnSizeOf(kind));
             case PileKind.Tent: return new[] { new WoodStack { itemId = TentId, count = 1 } };
             case PileKind.TarpShelter: return new[] { new WoodStack { itemId = SleepManager.TarpId, count = 1 }, new WoodStack { itemId = SticksId, count = TarpShelterSticks },
                                                       new WoodStack { itemId = "cordage", count = 1 } };
@@ -2121,8 +2206,20 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
 
         // A Hoop House Site (G2) or a Glass Greenhouse Site (G3): over its whole footprint.
-        if (IsWalkInSite(kind))
+        if (IsWalkInSite(kind) || IsBarnSite(kind))
             return CanBuildHouseAt(kind, spot, yaw, aimed, out reason);
+        // Nothing is built inside a Pole Barn (B1a) for now: its floor is kept for storage and, later, its fit-outs.
+        if (InsideAnyBarn(spot.point, 0.3f))
+        {
+            reason = "That's inside the barn - its floor is kept clear";
+            return false;
+        }
+        // One Delivery Pad at a time (slice D1): it is taken up and built again to move it.
+        if (kind == PileKind.DeliveryPad && DeliveryPad != null)
+        {
+            reason = DeliveryRules.OnlyOnePad;
+            return false;
+        }
         // A stove, heater or barrels (G4) goes in its spot inside a finished greenhouse.
         if (IsHouseFitting(kind))
             return CanBuildHeatAt(kind, spot, out reason);
@@ -2223,7 +2320,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         foreach (WoodPileState other in piles)
         {
             // A walk-in house or its site (G2, G3), and a bench in one: the footprint was checked above, against its walls, not its centre.
-            if (IsWalkIn(other.kind) || IsWalkInSite(other.kind) || other.kind == PileKind.SeedlingBench || IsHouseFitting(other.kind))
+            if (IsWalkIn(other.kind) || IsWalkInSite(other.kind) || IsBarnKind(other.kind) || other.kind == PileKind.SeedlingBench || IsHouseFitting(other.kind))
                 continue;
             // A Cold Frame (G1) keeps its row clear: its own beds are inside it, others stand off its edge.
             if (IsColdFrame(other.kind))
@@ -2542,6 +2639,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.HideFramePlaced);
         if ((kind == PileKind.TanningVat || kind == PileKind.TanningVatSite) && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.TanningVatPlaced);
+        // The garden and greenhouse builds (2026-11-27) open their Know-how entries.
+        if (KnowHowHappeningFor(kind) is KnowHowRules.Happening built && JournalManager.Instance != null)
+            JournalManager.Instance.NoteHappening(built);
         // A Wood-Fired Grill comes with its fire: a second furnished campfire in the firebox, unlit and out of fuel like the hearth.
         if (kind == PileKind.Grill && FireManager.Instance != null)
             FireManager.Instance.BuildFurnished(GrillFireSpot(pile), pile.yaw);

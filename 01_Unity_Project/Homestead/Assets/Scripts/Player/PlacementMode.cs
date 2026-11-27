@@ -106,6 +106,9 @@ public class PlacementMode : MonoBehaviour
             case PileKind.TarpShelter:
             case PileKind.ToolRack:
             case PileKind.StorageBin:
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge:
             case PileKind.FoodCacheSite:
             case PileKind.WoodShedSite:
             case PileKind.KitchenSite:

@@ -316,3 +316,39 @@ The rest of the tools are on the shelf too. A tool the player can also make sell
 | Spile (new row, Stocked group) | $1 | nothing (under the sell-back minimum) |
 
 The Primitive Shovel, Stone Pick Axe and Primitive Axe ($6) also got sellCents: the store pays $4 for one again, as before part 1. The shelf is 39 items and the catalog 96 rows; MarketData.asset was reseeded from the catalog.
+
+## Change 2026-11-27 (Mike): everything you need or can build is on the shelf
+
+Mike's answers: raw materials sell at 2.5 times what the store pays (the homemade tools' rule); items that would skip a whole production chain are sold too, but priced high so making them pays (*proposed: 4 times what the store pays*); crafted things you can make yourself (the Wooden Wheel, the Tripod, the Leather Pack and the clothing) are sold at 2.5 times; this goes before the know-how and item tips. Items the store did not deal in get a buy-back price first (*proposed*, below), so the 2.5x rule has something to work from; that means the store now also buys them.
+
+| Item | Store pays now | Store pays after | Sells at | Rule |
+|---|---|---|---|---|
+| Sticks | not dealt in | $0.10 (*proposed*: 10 make a $1 Kindling Bundle) | $0.25 | 2.5x |
+| Branches | not dealt in | $0.20 (*proposed*) | $0.50 | 2.5x |
+| Tall Grass | not dealt in | $0.10 (*proposed*) | $0.25 | 2.5x |
+| Clay | not dealt in | $0.50 (*proposed*) | $1.25 | 2.5x |
+| Sand | not dealt in | $0.30 (*proposed*) | $0.75 | 2.5x |
+| Tanbark | not dealt in | $0.50 (*proposed*) | $1.25 | 2.5x |
+| Logs | $3 | $3 | $7.50 | 2.5x |
+| Stone | $1 | $1 | $2.50 | 2.5x |
+| Firewood | $1 | $1 | $2.50 | 2.5x |
+| Fertilizer | $0.50 | $0.50 | $1.25 | 2.5x |
+| Rawhide | $12 | $12 | $30 | 2.5x |
+| Sinew | $1 | $1 | $2.50 | 2.5x |
+| Charcoal | $1 | $1 | $4 | chain, 4x |
+| Iron Bar | not dealt in | still nothing | $20 (*proposed*: 2 Ore and 2 Charcoal at the store's prices, and the work) | chain |
+| Leather | $30 | $30 | $120 | chain, 4x |
+| Buckskin | $24 | $24 | $96 | chain, 4x |
+| Tanned Furs | $6 | $6 | $24 | chain, 4x |
+| Wooden Wheel | not dealt in | $2 (*proposed*: half a Log) | $5 | 2.5x |
+| Tripod | not dealt in | $2 (*proposed*) | $5 | 2.5x |
+| Leather Pack | $75 | $75 | $187.50 | 2.5x |
+| Buckskin Coat | $90 | $90 | $225 | 2.5x |
+| Buckskin Leggings | $50 | $50 | $125 | 2.5x |
+| Fur Hat | $18 | $18 | $45 | 2.5x |
+| Fur Mittens | $16 | $16 | $40 | 2.5x |
+| Moccasins | $30 | $30 | $75 | 2.5x |
+
+Left as they are: Ash, Lye, Potash, Kindling Bundles, bricks, pottery other than the Pot and Crock, furniture, hinges and hooks (they are only sold on, never used to build), and anything already on the shelf (Cordage, Lumber, Nails, Salt, Iron Ore, the tools, seeds and the greenhouse items).
+
+**As built (2026-11-27), prices as in the table above (the *proposed* ones too, until Mike changes them):** Economy/SupplyRules.cs holds the new buy-back prices, the chain markup (400%) and the Iron Bar's $20. MarketCatalog turns the 16 bought-only rows into shelf rows (Homemade at 2.5x, or the new Chain at 4x) and appends 9 rows (Sticks, Branches, Tall Grass, Clay and Sand in Wood and Stone, Tanbark in Hides, the Wheel and the Tripod in Crafted, the Iron Bar in Stocked). A row's sellCents of -1 (SupplyRules.NotBoughtBack) means sold but never bought back: the Iron Bar. Every new shelf item has a Ledger purchase line (Building Materials, Cooking/Water/Fire, Shelter/Bedding for the clothing, or Other Goods). MarketData.asset was updated row by row to match (165 rows, 94 on the shelf). Tests in SupplyTests, and the count tests updated.

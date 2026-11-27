@@ -66,6 +66,9 @@ public static class StructureVisuals
             case PileKind.HoopHouseSiteSmall:
             case PileKind.HoopHouseSiteMedium:
             case PileKind.HoopHouseSiteLarge: HoopHouseVisuals.BuildSite(parent, state, pieces, out boxCenter, out boxSize); return; // Hoop Houses (Greenhouses G2)
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge: PoleBarnVisuals.BuildSite(parent, state, pieces, out boxCenter, out boxSize); return; // the Pole Barn (B1a)
             case PileKind.HoopHouseSmall:
             case PileKind.HoopHouseMedium:
             case PileKind.HoopHouseLarge: HoopHouseVisuals.Build(parent, state, pieces, out boxCenter, out boxSize); return;

@@ -174,7 +174,7 @@ public class EquipNameFadeTests
         string axe = Source("Scripts/Player/AxeTool.cs"), rod = Source("Scripts/Fishing/FishingRod.cs"), weapon = Source("Scripts/Wildlife/HuntingWeapon.cs");
         string drill = Source("Scripts/Survival/BowDrill.cs"), trap = Source("Scripts/Player/TrapSetter.cs"), tap = Source("Scripts/Managers/TapManager.cs"), light = Source("Scripts/Survival/PortableLight.cs");
         // exact counts: every call that was not an idle line is still a plain Report
-        Assert.That(Count(axe, @"ToolStatus\.Report\("), Is.EqualTo(18));     // + the Saw Pit's sawing line (2026-11-23); + the Draw Knife stripping there (2026-11-25)
+        Assert.That(Count(axe, @"ToolStatus\.Report\("), Is.EqualTo(19));     // + the crew-held Pole Barn site (B1); + the Saw Pit's sawing line (2026-11-23); + the Draw Knife stripping there (2026-11-25)
         Assert.That(Count(axe, @"ToolStatus\.ReportIdle\("), Is.EqualTo(6));  // + the Saw Pit with too few Logs; + the Draw Knife away from the pit, and at a pit with no bark left
         Assert.That(Count(rod, @"ToolStatus\.Report\("), Is.EqualTo(6));
         Assert.That(Count(rod, @"ToolStatus\.ReportIdle\("), Is.EqualTo(1));

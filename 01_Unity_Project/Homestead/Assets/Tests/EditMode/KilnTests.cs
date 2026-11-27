@@ -314,7 +314,7 @@ public class KilnTests
         Assert.That((int)Kind("PotterShed"), Is.EqualTo(36));
         Assert.That((int)Kind("KilnSite"), Is.EqualTo(37));
         Assert.That((int)Kind("Kiln"), Is.EqualTo(38));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(88));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95));
     }
 
     [Test]
@@ -612,9 +612,9 @@ public class KilnTests
             Assert.That(table.SellBaseCents(pair.Key), Is.EqualTo(pair.Value), pair.Key);
             Assert.That(table.BuyBaseCents(pair.Key), Is.EqualTo(stocked ? pair.Value * 5 / 2 : 0L), pair.Key + (stocked ? " is stocked" : " is not stocked"));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(156));
-        Assert.That(table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
-        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28));
+        Assert.That(table.Rows.Count, Is.EqualTo(165));
+        Assert.That(table.Stock.Count, Is.EqualTo(94), "the store's supplies, the chain goods, the Wheel, the Tripod, the clothing and the Leather Pack (25, 2026-11-27); the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
+        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(30), "and the Wooden Wheel and the Tripod (2026-11-27)");
         MarketGroupRule crafted = table.RuleOf("clay_cup");
         Assert.That(crafted.dropBp, Is.EqualTo(1000), "10% off per unit");
         Assert.That(crafted.floorBp, Is.EqualTo(1000), "floor 0.1");
@@ -627,7 +627,7 @@ public class KilnTests
     public void TheDryPiecesAndSandStillHaveNoRowSoTheSellListOmitsThemAndTheFiredOnesAppear()
     {
         MarketTable table = MarketCatalog.Table;
-        foreach (string id in new[] { "dry_clay_cup", "dry_clay_bowl", "dry_clay_pot", "dry_water_crock", "dry_brick_batch", "sand" })
+        foreach (string id in new[] { "dry_clay_cup", "dry_clay_bowl", "dry_clay_pot", "dry_water_crock", "dry_brick_batch" }) // Sand has a row since 2026-11-27
         {
             Assert.That(table.SellBaseCents(id), Is.EqualTo(0L), id);
             Assert.That(table.TryGetRow(id, out _), Is.False, id);
@@ -636,7 +636,7 @@ public class KilnTests
         Assert.That(SourceText("Scripts/Managers/MarketManager.cs"), Does.Contain("public bool CanSell(string itemId) => table.SellBaseCents(itemId) > 0;"));
         Assert.That(SourceText("Scripts/UI/TradingPostScreen.cs"), Does.Contain("market.CanSell(stack.itemId)"));
         var carried = new[] { "dry_clay_cup", "sand", "clay_cup", "clay_bowl", "clay_pot", "water_crock", "brick_batch", "dry_brick_batch" };
-        Assert.That(carried.Where(id => table.SellBaseCents(id) > 0), Is.EqualTo(new[] { "clay_cup", "clay_bowl", "clay_pot", "water_crock", "brick_batch" }));
+        Assert.That(carried.Where(id => table.SellBaseCents(id) > 0), Is.EqualTo(new[] { "sand", "clay_cup", "clay_bowl", "clay_pot", "water_crock", "brick_batch" }));
     }
 
     [Test]

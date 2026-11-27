@@ -205,6 +205,9 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.GlassHouseSiteLarge:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge:
                 return true;
             default:
                 return false;
@@ -243,6 +246,9 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.GlassHouseSiteLarge: return PileKind.GlassHouseLarge;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
+            case PileKind.PoleBarnSiteSmall: return PileKind.PoleBarnSmall;   // the Pole Barn (B1a)
+            case PileKind.PoleBarnSiteMedium: return PileKind.PoleBarnMedium;
+            case PileKind.PoleBarnSiteLarge: return PileKind.PoleBarnLarge;
             default: return PileKind.Well;
         }
     }
@@ -289,6 +295,9 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.GlassHouseSiteLarge: return WoodManager.GlassHouseCost(WoodManager.GlassSizeOf(site));
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge: return WoodManager.BarnKit(WoodManager.BarnSizeOf(site));
             default: return WellCost();
         }
     }
@@ -338,6 +347,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { TanningVatRules.LogsId, TanningVatRules.ClayId } }; // both, in any order, once the pit is dug
         if (site == PileKind.RaisedBedSite)
             return new[] { new[] { SawPitRules.LumberId } };
+        if (WoodManager.IsBarnSite(site))
+            return new[] { new[] { BarnRules.PostId }, new[] { BarnRules.TrussId }, new[] { BarnRules.SheetId } }; // the posts, then the trusses, then the sheets
         if (WoodManager.IsHoopSite(site))
             return new[] { new[] { HoopHouseRules.LumberId, HoopHouseRules.HoopId, HoopHouseRules.PlasticId, HoopHouseRules.CordageId } }; // all four, in any order
         if (WoodManager.IsGlassSite(site))
@@ -409,6 +420,20 @@ public class WellsAndOuthouses : MonoBehaviour
     // What a site still lacks: "the shaft dug (Shovel)", then "5 Stone", then "2 Logs, 4 Branches". Null when it is fully stocked.
     public static string SiteNeeds(WoodPileState site)
     {
+        // A Pole Barn's site (B1a) needs only the parts of the stages done and the one in hand.
+        if (WoodManager.IsBarnSite(site.kind))
+        {
+            BarnRules.Size size = WoodManager.BarnSizeOf(site.kind);
+            var missing = new List<string>();
+            for (int stage = 0; stage <= Mathf.Clamp(site.jobCount, 0, BarnRules.Stages - 1); stage++)
+            {
+                string part = BarnRules.StageParts[stage];
+                int short_ = BarnRules.StageCount(size, stage) - site.Count(part);
+                if (short_ > 0)
+                    missing.Add($"{short_} {ItemDatabase.Get(part)?.DisplayName ?? part}");
+            }
+            return missing.Count == 0 ? null : string.Join(", ", missing) + " (order the kit at the Trading Post)";
+        }
         if (RequiresDig(site.kind) && site.digProgress < 1f)
             return "the shaft dug (Shovel)";
         var parts = new List<string>();
@@ -425,6 +450,8 @@ public class WellsAndOuthouses : MonoBehaviour
     // (partial deliveries are fine, over-delivery is refused).
     public static bool SiteAccepts(WoodPileState site, string itemId)
     {
+        if (site.jobItem == BarnRules.CrewMarker)
+            return false; // the crew has it (B1a)
         if (RequiresDig(site.kind) && site.digProgress < 1f)
             return false;
         bool earlierFull = true;
@@ -517,12 +544,18 @@ public class WellsAndOuthouses : MonoBehaviour
         Mathf.Min(1f, progress + efficiency / Mathf.Max(1, blows));
 
     // True once the Hammer has begun on the site: its materials are built in and E no longer takes them back.
-    public static bool MaterialsLocked(WoodPileState site) => site.buildProgress > 0f;
+    public static bool MaterialsLocked(WoodPileState site) =>
+        site.buildProgress > 0f || (WoodManager.IsBarnSite(site.kind) && (site.jobCount > 0 || site.jobItem == BarnRules.CrewMarker));
+
+    // The message for the blow that finishes a stage or the whole site: a Pole Barn's first two stages say what comes next (B1a).
+    public static string FinishedMessageFor(WoodPileState site) =>
+        WoodManager.IsBarnSite(site.kind) && site.jobCount < BarnRules.Stages - 1 ? BarnRules.StageDone(site.jobCount) : FinishedMessage(site.kind);
 
     // One Hammer blow on a fully stocked site. Returns true on the blow that finishes it (the caller then completes it).
     public bool BuildBlow(WoodPileState site, float efficiency)
     {
-        site.buildProgress = AdvanceBuild(site.buildProgress, efficiency, BuildBlows(site.kind));
+        site.buildProgress = AdvanceBuild(site.buildProgress, efficiency,
+            WoodManager.IsBarnSite(site.kind) ? BarnRules.StageBlows(WoodManager.BarnSizeOf(site.kind), Mathf.Clamp(site.jobCount, 0, BarnRules.Stages - 1)) : BuildBlows(site.kind));
         return site.buildProgress >= 1f;
     }
 
@@ -564,6 +597,8 @@ public class WellsAndOuthouses : MonoBehaviour
             return $"{name} built - its {HoopHouseRules.Squares(WoodManager.HoopSizeOf(site))} beds inside are dug and ready to plant. E at the door rolls the sides up on sunny days.";
         if (site == PileKind.RaisedBedSite)
             return "Raised bed frame built - fill it with soil: equip the Shovel and hold click on it.";
+        if (WoodManager.IsBarnSite(site))
+            return BarnRules.Built(WoodManager.BarnSizeOf(site));
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
     }
 
@@ -573,6 +608,19 @@ public class WellsAndOuthouses : MonoBehaviour
     {
         if (site == null || !IsStagedSite(site.kind) || SiteNeeds(site) != null)
             return false;
+        // A Pole Barn's first two stages (B1a): the next stage, the parts stay on the site (locked in).
+        if (WoodManager.IsBarnSite(site.kind) && site.jobCount < BarnRules.Stages - 1)
+        {
+            site.jobCount++;
+            site.buildProgress = 0f;
+            WoodManager.Instance.NotifyChanged(site);
+            return true;
+        }
+        if (WoodManager.IsBarnSite(site.kind))
+        {
+            site.jobCount = 0;
+            site.jobItem = null;
+        }
         PileKind was = site.kind;
         site.contents.Clear();
         site.kind = FinishedKind(site.kind);
@@ -958,6 +1006,12 @@ public class WellsAndOuthouses : MonoBehaviour
         {
             case PileKind.Cabin:
             case PileKind.CabinSite: return 2.5f;      // half the cabin's depth
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge:
+            case PileKind.PoleBarnSmall:
+            case PileKind.PoleBarnMedium:
+            case PileKind.PoleBarnLarge: return BarnRules.Width(WoodManager.BarnSizeOf(kind)) / 2f; // its footprint is checked whole (WoodManager)
             case PileKind.Kitchen:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: return kitchenRoofRadiusMetres;

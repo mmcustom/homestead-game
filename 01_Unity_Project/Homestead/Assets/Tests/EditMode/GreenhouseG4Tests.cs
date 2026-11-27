@@ -119,7 +119,7 @@ public class GreenhouseG4Tests
     public void TheWorldWiresItUp()
     {
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener }"), "appended");
+        Assert.That(wood, Does.Contain("SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall"), "appended");
         Assert.That(wood, Does.Contain("if (IsHouseFitting(kind))\n            return CanBuildHeatAt(kind, spot, out reason);"), "only in its spot");
         Assert.That(SourceText("Scripts/Player/PlacementMode.cs"), Does.Contain("SnapToHeatSlot("), "the ghost snaps to the spot");
         string beds = SourceText("Scripts/World/GardenBeds.cs");

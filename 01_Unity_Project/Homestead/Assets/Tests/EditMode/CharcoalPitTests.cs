@@ -187,7 +187,7 @@ public class CharcoalPitTests
     public void TheTwoPitKindsAreThirtyNineAndFortyAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(88), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a, 2026-11-25); 39 kinds before the Pit, plus the Pit's two, the Bloomery's two (41, 42), the Smithy's two (43, 44), the Compost Bin (45) and the Drying Rack (46)");
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(95), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a, 2026-11-25); 39 kinds before the Pit, plus the Pit's two, the Bloomery's two (41, 42), the Smithy's two (43, 44), the Compost Bin (45) and the Drying Rack (46)");
         Assert.That((int)Enum.Parse(kind, "Kiln"), Is.EqualTo(38), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "CharcoalPitSite"), Is.EqualTo(39));
         Assert.That((int)Enum.Parse(kind, "CharcoalPit"), Is.EqualTo(40));
@@ -376,7 +376,7 @@ public class CharcoalPitTests
     public void IronOreIsTheTwentySecondStockedItemAtFourDollarsAndSellsBackForOne()
     {
         MarketTable table = MarketCatalog.Table;
-        Assert.That(table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); 21 before Iron Ore; the rest of the hand tools and the maple gear joined the shelf 2026-11-14;  the five hand tools joined the shelf 2026-11-14");
+        Assert.That(table.Stock.Count, Is.EqualTo(94), "the store's supplies, the chain goods, the Wheel, the Tripod, the clothing and the Leather Pack (25, 2026-11-27); the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); 21 before Iron Ore; the rest of the hand tools and the maple gear joined the shelf 2026-11-14;  the five hand tools joined the shelf 2026-11-14");
         Assert.That(table.TryGetRow("iron_ore", out MarketRow row), Is.True);
         Assert.That(row.kind, Is.EqualTo(MarketKind.Stocked));
         Assert.That(row.group, Is.EqualTo(MarketGroup.Stocked));
@@ -394,12 +394,13 @@ public class CharcoalPitTests
     {
         MarketTable table = MarketCatalog.Table;
         Assert.That(table.TryGetRow("charcoal", out MarketRow row), Is.True);
-        Assert.That(row.kind, Is.EqualTo(MarketKind.Bought), "the store only buys it");
+        // Since 2026-11-27 the store sells it too, at the chain price (4 times what it pays), so burning your own still pays.
+        Assert.That(row.kind, Is.EqualTo(MarketKind.Stocked), "on the shelf");
         Assert.That(row.group, Is.EqualTo(MarketGroup.WoodStone));
-        Assert.That(row.baseCents, Is.EqualTo(100L));
-        Assert.That(table.BuyBaseCents("charcoal"), Is.EqualTo(0L), "not sold in the store: no buy loop");
-        Assert.That(table.SellBaseCents("charcoal"), Is.EqualTo(100L));
-        Assert.That(table.Stock.Any(r => r.itemId == "charcoal"), Is.False);
+        Assert.That(row.baseCents, Is.EqualTo(400L));
+        Assert.That(table.BuyBaseCents("charcoal"), Is.EqualTo(400L), "sold at $4");
+        Assert.That(table.SellBaseCents("charcoal"), Is.EqualTo(100L), "still bought at $1");
+        Assert.That(table.Stock.Any(r => r.itemId == "charcoal"), Is.True);
         // Six Logs ($18) make four Charcoal ($4): selling the Charcoal never beats selling the Logs.
         Assert.That(CharcoalRules.Yield(6) * table.SellBaseCents("charcoal"), Is.LessThan(6 * table.SellBaseCents("logs")));
     }
@@ -409,10 +410,10 @@ public class CharcoalPitTests
     {
         string asset = SourceText("Resources/Market/MarketData.asset");
         Assert.That(asset, Does.Contain("  - itemId: iron_ore\n    group: 7\n    pool: iron_ore\n    baseCents: 400\n    kind: 0\n    seasonalBuy: 0\n"));
-        Assert.That(asset, Does.Contain("  - itemId: charcoal\n    group: 0\n    pool: charcoal\n    baseCents: 100\n    kind: 1\n    seasonalBuy: 0\n"));
+        Assert.That(asset, Does.Contain("  - itemId: charcoal\n    group: 0\n    pool: charcoal\n    baseCents: 400\n    kind: 0\n    seasonalBuy: 0\n    sellCents: 100\n"));
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(156), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); Salt, Salt Meat, Salt Fish and the five dried foods; the maple gear's two rows; the five hand tools joined the shelf 2026-11-14; 87, the two M1 rows, the three Smithy goods and Fertilizer");
+        Assert.That(rows, Is.EqualTo(165), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); Salt, Salt Meat, Salt Fish and the five dried foods; the maple gear's two rows; the five hand tools joined the shelf 2026-11-14; 87, the two M1 rows, the three Smithy goods and Fertilizer");
         Assert.That(SourceText("Scripts/Editor/MarketDataSeeder.cs"), Does.Not.Contain("CharcoalRules"), "the seeder was not touched");
     }
 
@@ -423,7 +424,7 @@ public class CharcoalPitTests
         Assert.That(LedgerCategories.ForPurchase("iron_ore"), Is.EqualTo(LedgerCategory.BuyOtherGoods));
         Assert.That(LedgerCategories.ForSale(MarketGroup.WoodStone), Is.EqualTo(LedgerCategory.SalesWoodStone), "Charcoal sells in this group");
         Assert.That(LedgerCategories.ForSale(MarketGroup.Stocked), Is.EqualTo(LedgerCategory.SalesStockedBack), "Ore sold back");
-        Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new category");
+        Assert.That(LedgerCategories.Count, Is.EqualTo(21), "no new category");
     }
 
     [Test]
@@ -614,7 +615,7 @@ public class CharcoalPitTests
     [Test]
     public void TheCharcoalAndOreEntriesUnlockOnTheirTriggers()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(24)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(35)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Charcoal, out KnowHowRules.Entry charcoal), Is.True);
         Assert.That(charcoal.title, Is.EqualTo("Charcoal: Burning Logs Slowly"));
         Assert.That(KnowHowRules.TryGet(KnowHowRules.IronOre, out KnowHowRules.Entry ore), Is.True);
@@ -638,7 +639,7 @@ public class CharcoalPitTests
         Assert.That(KnowHowRules.Backfill(id => id == "iron_ore", false, false, false), Is.EqualTo(new[] { "ironore" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false, pitPlaced: true), Is.EqualTo(new[] { "charcoal" }));
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false), Is.Empty, "nothing earned, nothing added");
-        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery, smithy)"));
+        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery, smithy, built)"));
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("KnowHowRules.Happening.PitSitePlaced"));
     }
 

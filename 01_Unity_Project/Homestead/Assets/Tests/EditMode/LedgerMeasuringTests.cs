@@ -174,8 +174,8 @@ public class LedgerMeasuringTests
     public void TheCsvHeaderNamesEveryColumnOnce()
     {
         string[] columns = SplitCsv(LedgerCsv.Header()); // some category names hold commas, so the header quotes them
-        // Season, Days covered, Real minutes, 8 income categories, total income, 11 expense categories, total expenses, Net, Cash, Loan, Owed
-        Assert.That(columns.Length, Is.EqualTo(3 + 8 + 1 + 11 + 1 + 4));
+        // Season, Days covered, Real minutes, 8 income categories, total income, 13 expense categories (Delivery fees since D1, Contractors since B1), total expenses, Net, Cash, Loan, Owed
+        Assert.That(columns.Length, Is.EqualTo(3 + 8 + 1 + 13 + 1 + 4));
         Assert.That(columns[0], Is.EqualTo("Season"));
         Assert.That(columns[1], Is.EqualTo("Days covered"));
         Assert.That(columns[2], Is.EqualTo("Real minutes"));

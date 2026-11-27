@@ -33,11 +33,17 @@ public enum LedgerCategory
     BuyCookingWaterFire = 16,
     BuyBuildingMaterials = 17,
     BuyOtherGoods = 18,
+
+    // Expenses: Trading Post delivery fees (slice D1, 2026-11-27).
+    DeliveryFees = 19,
+
+    // Expenses: contractors hired (the Pole Barn's crew, slice B1a, 2026-11-27; later the well driller and the rest).
+    Contractors = 20,
 }
 
 public static class LedgerCategories
 {
-    public const int Count = 19;
+    public const int Count = 21;
     public const int LastIncomeId = 7;
 
     public static bool IsIncome(LedgerCategory category) => (int)category <= LastIncomeId;
@@ -64,6 +70,8 @@ public static class LedgerCategories
             case LedgerCategory.BuyShelterBedding: return "Bought: shelter and bedding";
             case LedgerCategory.BuyCookingWaterFire: return "Bought: cooking, water, fire";
             case LedgerCategory.BuyBuildingMaterials: return "Bought: building materials";
+            case LedgerCategory.DeliveryFees: return "Delivery fees";
+            case LedgerCategory.Contractors: return "Contractors";
             default: return "Bought: other goods";
         }
     }
@@ -131,6 +139,19 @@ public static class LedgerCategories
         { WateringRules.FuelPumpId, LedgerCategory.BuyOtherGoods },
         { WateringRules.GasolineId, LedgerCategory.BuyOtherGoods },
         { VentRules.ItemId, LedgerCategory.BuyOtherGoods },
+        // Everything you need or can build (2026-11-27): building materials, and the rest as other goods.
+        { "firewood", LedgerCategory.BuyCookingWaterFire }, { "logs", LedgerCategory.BuyBuildingMaterials }, { "stone", LedgerCategory.BuyBuildingMaterials },
+        { SupplyRules.SticksId, LedgerCategory.BuyBuildingMaterials }, { SupplyRules.BranchesId, LedgerCategory.BuyBuildingMaterials },
+        { SupplyRules.TallGrassId, LedgerCategory.BuyBuildingMaterials }, { SupplyRules.ClayId, LedgerCategory.BuyBuildingMaterials },
+        { SupplyRules.SandId, LedgerCategory.BuyBuildingMaterials }, { SupplyRules.WheelId, LedgerCategory.BuyBuildingMaterials },
+        { SupplyRules.IronBarId, LedgerCategory.BuyBuildingMaterials }, { MetalRules.CharcoalId, LedgerCategory.BuyOtherGoods },
+        { SupplyRules.TripodId, LedgerCategory.BuyCookingWaterFire }, { CompostRules.FertilizerId, LedgerCategory.BuyOtherGoods },
+        { SupplyRules.TanbarkId, LedgerCategory.BuyOtherGoods }, { HideFrameRules.RawhideId, LedgerCategory.BuyOtherGoods }, { "sinew", LedgerCategory.BuyOtherGoods },
+        { TanningVatRules.LeatherId, LedgerCategory.BuyOtherGoods }, { SmokeRules.BuckskinId, LedgerCategory.BuyOtherGoods }, { SmokeRules.TannedFursId, LedgerCategory.BuyOtherGoods },
+        { ClothingRules.PackId, LedgerCategory.BuyOtherGoods },
+        { ClothingRules.Pieces[0].itemId, LedgerCategory.BuyShelterBedding }, { ClothingRules.Pieces[1].itemId, LedgerCategory.BuyShelterBedding },
+        { ClothingRules.Pieces[2].itemId, LedgerCategory.BuyShelterBedding }, { ClothingRules.Pieces[3].itemId, LedgerCategory.BuyShelterBedding },
+        { ClothingRules.Pieces[4].itemId, LedgerCategory.BuyShelterBedding },
         { SmithyRules.NailsId, LedgerCategory.BuyOtherGoods }, // on the shelf since G3
     };
 
