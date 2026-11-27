@@ -76,7 +76,7 @@ public class GardenGB3bTests
     public void TheBedCountsItsWinter()
     {
         string gb = SourceText("Scripts/World/GardenBeds.cs");
-        Assert.That(gb, Does.Contain("bed.chillDays = GardenRules.ChillAfterHour(bed.chillDays, airC, bed.jobHours >= readyDays);"));
+        Assert.That(gb, Does.Contain("bed.chillDays = GardenRules.ChillAfterHour(bed.chillDays, air, bed.jobHours >= readyDays);"));
         Assert.That(gb, Does.Contain("bed.jobHours = Mathf.Min(bed.jobHours, readyDays);"), "after the winter, growth starts again from ready");
         Assert.That(gb, Does.Contain("s.chillDays = 0f;"), "a new crop starts with no winter");
         Assert.That(gb, Does.Contain("s.cropFlags |= GardenRules.FlagMulched;"));

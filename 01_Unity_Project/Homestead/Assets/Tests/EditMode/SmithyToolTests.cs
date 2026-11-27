@@ -486,9 +486,9 @@ public class SmithyToolTests
             Assert.That(table.Stock.Any(r => r.itemId == id), Is.True, id + " is on the Trading Post list");
             Assert.That(LedgerCategories.ForPurchase(id), Is.EqualTo(LedgerCategory.BuyTools), id + " is a tool purchase");
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(143));
+        Assert.That(table.Rows.Count, Is.EqualTo(156));
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28));
-        Assert.That(table.Stock.Count, Is.EqualTo(55), "Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
+        Assert.That(table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
         Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new Ledger category");
         Assert.That(SourceText("Resources/Market/MarketData.asset").Contains("iron_shovel"), Is.True, "the asset was reseeded");
         Assert.That(SourceText("Scripts/Managers/DifficultyManager.cs").Contains("iron_"), Is.False, "the starting kits are the stone tools");
@@ -567,7 +567,7 @@ public class SmithyToolTests
             Component[] labels = go.GetComponentsInChildren(text, true);
             foreach (Component label in labels)
                 Assert.That((int)size.GetValue(label), Is.GreaterThanOrEqualTo(26), label.name);
-            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(6));
+            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(7));
             Assert.That(labels.Count(l => l.name.StartsWith("Need ")), Is.EqualTo(4));
             Assert.That(labels.Where(l => l.name.StartsWith("Need ")).Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28), "body text 28");
             Assert.That(labels.Where(l => l.name == "Detail").Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28));
@@ -581,7 +581,7 @@ public class SmithyToolTests
             }
             string[] names =
             {
-                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2", "Need 3",
+                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2", "Need 3",
                 "Reason", "Start", "Hint",
             };
             var panel = new Rect(0f, 0f, SmithyRules.PanelWidthPx, SmithyRules.PanelHeightPx);
@@ -597,17 +597,17 @@ public class SmithyToolTests
                 for (int b = a + 1; b < names.Length; b++)
                     Assert.That(Box(names[a]).Overlaps(Box(names[b])), Is.False, names[a] + " overlaps " + names[b]);
 
-            // How six rows fit the 1010 px panel (the Bark Spud, 2026-11-23): six 88 px rows and five 8 px gaps run from y 204 to 772; the 72 px reason line and the 88 px stock button end at 946, above the hint at 950.
-            Assert.That(Box("Row 5").yMax, Is.EqualTo(772f));
+            // How seven rows fit the 1010 px panel (the Greenhouse Hoop, G2, 2026-11-26): seven 76 px rows and six 6 px gaps run from y 204 to 772; the 72 px reason line and the 88 px stock button end at 946, above the hint at 950.
+            Assert.That(Box("Row 6").yMax, Is.EqualTo(772f));
             Assert.That(Box("Stock").yMax, Is.EqualTo(946f));
             Assert.That(Box("Hint").yMin, Is.EqualTo(950f));
             Assert.That(Box("Stock").yMax, Is.LessThan(Box("Hint").yMin));
             Assert.That(Box("Start").yMax, Is.LessThan(Box("Hint").yMin));
-            Assert.That(Box("Row 5").yMax - Box("Row 0").yMin, Is.EqualTo(568f));
-            Assert.That(Screen.GetField("RowHeight").GetRawConstantValue(), Is.EqualTo(88f));
-            Assert.That(Screen.GetField("RowGap").GetRawConstantValue(), Is.EqualTo(8f));
+            Assert.That(Box("Row 6").yMax - Box("Row 0").yMin, Is.EqualTo(568f));
+            Assert.That(Screen.GetField("RowHeight").GetRawConstantValue(), Is.EqualTo(76f));
+            Assert.That(Screen.GetField("RowGap").GetRawConstantValue(), Is.EqualTo(6f));
             Assert.That(Box("Stock").height, Is.GreaterThanOrEqualTo(80f));
-            Assert.That(Box("Row 0").height, Is.GreaterThanOrEqualTo(80f), "room for a 32 px name and a 28 px line");
+            Assert.That(Box("Row 0").height, Is.GreaterThanOrEqualTo(76f), "room for a 32 px name and a 28 px line");
             Assert.That(labels.Any(l => (string)text.GetProperty("text").GetValue(l) == SmithyRules.StockButtonText), Is.True);
             Assert.That(labels.Any(l => l.name == "Hint" && (string)text.GetProperty("text").GetValue(l) == SmithyRules.KeyHint), Is.True);
         }
@@ -686,7 +686,7 @@ public class SmithyToolTests
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("stick") || f.ToLowerInvariant().Contains("cordage") || f.ToLowerInvariant().Contains("tool")), Is.False);
         Assert.That(((int)Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static).GetRawConstantValue()), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(64), "the three garden fence kinds (GB4a); no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(88), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a); no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
         Assert.That((int)Enum.Parse(Find("PileKind"), "Smithy"), Is.EqualTo(44));
         Assert.That(CharcoalRules.BurnMarker, Is.EqualTo("charcoal_burn"));
         Assert.That(BloomeryRules.SmeltMarker, Is.EqualTo("iron_smelt"));

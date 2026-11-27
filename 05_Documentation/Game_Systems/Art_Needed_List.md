@@ -1308,7 +1308,7 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - Seed packets: item_seed_field_corn, _sweet_corn, _beans, _lettuce, _carrots, _squash, _kale. Paper packets with a printed crop
   picture (packet_util.py: make_packet, then finish_packet in a separate call). Parts paper, print, picture.
 - item_seed_tomatoes (2026-11-25, gardening slice GB3a): Tomato Seed, the same paper packet with an olive-green print and a round red tomato. make_packet(print (0.24,0.30,0.12)/(0.32,0.40,0.16), picture red (0.62,0.05,0.03)/(0.88,0.18,0.08), picture scale 0.0125 x 0.0125 for a round fruit). 476 tris, parts paper, print, picture. Item icon item_seed_tomatoes rendered. In Unity, awaiting in-game check.
-- structure_wattlefence, structure_deerfence, structure_fencegate, item_wire_mesh (2026-11-25, gardening slice GB4a; fences.py: make_and_bake(id) builds, bakes at 1024 and exports in one call). Wattle: 5 stakes and 22 woven withies, 2.4 x 1.0 m, 11,314 tris, parts stake and withy. Deer fence: 3 round posts and welded wire (strands 0.1 m apart up to 0.7 m, then 0.2 m; verticals 0.1 m), 2.4 x 2.1 m, 852 tris, parts post and wire. Gate: two sawn posts and a top bar, 1.2 m wide, 36 tris, parts post and planks (structure_fencegate_planks also draws the gate's swinging leaf). Wire Mesh: a 1 m roll tied with twine, 2,512 tris, parts wire and twine. Each panel is made at full length along +X and centred; a cut-to-fit panel squeezes the prefab along X (FenceVisuals). Build icons and the Wire Mesh icon rendered. In Unity, awaiting in-game check.
+- structure_wattlefence, structure_deerfence, structure_fencegate, item_wire_mesh (2026-11-25, gardening slice GB4a; fences.py: make_and_bake(id) builds, bakes at 1024 and exports in one call). Wattle: 5 stakes and 22 woven withies, 2.4 x 1.0 m, 11,314 tris, parts stake and withy. Deer fence: 3 round posts and welded wire (strands 0.1 m apart up to 0.7 m, then 0.2 m; verticals 0.1 m), 2.4 x 2.1 m, 852 tris, parts post and wire. Gate: two sawn posts 2.4 m apart (remade 2026-11-26: as wide as a section, and no bar across the opening; squeezed in game to the fence height beside it), 24 tris, part post (the old structure_fencegate_planks files are no longer used and can be deleted); the swinging leaf uses structure_plank, the cabin door's. Wire Mesh: a 1 m roll tied with twine, 2,512 tris, parts wire and twine. Each panel is made at full length along +X and centred; a cut-to-fit panel squeezes the prefab along X (FenceVisuals). Build icons and the Wire Mesh icon rendered. In Unity, awaiting in-game check.
 - Produce and the tomato plant (produce_items.py: make(item), then uv_and_bake(idn) in a separate call): item_tomato, item_potatoes,
   item_field_corn (dry ear, husk peeled back), item_sweet_corn (green husk and silk), item_green_beans, item_dry_beans (a little pile),
   item_lettuce, item_carrot, item_squash (butternut), item_kale, item_tomato_plant (seedling in a clay pot). 900 to 3,000 tris each.
@@ -1340,3 +1340,45 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - structure_gardenbed_cover: the Row Cover, a pale cloth tunnel over three hoops, sagging between them and draped to the ground at the ends; 2,096 tris.
 - item_row_cover: the folded Row Cover tied with twine (the icon). The first try read as a stack of plates; remade as squarer folded layers.
 - Sources: `Art/Blender_Work/structure_gardenbed_raised/`, `structure_gardenbed_cover/`, `item_row_cover/`.
+
+## Greenhouses G1 art: Cold Frames (2026-11-26, awaiting Mike's in-game check)
+
+- structure_coldframesmall, structure_coldframemedium, structure_coldframelarge (coldframe.py: make_and_bake(id) builds, bakes and exports in one call). A sawn-board box 1.3 m deep, 0.30 m high at the front (local -Z, Unity) and 0.50 m at the back, 1.2 m wide per bed square (1.26, 2.46 and 3.66 m overall); two glazed sashes per square for the lid, sloping to the front. Parts board, sash and glass; 408, 552 and 696 tris. Each sash is its own child: an empty Sash_i at its hinge on the back top edge (0.52 m up, +0.65 m back) holding Sash_i_Mesh, so ColdFrameVisuals swings it open by rotating Sash_i to +60 degrees about X (checked: the sash tops rise from 0.54 m to 1.66 m). The glass uses tool_lantern_glass (transparent) in place of the baked glass material. Build icons rendered.
+- item_window_sash: one sash, 0.62 x 0.95 m, 72 tris, glass is tool_lantern_glass. Item icon rendered.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Greenhouses G2 art: Hoop Houses (2026-11-26, awaiting Mike's in-game check)
+
+- structure_hoophousesmall, structure_hoophousemedium, structure_hoophouselarge (hoophouse.py: make_and_bake(id) builds, bakes and exports in one call). A tunnel along Unity Z, the door end at -Z: round steel hoops every 1.2 m along a half-ellipse (3 x 2.1, 4.3 x 2.5 and 6 x 3 m), a ridge pipe and two purlins, plank end walls following the arch with a 1 x 1.9 m doorway and frame in the front one, base boards, and plastic over the arch. Parts steel, plank, film, roll, snow; 3,808, 5,368 and 7,400 tris. Children switched by state in HoopHouseVisuals: Plastic (the upper plastic) and Sides_Down (the lower 17.5% of the arch each side) use structure_hoophouse_film_clear (a milky see-through copy of tool_lantern_glass); Sides_Up (the two rolls at hip height), Torn (five tatters from the ridge) and Snow (a 10 cm cap over the top) are saved inactive. The walls you bump into are invisible boxes made in code, not the art. Build icons rendered (the sites use their house's art); the plastic makes them read as white tunnels.
+- item_greenhouse_hoop: one hoop lying flat, 1.2 m across, 496 tris. item_greenhouse_plastic: a folded stack of plastic tied with twine, 96 tris. Item icons rendered.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Greenhouses G3 art: Glass Greenhouses (2026-11-26, awaiting Mike's in-game check)
+
+- structure_glasshousesmall, structure_glasshousemedium, structure_glasshouselarge (glasshouse.py: make_and_bake(id)). A low stone footing (gap at the door), white-painted posts every bay, wall plates at 1.6 m, rafters to a ridge, glass walls, roof and gables, and a framed doorway in the front gable (Unity -Z). Parts timber, stone, glass (the glass swapped for tool_lantern_glass in Unity); 732, 876 and 1,308 tris. Children Vents_Shut and Vents_Open (roof vents along the ridge, the open set propped up; saved inactive). The walls you bump into are invisible boxes made in code. Build icons rendered (the sites use their house's art).
+- structure_seedlingbench: a 1.8 x 0.6 m plank table, 0.8 m high, with a lower shelf; the game stretches it to each bench's width; 168 tris. The tray and seedlings are drawn in code and grow with the tray.
+- item_glass_pane (a 2 x 3 ft pane with taped edges, 60 tris), item_starts_lettuce, item_starts_kale, item_starts_squash (three peat pots of seedlings, leaves shaped and coloured per crop, 180 to 252 tris). Item icons rendered; the leaves came out a little pale.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Greenhouses G4 art: heat (2026-11-26, awaiting Mike's in-game check)
+
+- structure_greenhousestove (heat.py): a small iron box stove on a stone hearth, door and glowing grate to the front (Unity -Z), 152 tris. Children: Pipe (a 2 m stovepipe at the back, its pivot at its base 0.75 m up; saved hidden for the icon, shown and stretched to the house's roof in game) and State_Burning (the grate's glow, shown while it burns).
+- structure_propaneheater: a propane tank with a round radiant head on top, 360 tris; State_Burning is the glowing face.
+- structure_waterbarrels: two banded wooden barrels side by side, 1.16 x 0.56 x 0.86 m, 424 tris.
+- item_greenhouse_stove, item_propane_heater, item_propane_tank for the icons. All build and item icons rendered.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Greenhouses G5 art: watering (2026-11-27, awaiting Mike's in-game check)
+
+- structure_hosebib (watering.py): a brass tap on a plank at hand height with a coiled hose hanging below, standing out from the wall into the house (Unity +Z), 1,584 tris; Drip child (a timer box), saved hidden.
+- structure_hosereel: a post with a hose reel, 2,796 tris; Drip child, saved hidden.
+- structure_handpump: a cast-iron pitcher pump on a plank platform with its handle and spout, and a wooden tub beside it, 176 tris.
+- structure_fuelpump: a small red engine and a pump on a wooden skid, with an intake hose, 840 tris.
+- item_garden_hose, item_drip_kit, item_hand_pump, item_fuel_pump, item_gasoline_can. All build and item icons rendered.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Greenhouses G6 art: the Vent Opener (2026-11-27, awaiting Mike's in-game check)
+
+- structure_ventopener (ventopener.py): a steel wall plate, a brass wax cylinder lying along it and a steel lifting arm on a pivot, 232 tris with both arms. The origin is the mount point on the wall; the game lifts it to 1.5 m in a greenhouse, or just under a Cold Frame's lid. It stands out from the wall into the house (Unity +Z). State_Open (the arm raised 55 degrees) and State_Shut (8 degrees); State_Shut is saved hidden so the build icon shows one arm.
+- item_vent_opener: the same with the arm half raised, 196 tris. Build and item icons rendered.
+- Status: in Unity, awaiting Mike's in-game check.

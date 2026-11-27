@@ -726,6 +726,23 @@ public class CraftingScreen : GameScreen
             case PileKind.WattleFence:
             case PileKind.DeerFence:
             case PileKind.FenceGate:
+            case PileKind.ColdFrameSmall:
+            case PileKind.ColdFrameMedium:
+            case PileKind.ColdFrameLarge:
+            case PileKind.HoopHouseSiteSmall:
+            case PileKind.HoopHouseSiteMedium:
+            case PileKind.HoopHouseSiteLarge:
+            case PileKind.GlassHouseSiteSmall:
+            case PileKind.GlassHouseSiteMedium:
+            case PileKind.GlassHouseSiteLarge:
+            case PileKind.GreenhouseStove:
+            case PileKind.PropaneHeater:
+            case PileKind.WaterBarrels:
+            case PileKind.HoseBib:
+            case PileKind.HoseReel:
+            case PileKind.HandPump:
+            case PileKind.FuelPump:
+            case PileKind.VentOpener:
             case PileKind.HideFrame:
             case PileKind.TanningVat:
             case PileKind.TanningVatSite:
@@ -979,6 +996,23 @@ public class CraftingScreen : GameScreen
             case PileKind.WattleFence: return FenceRules.WattleHelp;
             case PileKind.DeerFence: return FenceRules.DeerHelp;
             case PileKind.FenceGate: return FenceRules.GateHelp;
+            case PileKind.ColdFrameSmall: return ColdFrameRules.Help(ColdFrameRules.Size.Small);
+            case PileKind.ColdFrameMedium: return ColdFrameRules.Help(ColdFrameRules.Size.Medium);
+            case PileKind.ColdFrameLarge: return ColdFrameRules.Help(ColdFrameRules.Size.Large);
+            case PileKind.HoopHouseSiteSmall: return HoopHouseRules.SiteHelp(HoopHouseRules.Size.Small);
+            case PileKind.HoopHouseSiteMedium: return HoopHouseRules.SiteHelp(HoopHouseRules.Size.Medium);
+            case PileKind.HoopHouseSiteLarge: return HoopHouseRules.SiteHelp(HoopHouseRules.Size.Large);
+            case PileKind.GlassHouseSiteSmall: return GlassHouseRules.SiteHelp(GlassHouseRules.Size.Small);
+            case PileKind.GlassHouseSiteMedium: return GlassHouseRules.SiteHelp(GlassHouseRules.Size.Medium);
+            case PileKind.GlassHouseSiteLarge: return GlassHouseRules.SiteHelp(GlassHouseRules.Size.Large);
+            case PileKind.GreenhouseStove: return GreenhouseHeatRules.Help(GreenhouseHeatRules.Heat.Stove);
+            case PileKind.PropaneHeater: return GreenhouseHeatRules.Help(GreenhouseHeatRules.Heat.Propane);
+            case PileKind.WaterBarrels: return GreenhouseHeatRules.Help(GreenhouseHeatRules.Heat.Barrels);
+            case PileKind.HoseBib:
+            case PileKind.HoseReel:
+            case PileKind.HandPump:
+            case PileKind.FuelPump: return WateringRules.Help(kind.ToString());
+            case PileKind.VentOpener: return VentRules.Help();
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
             case PileKind.CompostBin: return "put in Rot and Tall Grass (R). Every 4 Rot and 2 Tall Grass compost into 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen; take the Fertilizer out (E). The Trading Post buys Fertilizer until there is farming.";
             case PileKind.DryingRack: return "hang up to 12 fresh berries, apples, pawpaws, mushrooms, raw meat or raw fish on it (R). They dry in daylight while it is not raining: about 2 days for fruit and mushrooms, 3 for meat and fish. Dried food is light and keeps for months; take it off (E).";

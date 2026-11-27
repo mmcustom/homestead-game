@@ -5,8 +5,9 @@ using UnityEngine;
 // fit a ring is shorter), and stands up from the ground at its middle. Pure meshes with no colliders, so the same builder serves the real panel (PlacedStructure,
 // whose interaction box is the panel itself and so stops the player) and Placement Mode's ghost. A Gate's frame is drawn here; its leaf is a SwingDoor that
 // PlacedStructure hangs in it (FenceVisuals.GateLeaf), so it swings open as the player walks into it.
-// THE SWAP POINTS: Resources/Art/structure_wattlefence.prefab, structure_deerfence.prefab and structure_fencegate.prefab (the gate's posts and top bar only, not
-// the leaf), each made at the full length along +X and centred, replace the primitives below; a shorter panel squeezes the prefab along X.
+// THE SWAP POINTS: Resources/Art/structure_wattlefence.prefab, structure_deerfence.prefab and structure_fencegate.prefab (the gate's two posts only, not
+// the leaf), each made at the full length along +X and centred, replace the primitives below; a shorter panel squeezes the prefab along X. A Gate is as wide as a
+// section and as tall as the fence beside it (WoodManager.GateHeightOf, Mike 2026-11-26): its frame is squeezed along Y to that height (made at deer-fence height).
 public static class FenceVisuals
 {
     static readonly Color Withy = new Color(0.45f, 0.36f, 0.24f);
@@ -17,14 +18,14 @@ public static class FenceVisuals
 
     public static string ArtId(PileKind kind) => "structure_" + kind.ToString().ToLowerInvariant();
 
-    public const float GateLeafHeight = 1.9f;
+
     public const float BoxThickness = 0.14f;
 
     public static void Build(Transform parent, WoodPileState state, Material bark, List<GameObject> pieces, out Vector3 boxCenter, out Vector3 boxSize)
     {
         FenceRules.Type type = WoodManager.FenceTypeOf(state.kind);
         float length = FenceRules.LengthOf(type, state.jobHours);
-        float height = FenceRules.Height(type);
+        float height = HeightOf(state);
         // The panel is the box (solid: it stops the player); a Gate's box is only its hinge post, so the player walks through the opening.
         boxCenter = type == FenceRules.Type.Gate ? new Vector3(-length / 2f, height / 2f, 0f) : new Vector3(0f, height / 2f, 0f);
         boxSize = type == FenceRules.Type.Gate ? new Vector3(0.12f, height, 0.12f) : new Vector3(length, height, BoxThickness);
@@ -36,7 +37,7 @@ public static class FenceVisuals
             art.name = prefab.name;
             art.transform.localPosition = Vector3.zero;
             art.transform.localRotation = Quaternion.identity;
-            art.transform.localScale = new Vector3(length / FenceRules.FullLength(type), 1f, 1f);
+            art.transform.localScale = new Vector3(length / FenceRules.FullLength(type), height / FenceRules.Height(type), 1f);
             foreach (Collider c in art.GetComponentsInChildren<Collider>())
                 Object.DestroyImmediate(c);
             pieces?.Add(art);
@@ -47,7 +48,7 @@ public static class FenceVisuals
         {
             case FenceRules.Type.Wattle: Wattle(parent, pieces, length, bark, state.id); break;
             case FenceRules.Type.Deer: Deer(parent, pieces, length, bark); break;
-            default: GateFrame(parent, pieces, length); break;
+            default: GateFrame(parent, pieces, length, height); break;
         }
     }
 
@@ -90,22 +91,30 @@ public static class FenceVisuals
         }
     }
 
-    // Two sawn posts and a bar across the top; the leaf hangs from the left post.
-    static void GateFrame(Transform parent, List<GameObject> pieces, float length)
+    // A standing fence's height: a Gate's from the fence beside it; a placement ghost (id -1) or a section, its own.
+    public static float HeightOf(WoodPileState state)
     {
-        float h = FenceRules.DeerHeight;
-        foreach (float x in new[] { -length / 2f, length / 2f })
-            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(x, (h + 0.1f - 0.3f) / 2f, 0f), Vector3.zero, new Vector3(0.1f, h + 0.1f + 0.3f, 0.1f), null), Sawn, null);
-        Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(0f, h + 0.05f, 0f), Vector3.zero, new Vector3(length + 0.1f, 0.09f, 0.09f), null), Sawn, null);
+        FenceRules.Type type = WoodManager.FenceTypeOf(state.kind);
+        if (type == FenceRules.Type.Gate && state.id >= 0 && WoodManager.Instance != null)
+            return WoodManager.Instance.GateHeightOf(state);
+        return FenceRules.Height(type);
     }
 
-    // The gate's leaf: hung on the left post, the opening's width less the posts, swinging as the player walks into it.
-    public static SwingDoor GateLeaf(Transform parent, WoodPileState state)
+    // Two sawn posts (no bar across the opening, Mike 2026-11-26); the leaf hangs from the left post.
+    static void GateFrame(Transform parent, List<GameObject> pieces, float length, float h)
+    {
+        foreach (float x in new[] { -length / 2f, length / 2f })
+            Tinted(Piece(parent, pieces, PrimitiveType.Cube, new Vector3(x, (h + 0.1f - 0.3f) / 2f, 0f), Vector3.zero, new Vector3(0.1f, h + 0.1f + 0.3f, 0.1f), null), Sawn, null);
+    }
+
+    // The gate's leaf: hung on the left post, the opening's width less the posts, as tall as the gate less a gap at the top and bottom, swinging as the player
+    // walks into it. Planks drawn with the cabin door's plank material (a tiling one; the gate model's own baked atlas does not fit a plain leaf).
+    public static SwingDoor GateLeaf(Transform parent, WoodPileState state, float height)
     {
         float length = FenceRules.LengthOf(FenceRules.Type.Gate, state.jobHours);
-        SwingDoor door = SwingDoor.Create(parent, new Vector3(-length / 2f + 0.06f, 0.08f, 0f), length - 0.12f, GateLeafHeight, 0.04f,
-                                          Resources.Load<Material>("Art/structure_fencegate_planks"), "Gate Leaf");
-        door.openDistance = 1.2f;
+        SwingDoor door = SwingDoor.Create(parent, new Vector3(-length / 2f + 0.06f, 0.08f, 0f), length - 0.12f, Mathf.Max(0.5f, height - 0.2f), 0.04f,
+                                          Resources.Load<Material>("Art/structure_plank"), "Gate Leaf");
+        door.openDistance = 1.4f;
         return door;
     }
 

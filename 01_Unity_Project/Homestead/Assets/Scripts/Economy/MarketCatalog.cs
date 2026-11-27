@@ -198,7 +198,9 @@ public static class MarketCatalog
         // Metalworking M3: the three iron goods made at the Smithy, in the Crafted group (10% off per unit, floor 0.1; SmithyRules has the prices). Never in the store; the Iron Bar has no row.
         Row(SmithyRules.Recipes[0].itemId, MarketGroup.Crafted, SmithyRules.Recipes[0].baseCents, MarketKind.Bought),
         Row(SmithyRules.Recipes[1].itemId, MarketGroup.Crafted, SmithyRules.Recipes[1].baseCents, MarketKind.Bought),
-        Row(SmithyRules.Recipes[2].itemId, MarketGroup.Crafted, SmithyRules.Recipes[2].baseCents, MarketKind.Bought),
+        // The Box of Nails is on the shelf too since the Glass Greenhouse needs it (G3, Mike 2026-11-26: buildable without a Bloomery), at the homemade tools' 2.5x,
+        // and still bought back at its forged price.
+        Homemade(SmithyRules.Recipes[2].itemId, MarketGroup.Crafted, SmithyRules.Recipes[2].baseCents),
         // Food_Spoilage_and_Preservation.md 2: Fertilizer from the Compost Bin, bought until farming gives it a use on the homestead. Appended last, as the asset row was.
         Row(CompostRules.FertilizerId, MarketGroup.Farm, CompostRules.FertilizerBaseCents, MarketKind.Bought),
         // Food_Spoilage_and_Preservation.md 3: dried food from the Drying Rack, each its own pool, in the group of what it was dried from (DryingRules has the prices).
@@ -251,6 +253,25 @@ public static class MarketCatalog
         Row(GardenRules.RowCoverId, MarketGroup.Stocked, GardenRules.RowCoverStoreCents, MarketKind.Stocked),
         // Gardening GB4a (2026-11-25): Wire Mesh for the deer fence, one roll a panel (FenceRules has the price).
         Row(FenceRules.WireMeshId, MarketGroup.Stocked, FenceRules.WireMeshStoreCents, MarketKind.Stocked),
+        // Greenhouses G1 (2026-11-26): old Window Sashes for the Cold Frames (ColdFrameRules has the price).
+        Row(ColdFrameRules.SashId, MarketGroup.Stocked, ColdFrameRules.SashStoreCents, MarketKind.Stocked),
+        // Greenhouses G2 (2026-11-26): the Hoop House's steel hoops and plastic sheets (HoopHouseRules has the prices).
+        Row(HoopHouseRules.HoopId, MarketGroup.Stocked, HoopHouseRules.HoopStoreCents, MarketKind.Stocked),
+        Row(HoopHouseRules.PlasticId, MarketGroup.Stocked, HoopHouseRules.PlasticStoreCents, MarketKind.Stocked),
+        // Greenhouses G3 (2026-11-26): the Glass Greenhouse's panes (GlassHouseRules has the price).
+        Row(GlassHouseRules.PaneId, MarketGroup.Stocked, GlassHouseRules.PaneStoreCents, MarketKind.Stocked),
+        // Greenhouses G4 (2026-11-26): the greenhouse stove, the propane heater and its tanks (GreenhouseHeatRules has the prices).
+        Row(GreenhouseHeatRules.StoveItemId, MarketGroup.Stocked, GreenhouseHeatRules.StoveStoreCents, MarketKind.Stocked),
+        Row(GreenhouseHeatRules.HeaterItemId, MarketGroup.Stocked, GreenhouseHeatRules.HeaterStoreCents, MarketKind.Stocked),
+        Row(GreenhouseHeatRules.TankId, MarketGroup.Stocked, GreenhouseHeatRules.TankStoreCents, MarketKind.Stocked),
+        // Greenhouses G5 (2026-11-27): the Garden Hose, the Drip Kit, the two pumps and Gasoline (WateringRules has the prices).
+        Row(WateringRules.HoseId, MarketGroup.Stocked, WateringRules.HoseStoreCents, MarketKind.Stocked),
+        Row(WateringRules.DripKitId, MarketGroup.Stocked, WateringRules.DripKitStoreCents, MarketKind.Stocked),
+        Row(WateringRules.HandPumpId, MarketGroup.Stocked, WateringRules.HandPumpStoreCents, MarketKind.Stocked),
+        Row(WateringRules.FuelPumpId, MarketGroup.Stocked, WateringRules.FuelPumpStoreCents, MarketKind.Stocked),
+        Row(WateringRules.GasolineId, MarketGroup.Stocked, WateringRules.GasolineStoreCents, MarketKind.Stocked),
+        // Greenhouses G6 (2026-11-27): the wax Vent Opener (VentRules has the price).
+        Row(VentRules.ItemId, MarketGroup.Stocked, VentRules.StoreCents, MarketKind.Stocked),
     };
 
     public static readonly MarketGroupRule[] Groups =

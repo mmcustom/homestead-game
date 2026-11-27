@@ -117,6 +117,21 @@ public static class LedgerCategories
         { "seed_squash", LedgerCategory.BuyOtherGoods }, { GardenRules.RowCoverId, LedgerCategory.BuyOtherGoods }, { "seed_kale", LedgerCategory.BuyOtherGoods }, { GardenRules.PotatoesId, LedgerCategory.BuyOtherGoods },
         // Gardening GB4a: Wire Mesh for the deer fence.
         { FenceRules.WireMeshId, LedgerCategory.BuyOtherGoods },
+        // Greenhouses G1: Window Sashes for the Cold Frames.
+        { ColdFrameRules.SashId, LedgerCategory.BuyOtherGoods },
+        { HoopHouseRules.HoopId, LedgerCategory.BuyOtherGoods },
+        { HoopHouseRules.PlasticId, LedgerCategory.BuyOtherGoods },
+        { GlassHouseRules.PaneId, LedgerCategory.BuyOtherGoods },
+        { GreenhouseHeatRules.StoveItemId, LedgerCategory.BuyOtherGoods },
+        { GreenhouseHeatRules.HeaterItemId, LedgerCategory.BuyOtherGoods },
+        { GreenhouseHeatRules.TankId, LedgerCategory.BuyOtherGoods },
+        { WateringRules.HoseId, LedgerCategory.BuyOtherGoods },
+        { WateringRules.DripKitId, LedgerCategory.BuyOtherGoods },
+        { WateringRules.HandPumpId, LedgerCategory.BuyOtherGoods },
+        { WateringRules.FuelPumpId, LedgerCategory.BuyOtherGoods },
+        { WateringRules.GasolineId, LedgerCategory.BuyOtherGoods },
+        { VentRules.ItemId, LedgerCategory.BuyOtherGoods },
+        { SmithyRules.NailsId, LedgerCategory.BuyOtherGoods }, // on the shelf since G3
     };
 
     // The expense category for buying a stocked item; anything unlisted (a future stock item) is "other goods".

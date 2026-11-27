@@ -34,7 +34,10 @@ public static class GardenRules
     public const int FlagSeed = 16, FlagPollinated = 32;
     // GB3b: a carrot or kale square saved for seed has been mulched with Tall Grass for the winter. It goes with the crop.
     public const int FlagMulched = 64;
-    public const int KeptFlags = FlagRaised | FlagCovered;
+    // Greenhouse G1: the bed is a square of a Cold Frame (ColdFrameRules). The bed's own: it stays through crops.
+    public const int FlagInFrame = 128;
+    public const int FlagHotbed = 256;   // G4: a Cold Frame's bed with Fertilizer dug in, warming the soil (its start day in builtDay; GreenhouseHeatRules)
+    public const int KeptFlags = FlagRaised | FlagCovered | FlagInFrame | FlagHotbed;
 
     // --- Slice GB2 (Mike, 2026-11-25: Gardening_Basics.md section 9b) ---
 
@@ -197,6 +200,10 @@ public static class GardenRules
             list.Add(new Sowing { crop = crop, seedId = crop.seedId, seeds = crop.seedsPerSquare, startDays = 0f });
             if (crop.id == "tomatoes")
                 list.Add(new Sowing { crop = crop, seedId = TomatoSeedId, seeds = 1, startDays = -TomatoSeedlingDays });
+            // Starts raised on a glass greenhouse's seedling bench (G3): one to a square, already as far on as their days on the bench.
+            foreach (GlassHouseRules.Tray tray in GlassHouseRules.Trays)
+                if (tray.cropId == crop.id && tray.transplantId.StartsWith("starts_"))
+                    list.Add(new Sowing { crop = crop, seedId = tray.transplantId, seeds = 1, startDays = tray.days });
         }
         return list.ToArray();
     }

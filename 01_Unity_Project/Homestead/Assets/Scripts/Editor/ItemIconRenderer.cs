@@ -106,6 +106,7 @@ public static class ItemIconRenderer
         string name = kind.ToString();
         if (name == "KitchenRoofSite") return PileKind.Kitchen;
         if (name == "PotterSite") return PileKind.PotterShed;
+        if (WoodManager.IsWalkInSite(kind)) return WellsAndOuthouses.FinishedKind(kind); // HoopHouseSiteSmall becomes HoopHouseSmall (Greenhouses G2), GlassHouseSiteSmall GlassHouseSmall (G3)
         if (name.EndsWith("Site") && System.Enum.TryParse(name.Substring(0, name.Length - 4), out PileKind built))
             return built;
         return kind;

@@ -81,7 +81,7 @@ public class GardenGB2Tests
     public void TheRaisedBedSiteAndTheBedsFlagsAreWiredIn()
     {
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.TanningVatSite,"), "on the Build tab");
+        Assert.That(wood, Does.Contain("PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.ColdFrameSmall, PileKind.ColdFrameMedium, PileKind.ColdFrameLarge, PileKind.HoopHouseSiteSmall, PileKind.HoopHouseSiteMedium, PileKind.HoopHouseSiteLarge, PileKind.GlassHouseSiteSmall, PileKind.GlassHouseSiteMedium, PileKind.GlassHouseSiteLarge, PileKind.GreenhouseStove, PileKind.PropaneHeater, PileKind.WaterBarrels, PileKind.HoseBib, PileKind.HoseReel, PileKind.HandPump, PileKind.FuelPump, PileKind.VentOpener, PileKind.TanningVatSite,"), "on the Build tab");
         Assert.That(wood, Does.Contain("public float soilSpent;"));
         Assert.That(wood, Does.Contain("if (IsBedKind(kind) && IsBedKind(other.kind))"), "raised beds stand side by side with dug ones");
         string sites = SourceText("Scripts/Managers/WellsAndOuthouses.cs");

@@ -145,6 +145,55 @@ public class WildlifeManager : MonoBehaviour
         }
     }
 
+    // --- Garden raiders (Gardening GB4b) ---
+
+    // Sends a deer or rabbit to raid a garden bed: it appears out of the player's sight, RaiderSpawnMin to RaiderSpawnMax from the bed, and walks in to eat.
+    // False when it cannot (no such animal, no player, nowhere to come from): the raid is then worked out by the hour instead.
+    public bool SendRaider(string speciesId, WoodPileState bed)
+    {
+        Yield s = YieldFor(speciesId);
+        if (s == null || s.prefab == null || bed == null)
+            return false;
+        if (Player == null)
+            Player = FindAnyObjectByType<PlayerController>();
+        if (Player == null || Terrain.activeTerrain == null)
+            return false;
+        terrain = Terrain.activeTerrain;
+        if (!FindRaidSpawn(bed.position, out Vector3 spawn))
+            return false;
+        Vector3 facing = bed.position - spawn;
+        facing.y = 0f;
+        Animal animal = Instantiate(s.prefab, spawn, facing.sqrMagnitude > 0.01f ? Quaternion.LookRotation(facing) : Quaternion.identity);
+        animal.name = s.displayName;
+        animals.Add(animal);
+        animal.BeginRaid(bed);
+        return true;
+    }
+
+    bool FindRaidSpawn(Vector3 bed, out Vector3 position)
+    {
+        Transform view = Player.CameraTransform != null ? Player.CameraTransform : Player.transform;
+        Vector3 playerPos = Player.transform.position;
+        for (int attempt = 0; attempt < 40; attempt++)
+        {
+            Vector2 dir = UnityEngine.Random.insideUnitCircle.normalized;
+            Vector3 candidate = bed + new Vector3(dir.x, 0f, dir.y) * UnityEngine.Random.Range(FenceRules.RaiderSpawnMin, FenceRules.RaiderSpawnMax);
+            if (!InsideProperty(candidate) || OnWater(candidate))
+                continue;
+            candidate.y = terrain.SampleHeight(candidate) + terrain.transform.position.y;
+            if (Vector3.Distance(candidate, playerPos) < FenceRules.RaiderMinFromPlayer)
+                continue;
+            // Out of view if it can be (the first 30 tries), so it is not seen popping in.
+            Vector3 to = (candidate - view.position).normalized;
+            if (attempt < 30 && Vector3.Dot(view.forward, to) > 0.35f)
+                continue;
+            position = candidate;
+            return true;
+        }
+        position = Vector3.zero;
+        return false;
+    }
+
     int LivingNear(string speciesId, Vector3 position)
     {
         int count = 0;

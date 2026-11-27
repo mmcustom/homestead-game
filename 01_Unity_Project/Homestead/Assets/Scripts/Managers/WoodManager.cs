@@ -44,7 +44,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate, ColdFrameSmall, ColdFrameMedium, ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener }
 
 [Serializable]
 public class WoodPileState
@@ -293,7 +293,7 @@ public class WoodPileState
     public bool IsOpenWoodPile => IsWoodPile;
     public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
-    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || kind == PileKind.Smithy || kind == PileKind.Smokehouse || kind == PileKind.SawPit || kind == PileKind.HideFrame || kind == PileKind.TanningVat || kind == PileKind.Sawmill || kind == PileKind.GardenBed || WoodManager.IsFenceKind(kind) || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || kind == PileKind.Smithy || kind == PileKind.Smokehouse || kind == PileKind.SawPit || kind == PileKind.HideFrame || kind == PileKind.TanningVat || kind == PileKind.Sawmill || kind == PileKind.GardenBed || WoodManager.IsFenceKind(kind) || WoodManager.IsColdFrame(kind) || WoodManager.IsWalkIn(kind) || kind == PileKind.SeedlingBench || WoodManager.IsHeatKind(kind) || WateringFittings.IsWaterKind(kind) || kind == PileKind.VentOpener || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsKitchen => kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen;
     // A Countertop, Shelving, Grill or Slop Sink: stands in one of a finished Kitchen's four fixed slots (Setbacks.KitchenLayout).
     public bool IsKitchenAddon => WoodManager.IsKitchenAddon(kind);
@@ -343,6 +343,12 @@ public class WoodPileState
             case PileKind.SawmillSite:
             case PileKind.TanningVatSite:
             case PileKind.RaisedBedSite:
+            case PileKind.HoopHouseSiteSmall:
+            case PileKind.HoopHouseSiteMedium:
+            case PileKind.HoopHouseSiteLarge:
+            case PileKind.GlassHouseSiteSmall:
+            case PileKind.GlassHouseSiteMedium:
+            case PileKind.GlassHouseSiteLarge:
             case PileKind.WoodShedSite: return WellsAndOuthouses.SiteAccepts(this, itemId);
             // The Workshop's bench takes Logs, Branches and Cordage up to WorkshopRules' caps (its finished piece is not something to put back).
             case PileKind.Workshop: return WorkshopRules.Accepts(itemId, Count(itemId));
@@ -371,6 +377,29 @@ public class WoodPileState
             case PileKind.WattleFence:
             case PileKind.DeerFence:
             case PileKind.FenceGate: return false;
+            // Cold Frames (Greenhouses G1): their soil is their own Garden Beds; the frame holds nothing.
+            case PileKind.ColdFrameSmall:
+            case PileKind.ColdFrameMedium:
+            case PileKind.ColdFrameLarge: return false;
+            // Hoop Houses (G2): likewise, their beds are their own Garden Beds.
+            case PileKind.HoopHouseSmall:
+            case PileKind.HoopHouseMedium:
+            case PileKind.HoopHouseLarge: return false;
+            // Glass Greenhouses (G3) and their seedling benches: the beds are Garden Beds and a bench's tray is sown with E.
+            case PileKind.GlassHouseSmall:
+            case PileKind.GlassHouseMedium:
+            case PileKind.GlassHouseLarge:
+            case PileKind.SeedlingBench: return false;
+            // Greenhouse heat (G4): R loads the stove and heater through their own code (GreenhouseHeat), not the store's deposit.
+            case PileKind.GreenhouseStove:
+            case PileKind.PropaneHeater:
+            case PileKind.WaterBarrels: return false;
+            // The watering fittings and pumps (G5): their water and fuel go in through their own code (WateringFittings).
+            case PileKind.HoseBib:
+            case PileKind.HoseReel:
+            case PileKind.HandPump:
+            case PileKind.FuelPump:
+            case PileKind.VentOpener: return false;
             // The Hand Cart (Vehicles_and_Hauling.md, Phase 1): bulk building goods only, and held to CartRules.CapacityKg by weight in WoodPile
             // (this answers "is it the kind of thing the cart takes"; whether it still fits is the weight check).
             case PileKind.HandCart: return CartRules.Carries(itemId);
@@ -1193,6 +1222,499 @@ public class WoodManager : MonoBehaviour, ISaveable
     // A garden bed square, dug or raised, or a Raised Bed's site (GB2): they stand side by side.
     public static bool IsBedKind(PileKind kind) => kind == PileKind.GardenBed || kind == PileKind.RaisedBedSite;
 
+    // --- Cold Frames (Greenhouses.md, slice G1; ColdFrameRules) ---
+
+    public static bool IsColdFrame(PileKind kind) => kind == PileKind.ColdFrameSmall || kind == PileKind.ColdFrameMedium || kind == PileKind.ColdFrameLarge;
+
+    public static ColdFrameRules.Size ColdFrameSizeOf(PileKind kind) =>
+        kind == PileKind.ColdFrameSmall ? ColdFrameRules.Size.Small : kind == PileKind.ColdFrameMedium ? ColdFrameRules.Size.Medium : ColdFrameRules.Size.Large;
+
+    // A frame's lid (its cropFlags, which a frame has no other use for): propped open, or shut.
+    public const int FrameLidOpen = 1;
+    public static bool FrameLidIsOpen(WoodPileState frame) => (frame.cropFlags & FrameLidOpen) != 0;
+
+    // The frame's centre line, along its local X: the squares sit on it.
+    static FenceRules.Segment FrameLine(Vector3 center, float yaw, ColdFrameRules.Size size) =>
+        FenceRules.SegmentOf(center.x, center.z, yaw, ColdFrameRules.Squares(size) * ColdFrameRules.SquareSize, FenceRules.Type.Wattle);
+
+    // The Cold Frame a framed bed sits in (the nearest frame whose line passes under it), or null.
+    public WoodPileState ColdFrameOf(WoodPileState bed)
+    {
+        WoodPileState best = null;
+        float bestDistance = 0.3f;
+        foreach (WoodPileState pile in piles)
+        {
+            if (!IsColdFrame(pile.kind))
+                continue;
+            float d = FenceRules.DistanceToSegment(new FenceRules.Point(bed.position.x, bed.position.z), FrameLine(pile.position, pile.yaw, ColdFrameSizeOf(pile.kind)));
+            if (d < bestDistance)
+            {
+                bestDistance = d;
+                best = pile;
+            }
+        }
+        return best;
+    }
+
+    // The beds a Cold Frame holds.
+    public List<WoodPileState> BedsInFrame(WoodPileState frame)
+    {
+        var list = new List<WoodPileState>();
+        foreach (WoodPileState pile in piles)
+            if (pile.kind == PileKind.GardenBed && (pile.cropFlags & GardenRules.FlagInFrame) != 0 && CoverOf(pile) == frame)
+                list.Add(pile);
+        return list;
+    }
+
+    // Its squares: ordinary Garden Beds, already dug, marked as in a frame, in a row along it.
+    void BuildFrameBeds(WoodPileState frame)
+    {
+        ColdFrameRules.Size size = ColdFrameSizeOf(frame.kind);
+        Vector3 right = Quaternion.Euler(0f, frame.yaw, 0f) * Vector3.right;
+        Terrain terrain = Terrain.activeTerrain;
+        for (int i = 0; i < ColdFrameRules.Squares(size); i++)
+        {
+            Vector3 at = frame.position + right * ColdFrameRules.SquareOffset(size, i);
+            if (terrain != null)
+                at.y = terrain.SampleHeight(at) + terrain.transform.position.y;
+            var bed = new WoodPileState
+            {
+                id = nextPileId++, kind = PileKind.GardenBed, position = at, yaw = frame.yaw, builtDay = 0,
+                digProgress = 1f, soilMoisture = GardenRules.StartMoisture, cropFlags = GardenRules.FlagInFrame,
+            };
+            piles.Add(bed);
+            SpawnPile(bed);
+            PileChanged?.Invoke(bed);
+        }
+    }
+
+    // --- Walk-in houses: Hoop Houses (Greenhouses.md, slice G2; HoopHouseRules) and Glass Greenhouses (G3; GlassHouseRules) ---
+
+    public static bool IsHoopHouse(PileKind kind) => kind == PileKind.HoopHouseSmall || kind == PileKind.HoopHouseMedium || kind == PileKind.HoopHouseLarge;
+    public static bool IsHoopSite(PileKind kind) => kind == PileKind.HoopHouseSiteSmall || kind == PileKind.HoopHouseSiteMedium || kind == PileKind.HoopHouseSiteLarge;
+    public static bool IsGlassHouse(PileKind kind) => kind == PileKind.GlassHouseSmall || kind == PileKind.GlassHouseMedium || kind == PileKind.GlassHouseLarge;
+    public static bool IsGlassSite(PileKind kind) => kind == PileKind.GlassHouseSiteSmall || kind == PileKind.GlassHouseSiteMedium || kind == PileKind.GlassHouseSiteLarge;
+    public static bool IsWalkIn(PileKind kind) => IsHoopHouse(kind) || IsGlassHouse(kind);
+    public static bool IsWalkInSite(PileKind kind) => IsHoopSite(kind) || IsGlassSite(kind);
+
+    public static HoopHouseRules.Size HoopSizeOf(PileKind kind) =>
+        kind == PileKind.HoopHouseSmall || kind == PileKind.HoopHouseSiteSmall ? HoopHouseRules.Size.Small
+        : kind == PileKind.HoopHouseMedium || kind == PileKind.HoopHouseSiteMedium ? HoopHouseRules.Size.Medium : HoopHouseRules.Size.Large;
+
+    public static GlassHouseRules.Size GlassSizeOf(PileKind kind) =>
+        kind == PileKind.GlassHouseSmall || kind == PileKind.GlassHouseSiteSmall ? GlassHouseRules.Size.Small
+        : kind == PileKind.GlassHouseMedium || kind == PileKind.GlassHouseSiteMedium ? GlassHouseRules.Size.Medium : GlassHouseRules.Size.Large;
+
+    static bool IsHoopKind(PileKind kind) => IsHoopHouse(kind) || IsHoopSite(kind);
+
+    // A walk-in house's (or its site's) footprint and squares, from its own rules.
+    public static float HouseWidth(PileKind kind) => IsHoopKind(kind) ? HoopHouseRules.Width(HoopSizeOf(kind)) : GlassHouseRules.Width(GlassSizeOf(kind));
+    public static float HouseLength(PileKind kind) => IsHoopKind(kind) ? HoopHouseRules.Length(HoopSizeOf(kind)) : GlassHouseRules.Length(GlassSizeOf(kind));
+    public static int HouseSquares(PileKind kind) => IsHoopKind(kind) ? HoopHouseRules.Squares(HoopSizeOf(kind)) : GlassHouseRules.Squares(GlassSizeOf(kind));
+    public static (float x, float z) HouseSquareAt(PileKind kind, int i) => IsHoopKind(kind) ? HoopHouseRules.SquareAt(HoopSizeOf(kind), i) : GlassHouseRules.SquareAt(GlassSizeOf(kind), i);
+
+    public static WoodStack[] HoopHouseCost(HoopHouseRules.Size size) => new[]
+    {
+        new WoodStack { itemId = HoopHouseRules.LumberId, count = HoopHouseRules.Lumber(size) },
+        new WoodStack { itemId = HoopHouseRules.HoopId, count = HoopHouseRules.Hoops(size) },
+        new WoodStack { itemId = HoopHouseRules.PlasticId, count = HoopHouseRules.Sheets(size) },
+        new WoodStack { itemId = HoopHouseRules.CordageId, count = HoopHouseRules.Cordage(size) },
+    };
+
+    public static WoodStack[] GlassHouseCost(GlassHouseRules.Size size) => new[]
+    {
+        new WoodStack { itemId = GlassHouseRules.LumberId, count = GlassHouseRules.Lumber(size) },
+        new WoodStack { itemId = GlassHouseRules.StoneId, count = GlassHouseRules.Stone(size) },
+        new WoodStack { itemId = GlassHouseRules.PaneId, count = GlassHouseRules.Panes(size) },
+        new WoodStack { itemId = GlassHouseRules.NailsId, count = GlassHouseRules.Nails(size) },
+    };
+
+    // A house's flags (its cropFlags, which a house has no other use for). A Hoop House: the sides rolled up, and the plastic torn or worn out (no cover); its snow
+    // load (cm) is kept in soilMoisture and the day its plastic was fitted in builtDay. A Glass Greenhouse: the vents open. Either keeps its inside temperature in jobHours.
+    public const int HoopSidesUp = 1, HoopTorn = 2, GlassVentsOpen = 1;
+    public static bool HoopSidesAreUp(WoodPileState house) => (house.cropFlags & HoopSidesUp) != 0;
+    public static bool HoopIsTorn(WoodPileState house) => (house.cropFlags & HoopTorn) != 0;
+    public static bool GlassVentsAreOpen(WoodPileState house) => (house.cropFlags & GlassVentsOpen) != 0;
+
+    // A point in a house's own frame (metres; -Z is the door end).
+    public static Vector3 HoopLocal(WoodPileState house, Vector3 point) => Quaternion.Euler(0f, -house.yaw, 0f) * (point - house.position);
+
+    static bool HouseContains(Vector3 center, float yaw, PileKind kind, Vector3 point, float margin)
+    {
+        Vector3 local = Quaternion.Euler(0f, -yaw, 0f) * (point - center);
+        return Mathf.Abs(local.x) <= HouseWidth(kind) / 2f + margin && Mathf.Abs(local.z) <= HouseLength(kind) / 2f + margin;
+    }
+
+    static Vector3[] HouseCorners(Vector3 center, float yaw, PileKind kind)
+    {
+        float hx = HouseWidth(kind) / 2f, hz = HouseLength(kind) / 2f;
+        Quaternion turn = Quaternion.Euler(0f, yaw, 0f);
+        return new[] { center + turn * new Vector3(-hx, 0f, -hz), center + turn * new Vector3(hx, 0f, -hz), center + turn * new Vector3(hx, 0f, hz), center + turn * new Vector3(-hx, 0f, hz) };
+    }
+
+    // The walk-in house (finished, not a site) whose footprint holds this point, or null.
+    public WoodPileState HouseAt(Vector3 point)
+    {
+        foreach (WoodPileState pile in piles)
+            if (IsWalkIn(pile.kind) && HouseContains(pile.position, pile.yaw, pile.kind, point, 0f))
+                return pile;
+        return null;
+    }
+
+    public bool InsideAnyHouse(Vector3 point, float margin)
+    {
+        foreach (WoodPileState pile in piles)
+            if ((IsWalkIn(pile.kind) || IsWalkInSite(pile.kind)) && HouseContains(pile.position, pile.yaw, pile.kind, point, margin))
+                return true;
+        return false;
+    }
+
+    // What covers a bed marked as under cover: its Cold Frame (G1) or its walk-in house (G2, G3), or null.
+    public WoodPileState CoverOf(WoodPileState bed)
+    {
+        if ((bed.cropFlags & GardenRules.FlagInFrame) == 0)
+            return null;
+        return ColdFrameOf(bed) ?? HouseAt(bed.position);
+    }
+
+    // A Glass Greenhouse's seedling benches.
+    public List<WoodPileState> BenchesIn(WoodPileState house)
+    {
+        var list = new List<WoodPileState>();
+        foreach (WoodPileState pile in piles)
+            if (pile.kind == PileKind.SeedlingBench && HouseAt(pile.position) == house)
+                list.Add(pile);
+        return list;
+    }
+
+    // A finished house's bed squares (ordinary Garden Beds, already dug, marked as under cover, in rows along it), and a Glass Greenhouse's benches along its back wall.
+    public void BuildHouseBeds(WoodPileState house)
+    {
+        Quaternion turn = Quaternion.Euler(0f, house.yaw, 0f);
+        Terrain terrain = Terrain.activeTerrain;
+        for (int i = 0; i < HouseSquares(house.kind); i++)
+        {
+            (float x, float z) = HouseSquareAt(house.kind, i);
+            AddHousePile(house, PileKind.GardenBed, turn, terrain, x, z);
+        }
+        if (IsGlassHouse(house.kind))
+        {
+            GlassHouseRules.Size size = GlassSizeOf(house.kind);
+            for (int i = 0; i < GlassHouseRules.Benches(size); i++)
+            {
+                (float x, float z) = GlassHouseRules.BenchAt(size, i);
+                AddHousePile(house, PileKind.SeedlingBench, turn, terrain, x, z);
+            }
+        }
+    }
+
+    void AddHousePile(WoodPileState house, PileKind kind, Quaternion turn, Terrain terrain, float x, float z)
+    {
+        Vector3 at = house.position + turn * new Vector3(x, 0f, z);
+        if (terrain != null)
+            at.y = terrain.SampleHeight(at) + terrain.transform.position.y;
+        var pile = new WoodPileState { id = nextPileId++, kind = kind, position = at, yaw = house.yaw, builtDay = 0 };
+        if (kind == PileKind.GardenBed)
+        {
+            pile.digProgress = 1f;
+            pile.soilMoisture = GardenRules.StartMoisture;
+            pile.cropFlags = GardenRules.FlagInFrame;
+        }
+        piles.Add(pile);
+        SpawnPile(pile);
+        PileChanged?.Invoke(pile);
+    }
+
+    bool CanBuildHouseAt(PileKind kind, BuildSpot spot, float yaw, bool aimed, out string reason)
+    {
+        if (!spot.onTerrain)
+        {
+            reason = aimed ? "No clear ground there." : "No clear ground in front of you.";
+            return false;
+        }
+        if (Vector3.Angle(spot.normal, Vector3.up) > maxSlope)
+        {
+            reason = aimed ? "The ground there is too steep." : "The ground in front of you is too steep.";
+            return false;
+        }
+        // The whole footprint, on a grid: dry, clear of trees, and near enough level.
+        Terrain terrain = Terrain.activeTerrain;
+        Quaternion turn = Quaternion.Euler(0f, yaw, 0f);
+        float hx = HouseWidth(kind) / 2f, hz = HouseLength(kind) / 2f;
+        float low = float.MaxValue, high = float.MinValue;
+        for (int i = 0; i <= 4; i++)
+        for (int j = 0; j <= 8; j++)
+        {
+            Vector3 p = spot.point + turn * new Vector3(-hx + 2f * hx * i / 4f, 0f, -hz + 2f * hz * j / 8f);
+            if (Animal.IsOverWater(p, out _))
+            {
+                reason = "Can't build that in water.";
+                return false;
+            }
+            if (FindTree(p, 0.6f) >= 0)
+            {
+                reason = "Clear the trees off the site first - a greenhouse needs open sky.";
+                return false;
+            }
+            if (terrain != null)
+            {
+                float h = terrain.SampleHeight(p);
+                low = Mathf.Min(low, h);
+                high = Mathf.Max(high, h);
+            }
+        }
+        if (terrain != null && high - low > 1.0f)
+        {
+            reason = "The ground there is too uneven for a greenhouse - find flatter ground.";
+            return false;
+        }
+        Vector3[] mine = HouseCorners(spot.point, yaw, kind);
+        foreach (WoodPileState other in piles)
+        {
+            if (IsWalkIn(other.kind) || IsWalkInSite(other.kind))
+            {
+                bool overlap = HouseContains(spot.point, yaw, kind, other.position, 1f) || HouseContains(other.position, other.yaw, other.kind, spot.point, 1f);
+                foreach (Vector3 c in mine)
+                    overlap |= HouseContains(other.position, other.yaw, other.kind, c, 1f);
+                foreach (Vector3 c in HouseCorners(other.position, other.yaw, other.kind))
+                    overlap |= HouseContains(spot.point, yaw, kind, c, 1f);
+                if (overlap)
+                {
+                    reason = "Too close to the other greenhouse.";
+                    return false;
+                }
+                continue;
+            }
+            if (other.kind == PileKind.SeedlingBench || IsHouseFitting(other.kind) || (other.kind == PileKind.GardenBed && (other.cropFlags & GardenRules.FlagInFrame) != 0 && HouseAt(other.position) != null))
+                continue; // inside another house: that house was checked above
+            if (IsFenceKind(other.kind))
+            {
+                FenceRules.Segment seg = FenceSegmentOf(other);
+                var a = new Vector3(seg.a.x, spot.point.y, seg.a.z);
+                var b = new Vector3(seg.b.x, spot.point.y, seg.b.z);
+                if (HouseContains(spot.point, yaw, kind, a, 0.3f) || HouseContains(spot.point, yaw, kind, b, 0.3f) || HouseContains(spot.point, yaw, kind, (a + b) / 2f, 0.3f))
+                {
+                    reason = "Runs into a fence.";
+                    return false;
+                }
+                continue;
+            }
+            if (HouseContains(spot.point, yaw, kind, other.position, IsBedKind(other.kind) ? GardenRules.BedSize / 2f + 0.05f : 0.9f))
+            {
+                reason = IsBedKind(other.kind) ? "Overlaps a garden bed." : $"Too close to the {PileName(other.kind)}.";
+                return false;
+            }
+        }
+        if (FireManager.Instance != null && FireManager.Instance.NearestLit(spot.point, hz + minSpacing) != null)
+        {
+            reason = "Too close to the fire.";
+            return false;
+        }
+        reason = "";
+        return true;
+    }
+
+    // --- Greenhouse heat (Greenhouses.md, slice G4; GreenhouseHeatRules): a Wood Stove or Propane Heater in a house's heater spot, Water Barrels in its barrel spot ---
+
+    public static bool IsHeatKind(PileKind kind) => kind == PileKind.GreenhouseStove || kind == PileKind.PropaneHeater || kind == PileKind.WaterBarrels;
+
+    // What is fitted in a spot inside a greenhouse: the heat (G4), the Hose Bib (G5) and the Vent Opener (G6, which also fits a Cold Frame).
+    public static bool IsHouseFitting(PileKind kind) => IsHeatKind(kind) || kind == PileKind.HoseBib || kind == PileKind.VentOpener;
+
+    // Which spot a fitting takes: the heater spot (stove or heater), the barrel spot, the hose bib's, or the vent opener's.
+    static int SpotGroup(PileKind kind) => kind == PileKind.WaterBarrels ? 1 : kind == PileKind.HoseBib ? 2 : kind == PileKind.VentOpener ? 3 : 0;
+
+    // What a fitting can go in: a walk-in greenhouse, or for the Vent Opener (G6) a Cold Frame too.
+    public static bool IsFittingHost(PileKind fitting, PileKind host) => IsWalkIn(host) || (fitting == PileKind.VentOpener && IsColdFrame(host));
+
+    // The Cold Frame or greenhouse a Vent Opener is fitted to (G6), or null.
+    public WoodPileState OpenerHost(WoodPileState opener)
+    {
+        foreach (WoodPileState pile in piles)
+            if (IsFittingHost(PileKind.VentOpener, pile.kind) && HeatSlotOf(pile, PileKind.VentOpener, out Vector3 world, out _) &&
+                Vector2.Distance(new Vector2(world.x, world.z), new Vector2(opener.position.x, opener.position.z)) < 0.4f)
+                return pile;
+        return null;
+    }
+
+    public static GreenhouseHeatRules.Heat HeatOf(PileKind kind) =>
+        kind == PileKind.GreenhouseStove ? GreenhouseHeatRules.Heat.Stove : kind == PileKind.PropaneHeater ? GreenhouseHeatRules.Heat.Propane : GreenhouseHeatRules.Heat.Barrels;
+
+    // 0 small, 1 medium, 2 large, for either kind of house.
+    public static int HouseSizeIndex(PileKind houseKind) => IsGlassHouse(houseKind) ? (int)GlassSizeOf(houseKind) : (int)HoopSizeOf(houseKind);
+
+    // Where a heat kind goes in this house (the world point on the ground plane of the house, and the facing), or false if it has no room for it.
+    public static bool HeatSlotOf(WoodPileState house, PileKind heatKind, out Vector3 world, out float yaw)
+    {
+        world = house.position;
+        yaw = house.yaw;
+        // The Vent Opener (G6): inside a Cold Frame's back wall, or inside a greenhouse's front wall right of the door.
+        if (heatKind == PileKind.VentOpener)
+        {
+            (float vx, float vz) = IsColdFrame(house.kind) ? VentRules.FrameSpot() : VentRules.HouseSpot(HouseLength(house.kind));
+            world = house.position + Quaternion.Euler(0f, house.yaw, 0f) * new Vector3(vx, 0f, vz);
+            yaw = house.yaw + (IsColdFrame(house.kind) ? 180f : 0f); // its back against the wall either way
+            return IsFittingHost(heatKind, house.kind);
+        }
+        // The Hose Bib (G5): on the inside of the front wall, beside the door, in every greenhouse.
+        if (heatKind == PileKind.HoseBib)
+        {
+            (float bx, float bz) = WateringRules.BibSpot(HouseLength(house.kind));
+            world = house.position + Quaternion.Euler(0f, house.yaw, 0f) * new Vector3(bx, 0f, bz);
+            return true;
+        }
+        bool glass = IsGlassHouse(house.kind);
+        int size = HouseSizeIndex(house.kind);
+        GreenhouseHeatRules.Heat heat = HeatOf(heatKind);
+        if (!GreenhouseHeatRules.Fits(glass, size, heat))
+            return false;
+        float x, z;
+        bool along = false;
+        if (heat == GreenhouseHeatRules.Heat.Barrels ? !GreenhouseHeatRules.BarrelSpot(glass, size, out x, out z, out along) : !GreenhouseHeatRules.HeaterSpot(glass, size, out x, out z))
+            return false;
+        world = house.position + Quaternion.Euler(0f, house.yaw, 0f) * new Vector3(x, 0f, z);
+        yaw = house.yaw + (along ? 90f : 0f);
+        return true;
+    }
+
+    // What stands in that house's spot for this kind (the stove and the heater share the heater spot), or null.
+    public WoodPileState HeatInSlot(WoodPileState house, PileKind heatKind)
+    {
+        if (!HeatSlotOf(house, heatKind, out Vector3 world, out _))
+            return null;
+        int group = SpotGroup(heatKind);
+        foreach (WoodPileState pile in piles)
+            if (IsHouseFitting(pile.kind) && SpotGroup(pile.kind) == group && Vector2.Distance(new Vector2(pile.position.x, pile.position.z), new Vector2(world.x, world.z)) < 0.4f)
+                return pile;
+        return null;
+    }
+
+    // The stove, heater and barrels inside a house.
+    public List<WoodPileState> HeatersIn(WoodPileState house)
+    {
+        var list = new List<WoodPileState>();
+        foreach (WoodPileState pile in piles)
+            if (IsHouseFitting(pile.kind) && HouseAt(pile.position) == house)
+                list.Add(pile);
+        return list;
+    }
+
+    // Every spot for this kind in the houses within range: Placement Mode snaps to these.
+    public List<(Vector3 world, float yaw, WoodPileState house, bool taken)> HeatSlots(PileKind heatKind, Vector3 near, float range)
+    {
+        var slots = new List<(Vector3 world, float yaw, WoodPileState house, bool taken)>();
+        foreach (WoodPileState pile in piles)
+        {
+            if (!IsFittingHost(heatKind, pile.kind) || Vector3.Distance(pile.position, near) > range + 10f)
+                continue;
+            if (HeatSlotOf(pile, heatKind, out Vector3 world, out float yaw) && Vector3.Distance(world, near) <= range)
+                slots.Add((world, yaw, pile, HeatInSlot(pile, heatKind) != null));
+        }
+        return slots;
+    }
+
+    bool CanBuildHeatAt(PileKind kind, BuildSpot spot, out string reason)
+    {
+        WoodPileState house = null;
+        foreach (WoodPileState pile in piles)
+        {
+            if (!IsFittingHost(kind, pile.kind) || !HeatSlotOf(pile, kind, out Vector3 world, out _))
+                continue;
+            if (Vector2.Distance(new Vector2(world.x, world.z), new Vector2(spot.point.x, spot.point.z)) < 0.5f)
+            {
+                house = pile;
+                break;
+            }
+        }
+        if (house == null)
+        {
+            WoodPileState inside = HouseAt(spot.point);
+            reason = kind == PileKind.VentOpener ? VentRules.NoSpot
+                : inside != null && !HeatSlotOf(inside, kind, out _, out _) ? GreenhouseHeatRules.NoRoom(HeatOf(kind)) : GreenhouseHeatRules.NoSpot;
+            return false;
+        }
+        if (HeatInSlot(house, kind) != null)
+        {
+            reason = GreenhouseHeatRules.SpotTaken;
+            return false;
+        }
+        if (!HammerEquipped)
+        {
+            reason = WellsAndOuthouses.EquipHammerToBuild;
+            return false;
+        }
+        reason = "";
+        return true;
+    }
+
+    // Takes a Cold Frame's beds away with it (Dismantle, once they are empty).
+    public void RemoveFrameBeds(WoodPileState frame)
+    {
+        foreach (WoodPileState bed in BedsInFrame(frame))
+            RemovePile(bed);
+        foreach (WoodPileState bench in BenchesIn(frame))
+            RemovePile(bench);
+    }
+
+    bool CanBuildColdFrameAt(PileKind kind, BuildSpot spot, float yaw, bool aimed, out string reason)
+    {
+        ColdFrameRules.Size size = ColdFrameSizeOf(kind);
+        FenceRules.Segment line = FrameLine(spot.point, yaw, size);
+        if (!spot.onTerrain)
+        {
+            reason = aimed ? "No clear ground there." : "No clear ground in front of you.";
+            return false;
+        }
+        if (Vector3.Angle(spot.normal, Vector3.up) > maxSlope)
+        {
+            reason = aimed ? "The ground there is too steep." : "The ground in front of you is too steep.";
+            return false;
+        }
+        for (int i = 0; i <= 4; i++)
+        {
+            float t = i / 4f;
+            var p = new Vector3(line.a.x + (line.b.x - line.a.x) * t, spot.point.y, line.a.z + (line.b.z - line.a.z) * t);
+            if (Animal.IsOverWater(p, out _))
+            {
+                reason = "Can't build that in water.";
+                return false;
+            }
+            if (FindTree(p, GardenRules.TreeClearance) >= 0)
+            {
+                reason = "Too close to a tree - a cold frame needs open sky.";
+                return false;
+            }
+        }
+        foreach (WoodPileState other in piles)
+        {
+            float off = IsFenceKind(other.kind)
+                ? Mathf.Min(FenceRules.DistanceToSegment(line.a, FenceSegmentOf(other)), FenceRules.DistanceToSegment(line.b, FenceSegmentOf(other)),
+                            FenceRules.DistanceToSegment(new FenceRules.Point(spot.point.x, spot.point.z), FenceSegmentOf(other)))
+                : FenceRules.DistanceToSegment(new FenceRules.Point(other.position.x, other.position.z), line);
+            float need = IsFenceKind(other.kind) ? ColdFrameRules.Depth / 2f + 0.05f
+                       : IsBedKind(other.kind) ? ColdFrameRules.Depth / 2f + GardenRules.BedSize / 2f + 0.05f
+                       : IsColdFrame(other.kind) ? ColdFrameRules.Depth + 0.1f
+                       : ColdFrameRules.Depth / 2f + 0.9f;
+            if (off < need)
+            {
+                reason = IsBedKind(other.kind) ? "Overlaps a garden bed." : IsFenceKind(other.kind) ? "Runs into a fence." : $"Too close to the {PileName(other.kind)}.";
+                return false;
+            }
+        }
+        if (FireManager.Instance != null && FireManager.Instance.NearestLit(spot.point, minSpacing) != null)
+        {
+            reason = "Too close to the fire.";
+            return false;
+        }
+        if (!HammerEquipped)
+        {
+            reason = WellsAndOuthouses.EquipHammerToBuild;
+            return false;
+        }
+        reason = "";
+        return true;
+    }
+
     // A garden fence panel or gate (GB4a, FenceRules): placed end to end round beds, its own spacing rules.
     public static bool IsFenceKind(PileKind kind) => kind == PileKind.WattleFence || kind == PileKind.DeerFence || kind == PileKind.FenceGate;
 
@@ -1215,13 +1737,57 @@ public class WoodManager : MonoBehaviour, ISaveable
         return list;
     }
 
+    // A Gate's height (FenceRules.GateHeight): from the sections joined to its ends.
+    public float GateHeightOf(WoodPileState gate)
+    {
+        FenceRules.Segment g = FenceSegmentOf(gate);
+        bool deer = false, wattle = false;
+        foreach (WoodPileState pile in piles)
+        {
+            if (pile == gate || !IsFenceKind(pile.kind) || pile.kind == PileKind.FenceGate)
+                continue;
+            FenceRules.Segment s = FenceSegmentOf(pile);
+            bool joined = false;
+            foreach (FenceRules.Point end in new[] { g.a, g.b })
+                if (FenceRules.Point.Distance(end, s.a) <= FenceRules.JoinMetres || FenceRules.Point.Distance(end, s.b) <= FenceRules.JoinMetres)
+                    joined = true;
+            if (!joined)
+                continue;
+            if (pile.kind == PileKind.DeerFence) deer = true;
+            else wattle = true;
+        }
+        return FenceRules.GateHeight(deer, wattle);
+    }
+
+    // Redraws the Gates joined to this section, so their height follows it (a section built or taken down beside a gate).
+    public void RefreshGatesBeside(WoodPileState section)
+    {
+        if (!IsFenceKind(section.kind) || section.kind == PileKind.FenceGate)
+            return;
+        FenceRules.Segment s = FenceSegmentOf(section);
+        foreach (WoodPileState pile in piles)
+        {
+            if (pile.kind != PileKind.FenceGate)
+                continue;
+            FenceRules.Segment g = FenceSegmentOf(pile);
+            foreach (FenceRules.Point end in new[] { g.a, g.b })
+            {
+                if (FenceRules.Point.Distance(end, s.a) <= FenceRules.JoinMetres || FenceRules.Point.Distance(end, s.b) <= FenceRules.JoinMetres)
+                {
+                    NotifyChanged(pile);
+                    break;
+                }
+            }
+        }
+    }
+
     // What the fences keep out at a point (a bed's centre).
     public FenceRules.Protection FenceProtectionAt(Vector3 point) =>
         FenceRules.ProtectionAt(FenceSegments(), new FenceRules.Point(point.x, point.z));
 
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.SaltBarrel, PileKind.CompostBin, PileKind.DryingRack, PileKind.HideFrame, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.TanningVatSite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.ColdFrameSmall, PileKind.ColdFrameMedium, PileKind.ColdFrameLarge, PileKind.HoopHouseSiteSmall, PileKind.HoopHouseSiteMedium, PileKind.HoopHouseSiteLarge, PileKind.GlassHouseSiteSmall, PileKind.GlassHouseSiteMedium, PileKind.GlassHouseSiteLarge, PileKind.GreenhouseStove, PileKind.PropaneHeater, PileKind.WaterBarrels, PileKind.HoseBib, PileKind.HoseReel, PileKind.HandPump, PileKind.FuelPump, PileKind.VentOpener, PileKind.TanningVatSite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -1256,6 +1822,30 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WattleFence: return "Wattle Fence";
             case PileKind.DeerFence: return "Deer Fence";
             case PileKind.FenceGate: return "Gate";
+            case PileKind.ColdFrameSmall: return "Small Cold Frame";
+            case PileKind.ColdFrameMedium: return "Medium Cold Frame";
+            case PileKind.ColdFrameLarge: return "Large Cold Frame";
+            case PileKind.HoopHouseSiteSmall: return HoopHouseRules.SiteName(HoopHouseRules.Size.Small);
+            case PileKind.HoopHouseSiteMedium: return HoopHouseRules.SiteName(HoopHouseRules.Size.Medium);
+            case PileKind.HoopHouseSiteLarge: return HoopHouseRules.SiteName(HoopHouseRules.Size.Large);
+            case PileKind.HoopHouseSmall: return HoopHouseRules.Name(HoopHouseRules.Size.Small);
+            case PileKind.HoopHouseMedium: return HoopHouseRules.Name(HoopHouseRules.Size.Medium);
+            case PileKind.HoopHouseLarge: return HoopHouseRules.Name(HoopHouseRules.Size.Large);
+            case PileKind.GlassHouseSiteSmall: return GlassHouseRules.SiteName(GlassHouseRules.Size.Small);
+            case PileKind.GlassHouseSiteMedium: return GlassHouseRules.SiteName(GlassHouseRules.Size.Medium);
+            case PileKind.GlassHouseSiteLarge: return GlassHouseRules.SiteName(GlassHouseRules.Size.Large);
+            case PileKind.GlassHouseSmall: return GlassHouseRules.Name(GlassHouseRules.Size.Small);
+            case PileKind.GlassHouseMedium: return GlassHouseRules.Name(GlassHouseRules.Size.Medium);
+            case PileKind.GlassHouseLarge: return GlassHouseRules.Name(GlassHouseRules.Size.Large);
+            case PileKind.SeedlingBench: return "Seedling Bench";
+            case PileKind.GreenhouseStove: return "Wood Stove";
+            case PileKind.PropaneHeater: return "Propane Heater";
+            case PileKind.WaterBarrels: return "Water Barrels";
+            case PileKind.HoseBib: return "Hose Bib";
+            case PileKind.HoseReel: return "Hose Reel";
+            case PileKind.HandPump: return "Hand Pump";
+            case PileKind.FuelPump: return "Fuel Pump";
+            case PileKind.VentOpener: return VentRules.Name;
             case PileKind.ToolRack: return "Tool Rack";
             case PileKind.Tent: return "Tent";
             case PileKind.TarpShelter: return "Tarp Shelter";
@@ -1329,6 +1919,33 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WattleFence: return new[] { new WoodStack { itemId = FenceRules.SticksId, count = FenceRules.WattleSticks }, new WoodStack { itemId = FenceRules.BranchesId, count = FenceRules.WattleBranches } };
             case PileKind.DeerFence: return new[] { new WoodStack { itemId = FenceRules.LogsId, count = FenceRules.DeerLogs }, new WoodStack { itemId = FenceRules.WireMeshId, count = FenceRules.DeerWire } };
             case PileKind.FenceGate: return new[] { new WoodStack { itemId = FenceRules.LumberId, count = FenceRules.GateLumber }, new WoodStack { itemId = FenceRules.CordageId, count = FenceRules.GateCordage } };
+            // Cold Frames (G1): old Window Sashes (Trading Post) and Lumber, by the bed squares.
+            case PileKind.ColdFrameSmall:
+            case PileKind.ColdFrameMedium:
+            case PileKind.ColdFrameLarge:
+                return new[] { new WoodStack { itemId = ColdFrameRules.SashId, count = ColdFrameRules.Sashes(ColdFrameSizeOf(kind)) },
+                               new WoodStack { itemId = ColdFrameRules.LumberId, count = ColdFrameRules.Lumber(ColdFrameSizeOf(kind)) } };
+            // Hoop Houses (G2): a Hoop House Site is free to mark out; the finished house holds its total and what Dismantle halves.
+            case PileKind.HoopHouseSmall:
+            case PileKind.HoopHouseMedium:
+            case PileKind.HoopHouseLarge:
+                return HoopHouseCost(HoopSizeOf(kind));
+            // Glass Greenhouses (G3): likewise; their benches come with them and cost nothing of their own.
+            case PileKind.GlassHouseSmall:
+            case PileKind.GlassHouseMedium:
+            case PileKind.GlassHouseLarge:
+                return GlassHouseCost(GlassSizeOf(kind));
+            // Greenhouse heat (G4).
+            case PileKind.GreenhouseStove: return new[] { new WoodStack { itemId = GreenhouseHeatRules.StoveItemId, count = 1 }, new WoodStack { itemId = GreenhouseHeatRules.StoneId, count = GreenhouseHeatRules.StoveStone } };
+            case PileKind.PropaneHeater: return new[] { new WoodStack { itemId = GreenhouseHeatRules.HeaterItemId, count = 1 } };
+            case PileKind.WaterBarrels: return new[] { new WoodStack { itemId = GreenhouseHeatRules.LogsId, count = GreenhouseHeatRules.BarrelLogs } };
+            // Watering (G5).
+            case PileKind.HoseBib: return new[] { new WoodStack { itemId = WateringRules.HoseId, count = 1 } };
+            case PileKind.HoseReel: return new[] { new WoodStack { itemId = WateringRules.HoseId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = WateringRules.ReelLumber } };
+            case PileKind.HandPump: return new[] { new WoodStack { itemId = WateringRules.HandPumpId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = WateringRules.PumpLumber } };
+            case PileKind.FuelPump: return new[] { new WoodStack { itemId = WateringRules.FuelPumpId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = WateringRules.PumpLumber } };
+            // Automatic venting (G6).
+            case PileKind.VentOpener: return new[] { new WoodStack { itemId = VentRules.ItemId, count = 1 } };
             case PileKind.Tent: return new[] { new WoodStack { itemId = TentId, count = 1 } };
             case PileKind.TarpShelter: return new[] { new WoodStack { itemId = SleepManager.TarpId, count = 1 }, new WoodStack { itemId = SticksId, count = TarpShelterSticks },
                                                       new WoodStack { itemId = "cordage", count = 1 } };
@@ -1503,9 +2120,30 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (!CanStartBuild(kind, player, out reason))
             return false;
 
+        // A Hoop House Site (G2) or a Glass Greenhouse Site (G3): over its whole footprint.
+        if (IsWalkInSite(kind))
+            return CanBuildHouseAt(kind, spot, yaw, aimed, out reason);
+        // A stove, heater or barrels (G4) goes in its spot inside a finished greenhouse.
+        if (IsHouseFitting(kind))
+            return CanBuildHeatAt(kind, spot, out reason);
+        // A Hand Pump or Fuel Pump (G5) stands on the bank of the creek or a pond (a Hand Pump beside a Well too); then the open-ground rules below.
+        if (WateringFittings.IsPump(kind) && !WateringFittings.PumpSiteOk(kind, spot.point))
+        {
+            reason = kind == PileKind.HandPump ? WateringRules.HandPumpNotNearWater : WateringRules.NotNearWater;
+            return false;
+        }
+        // Nothing else is built inside a greenhouse or on its site: its beds come with it.
+        if (InsideAnyHouse(spot.point, 0.3f))
+        {
+            reason = "That's inside a greenhouse - its beds come with it.";
+            return false;
+        }
         // A garden fence panel or gate (GB4a) answers to its own rules: along its whole length.
         if (IsFenceKind(kind))
             return CanBuildFenceAt(kind, spot, yaw, fenceLength, aimed, out reason);
+        // A Cold Frame (G1) too: along its row of squares.
+        if (IsColdFrame(kind))
+            return CanBuildColdFrameAt(kind, spot, yaw, aimed, out reason);
 
         // A Kitchen add-on goes in a slot of a finished Kitchen and answers to its own rules (CanBuildAddonAt), not the open-ground ones below.
         if (IsKitchenAddon(kind))
@@ -1584,6 +2222,23 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
         foreach (WoodPileState other in piles)
         {
+            // A walk-in house or its site (G2, G3), and a bench in one: the footprint was checked above, against its walls, not its centre.
+            if (IsWalkIn(other.kind) || IsWalkInSite(other.kind) || other.kind == PileKind.SeedlingBench || IsHouseFitting(other.kind))
+                continue;
+            // A Cold Frame (G1) keeps its row clear: its own beds are inside it, others stand off its edge.
+            if (IsColdFrame(other.kind))
+            {
+                float off = FenceRules.DistanceToSegment(new FenceRules.Point(spot.point.x, spot.point.z), FrameLine(other.position, other.yaw, ColdFrameSizeOf(other.kind)));
+                if (off < ColdFrameRules.Depth / 2f + (IsBedKind(kind) ? GardenRules.BedSize / 2f + 0.05f : 0.9f))
+                {
+                    reason = "Too close to the cold frame.";
+                    return false;
+                }
+                continue;
+            }
+            // A framed bed is part of its frame: the frame's own rule above already keeps things off it.
+            if (other.kind == PileKind.GardenBed && (other.cropFlags & GardenRules.FlagInFrame) != 0)
+                continue;
             // A fence (GB4a) keeps only its own line clear: a bed may stand right beside it, anything else a little off it.
             if (IsFenceKind(other.kind))
             {
@@ -1749,6 +2404,17 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.WattleFence:
             case PileKind.DeerFence:
             case PileKind.FenceGate:
+            case PileKind.ColdFrameSmall:
+            case PileKind.ColdFrameMedium:
+            case PileKind.ColdFrameLarge:
+            case PileKind.GreenhouseStove:
+            case PileKind.PropaneHeater:
+            case PileKind.WaterBarrels:
+            case PileKind.HoseBib:
+            case PileKind.HoseReel:
+            case PileKind.HandPump:
+            case PileKind.FuelPump:
+            case PileKind.VentOpener:
                 return true;
             default:
                 return false;
@@ -1828,6 +2494,15 @@ public class WoodManager : MonoBehaviour, ISaveable
         // An add-on is built exactly in its slot, facing the middle of the kitchen, whatever the ghost said.
         if (IsKitchenAddon(kind) && KitchenForSlot(spot.point, out WoodPileState slotKitchen, out int slotIndex))
             yaw = Setbacks.KitchenLayout.SlotYaw(slotKitchen.yaw, slotIndex);
+        // A stove, heater or barrels (G4) stands exactly in its spot, facing the way the house says.
+        if (IsHouseFitting(kind))
+            foreach (WoodPileState house in piles)
+                if (IsFittingHost(kind, house.kind) && HeatSlotOf(house, kind, out Vector3 slot, out float slotYaw) &&
+                    Vector2.Distance(new Vector2(slot.x, slot.z), new Vector2(spot.point.x, spot.point.z)) < 0.5f)
+                {
+                    yaw = slotYaw;
+                    break;
+                }
 
         var pile = new WoodPileState
         {
@@ -1872,6 +2547,9 @@ public class WoodManager : MonoBehaviour, ISaveable
             FireManager.Instance.BuildFurnished(GrillFireSpot(pile), pile.yaw);
         SpawnPile(pile);
         PileChanged?.Invoke(pile);
+        RefreshGatesBeside(pile); // a gate beside a new section takes its height
+        if (IsColdFrame(kind))
+            BuildFrameBeds(pile); // its soil: Garden Beds, dug and ready, inside it
         return true;
     }
 

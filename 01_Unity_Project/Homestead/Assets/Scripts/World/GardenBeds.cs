@@ -16,6 +16,10 @@ using UnityEngine;
 // sprouts less; Tomato Seed saved from your own tomatoes is sown straight into the bed.
 // Slice GB4a (Mike, 2026-11-25, Gardening_Basics.md 9d): at dawn and at dusk a rabbit or a deer may nibble an open bed's crop (FenceRules: light nibbling); a closed ring of
 // fence round the bed keeps them out (wattle keeps rabbits out, deer fence both). The bed's second line says how it is fenced.
+// Slice GB4b (2026-11-26): a raid on a bed within FenceRules.VisibleRange of the player, awake, is a real deer or rabbit (WildlifeManager.SendRaider) that walks in,
+// eats, and only then takes its bite (RaiderAte); chased off first, it takes nothing.
+// Greenhouse G1 (2026-11-26, Greenhouses.md 9): a bed square in a Cold Frame (FlagInFrame) lives at the frame's inside temperature (ColdFrameRules.Inside), gets rain only
+// through a propped lid, is harmed past its crop's heat limit, is out of the raiders' reach, takes only low crops, and is taken down with its frame.
 // THE SWAP POINT for the plants: Resources/Art/crop_<crop id>_<stage>.prefab (stage: sprouting, growing, maturing, ready, dead), placed at each plant's spot, replaces that crop's
 // primitive plant for that stage; Resources/Art/structure_gardenbed.prefab replaces the dug soil and Resources/Art/structure_gardenbed_marked.prefab the stakes of an undug bed.
 public static class GardenBeds
@@ -59,6 +63,7 @@ public static class GardenBeds
     static bool SeedRipe(WoodPileState s) => Saving(s) && !Dead(s) && GardenRules.SeedRipe(CropOf(s), s.jobHours, s.chillDays);
     // GB3b: a carrot or kale square saved for seed, not yet mulched, with the Tall Grass to mulch it carried.
     static bool CanMulch(WoodPileState s) => Saving(s) && !Dead(s) && GardenRules.NeedsWinter(CropOf(s)) && !Mulched(s) && Carried(GardenRules.MulchId) >= GardenRules.MulchGrass;
+    public static bool InFrame(WoodPileState s) => (s.cropFlags & GardenRules.FlagInFrame) != 0;
     static int Today => TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
     static int DaysPerYear => CalendarRules.Current != null ? CalendarRules.Current.DaysPerYear : 365;
     public static GardenRules.Stage StageOf(WoodPileState s) => GardenRules.StageOf(CropOf(s), DryBeans(s), s.jobHours, s.picksTaken, Dead(s));
@@ -85,6 +90,23 @@ public static class GardenBeds
         int rabbitBeds = 0, deerBeds = 0;
         var lonelyCorn = new List<string>();
         var wintered = new List<string>();
+        // Cold Frames (G1): each frame's inside temperature this hour, the frames past a crop's heat limit, and those left open on a frosty night.
+        var frameAir = new Dictionary<int, float>();
+        var overheated = new List<WoodPileState>();
+        var openOnFrost = new List<int>();
+        var housesOpenOnFrost = new List<int>();
+        var glassOpenOnFrost = new List<int>();
+        int heatKilled = 0;
+        // Hoop Houses (G2): the snow on their plastic and its age, before the beds under it.
+        HoopHouseHour(wood, airC);
+        // The drip timers (G5): each morning, before the beds grow.
+        WateringFittings.Hour(wood);
+        // The vent openers (G6): each opens or shuts its cover for the hour, before the heat and the beds.
+        VentOpeners.Hour(wood, airC);
+        // Greenhouse stoves and heaters (G4): whether each burns this hour, before the beds and benches feel it.
+        GreenhouseHeat.Hour(wood, airC);
+        // Glass Greenhouses' seedling benches (G3).
+        GreenhouseBenches.Hour(wood, airC);
         foreach (WoodPileState bed in wood.Piles)
         {
             if (bed.kind != PileKind.GardenBed || !IsDug(bed))
@@ -92,16 +114,50 @@ public static class GardenBeds
             GardenRules.Crop crop = CropOf(bed);
             string before = LookKey(bed);
             float daysBefore = bed.jobHours;
+            // A square in a Cold Frame lives at the frame's inside temperature, and gets the rain only through a propped lid.
+            // A square in a Hoop House (G2) the same, through its sides; through torn plastic it is as outdoors.
+            WoodPileState frame = InFrame(bed) ? wood.CoverOf(bed) : null;
+            if (frame != null && WoodManager.IsHoopHouse(frame.kind) && WoodManager.HoopIsTorn(frame))
+                frame = null;
+            float air = airC, rain = rainMm;
+            if (frame != null)
+            {
+                if (!frameAir.TryGetValue(frame.id, out air))
+                {
+                    air = FrameInside(frame, airC);
+                    frameAir[frame.id] = air;
+                }
+                rain = rainMm * CoverRainShare(frame);
+            }
+            // A hotbed (G4) warms the soil while it lasts, then it is spent.
+            if ((bed.cropFlags & GardenRules.FlagHotbed) != 0)
+            {
+                if (Hotbed(bed))
+                    air += GreenhouseHeatRules.HotbedC;
+                else
+                {
+                    bed.cropFlags &= ~GardenRules.FlagHotbed;
+                    wood.NotifyChanged(bed);
+                }
+            }
             bool ready = crop != null && bed.jobHours >= GardenRules.DaysToReady(crop, DryBeans(bed));
             bool covered = Covered(bed), mulched = Mulched(bed), forSeed = Saving(bed);
-            bool frost = crop != null && GardenRules.FrostDamage(crop, airC + (covered ? GardenRules.CoverProtectionC : 0f) + (mulched ? GardenRules.MulchProtectionC : 0f),
+            bool frost = crop != null && GardenRules.FrostDamage(crop, air + (covered ? GardenRules.CoverProtectionC : 0f) + (mulched ? GardenRules.MulchProtectionC : 0f),
                                                                  GardenRules.FrostProofNow(crop, ready, forSeed)) > 0f;
-            if (alertHour && crop != null && !Dead(bed) && GardenRules.FrostRisk(crop, ready, covered, lowTonight, forSeed, mulched))
+            float lowHere = frame != null ? CoverInsideAt(frame, lowTonight, CoverOpen(frame)) : lowTonight;
+            if (alertHour && crop != null && !Dead(bed) && GardenRules.FrostRisk(crop, ready, covered, lowHere, forSeed, mulched))
             {
-                if (covered) atRiskCovered++;
+                // An open frame whose shut lid would keep tonight's frost off: told to close it, not to cover it.
+                if (frame != null && CoverOpen(frame) && !GardenRules.FrostRisk(crop, ready, covered, CoverInsideAt(frame, lowTonight, false), forSeed, mulched))
+                {
+                    List<int> open = WoodManager.IsHoopHouse(frame.kind) ? housesOpenOnFrost : WoodManager.IsGlassHouse(frame.kind) ? glassOpenOnFrost : openOnFrost;
+                    if (!open.Contains(frame.id))
+                        open.Add(frame.id);
+                }
+                else if (covered) atRiskCovered++;
                 else atRiskUncovered++;
             }
-            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), airC, rainMm, Raised(bed), covered, forSeed, mulched);
+            GardenRules.HourResult r = GardenRules.Hour(crop, bed.jobHours, bed.cropDamage, bed.soilMoisture, DryBeans(bed), Dead(bed), air, rain, Raised(bed), covered, forSeed, mulched);
             bed.soilMoisture = r.moisture;
             bed.jobHours = r.growingDays;
             bed.cropDamage = r.damage;
@@ -110,7 +166,7 @@ public static class GardenBeds
             if (crop != null && forSeed && !Dead(bed) && !r.died && GardenRules.NeedsWinter(crop) && !GardenRules.Chilled(crop, bed.chillDays))
             {
                 float readyDays = GardenRules.DaysToReady(crop, false);
-                bed.chillDays = GardenRules.ChillAfterHour(bed.chillDays, airC, bed.jobHours >= readyDays);
+                bed.chillDays = GardenRules.ChillAfterHour(bed.chillDays, air, bed.jobHours >= readyDays);
                 if (GardenRules.Chilled(crop, bed.chillDays))
                 {
                     bed.jobHours = Mathf.Min(bed.jobHours, readyDays);
@@ -140,7 +196,24 @@ public static class GardenBeds
                 else
                     droughtKilled++;
             }
-            if (raidHour && crop != null && !Dead(bed) && Raid(bed, crop, fences, out bool rabbit, out bool deer))
+            // Too hot in a Cold Frame (G1): stalled past the crop's heat limit (GardenRules.GrowthRate), harmed past it by HeatHarmMarginC.
+            if (frame != null && crop != null && !Dead(bed))
+            {
+                if (air > crop.heatC && !overheated.Contains(frame))
+                    overheated.Add(frame);
+                float harm = ColdFrameRules.HeatDamage(crop.heatC, air);
+                if (harm > 0f)
+                {
+                    bed.cropDamage = GardenRules.Clamp01(bed.cropDamage + harm);
+                    if (bed.cropDamage >= 1f)
+                    {
+                        bed.cropFlags |= GardenRules.FlagDead;
+                        heatKilled++;
+                    }
+                }
+            }
+            // A Cold Frame keeps the raiders out (G1).
+            if (raidHour && frame == null && crop != null && !Dead(bed) && Raid(bed, crop, fences, out bool rabbit, out bool deer))
             {
                 if (rabbit) rabbitBeds++;
                 if (deer) deerBeds++;
@@ -150,6 +223,24 @@ public static class GardenBeds
         }
         if (rabbitBeds + deerBeds > 0)
             ToolStatus.Banner(FenceRules.RaidBanner(rabbitBeds, deerBeds, hourNow == FenceRules.DawnHour), 8f);
+        // Cold Frames (G1, Mike: yes, banners): too hot inside (at most every few hours a frame), or left open on a frosty night.
+        if (heatKilled > 0)
+            ToolStatus.Banner(heatKilled == 1 ? "The heat under cover killed a crop - open the lid or roll the sides up on sunny days" : $"The heat under cover killed {heatKilled} crops - open the lids or roll the sides up on sunny days", 8f);
+        int stamp = TimeManager.Instance != null ? TimeManager.Instance.TotalDays * 24 + TimeManager.Instance.Hour : 0;
+        foreach (WoodPileState frame in overheated)
+        {
+            if (LastHeatWarning.TryGetValue(frame.id, out int last) && stamp - last < ColdFrameRules.WarnEveryHours)
+                continue;
+            LastHeatWarning[frame.id] = stamp;
+            ToolStatus.Banner(WoodManager.IsHoopHouse(frame.kind) ? HoopHouseRules.OverheatBanner(frameAir[frame.id]) : WoodManager.IsGlassHouse(frame.kind) ? GlassHouseRules.OverheatBanner(frameAir[frame.id]) : ColdFrameRules.OverheatBanner(frameAir[frame.id]), 8f);
+            break; // one banner an hour is plenty
+        }
+        if (openOnFrost.Count > 0)
+            ToolStatus.Banner(ColdFrameRules.CloseLidsBanner(openOnFrost.Count, lowTonight), 12f);
+        if (housesOpenOnFrost.Count > 0)
+            ToolStatus.Banner(HoopHouseRules.CloseSidesBanner(housesOpenOnFrost.Count, lowTonight), 12f);
+        if (glassOpenOnFrost.Count > 0)
+            ToolStatus.Banner(GlassHouseRules.CloseVentsBanner(glassOpenOnFrost.Count, lowTonight), 12f);
         if (frostKilled > 0)
             ToolStatus.Banner(frostKilled == 1 ? "Frost killed the crop in a garden bed" : $"Frost killed the crops in {frostKilled} garden beds", 8f);
         if (droughtKilled > 0)
@@ -165,6 +256,8 @@ public static class GardenBeds
     }
 
     // One raid hour for one bed (GB4a): a rabbit, a deer, both or neither come, if the fences let them and the crop is one they eat, and each nibbles its share.
+    // GB4b: with the player near and awake, each one that comes is a real animal sent to the bed instead (its bite comes when it has eaten, RaiderAte); the
+    // out flags then stay false, as nothing has been eaten yet.
     static bool Raid(WoodPileState bed, GardenRules.Crop crop, List<FenceRules.Segment> fences, out bool rabbit, out bool deer)
     {
         FenceRules.Protection fenced = FenceRules.ProtectionAt(fences, new FenceRules.Point(bed.position.x, bed.position.z));
@@ -173,10 +266,193 @@ public static class GardenBeds
         deer = !fenced.deer && FenceRules.DeerEats(crop.id) && Random.value < FenceRules.DeerChance;
         if (!rabbit && !deer)
             return false;
+        if (RaiderSeen(bed))
+        {
+            if (rabbit && WildlifeManager.Instance.SendRaider("rabbit", bed))
+                rabbit = false;
+            if (deer && WildlifeManager.Instance.SendRaider("deer", bed))
+                deer = false;
+            if (!rabbit && !deer)
+                return false;
+        }
         bed.cropDamage = GardenRules.Clamp01(bed.cropDamage + (rabbit ? FenceRules.RabbitBite : 0f) + (deer ? FenceRules.DeerBite : 0f));
         if (bed.cropDamage >= 1f)
             bed.cropFlags |= GardenRules.FlagDead;
         return true;
+    }
+
+    // Whether a raid on this bed comes as an animal the player can see: near and awake, with the wildlife running.
+    static bool RaiderSeen(WoodPileState bed)
+    {
+        if (WildlifeManager.Instance == null)
+            return false;
+        PlayerController player = WildlifeManager.Player != null ? WildlifeManager.Player : Object.FindAnyObjectByType<PlayerController>();
+        if (player == null)
+            return false;
+        bool asleep = SleepManager.Instance != null && SleepManager.Instance.IsSleeping;
+        return FenceRules.Visible(Vector3.Distance(player.transform.position, bed.position), asleep);
+    }
+
+    // A raider has reached the bed and started eating (GB4b): the player is told, in time to chase it off.
+    public static void RaiderArrived(WoodPileState bed, string animal)
+    {
+        GardenRules.Crop crop = CropOf(bed);
+        if (crop == null || Dead(bed))
+            return;
+        ToolStatus.Banner(FenceRules.EatingBanner(animal, crop.name), 6f);
+    }
+
+    // Testing only (TimeDebugControls, the / key): sends a raider at once to the nearest planted bed it could get at and would eat. Returns what happened.
+    public static string DebugSendRaider(string speciesId, Vector3 near)
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null || WildlifeManager.Instance == null)
+            return "No wildlife here";
+        WoodPileState best = null;
+        float bestDistance = float.MaxValue;
+        foreach (WoodPileState bed in wood.Piles)
+        {
+            GardenRules.Crop crop = bed.kind == PileKind.GardenBed && IsDug(bed) ? CropOf(bed) : null;
+            if (crop == null || Dead(bed) || !FenceRules.Eats(speciesId, crop.id, StageOf(bed) == GardenRules.Stage.Sprouting))
+                continue;
+            FenceRules.Protection fenced = wood.FenceProtectionAt(bed.position);
+            if (speciesId == "deer" ? fenced.deer : fenced.rabbits)
+                continue;
+            float d = Vector3.Distance(near, bed.position);
+            if (d < bestDistance)
+            {
+                bestDistance = d;
+                best = bed;
+            }
+        }
+        if (best == null)
+            return $"No planted, unfenced bed with a crop a {speciesId} eats";
+        return WildlifeManager.Instance.SendRaider(speciesId, best)
+            ? $"Sent a {speciesId} to the {CropOf(best).name} bed {bestDistance:0} m away"
+            : "Found no spot for it to come from";
+    }
+
+    static bool StillStanding(WoodManager wood, WoodPileState bed)
+    {
+        foreach (WoodPileState pile in wood.Piles)
+            if (pile == bed)
+                return true;
+        return false;
+    }
+
+    // A raider has eaten its fill (GB4b): its bite, if the crop it came for is still there, alive, and not fenced off against it meanwhile.
+    public static void RaiderAte(WoodPileState bed, string speciesId, string cropId, string animal)
+    {
+        WoodManager wood = WoodManager.Instance;
+        GardenRules.Crop crop = CropOf(bed);
+        if (wood == null || crop == null || crop.id != cropId || Dead(bed) || !StillStanding(wood, bed))
+            return;
+        FenceRules.Protection fenced = wood.FenceProtectionAt(bed.position);
+        if (speciesId == "deer" ? fenced.deer : fenced.rabbits)
+            return;
+        bed.cropDamage = GardenRules.Clamp01(bed.cropDamage + FenceRules.Bite(speciesId));
+        if (bed.cropDamage >= 1f)
+            bed.cropFlags |= GardenRules.FlagDead;
+        wood.NotifyChanged(bed);
+        ToolStatus.Banner(FenceRules.AteBanner(animal, crop.name), 6f);
+    }
+
+    static readonly Dictionary<int, int> LastHeatWarning = new Dictionary<int, int>();
+
+    // The inside temperature to show: the hour's (kept on the frame), or worked out now if no hour has passed since it was built or its lid moved.
+    public static float FrameInsideShown(WoodPileState frame) =>
+        frame.jobHours != 0f ? frame.jobHours : FrameInside(frame, WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureC : 15f);
+
+    // A Cold Frame's inside temperature now (G1), from the outside air and the sun on its glass; kept on the frame (its jobHours) for its prompt.
+    public static float FrameInside(WoodPileState frame, float airC)
+    {
+        float inside = InsideIf(frame, airC, CoverOpen(frame));
+        frame.jobHours = inside;
+        return inside;
+    }
+
+    // What a cover's inside reaches this hour with its lid, sides or vents as given (the sun and a greenhouse's heat included); nothing is kept. The vent
+    // openers (G6) ask it what the inside would reach shut.
+    public static float InsideIf(WoodPileState frame, float airC, bool open)
+    {
+        TimeManager time = TimeManager.Instance;
+        float sun = 0f;
+        if (time != null)
+        {
+            WeatherManager weather = WeatherManager.Instance;
+            float clear = DayNightCycle.SunlightFor(weather != null ? weather.Current : WeatherType.Clear);
+            sun = ColdFrameRules.Sun(time.HourOfDay, time.SunriseHour, time.SunsetHour, ColdFrameRules.NoonSin((int)time.CurrentSeason), clear);
+        }
+        float inside = WoodManager.IsGlassHouse(frame.kind) ? GlassHouseRules.InsideC(airC, sun, open)
+            : WoodManager.IsHoopHouse(frame.kind)
+            ? HoopHouseRules.InsideC(airC, sun, open, WoodManager.HoopIsTorn(frame))
+            : ColdFrameRules.Inside(airC, sun, open);
+        return GreenhouseHeat.Apply(frame, inside, sun); // a greenhouse's barrels and burning heater (G4)
+    }
+
+    // --- Covers: a Cold Frame (G1) or a Hoop House (G2) ---
+
+    // Its lid propped or its sides rolled up.
+    public static bool CoverOpen(WoodPileState cover) => WoodManager.IsHoopHouse(cover.kind) ? WoodManager.HoopSidesAreUp(cover) : WoodManager.IsGlassHouse(cover.kind) ? WoodManager.GlassVentsAreOpen(cover) : WoodManager.FrameLidIsOpen(cover);
+
+    // Its inside at night (no sun), lid or sides as given: for the frost alert.
+    static float CoverInsideAt(WoodPileState cover, float airC, bool open) =>
+        GreenhouseHeat.NightEstimate(cover,
+            WoodManager.IsHoopHouse(cover.kind) ? HoopHouseRules.InsideC(airC, 0f, open, false) : WoodManager.IsGlassHouse(cover.kind) ? GlassHouseRules.InsideC(airC, 0f, open) : ColdFrameRules.Inside(airC, 0f, open));
+
+    // --- Hotbeds (G4): Fertilizer dug into a Cold Frame's bed ---
+
+    static bool Hotbed(WoodPileState s) => (s.cropFlags & GardenRules.FlagHotbed) != 0 && GreenhouseHeatRules.HotbedActive(s.builtDay, Today);
+    static bool InColdFrame(WoodPileState s) => InFrame(s) && WoodManager.Instance != null && WoodManager.Instance.ColdFrameOf(s) != null;
+    static bool CanHotbed(WoodPileState s) => IsDug(s) && !Dead(s) && InColdFrame(s) && !Hotbed(s) && Carried(GardenRules.FertilizerId) >= GreenhouseHeatRules.HotbedFertilizer;
+
+    static void MakeHotbed(WoodPileState s)
+    {
+        if (Inventory.RemoveFromPlayer(GardenRules.FertilizerId, GreenhouseHeatRules.HotbedFertilizer) < GreenhouseHeatRules.HotbedFertilizer)
+            return;
+        s.cropFlags |= GardenRules.FlagHotbed;
+        s.builtDay = Today;
+        for (int i = 0; i < GreenhouseHeatRules.HotbedFertilizer; i++)
+            s.soilSpent = GardenRules.AfterFertilizer(s.soilSpent);
+        WoodManager.Instance.NotifyChanged(s);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlayDig(s.position);
+        ToolStatus.Flash($"Dug in a hotbed - the soil will stay warm for {GreenhouseHeatRules.HotbedDays} days", 3f);
+    }
+
+    static float CoverRainShare(WoodPileState cover) =>
+        WoodManager.IsHoopHouse(cover.kind) ? HoopHouseRules.RainShare(WoodManager.HoopIsTorn(cover)) : WoodManager.IsGlassHouse(cover.kind) ? 0f : ColdFrameRules.RainShare(WoodManager.FrameLidIsOpen(cover));
+
+    // A Hoop House's hour (G2): snow builds on its plastic while it snows and melts above freezing; too much tears it, and after WearYears it wears out.
+    // Either way it is flagged torn and gives no cover until new plastic is fitted (PlacedStructure). Banners: the snow piling up, and the tear.
+    static void HoopHouseHour(WoodManager wood, float airC)
+    {
+        TimeManager time = TimeManager.Instance;
+        bool snowing = WeatherManager.Instance != null && WeatherManager.Instance.IsSnowing;
+        int today = time != null ? time.TotalDays : 0;
+        int daysPerYear = time != null ? time.DaysPerSeason * 4 : 0;
+        foreach (WoodPileState house in wood.Piles)
+        {
+            if (!WoodManager.IsHoopHouse(house.kind) || WoodManager.HoopIsTorn(house))
+                continue;
+            float before = house.soilMoisture;
+            house.soilMoisture = HoopHouseRules.SnowAfterHour(before, snowing, airC);
+            if (HoopHouseRules.Tears(house.soilMoisture))
+            {
+                house.cropFlags |= WoodManager.HoopTorn;
+                house.soilMoisture = 0f; // it falls through
+                ToolStatus.Banner(HoopHouseRules.TornBanner, 12f);
+            }
+            else if (HoopHouseRules.WornOut(house.builtDay, today, daysPerYear))
+            {
+                house.cropFlags |= WoodManager.HoopTorn;
+                ToolStatus.Banner(HoopHouseRules.WornBanner, 12f);
+            }
+            else if (before < HoopHouseRules.WarnCm && house.soilMoisture >= HoopHouseRules.WarnCm)
+                ToolStatus.Banner(HoopHouseRules.SnowBanner(house.soilMoisture), 10f);
+            if (WoodManager.HoopIsTorn(house) || Mathf.Round(before) != Mathf.Round(house.soilMoisture))
+                wood.NotifyChanged(house);
+        }
     }
 
     // Living squares of this crop saved for seed and grown at least this far (corn that is flowering, or near it).
@@ -209,12 +485,22 @@ public static class GardenBeds
         string soil = GardenRules.MoistureText(s.soilMoisture);
         // The second line: the soil's fertility and the Row Cover (GB2).
         string bed = GardenRules.FertilityText(s.soilSpent) + (Covered(s) ? "; under a Row Cover" : "") + (Mulched(s) ? "; mulched for winter" : "");
-        // How it is fenced (GB4a), while something grows in it.
-        if (CropOf(s) != null && !Dead(s) && WoodManager.Instance != null)
+        // In a Cold Frame (G1): the lid and the inside temperature. Otherwise how it is fenced (GB4a), while something grows in it.
+        // In a Hoop House (G2): its sides and the inside temperature, or that its plastic is torn.
+        WoodPileState frame = InFrame(s) && WoodManager.Instance != null ? WoodManager.Instance.CoverOf(s) : null;
+        if (frame != null && WoodManager.IsGlassHouse(frame.kind))
+            bed += "\n" + GlassHouseRules.BedLine(WoodManager.GlassVentsAreOpen(frame), FrameInsideShown(frame));
+        else if (frame != null && WoodManager.IsHoopHouse(frame.kind))
+            bed += "\n" + HoopHouseRules.BedLine(WoodManager.HoopSidesAreUp(frame), WoodManager.HoopIsTorn(frame), FrameInsideShown(frame));
+        else if (frame != null)
+            bed += "\n" + ColdFrameRules.BedLine(WoodManager.FrameLidIsOpen(frame), FrameInsideShown(frame));
+        if (Hotbed(s))
+            bed += "; " + GreenhouseHeatRules.HotbedLine(GreenhouseHeatRules.HotbedDaysLeft(s.builtDay, Today));
+        else if (CropOf(s) != null && !Dead(s) && WoodManager.Instance != null)
             bed += "\n" + FenceRules.ProtectionText(WoodManager.Instance.FenceProtectionAt(s.position));
         if (crop == null)
         {
-            string hint = !HoeEquipped ? "\n" + GardenRules.NeedHoe : !SeedToPlant().HasValue ? "\n" + GardenRules.NoSeed : "";
+            string hint = !HoeEquipped ? "\n" + GardenRules.NeedHoe : !SeedToPlant(s).HasValue ? "\n" + GardenRules.NoSeed : "";
             return $"{BedName(s)}  (bare, {soil})\n{bed}{hint}";
         }
         bool dry = DryBeans(s);
@@ -228,9 +514,9 @@ public static class GardenBeds
     }
 
     // Fertilizer goes on when the soil is worn and nothing else is to be done with E (GB2).
-    static bool CanFertilize(WoodPileState s) => IsDug(s) && s.soilSpent > 0.01f && Carried(GardenRules.FertilizerId) > 0 && !Dead(s);
+    static bool CanFertilize(WoodPileState s) => (IsDug(s) && s.soilSpent > 0.01f && Carried(GardenRules.FertilizerId) > 0 && !Dead(s)) || CanHotbed(s);
 
-    static string FertilizePrompt(WoodPileState s) =>
+    static string FertilizePrompt(WoodPileState s) => CanHotbed(s) ? GreenhouseHeatRules.HotbedPrompt(Carried(GardenRules.FertilizerId)) :
         $"Spread Fertilizer  ({GardenRules.FertilizerToRich(s.soilSpent)} to make it rich; you carry {Carried(GardenRules.FertilizerId)})";
 
     // What E does now, in Interact's order (water, plant, clear, harvest), or null when E does nothing.
@@ -244,7 +530,7 @@ public static class GardenBeds
             return "Pour water on it";
         if (crop == null)
         {
-            GardenRules.Sowing? next = HoeEquipped ? SeedToPlant() : null;
+            GardenRules.Sowing? next = HoeEquipped ? SeedToPlant(s) : null;
             if (next.HasValue)
             {
                 GardenRules.Sowing sow = next.Value;
@@ -297,12 +583,15 @@ public static class GardenBeds
     public static string SecondaryPrompt(WoodPileState s)
     {
         GardenRules.Crop crop = CropOf(s);
+        // A Cold Frame's square (G1) is not filled in or raised on its own: the frame comes down as one, with the Hammer at its front.
+        if (InFrame(s) && (ShovelEquipped || HammerEquipped))
+            return "";
         if (ShovelEquipped && (crop == null || !IsDug(s)))
             return Raised(s) ? $"Take the raised bed apart  ({GardenRules.RaisedBedLumber} Lumber back)" : IsDug(s) ? "Fill the bed in" : "Take the marked-out bed away";
         if (HammerEquipped && !Raised(s))
             return Carried(SawPitRules.LumberId) >= GardenRules.RaisedBedLumber ? $"Make it a raised bed  (uses {GardenRules.RaisedBedLumber} Lumber)"
                                                                                 : $"Make it a raised bed  (needs {GardenRules.RaisedBedLumber} Lumber)";
-        if (crop == null && IsDug(s) && HoeEquipped && CarriedSowings().Count > 1)
+        if (crop == null && IsDug(s) && HoeEquipped && CarriedSowings(s).Count > 1)
             return "Pick another seed";
         if (SeedToggle(s, crop))
             return Saving(s) ? GardenRules.StopSavingPrompt : GardenRules.SaveSeedPrompt(crop);
@@ -337,7 +626,7 @@ public static class GardenBeds
         }
         if (crop == null)
         {
-            if (!(HoeEquipped && SeedToPlant() != null) && CanFertilize(s))
+            if (!(HoeEquipped && SeedToPlant(s) != null) && CanFertilize(s))
                 Fertilize(s);
             else
                 Plant(s);
@@ -415,6 +704,11 @@ public static class GardenBeds
     // One Fertilizer spread on the bed puts back a quarter of a spent soil (GB2).
     static void Fertilize(WoodPileState s)
     {
+        if (CanHotbed(s))
+        {
+            MakeHotbed(s);
+            return;
+        }
         if (Inventory.RemoveFromPlayer(GardenRules.FertilizerId, 1) < 1)
             return;
         s.soilSpent = GardenRules.AfterFertilizer(s.soilSpent);
@@ -449,21 +743,25 @@ public static class GardenBeds
     }
 
     // The ways to plant a square whose seed is carried in the amount one square takes, in GardenRules.Sowings' order (Tomato Seed after the Tomato Plants).
-    static List<GardenRules.Sowing> CarriedSowings()
+    // A Cold Frame's square (G1) offers only the low crops that fit under its lid.
+    static List<GardenRules.Sowing> CarriedSowings(WoodPileState s = null)
     {
         var list = new List<GardenRules.Sowing>();
         if (Inventory == null)
             return list;
+        // A Hoop House's squares (G2) take any crop.
+        WoodPileState cover = s != null && InFrame(s) && WoodManager.Instance != null ? WoodManager.Instance.CoverOf(s) : null;
+        bool framed = cover != null && WoodManager.IsColdFrame(cover.kind);
         foreach (GardenRules.Sowing sowing in GardenRules.Sowings)
-            if (Inventory.Player.Count(sowing.seedId) >= sowing.seeds)
+            if (Inventory.Player.Count(sowing.seedId) >= sowing.seeds && (!framed || ColdFrameRules.Fits(sowing.crop.id)))
                 list.Add(sowing);
         return list;
     }
 
     // The chosen seed if it is carried, otherwise the first one carried.
-    static GardenRules.Sowing? SeedToPlant()
+    static GardenRules.Sowing? SeedToPlant(WoodPileState s = null)
     {
-        List<GardenRules.Sowing> carried = CarriedSowings();
+        List<GardenRules.Sowing> carried = CarriedSowings(s);
         foreach (GardenRules.Sowing sowing in carried)
             if (sowing.seedId == SelectedSeed)
                 return sowing;
@@ -477,7 +775,7 @@ public static class GardenBeds
             ToolStatus.Flash(GardenRules.NeedHoe, 3f);
             return;
         }
-        GardenRules.Sowing? next = SeedToPlant();
+        GardenRules.Sowing? next = SeedToPlant(s);
         if (!next.HasValue)
         {
             ToolStatus.Flash(GardenRules.NoSeed, 4f);
@@ -551,6 +849,11 @@ public static class GardenBeds
         if (Inventory == null || wood == null)
             return;
         GardenRules.Crop crop = CropOf(s);
+        if (InFrame(s) && (ShovelEquipped || HammerEquipped))
+        {
+            ToolStatus.Flash("This bed is part of the cold frame - to take it down, use the Hammer's R on the frame's front", 3.5f);
+            return;
+        }
         if (ShovelEquipped)
         {
             if (crop != null && IsDug(s))
@@ -585,13 +888,13 @@ public static class GardenBeds
         }
         if (crop == null && IsDug(s) && HoeEquipped)
         {
-            List<GardenRules.Sowing> carried = CarriedSowings();
+            List<GardenRules.Sowing> carried = CarriedSowings(s);
             if (carried.Count == 0)
             {
                 ToolStatus.Flash(GardenRules.NoSeed, 4f);
                 return;
             }
-            GardenRules.Sowing? now = SeedToPlant();
+            GardenRules.Sowing? now = SeedToPlant(s);
             int at = now.HasValue ? carried.FindIndex(x => x.seedId == now.Value.seedId) : -1;
             GardenRules.Sowing next = carried[(at + 1) % carried.Count];
             SelectedSeed = next.seedId;

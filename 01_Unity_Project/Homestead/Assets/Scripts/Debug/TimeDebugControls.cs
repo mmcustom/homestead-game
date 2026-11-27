@@ -50,6 +50,7 @@ using UnityEngine.InputSystem;
 //      about 61 kg and the pack holds 45;  Shift+-  stand a finished Smithy 4 m ahead stocked with 4 Iron Bars, 6 Charcoal, 6 Sticks and 2 Cordage (enough for both iron tools);  Ctrl+-  finish every running Smithy job now
 //   .  give the Bloomery site's small materials (a Hammer, 6 Clay) and stand a Rock Pile with its 8 Stone (40 kg) 3 m ahead: the whole kit is about 61 kg and the pack holds 45;
 //      Shift+.  stand a finished Bloomery 4 m ahead loaded with 4 Ore and 4 Charcoal, ready to start;  Ctrl+.  finish every running smelt now (the Bars are in the furnace)
+//   /  send a rabbit to raid the nearest planted, unfenced garden bed it would eat (Shift+/ a deer), to see Gardening GB4b without waiting for a dawn or dusk raid
 //   F12 give a food-gathering kit: Fishing Rod, Cane Pole, Recurve Bow + 20 arrows, Rifle + 10 rounds, 2 Rabbit Snares,
 //       a Box Trap, a Fish Trap, 3 Cordage and 3 Wild Apples for bait — and $50 for the Trading Post
 public class TimeDebugControls : MonoBehaviour
@@ -162,6 +163,14 @@ public class TimeDebugControls : MonoBehaviour
             WoodManager.Instance.NotifyChanged(cart);
             Show($"Hand Cart placed ahead with 4 Logs, 6 Stone and 10 Firewood ({WoodPile.CartLoadKg(cart):0.#} kg)", time);
             return;
+        }
+
+        // Gardening GB4b: a garden raider on demand.
+        if (keyboard.slashKey.wasPressedThisFrame)
+        {
+            PlayerController player = FindAnyObjectByType<PlayerController>();
+            if (player != null)
+                Show(GardenBeds.DebugSendRaider(keyboard.shiftKey.isPressed ? "deer" : "rabbit", player.transform.position), time);
         }
 
         if (keyboard.pageDownKey.wasPressedThisFrame)

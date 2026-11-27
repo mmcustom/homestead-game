@@ -82,6 +82,8 @@ public static class SmithyRules
         new Recipe { itemId = IronPickAxeId, name = "Iron Pick Axe", metalId = MetalRules.IronId, bars = 2, charcoal = 2, sticks = 2, cordage = 1, hours = 3, baseCents = 0, weightKg = 2f },
         // Tanning slice T4 (Mike, 2026-11-23: "Bark Spud, Smithy-forged"): the bark-peeling tool, for the player's own use like the iron tools.
         new Recipe { itemId = TanningVatRules.DrawKnifeId, name = TanningVatRules.DrawKnifeName, metalId = MetalRules.IronId, bars = 1, charcoal = 1, sticks = 1, cordage = 0, hours = 2, baseCents = 0, weightKg = TanningVatRules.BarkSpudKg },
+        // Greenhouses G2 (Mike, 2026-11-26: hoops bought, or forged at the Smithy): a Hoop House's hoop, for the player's own use (the Trading Post stocks them too).
+        new Recipe { itemId = HoopHouseRules.HoopId, name = "Greenhouse Hoop", metalId = MetalRules.IronId, bars = HoopHouseRules.ForgeBars, charcoal = HoopHouseRules.ForgeCharcoal, hours = HoopHouseRules.ForgeHours, baseCents = 0, weightKg = HoopHouseRules.HoopKg },
     };
 
     public static bool TryFind(string itemId, out Recipe recipe)

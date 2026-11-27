@@ -87,13 +87,13 @@ public class SmithyTests
     [Test]
     public void TheRecipeTableHasMikesThreeGoodsThenTheTwoIronToolsAndNoSkillet()
     {
-        Assert.That(SmithyRules.Recipes.Length, Is.EqualTo(6), "and the Bark Spud (tanning slice T4)");
-        Assert.That(SmithyRules.Recipes.Select(r => r.itemId), Is.EqualTo(new[] { "door_hinges", "hook_set", "nails_box", "iron_shovel", "iron_pick_axe", "bark_spud" }));
-        Assert.That(SmithyRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Door Hinges", "Hook Set", "Box of Nails (20)", "Iron Shovel", "Iron Pick Axe", "Draw Knife" }));
-        Assert.That(SmithyRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 2, 3, 3, 2 }));
+        Assert.That(SmithyRules.Recipes.Length, Is.EqualTo(7), "and the Bark Spud (tanning slice T4), and the Greenhouse Hoop (G2)");
+        Assert.That(SmithyRules.Recipes.Select(r => r.itemId), Is.EqualTo(new[] { "door_hinges", "hook_set", "nails_box", "iron_shovel", "iron_pick_axe", "bark_spud", "greenhouse_hoop" }));
+        Assert.That(SmithyRules.Recipes.Select(r => r.name), Is.EqualTo(new[] { "Door Hinges", "Hook Set", "Box of Nails (20)", "Iron Shovel", "Iron Pick Axe", "Draw Knife", "Greenhouse Hoop" }));
+        Assert.That(SmithyRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 2, 3, 3, 2, 2 }));
         Assert.That(SmithyRules.Recipes.Take(3).Select(r => r.baseCents), Is.EqualTo(new[] { 2600L, 1800L, 1600L }), "the goods' prices are unchanged");
-        Assert.That(SmithyRules.Recipes.Skip(3).Select(r => r.baseCents), Is.EqualTo(new[] { 0L, 0L, 0L }), "the tools have no price");
-        Assert.That(SmithyRules.Recipes.Select(r => r.weightKg), Is.EqualTo(new[] { 0.8f, 0.5f, 0.6f, 1.8f, 2f, 0.6f }));
+        Assert.That(SmithyRules.Recipes.Skip(3).Select(r => r.baseCents), Is.EqualTo(new[] { 0L, 0L, 0L, 0L }), "the tools and the Greenhouse Hoop have no price");
+        Assert.That(SmithyRules.Recipes.Select(r => r.weightKg), Is.EqualTo(new[] { 0.8f, 0.5f, 0.6f, 1.8f, 2f, 0.6f, 4f }));
         Assert.That(SmithyRules.Recipes.Take(3).All(r => r.bars == 1 && r.charcoal == 1 && r.sticks == 0 && r.cordage == 0), Is.True, "the goods: 1 Iron Bar and 1 Charcoal each, as before");
         Assert.That(SmithyRules.Recipes.All(r => r.metalId == MetalRules.IronId), Is.True);
         Assert.That(SmithyRules.Recipes.Any(r => r.itemId.Contains("skillet")), Is.False, "the Iron Skillet is still left out");
@@ -256,12 +256,12 @@ public class SmithyTests
     public void TheTwoSmithyKindsAreFortyThreeAndFortyFourAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(64));
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(88));
         Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "SmithySite"), Is.EqualTo(43));
         Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44));
         string[] names = Enum.GetNames(kind);
-        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names[57], Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat"); Assert.That(names[58], Is.EqualTo("GardenBed"), "the Garden Bed (58) came after the Sawmill"); Assert.That(names[59], Is.EqualTo("TanningVatSite"), "the Tanning Vat Site (59, 2026-11-25) came after the Garden Bed"); Assert.That(names[60], Is.EqualTo("RaisedBedSite"), "the Raised Bed Site (60, GB2) came after the Tanning Vat Site"); Assert.That(names.Last(), Is.EqualTo("FenceGate"), "the three garden fence kinds (61 to 63, GB4a) came last");
+        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names[57], Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat"); Assert.That(names[58], Is.EqualTo("GardenBed"), "the Garden Bed (58) came after the Sawmill"); Assert.That(names[59], Is.EqualTo("TanningVatSite"), "the Tanning Vat Site (59, 2026-11-25) came after the Garden Bed"); Assert.That(names[60], Is.EqualTo("RaisedBedSite"), "the Raised Bed Site (60, GB2) came after the Tanning Vat Site"); Assert.That(names.Last(), Is.EqualTo("VentOpener"), "the Vent Opener (87, G6) came last; the four watering kinds (83 to 86, G5) came last, after the three greenhouse heat kinds (80 to 82, G4), the Glass Greenhouse kinds and the Seedling Bench (73 to 79, G3), the Hoop Houses (67 to 72, G2), the Cold Frames (64 to 66, G1) and the garden fences (61 to 63, GB4a)");
         Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil") || n.Contains("Skillet")), Is.False, "one combined Smithy: no separate Forge or Anvil kinds");
     }
 
@@ -424,7 +424,7 @@ public class SmithyTests
     public void TheThreeGoodsSellInTheCraftedGroupAtMikesPricesAndAreNotInTheStore()
     {
         MarketTable table = MarketCatalog.Table;
-        foreach ((string id, long cents) in new[] { ("door_hinges", 2600L), ("hook_set", 1800L), ("nails_box", 1600L) })
+        foreach ((string id, long cents) in new[] { ("door_hinges", 2600L), ("hook_set", 1800L) })
         {
             Assert.That(table.TryGetRow(id, out MarketRow row), Is.True, id);
             Assert.That(row.kind, Is.EqualTo(MarketKind.Bought), id + " is only bought");
@@ -434,10 +434,16 @@ public class SmithyTests
             Assert.That(table.BuyBaseCents(id), Is.EqualTo(0L), "not sold in the store");
             Assert.That(table.SellBaseCents(id), Is.EqualTo(cents));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(143), "Wire Mesh (GB4a, 2026-11-25); 89 and the three, then the hand tools and the maple gear (2026-11-14), then Fertilizer, the five dried foods and the three salt rows (2026-11-22)");
+        Assert.That(table.Rows.Count, Is.EqualTo(156), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); 89 and the three, then the hand tools and the maple gear (2026-11-14), then Fertilizer, the five dried foods and the three salt rows (2026-11-22)");
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28), "22 and the three, less the three hand tools now stocked");
-        Assert.That(table.Stock.Count, Is.EqualTo(55), "Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14");
+        Assert.That(table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14");
         Assert.That(table.TryGetRow("iron_bar", out _), Is.False, "the Iron Bar still has no row");
+        // The Box of Nails went on the shelf for the Glass Greenhouse (G3, 2026-11-26), at the homemade 2.5x, and is still bought back at Mike's price.
+        Assert.That(table.TryGetRow("nails_box", out MarketRow nails), Is.True);
+        Assert.That(nails.kind, Is.EqualTo(MarketKind.Stocked));
+        Assert.That(nails.group, Is.EqualTo(MarketGroup.Crafted));
+        Assert.That(nails.baseCents, Is.EqualTo(4000L));
+        Assert.That(table.SellBaseCents("nails_box"), Is.EqualTo(1600L));
         Assert.That(table.TryGetRule(MarketGroup.Crafted, out MarketGroupRule rule), Is.True);
         Assert.That(rule.dropBp, Is.EqualTo(1000), "10% off per unit sold");
         Assert.That(rule.floorBp, Is.EqualTo(1000), "floor 0.1");
@@ -450,11 +456,12 @@ public class SmithyTests
     public void TheAssetHasTheThreeRowsByHandAndTheSameRowCountAsTheCatalog()
     {
         string asset = SourceText("Resources/Market/MarketData.asset");
-        foreach ((string id, int cents) in new[] { ("door_hinges", 2600), ("hook_set", 1800), ("nails_box", 1600) })
+        foreach ((string id, int cents) in new[] { ("door_hinges", 2600), ("hook_set", 1800) })
             Assert.That(asset, Does.Contain($"  - itemId: {id}\n    group: 5\n    pool: {id}\n    baseCents: {cents}\n    kind: 1\n    seasonalBuy: 0\n"));
+        Assert.That(asset, Does.Contain("  - itemId: nails_box\n    group: 5\n    pool: nails_box\n    baseCents: 4000\n    kind: 0\n    seasonalBuy: 0\n    sellCents: 1600\n"), "on the shelf since G3");
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(143));
+        Assert.That(rows, Is.EqualTo(156));
         Assert.That(asset, Does.Not.Contain("iron_bar"));
     }
 
@@ -773,7 +780,7 @@ public class SmithyTests
             Assert.That((int)size.GetValue(stocks[0]), Is.EqualTo(32), "the stock button");
             Assert.That((int)style.GetValue(stocks[0]), Is.EqualTo((int)FontStyle.Bold));
             Assert.That(labels.Where(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")).Select(l => (int)size.GetValue(l)), Is.All.EqualTo(32), "the list names");
-            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(6), "three goods and three tools");
+            Assert.That(labels.Count(l => l.name == "Label" && l.transform.parent.name.StartsWith("Row")), Is.EqualTo(7), "three goods, three tools and the Greenhouse Hoop");
             Assert.That(labels.Where(l => l.name == "Detail").Select(l => (int)size.GetValue(l)), Is.All.EqualTo(28), "the hours and price");
             Component[] starts = labels.Where(l => l.transform.parent != null && l.transform.parent.name == "Start").ToArray();
             Assert.That(starts.Length, Is.EqualTo(1));
@@ -782,8 +789,8 @@ public class SmithyTests
             Assert.That(closes.Length, Is.EqualTo(1));
             Assert.That((int)size.GetValue(closes[0]), Is.EqualTo(28), "the Close button");
             Assert.That(ScreenConstant("MinimumSize"), Is.EqualTo(26f));
-            Assert.That(ScreenConstant("RowHeight"), Is.GreaterThanOrEqualTo(88f));
-            Assert.That(ScreenConstant("RowGap"), Is.GreaterThanOrEqualTo(8f));
+            Assert.That(ScreenConstant("RowHeight"), Is.GreaterThanOrEqualTo(76f), "seven rows fit the panel (G2)");
+            Assert.That(ScreenConstant("RowGap"), Is.GreaterThanOrEqualTo(6f));
             Assert.That(ScreenConstant("StockButtonHeight"), Is.GreaterThanOrEqualTo(80f));
             Assert.That(labels.Select(l => l.GetComponent(text)).All(l => l != null), Is.True);
             Assert.That(labels.Any(l => l.name == "Hint" && (string)text.GetProperty("text").GetValue(l) == SmithyRules.KeyHint), Is.True);
@@ -803,7 +810,7 @@ public class SmithyTests
         {
             string[] names =
             {
-                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2", "Need 3", "Reason", "Start", "Hint",
+                "Title", "Close", "Status", "Pack", "Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Stock Reason", "Stock", "Piece", "Piece Line", "Needs Heading", "Need 0", "Need 1", "Need 2", "Need 3", "Reason", "Start", "Hint",
             };
             RectTransform[] all = go.GetComponentsInChildren<RectTransform>(true);
             var boxes = new Dictionary<string, Rect>();
@@ -824,7 +831,7 @@ public class SmithyTests
                 for (int b = a + 1; b < names.Length; b++)
                     Assert.That(boxes[names[a]].Overlaps(boxes[names[b]]), Is.False, names[a] + " overlaps " + names[b]);
             Assert.That(boxes["Stock"].height, Is.GreaterThanOrEqualTo(80f));
-            Assert.That(boxes["Row 1"].yMin - boxes["Row 0"].yMax, Is.GreaterThanOrEqualTo(8f), "gap between rows");
+            Assert.That(boxes["Row 1"].yMin - boxes["Row 0"].yMax, Is.GreaterThanOrEqualTo(6f), "gap between rows");
             RectTransform panelRect = all.First(r => r.name == "Panel");
             Assert.That(panelRect.sizeDelta, Is.EqualTo(new Vector2(1500f, 1010f)));
         }
@@ -1035,7 +1042,7 @@ public class SmithyTests
         Assert.That(WorkshopRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 4, 5 }));
         Assert.That(WorkshopRules.SiteLogs, Is.EqualTo(5));
         Assert.That(WorkshopRules.LogsCap, Is.EqualTo(6));
-        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(55), "Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
+        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
         Assert.That(MarketCatalog.Table.BuyBaseCents("iron_ore"), Is.EqualTo(400L));
         Assert.That(MarketCatalog.Table.SellBaseCents("charcoal"), Is.EqualTo(100L));
         Assert.That(MarketCatalog.Table.SellBaseCents("rough_stool"), Is.EqualTo(1400L));

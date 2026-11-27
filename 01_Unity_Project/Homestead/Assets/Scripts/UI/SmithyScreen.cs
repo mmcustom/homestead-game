@@ -25,8 +25,8 @@ public class SmithyScreen : MonoBehaviour
     public const int TitleSize = 36, StatusSize = 28, PackSize = 28, ListNameSize = 32, ListDetailSize = 28, DetailNameSize = 40, BodySize = 28, StartSize = 36,
                      StockSize = 32, CloseSize = 28, HintSize = 28;
     // Row heights and the gap between rows (UI pixels), and the stock button's height.
-    // Six rows (the Bark Spud, 2026-11-23) in the 1010 px panel: 6 x 88 + 5 x 8 = 568 px of list from y 204 to 772, the stock reason (72) and the 88 px button below it end at 946, four px above the hint line at 950.
-    public const float RowHeight = 88f, RowGap = 8f, StockButtonHeight = 88f;
+    // Seven rows (the Greenhouse Hoop, G2, 2026-11-26) in the 1010 px panel: 7 x 76 + 6 x 6 = 568 px of list from y 204 to 772 (as the six 88 px rows were), the stock reason (72) and the 88 px button below it end at 946, four px above the hint line at 950.
+    public const float RowHeight = 76f, RowGap = 6f, StockButtonHeight = 88f;
 
     const float PanelWidth = SmithyRules.PanelWidthPx, PanelHeight = SmithyRules.PanelHeightPx;
     const float ListX = 32f, ListY = 204f, ListWidth = 700f;

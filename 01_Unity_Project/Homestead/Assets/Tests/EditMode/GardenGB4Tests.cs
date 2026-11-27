@@ -39,7 +39,11 @@ public class GardenGB4Tests
     public void TheSizesAndCosts()
     {
         Assert.That(FenceRules.PanelLength, Is.EqualTo(2.4f));
-        Assert.That(FenceRules.GateLength, Is.EqualTo(1.2f));
+        Assert.That(FenceRules.GateLength, Is.EqualTo(FenceRules.PanelLength), "Mike, 2026-11-26: as wide as a section");
+        Assert.That(FenceRules.GateHeight(false, true), Is.EqualTo(FenceRules.WattleHeight), "between wattle sections, wattle height");
+        Assert.That(FenceRules.GateHeight(true, false), Is.EqualTo(FenceRules.DeerHeight), "in deer fence, deer-fence height, so the ring stays deer-proof");
+        Assert.That(FenceRules.GateHeight(true, true), Is.EqualTo(FenceRules.DeerHeight), "between the two, the taller");
+        Assert.That(FenceRules.GateHeight(false, false), Is.EqualTo(FenceRules.DeerHeight), "on its own");
         Assert.That(FenceRules.Height(FenceRules.Type.Wattle), Is.EqualTo(1.0f));
         Assert.That(FenceRules.Height(FenceRules.Type.Deer), Is.EqualTo(2.1f));
         Assert.That(FenceRules.DeerProof(FenceRules.Type.Wattle), Is.False);
@@ -50,7 +54,7 @@ public class GardenGB4Tests
         Assert.That(MarketCatalog.Table.BuyBaseCents(FenceRules.WireMeshId), Is.EqualTo(1500L));
         Assert.That(SourceText("Scripts/Economy/Ledger.cs"), Does.Contain("{ FenceRules.WireMeshId, LedgerCategory.BuyOtherGoods }"));
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate }"), "appended, so saves keep their numbers");
+        Assert.That(wood, Does.Contain("GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate, ColdFrameSmall, ColdFrameMedium, ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener }"), "appended, so saves keep their numbers");
         Assert.That(wood, Does.Contain("count = FenceRules.WattleSticks }, new WoodStack { itemId = FenceRules.BranchesId, count = FenceRules.WattleBranches }"));
         Assert.That(wood, Does.Contain("count = FenceRules.DeerLogs }, new WoodStack { itemId = FenceRules.WireMeshId, count = FenceRules.DeerWire }"));
         Assert.That(wood, Does.Contain("count = FenceRules.GateLumber }, new WoodStack { itemId = FenceRules.CordageId, count = FenceRules.GateCordage }"));
@@ -168,7 +172,9 @@ public class GardenGB4Tests
         Assert.That(place, Does.Contain("FenceRules.Place(WoodManager.Instance.FenceSegments()"));
         Assert.That(place, Does.Contain("WoodManager.Instance.BuildPile(kind, player, spot, fenceYaw, fenceLength)"));
         string ps = SourceText("Scripts/World/PlacedStructure.cs");
-        Assert.That(ps, Does.Contain("gateLeaf = FenceVisuals.GateLeaf(transform, state);"));
+        Assert.That(ps, Does.Contain("gateLeaf = FenceVisuals.GateLeaf(transform, state, gateHeight);"));
+        Assert.That(ps, Does.Contain("WoodManager.Instance.RefreshGatesBeside(state);"), "a gate follows a section taken down beside it");
+        Assert.That(SourceText("Scripts/World/FenceVisuals.cs"), Does.Contain("Resources.Load<Material>(\"Art/structure_plank\")"), "the leaf uses the door planks");
         Assert.That(SourceText("Scripts/World/FenceVisuals.cs"), Does.Contain("Resources.Load<GameObject>(\"Art/\" + ArtId(state.kind))"), "the swap point");
     }
 }

@@ -13,9 +13,9 @@ public class GardenGB3Tests
     [Test]
     public void TomatoSeedIsSownAfterTheTomatoPlantsAndStartsAMonthBehind()
     {
-        Assert.That(GardenRules.Sowings.Length, Is.EqualTo(10), "the nine crops' own seed, and Tomato Seed");
+        Assert.That(GardenRules.Sowings.Length, Is.EqualTo(13), "the nine crops' own seed, Tomato Seed, and the Lettuce, Kale and Squash Starts from a greenhouse bench (G3)");
         Assert.That(GardenRules.Sowings.Select(s => s.seedId).ToArray(), Is.EqualTo(new[]
-            { "potatoes", "seed_field_corn", "seed_sweet_corn", "seed_beans", "tomato_plant", "seed_tomatoes", "seed_lettuce", "seed_carrots", "seed_squash", "seed_kale" }));
+            { "potatoes", "seed_field_corn", "seed_sweet_corn", "seed_beans", "tomato_plant", "seed_tomatoes", "seed_lettuce", "starts_lettuce", "seed_carrots", "seed_squash", "starts_squash", "seed_kale", "starts_kale" }));
         GardenRules.Sowing seed = GardenRules.Sowings[5];
         Assert.That(seed.crop.id, Is.EqualTo("tomatoes"));
         Assert.That(seed.seeds, Is.EqualTo(1));

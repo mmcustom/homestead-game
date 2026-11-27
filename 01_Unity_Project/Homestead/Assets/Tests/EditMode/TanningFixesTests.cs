@@ -44,7 +44,7 @@ public class TanningFixesTests
     public void TheDrawKnifeStripsLogsAtTheSawPitAndReplacesTheBarkSpud()
     {
         Assert.That(TanningVatRules.DrawKnifeId, Is.EqualTo("bark_spud"), "the Spud's item id, so a Spud already owned is a Draw Knife");
-        Assert.That(SmithyRules.Recipes.Last().name, Is.EqualTo("Draw Knife"));
+        Assert.That(SmithyRules.Recipes[5].name, Is.EqualTo("Draw Knife"), "after the iron tools; the Greenhouse Hoop (G2) came after it");
         Assert.That((bool)CallStatic("InventoryManager", "IsCarriedOnly", TanningVatRules.DrawKnifeId), Is.False, "held in hand now");
         Assert.That(ToolWork.IsViewTool(TanningVatRules.DrawKnifeId), Is.True);
         Assert.That(HeldTools.IsTwoHanded(TanningVatRules.DrawKnifeId), Is.True, "a handle in each hand");

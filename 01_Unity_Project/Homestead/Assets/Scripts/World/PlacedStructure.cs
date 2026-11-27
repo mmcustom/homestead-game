@@ -60,6 +60,30 @@ public static class StructureVisuals
             case PileKind.WattleFence:
             case PileKind.DeerFence:
             case PileKind.FenceGate: FenceVisuals.Build(parent, state, bark, pieces, out boxCenter, out boxSize); return; // garden fences (GB4a)
+            case PileKind.ColdFrameSmall:
+            case PileKind.ColdFrameMedium:
+            case PileKind.ColdFrameLarge: ColdFrameVisuals.Build(parent, state, pieces, out boxCenter, out boxSize); return; // Cold Frames (Greenhouses G1)
+            case PileKind.HoopHouseSiteSmall:
+            case PileKind.HoopHouseSiteMedium:
+            case PileKind.HoopHouseSiteLarge: HoopHouseVisuals.BuildSite(parent, state, pieces, out boxCenter, out boxSize); return; // Hoop Houses (Greenhouses G2)
+            case PileKind.HoopHouseSmall:
+            case PileKind.HoopHouseMedium:
+            case PileKind.HoopHouseLarge: HoopHouseVisuals.Build(parent, state, pieces, out boxCenter, out boxSize); return;
+            case PileKind.GlassHouseSiteSmall:
+            case PileKind.GlassHouseSiteMedium:
+            case PileKind.GlassHouseSiteLarge: GlassHouseVisuals.BuildSite(parent, state, pieces, out boxCenter, out boxSize); return; // Glass Greenhouses (Greenhouses G3)
+            case PileKind.GlassHouseSmall:
+            case PileKind.GlassHouseMedium:
+            case PileKind.GlassHouseLarge: GlassHouseVisuals.Build(parent, state, pieces, out boxCenter, out boxSize); return;
+            case PileKind.SeedlingBench: GreenhouseBenches.Build(parent, state, pieces, out boxCenter, out boxSize); return;
+            case PileKind.GreenhouseStove:
+            case PileKind.PropaneHeater:
+            case PileKind.WaterBarrels: GreenhouseHeat.Build(parent, state, pieces, out boxCenter, out boxSize); return; // greenhouse heat (G4)
+            case PileKind.HoseBib:
+            case PileKind.HoseReel:
+            case PileKind.HandPump:
+            case PileKind.FuelPump: WateringFittings.Build(parent, state, pieces, out boxCenter, out boxSize); return; // watering (G5)
+            case PileKind.VentOpener: VentOpeners.Build(parent, state, pieces, out boxCenter, out boxSize); return; // automatic venting (G6)
             case PileKind.LeachHopper: BuildLeachHopper(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite: BuildKitchenSite(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
@@ -1297,6 +1321,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     KilnSmoke smokehouseSmoke; // a Smokehouse's, from its roof vent
     SwingDoor smokehouseDoor;  // a Smokehouse's plank door, swinging open as the player comes up to it (Mike, 2026-11-23)
     SwingDoor gateLeaf;        // a garden Gate's leaf (GB4a), the same swinging door
+    float gateLeafHeight;      // the gate height it was hung for: a new height (a section built beside it) hangs a new leaf
 
     public WoodPileState State => state;
 
@@ -1406,8 +1431,20 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 smokehouseDoor = SwingDoor.Create(transform, new Vector3(-SmokeRules.DoorHalfWidth, SmokeRules.DoorSill, SmokeRules.DoorZ), SmokeRules.DoorHalfWidth * 2f,
                                                   SmokeRules.DoorHeight, 0.045f, Resources.Load<Material>("Art/structure_smokehouse_planks"));
         }
-        if (state.kind == PileKind.FenceGate && gateLeaf == null)
-            gateLeaf = FenceVisuals.GateLeaf(transform, state);
+        if (state.kind == PileKind.FenceGate)
+        {
+            float gateHeight = FenceVisuals.HeightOf(state);
+            if (gateLeaf != null && !Mathf.Approximately(gateLeafHeight, gateHeight))
+            {
+                Destroy(gateLeaf.gameObject);
+                gateLeaf = null;
+            }
+            if (gateLeaf == null)
+            {
+                gateLeaf = FenceVisuals.GateLeaf(transform, state, gateHeight);
+                gateLeafHeight = gateHeight;
+            }
+        }
         // Wave 8: a flickering glow and embers in the mouth while it burns (the Smithy's and Bloomery's breathe with the bellows).
         if (state.kind == PileKind.Kiln)
             StructureGlow.Drive(transform, state.kind, WellsAndOuthouses.KilnPhaseOf(state) == PotteryRules.KilnPhase.Firing);
@@ -1426,7 +1463,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         bool kitchen = state.kind == PileKind.Kitchen;
         box.enabled = !kitchen;
         // The Workshop keeps its interaction box (the bench) and also has solid posts, back wall and roof.
-        if (!kitchen && state.kind != PileKind.Workshop && state.kind != PileKind.PotterShed && state.kind != PileKind.Smithy)
+        if (!kitchen && state.kind != PileKind.Workshop && state.kind != PileKind.PotterShed && state.kind != PileKind.Smithy && !WoodManager.IsWalkIn(state.kind))
             return;
         foreach (GameObject piece in pieces)
         {
@@ -1479,6 +1516,24 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.WattleFence:
                 case PileKind.DeerFence:
                 case PileKind.FenceGate: return null; // a fence has nothing for E (GB4a)
+                case PileKind.ColdFrameSmall:
+                case PileKind.ColdFrameMedium:
+                case PileKind.ColdFrameLarge: return ColdFrameRules.LidPrompt(WoodManager.FrameLidIsOpen(state)); // the lid (G1)
+                case PileKind.HoopHouseSmall:
+                case PileKind.HoopHouseMedium:
+                case PileKind.HoopHouseLarge: return HoopPrompt(); // the sides, the snow or new plastic (G2)
+                case PileKind.GlassHouseSmall:
+                case PileKind.GlassHouseMedium:
+                case PileKind.GlassHouseLarge: return GlassHouseRules.VentsPrompt(WoodManager.GlassVentsAreOpen(state)); // the vents (G3)
+                case PileKind.SeedlingBench: return GreenhouseBenches.Prompt(state); // sow, take up or clear a tray (G3)
+                case PileKind.GreenhouseStove:
+                case PileKind.PropaneHeater:
+                case PileKind.WaterBarrels: return GreenhouseHeat.Prompt(state); // light it, or turn it on (G4)
+                case PileKind.HoseBib:
+                case PileKind.HoseReel:
+                case PileKind.HandPump:
+                case PileKind.FuelPump: return WateringFittings.Prompt(state); // water the beds, fit the drip kit, or pump (G5)
+                case PileKind.VentOpener: return VentOpeners.Prompt(state); // it works by itself (G6)
                 default: return OuthousePrompt();
             }
         }
@@ -3507,6 +3562,38 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 case PileKind.DeerFence:
                 case PileKind.FenceGate:
                     return FenceRules.Header(WoodManager.FenceTypeOf(state.kind), FenceRules.LengthOf(WoodManager.FenceTypeOf(state.kind), state.jobHours));
+                case PileKind.ColdFrameSmall:
+                case PileKind.ColdFrameMedium:
+                case PileKind.ColdFrameLarge:
+                    return ColdFrameRules.Header(WoodManager.ColdFrameSizeOf(state.kind), WoodManager.FrameLidIsOpen(state), GardenBeds.FrameInsideShown(state),
+                                                 WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureC : 15f);
+                case PileKind.HoopHouseSmall:
+                case PileKind.HoopHouseMedium:
+                case PileKind.HoopHouseLarge:
+                {
+                    TimeManager time = TimeManager.Instance;
+                    int left = time != null ? HoopHouseRules.YearsLeft(state.builtDay, time.TotalDays, time.DaysPerSeason * 4) : HoopHouseRules.WearYears;
+                    return HoopHouseRules.Header(WoodManager.HoopSizeOf(state.kind), WoodManager.HoopSidesAreUp(state), WoodManager.HoopIsTorn(state), GardenBeds.FrameInsideShown(state),
+                                                 WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureC : 15f, state.soilMoisture, left);
+                }
+                case PileKind.GlassHouseSmall:
+                case PileKind.GlassHouseMedium:
+                case PileKind.GlassHouseLarge:
+                    return GlassHouseRules.Header(WoodManager.GlassSizeOf(state.kind), WoodManager.GlassVentsAreOpen(state), GardenBeds.FrameInsideShown(state),
+                                                  WeatherManager.Instance != null ? WeatherManager.Instance.TemperatureC : 15f);
+                case PileKind.SeedlingBench:
+                    return GreenhouseBenches.Header(state);
+                case PileKind.GreenhouseStove:
+                case PileKind.PropaneHeater:
+                case PileKind.WaterBarrels:
+                    return GreenhouseHeat.Header(state);
+                case PileKind.HoseBib:
+                case PileKind.HoseReel:
+                case PileKind.HandPump:
+                case PileKind.FuelPump:
+                    return WateringFittings.Header(state);
+                case PileKind.VentOpener:
+                    return VentOpeners.Header(state);
                 default: return null;
             }
         }
@@ -3528,8 +3615,22 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             }
             if (state.kind == PileKind.GardenBed)
                 return GardenBeds.SecondaryPrompt(state);
+            if (state.kind == PileKind.SeedlingBench)
+                return GreenhouseBenches.SecondaryPrompt(state);
+            if (WoodManager.IsHeatKind(state.kind))
+                return GreenhouseHeat.SecondaryPrompt(state);
+            if (WateringFittings.IsWaterKind(state.kind))
+                return WateringFittings.SecondaryPrompt(state);
+            if (state.kind == PileKind.VentOpener)
+                return VentOpeners.SecondaryPrompt(state);
             if (WoodManager.IsFenceKind(state.kind))
                 return WoodManager.HammerEquipped ? FenceRules.DismantlePrompt(WoodManager.FenceTypeOf(state.kind)) : "";
+            if (WoodManager.IsColdFrame(state.kind))
+                return WoodManager.HammerEquipped ? ColdFrameRules.DismantlePrompt(WoodManager.ColdFrameSizeOf(state.kind)) : "";
+            if (WoodManager.IsHoopHouse(state.kind))
+                return WoodManager.HammerEquipped ? HoopHouseRules.DismantlePrompt(WoodManager.HoopSizeOf(state.kind)) : "";
+            if (WoodManager.IsGlassHouse(state.kind))
+                return WoodManager.HammerEquipped ? GlassHouseRules.DismantlePrompt(WoodManager.GlassSizeOf(state.kind)) : "";
             if (state.kind == PileKind.SlopSink)
                 return SinkSecondaryPrompt();
             if (state.kind == PileKind.LeachHopper)
@@ -3611,6 +3712,24 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             case PileKind.WattleFence:
             case PileKind.DeerFence:
             case PileKind.FenceGate: break; // nothing for E at a fence (GB4a)
+            case PileKind.ColdFrameSmall:
+            case PileKind.ColdFrameMedium:
+            case PileKind.ColdFrameLarge: ToggleFrameLid(); break; // the lid (G1)
+            case PileKind.HoopHouseSmall:
+            case PileKind.HoopHouseMedium:
+            case PileKind.HoopHouseLarge: HoopInteract(); break; // the sides, the snow or new plastic (G2)
+            case PileKind.GlassHouseSmall:
+            case PileKind.GlassHouseMedium:
+            case PileKind.GlassHouseLarge: GlassInteract(); break; // the vents (G3)
+            case PileKind.SeedlingBench: GreenhouseBenches.Interact(state); break; // a tray (G3)
+            case PileKind.GreenhouseStove:
+            case PileKind.PropaneHeater:
+            case PileKind.WaterBarrels: GreenhouseHeat.Interact(state); break; // light it, or turn it on (G4)
+            case PileKind.HoseBib:
+            case PileKind.HoseReel:
+            case PileKind.HandPump:
+            case PileKind.FuelPump: WateringFittings.Interact(state); break; // water, fit the drip kit, or pump (G5)
+            case PileKind.VentOpener: VentOpeners.Interact(state); break; // says what it is doing (G6)
             default: DigNewPit(player); break;
         }
     }
@@ -3771,9 +3890,32 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         {
             GardenBeds.Secondary(state);
         }
-        else if (WoodManager.IsFenceKind(state.kind))
+        else if (state.kind == PileKind.SeedlingBench)
         {
-            Dismantle(); // R with the Hammer takes a fence panel or gate down (Dismantle says so without it)
+            GreenhouseBenches.Secondary(state); // R picks the next seed for an empty tray (G3)
+        }
+        else if (WateringFittings.IsWaterKind(state.kind))
+        {
+            if (WoodManager.HammerEquipped)
+                Dismantle(); // R with the Hammer takes it down (G5)
+            else
+                WateringFittings.Secondary(state); // R loads Gasoline into a Fuel Pump
+        }
+        else if (state.kind == PileKind.VentOpener)
+        {
+            if (WoodManager.HammerEquipped)
+                Dismantle(); // R with the Hammer takes it off (G6)
+        }
+        else if (WoodManager.IsHeatKind(state.kind))
+        {
+            if (WoodManager.HammerEquipped)
+                Dismantle(); // R with the Hammer takes it out (G4)
+            else
+                GreenhouseHeat.Secondary(state); // R loads the Firewood or Propane Tanks carried
+        }
+        else if (WoodManager.IsFenceKind(state.kind) || WoodManager.IsColdFrame(state.kind) || WoodManager.IsWalkIn(state.kind))
+        {
+            Dismantle(); // R with the Hammer takes a fence panel, a gate or a Cold Frame down (Dismantle says so without it)
         }
         else if (state.kind == PileKind.SlopSink)
         {
@@ -3893,6 +4035,79 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
     }
 
     // Hammer Dismantle for the Well and the Outhouse: half of each cost line back, rounded down (so a single item refunds nothing).
+    // E at a Cold Frame's front (G1): props the lid open or shuts it, and the inside temperature is worked out again for the new lid.
+    void ToggleFrameLid()
+    {
+        state.cropFlags ^= WoodManager.FrameLidOpen;
+        state.jobHours = 0f;
+        WoodManager.Instance.NotifyChanged(state);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+        ToolStatus.Flash(WoodManager.FrameLidIsOpen(state) ? "Propped the lid open - the heat can get out" : "Shut the lid - the warmth stays in", 2.5f);
+    }
+
+    // What E does at a Hoop House's door (G2): fit new plastic if it is torn, sweep the snow off if there is any, otherwise roll the sides up or down.
+    string HoopPrompt()
+    {
+        HoopHouseRules.Size size = WoodManager.HoopSizeOf(state.kind);
+        if (WoodManager.HoopIsTorn(state))
+            return HoopHouseRules.FitPrompt(size, Inventory != null ? Inventory.Player.Count(HoopHouseRules.PlasticId) : 0);
+        if (state.soilMoisture >= HoopHouseRules.SweepMinCm)
+            return HoopHouseRules.SweepPrompt(state.soilMoisture);
+        return HoopHouseRules.SidesPrompt(WoodManager.HoopSidesAreUp(state));
+    }
+
+    void HoopInteract()
+    {
+        HoopHouseRules.Size size = WoodManager.HoopSizeOf(state.kind);
+        if (WoodManager.HoopIsTorn(state))
+        {
+            int need = HoopHouseRules.Sheets(size);
+            if (Inventory == null || Inventory.Player.Count(HoopHouseRules.PlasticId) < need)
+            {
+                ToolStatus.Flash(HoopHouseRules.FitPrompt(size, Inventory != null ? Inventory.Player.Count(HoopHouseRules.PlasticId) : 0), 3f);
+                return;
+            }
+            Inventory.Player.Remove(HoopHouseRules.PlasticId, need);
+            state.cropFlags &= ~WoodManager.HoopTorn;
+            state.builtDay = WellsAndOuthouses.Today;
+            state.soilMoisture = 0f;
+            state.jobHours = 0f;
+            WoodManager.Instance.NotifyChanged(state);
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.Play(SoundCue.UiClick);
+            ToolStatus.Flash(HoopHouseRules.Refitted, 3f);
+            return;
+        }
+        if (state.soilMoisture >= HoopHouseRules.SweepMinCm)
+        {
+            // An hour's work: the clock moves on, then the plastic is clear.
+            if (TimeManager.Instance != null)
+                TimeManager.Instance.AdvanceMinutes(HoopHouseRules.SweepMinutes);
+            state.soilMoisture = 0f;
+            WoodManager.Instance.NotifyChanged(state);
+            ToolStatus.Flash(HoopHouseRules.Swept, 3f);
+            return;
+        }
+        state.cropFlags ^= WoodManager.HoopSidesUp;
+        state.jobHours = 0f;
+        WoodManager.Instance.NotifyChanged(state);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+        ToolStatus.Flash(WoodManager.HoopSidesAreUp(state) ? "Rolled the sides up - the heat can get out" : "Rolled the sides down - the warmth stays in", 2.5f);
+    }
+
+    // E at a Glass Greenhouse's door (G3): opens the roof vents and the door, or shuts them, and the inside temperature is worked out again.
+    void GlassInteract()
+    {
+        state.cropFlags ^= WoodManager.GlassVentsOpen;
+        state.jobHours = 0f;
+        WoodManager.Instance.NotifyChanged(state);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.Play(SoundCue.UiClick);
+        ToolStatus.Flash(WoodManager.GlassVentsAreOpen(state) ? "Opened the vents and the door - the heat can get out" : "Shut the vents and the door - the warmth stays in", 2.5f);
+    }
+
     void Dismantle()
     {
         if (state.IsKitchenAddon)
@@ -3960,9 +4175,40 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             ToolStatus.Flash(SmokeRules.DismantlePrompt(SmokePhaseNow, state.jobHours), 4f);
             return;
         }
+        // A Cold Frame (G1), a Hoop House (G2) or a Glass Greenhouse (G3) comes down only with its beds (and benches) empty, and takes them with it.
+        // A greenhouse's stove, heater and barrels (G4) are taken out first, each with its own R.
+        if (WoodManager.IsWalkIn(state.kind) && WoodManager.Instance.HeatersIn(state).Count > 0)
+        {
+            ToolStatus.Flash(GreenhouseHeatRules.HeatersFirst, 3f);
+            return;
+        }
+        // A Cold Frame's Vent Opener (G6) comes off first too.
+        if (WoodManager.IsColdFrame(state.kind) && WoodManager.Instance.HeatInSlot(state, PileKind.VentOpener) != null)
+        {
+            ToolStatus.Flash(VentRules.OpenerFirst, 3f);
+            return;
+        }
+        if (WoodManager.IsColdFrame(state.kind) || WoodManager.IsWalkIn(state.kind))
+        {
+            var held = new List<WoodPileState>(WoodManager.Instance.BedsInFrame(state));
+            held.AddRange(WoodManager.Instance.BenchesIn(state));
+            foreach (WoodPileState bed in held)
+            {
+                if (!string.IsNullOrEmpty(bed.jobItem))
+                {
+                    ToolStatus.Flash(WoodManager.IsHoopHouse(state.kind) ? HoopHouseRules.NotEmpty : WoodManager.IsGlassHouse(state.kind) ? GlassHouseRules.NotEmpty : ColdFrameRules.NotEmpty, 3f);
+                    return;
+                }
+            }
+            WoodManager.Instance.RemoveFrameBeds(state);
+        }
         var refund = new StructureRefund(state.position, transform);
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
+        // A greenhouse stove or heater (G4) gives back the fuel in it, whole.
+        if (WoodManager.IsHeatKind(state.kind) || WateringFittings.IsWaterKind(state.kind))
+            foreach (WoodStack fuel in state.contents)
+                refund.Return(fuel.itemId, fuel.count);
         string name = Name;
         // A Leach Hopper gives back the Ash still leaching and the Lye waiting in it, whole; the water is lost.
         if (state.kind == PileKind.LeachHopper)
@@ -4033,6 +4279,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 if (stack.itemId == SmokeRules.FirewoodId || SmokeRules.Smokes(stack.itemId) || SmokeRules.IsSmoked(stack.itemId))
                     refund.Return(stack.itemId, stack.count, stack.day);
         WoodManager.Instance.RemovePile(state);
+        WoodManager.Instance.RefreshGatesBeside(state); // a gate beside a section taken down takes the height of what is left
         ToolStatus.Flash(refund.Describe(name), 5f);
     }
 }

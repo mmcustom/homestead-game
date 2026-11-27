@@ -730,10 +730,10 @@ MonoBehaviour:
   - itemId: nails_box
     group: 5
     pool: nails_box
-    baseCents: 1600
-    kind: 1
+    baseCents: 4000
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 1600
   - itemId: fertilizer
     group: 6
     pool: fertilizer
@@ -1011,6 +1011,97 @@ MonoBehaviour:
     group: 7
     pool: wire_mesh
     baseCents: 1500
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: window_sash
+    group: 7
+    pool: window_sash
+    baseCents: 800
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: greenhouse_hoop
+    group: 7
+    pool: greenhouse_hoop
+    baseCents: 1200
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: greenhouse_plastic
+    group: 7
+    pool: greenhouse_plastic
+    baseCents: 2000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: glass_pane
+    group: 7
+    pool: glass_pane
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: greenhouse_stove
+    group: 7
+    pool: greenhouse_stove
+    baseCents: 4000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: propane_heater
+    group: 7
+    pool: propane_heater
+    baseCents: 3500
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: propane_tank
+    group: 7
+    pool: propane_tank
+    baseCents: 1200
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: garden_hose
+    group: 7
+    pool: garden_hose
+    baseCents: 800
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: drip_kit
+    group: 7
+    pool: drip_kit
+    baseCents: 1500
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: hand_pump
+    group: 7
+    pool: hand_pump
+    baseCents: 3000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: fuel_pump
+    group: 7
+    pool: fuel_pump
+    baseCents: 9000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: gasoline_can
+    group: 7
+    pool: gasoline_can
+    baseCents: 300
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: vent_opener
+    group: 7
+    pool: vent_opener
+    baseCents: 3500
     kind: 0
     seasonalBuy: 0
     sellCents: 0

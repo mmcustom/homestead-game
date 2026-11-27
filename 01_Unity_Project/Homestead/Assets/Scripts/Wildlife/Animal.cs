@@ -8,9 +8,11 @@ public enum GameTier { Small, Medium, Large }
 // hunting against the wind improves approach success). Rain dampens sound. Gunshots alert everything in earshot.
 // A shot animal dies (becoming a Carcass to field dress), or on a wounding hit runs off and is usually lost.
 // Waterfowl sit on the pond and fly off; rabbits hop.
+// Gardening GB4b (2026-11-26): a deer or rabbit sent to raid a garden bed (WildlifeManager.SendRaider) walks to it, eats for a while and only then takes its
+// bite (GardenBeds.RaiderAte); startled first, it bolts and the crop is spared.
 public class Animal : MonoBehaviour
 {
-    enum State { Idle, Walk, Flee, Dead, Stunned }
+    enum State { Idle, Walk, Flee, Dead, Stunned, Raid }
 
     [SerializeField] string speciesId = "deer";
     [SerializeField] GameTier tier = GameTier.Large;
@@ -37,6 +39,10 @@ public class Animal : MonoBehaviour
     float runLeft;
     Terrain terrain;
     int waterMask;
+    // A garden raid (GB4b): the bed it is going for, the crop it came for, and when it will be done eating (0 while still on its way).
+    WoodPileState raidBed;
+    string raidCrop;
+    float eatUntil;
 
     public string SpeciesId => speciesId;
     public GameTier Tier => tier;
@@ -206,6 +212,9 @@ public class Animal : MonoBehaviour
             case State.Flee:
                 UpdateFlee();
                 break;
+            case State.Raid:
+                UpdateRaid();
+                break;
             case State.Stunned:
                 if (Time.time >= stateUntil)
                 {
@@ -249,11 +258,73 @@ public class Animal : MonoBehaviour
         return Mathf.Lerp(1f, alignment > 0f ? 1.7f : 0.7f, Mathf.Abs(alignment) * Mathf.Clamp01(weather.WindStrength * 2f));
     }
 
+    // --- A garden raid (GB4b) ---
+
+    public bool Raiding => raidBed != null;
+
+    // Sets off for a garden bed to eat its crop.
+    public void BeginRaid(WoodPileState bed)
+    {
+        if (state == State.Dead || bed == null)
+            return;
+        raidBed = bed;
+        raidCrop = bed.jobItem;
+        eatUntil = 0f;
+        state = State.Raid;
+        stateUntil = Time.time + FenceRules.RaiderTimeoutSeconds;
+    }
+
+    void UpdateRaid()
+    {
+        if (raidBed == null || raidBed.jobItem != raidCrop)
+        {
+            EndRaid(); // the crop was harvested or cleared meanwhile
+            return;
+        }
+        if (eatUntil <= 0f)
+        {
+            Vector3 bed = raidBed.position;
+            MoveToward(bed, walkSpeed);
+            if (Flat(transform.position - bed).magnitude <= FenceRules.EatReach(speciesId))
+            {
+                eatUntil = Time.time + FenceRules.EatSeconds(speciesId);
+                GardenBeds.RaiderArrived(raidBed, DisplayName);
+            }
+            else if (Time.time >= stateUntil)
+            {
+                EndRaid();
+            }
+            return;
+        }
+        if (Time.time >= eatUntil)
+        {
+            GardenBeds.RaiderAte(raidBed, speciesId, raidCrop, DisplayName);
+            EndRaid();
+        }
+    }
+
+    // Done (or given up): it wanders off a little way from the garden and settles there.
+    void EndRaid()
+    {
+        Vector3 away = raidBed != null ? Flat(transform.position - raidBed.position).normalized : transform.forward;
+        if (away.sqrMagnitude < 0.01f)
+            away = transform.forward;
+        raidBed = null;
+        raidCrop = null;
+        eatUntil = 0f;
+        home = transform.position + away * 25f;
+        PickWanderTarget();
+    }
+
     // Runs (or flies) away from a threat.
     public void Startle(Vector3 from)
     {
         if (state == State.Dead)
             return;
+        // A raider scared off before it has eaten its fill takes nothing (GB4b).
+        raidBed = null;
+        raidCrop = null;
+        eatUntil = 0f;
         fleeFrom = from;
         if (state == State.Stunned && Time.time < stateUntil)
             return; // stopped in its tracks: it runs from here when the moment is over

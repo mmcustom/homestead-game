@@ -197,6 +197,12 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawmillSite:
             case PileKind.TanningVatSite:
             case PileKind.RaisedBedSite:
+            case PileKind.HoopHouseSiteSmall:
+            case PileKind.HoopHouseSiteMedium:
+            case PileKind.HoopHouseSiteLarge:
+            case PileKind.GlassHouseSiteSmall:
+            case PileKind.GlassHouseSiteMedium:
+            case PileKind.GlassHouseSiteLarge:
             case PileKind.KitchenSite:
             case PileKind.KitchenRoofSite:
                 return true;
@@ -229,6 +235,12 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawmillSite: return PileKind.Sawmill;
             case PileKind.TanningVatSite: return PileKind.TanningVat;
             case PileKind.RaisedBedSite: return PileKind.GardenBed; // a Garden Bed with the Raised flag, its frame still to fill (FinishSite)
+            case PileKind.HoopHouseSiteSmall: return PileKind.HoopHouseSmall;   // Hoop Houses (Greenhouses G2)
+            case PileKind.HoopHouseSiteMedium: return PileKind.HoopHouseMedium;
+            case PileKind.HoopHouseSiteLarge: return PileKind.HoopHouseLarge;
+            case PileKind.GlassHouseSiteSmall: return PileKind.GlassHouseSmall;   // Glass Greenhouses (Greenhouses G3)
+            case PileKind.GlassHouseSiteMedium: return PileKind.GlassHouseMedium;
+            case PileKind.GlassHouseSiteLarge: return PileKind.GlassHouseLarge;
             case PileKind.KitchenSite: return PileKind.KitchenRoofSite;
             case PileKind.KitchenRoofSite: return PileKind.Kitchen;
             default: return PileKind.Well;
@@ -269,6 +281,12 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawmillSite: return SawmillCost();
             case PileKind.TanningVatSite: return TanningVatCost();
             case PileKind.RaisedBedSite: return new[] { new WoodStack { itemId = SawPitRules.LumberId, count = GardenRules.RaisedBedLumber } };
+            case PileKind.HoopHouseSiteSmall:
+            case PileKind.HoopHouseSiteMedium:
+            case PileKind.HoopHouseSiteLarge: return WoodManager.HoopHouseCost(WoodManager.HoopSizeOf(site));
+            case PileKind.GlassHouseSiteSmall:
+            case PileKind.GlassHouseSiteMedium:
+            case PileKind.GlassHouseSiteLarge: return WoodManager.GlassHouseCost(WoodManager.GlassSizeOf(site));
             case PileKind.KitchenSite: return KitchenHearthCost();
             case PileKind.KitchenRoofSite: return KitchenRoofCost();
             default: return WellCost();
@@ -320,6 +338,10 @@ public class WellsAndOuthouses : MonoBehaviour
             return new[] { new[] { TanningVatRules.LogsId, TanningVatRules.ClayId } }; // both, in any order, once the pit is dug
         if (site == PileKind.RaisedBedSite)
             return new[] { new[] { SawPitRules.LumberId } };
+        if (WoodManager.IsHoopSite(site))
+            return new[] { new[] { HoopHouseRules.LumberId, HoopHouseRules.HoopId, HoopHouseRules.PlasticId, HoopHouseRules.CordageId } }; // all four, in any order
+        if (WoodManager.IsGlassSite(site))
+            return new[] { new[] { GlassHouseRules.LumberId, GlassHouseRules.StoneId, GlassHouseRules.PaneId, GlassHouseRules.NailsId } }; // all four, in any order
         if (site == PileKind.RootCellarSite)
             return new[] { new[] { RootCellarRules.StoneId, RootCellarRules.LogsId, RootCellarRules.LumberId } }; // all three, in any order, once it is dug
         if (site == PileKind.SmithySite)
@@ -477,6 +499,12 @@ public class WellsAndOuthouses : MonoBehaviour
             case PileKind.SawmillSite: return SawmillRules.BuildBlows;
             case PileKind.TanningVatSite: return TanningVatRules.BuildBlows;
             case PileKind.RaisedBedSite: return GardenRules.RaisedBedBuildBlows;
+            case PileKind.HoopHouseSiteSmall:
+            case PileKind.HoopHouseSiteMedium:
+            case PileKind.HoopHouseSiteLarge: return HoopHouseRules.BuildBlows(WoodManager.HoopSizeOf(site));
+            case PileKind.GlassHouseSiteSmall:
+            case PileKind.GlassHouseSiteMedium:
+            case PileKind.GlassHouseSiteLarge: return GlassHouseRules.BuildBlows(WoodManager.GlassSizeOf(site));
             case PileKind.KitchenSite: return kitchenHearthBuildBlows;
             case PileKind.KitchenRoofSite: return kitchenRoofBuildBlows;
             case PileKind.CabinSite: return cabinBuildBlows;
@@ -530,6 +558,10 @@ public class WellsAndOuthouses : MonoBehaviour
             return SawmillRules.BuiltMessage;
         if (site == PileKind.TanningVatSite)
             return TanningVatRules.BuiltMessage;
+        if (WoodManager.IsGlassSite(site))
+            return $"{name} built - its {GlassHouseRules.Squares(WoodManager.GlassSizeOf(site))} beds are dug and ready, and its seedling benches take a tray of seed (E). E at the door opens the vents on sunny days.";
+        if (WoodManager.IsHoopSite(site))
+            return $"{name} built - its {HoopHouseRules.Squares(WoodManager.HoopSizeOf(site))} beds inside are dug and ready to plant. E at the door rolls the sides up on sunny days.";
         if (site == PileKind.RaisedBedSite)
             return "Raised bed frame built - fill it with soil: equip the Shovel and hold click on it.";
         return site == PileKind.WellSite ? "Well built - water fills it from below." : $"{name} built.";
@@ -559,6 +591,13 @@ public class WellsAndOuthouses : MonoBehaviour
             site.soilMoisture = GardenRules.StartMoisture;
             site.soilSpent = 0f;
         }
+        // A Hoop House (G2): new plastic today (builtDay above), sides down, no snow; its beds are laid out once it stands (below).
+        if (WoodManager.IsWalkIn(site.kind))
+        {
+            site.cropFlags = 0;
+            site.soilMoisture = 0f;
+            site.jobHours = 0f;
+        }
         // The hearth stage's last blow puts the hearth on its slab: an ordinary Campfire, unlit and out of fuel until it is tended.
         if (was == PileKind.KitchenSite && FireManager.Instance != null && FireManager.Instance.FireNear(WoodManager.KitchenHearthSpot(site), 0.75f) == null)
             FireManager.Instance.BuildFurnished(WoodManager.KitchenHearthSpot(site), site.yaw);
@@ -568,6 +607,8 @@ public class WellsAndOuthouses : MonoBehaviour
             WoodManager.Instance.Respawn(site);
         else
             WoodManager.Instance.NotifyChanged(site);
+        if (WoodManager.IsWalkIn(site.kind))
+            WoodManager.Instance.BuildHouseBeds(site);
         return true;
     }
 

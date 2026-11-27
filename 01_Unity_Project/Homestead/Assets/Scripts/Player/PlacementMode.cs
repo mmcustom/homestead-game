@@ -128,6 +128,15 @@ public class PlacementMode : MonoBehaviour
             case PileKind.WattleFence:
             case PileKind.DeerFence:
             case PileKind.FenceGate:
+            case PileKind.ColdFrameSmall:
+            case PileKind.ColdFrameMedium:
+            case PileKind.ColdFrameLarge:
+            case PileKind.HoopHouseSiteSmall:
+            case PileKind.HoopHouseSiteMedium:
+            case PileKind.HoopHouseSiteLarge:
+            case PileKind.GlassHouseSiteSmall:
+            case PileKind.GlassHouseSiteMedium:
+            case PileKind.GlassHouseSiteLarge:
                 return true;
             default:
                 return false;
@@ -321,6 +330,13 @@ public class PlacementMode : MonoBehaviour
             return;
         }
 
+        // A greenhouse's Wood Stove, Propane Heater or Water Barrels (G4) goes only in its spot inside a finished greenhouse.
+        if (!campfire && WoodManager.IsHouseFitting(kind))
+        {
+            SnapToHeatSlot(hit ? aim.point : player.transform.position, out spot, out haveSpot, out valid, out reason, out note);
+            return;
+        }
+
         if (!campfire && WoodManager.IsRainBarrel(kind) && TrySnapToEave(hit ? aim.point : player.transform.position, out spot, out valid, out reason, out note))
         {
             haveSpot = true;
@@ -507,6 +523,47 @@ public class PlacementMode : MonoBehaviour
             bestYaw = slotYaw;
             spot = ground;
             note = Setbacks.KitchenLayout.SlotLabel(index);
+            if (TooFar(ground.point))
+            {
+                valid = false;
+                reason = TooFarText;
+            }
+            else
+            {
+                valid = WoodManager.Instance.CanBuildPileAt(kind, player, ground, slotYaw, true, out reason);
+            }
+        }
+        if (found)
+            yaw = bestYaw;
+        haveSpot = found;
+    }
+
+    // The stove, heater or barrels ghost jumps to the nearest free spot for it inside a greenhouse within snap range (a taken one only if none is free), and
+    // faces the way the house says (G4).
+    void SnapToHeatSlot(Vector3 around, out BuildSpot spot, out bool haveSpot, out bool valid, out string reason, out string note)
+    {
+        spot = default;
+        haveSpot = false;
+        valid = false;
+        note = null;
+        reason = GreenhouseHeatRules.NoSpot;
+
+        bool found = false, bestFree = false;
+        float bestDistance = float.MaxValue, bestYaw = yaw;
+        foreach ((Vector3 world, float slotYaw, WoodPileState house, bool taken) in WoodManager.Instance.HeatSlots(kind, around, slotSnapRange + 1f))
+        {
+            if (!GroundAt(world, out BuildSpot ground))
+                continue;
+            bool free = !taken;
+            float distance = Vector3.Distance(world, around);
+            if (found && !(free && !bestFree) && !(free == bestFree && distance < bestDistance))
+                continue;
+            found = true;
+            bestFree = free;
+            bestDistance = distance;
+            bestYaw = slotYaw;
+            spot = ground;
+            note = kind == PileKind.WaterBarrels ? "the barrel spot" : kind == PileKind.HoseBib ? "beside the door" : kind == PileKind.VentOpener ? (WoodManager.IsColdFrame(house.kind) ? "the frame's back wall" : "beside the door") : "the heater spot";
             if (TooFar(ground.point))
             {
                 valid = false;

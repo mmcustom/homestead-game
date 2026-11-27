@@ -19,7 +19,7 @@ public static class FenceRules
     // --- Sizes (metres) ---
 
     public const float PanelLength = 2.4f;   // 8 ft between posts
-    public const float GateLength = 1.2f;    // a 4 ft garden gate
+    public const float GateLength = 2.4f;    // as wide as a section (Mike, 2026-11-26), so it fits any gap a section would
     public const float MinLength = 0.3f;     // the shortest a panel may be cut to close a ring
     public const float JoinMetres = 0.25f;   // panel ends this close are joined
     public const float SnapMetres = 1.6f;    // a new panel snaps to a free end this close to where the player aims
@@ -29,6 +29,10 @@ public static class FenceRules
 
     public static float FullLength(Type type) => type == Type.Gate ? GateLength : PanelLength;
     public static float Height(Type type) => type == Type.Wattle ? WattleHeight : DeerHeight;
+
+    // A Gate is as tall as the fence it stands in (Mike, 2026-11-26): deer fence beside it makes it deer-fence height, so a deer-fence ring stays deer-proof;
+    // wattle only, wattle height (that ring lets deer in anyway, by its wattle); on its own, deer-fence height.
+    public static float GateHeight(bool besideDeer, bool besideWattle) => besideDeer || !besideWattle ? DeerHeight : WattleHeight;
     public static bool DeerProof(Type type) => type != Type.Wattle;
 
     // A pile's length: saved in its jobHours, which a fence has no other use for; 0 (a panel from before it was cut) is the full length.
@@ -266,6 +270,33 @@ public static class FenceRules
         return rabbitBeds == 1 ? $"A rabbit nibbled a garden bed {when} - a fence keeps them out" : $"Rabbits nibbled {rabbitBeds} garden beds {when} - a fence keeps them out";
     }
 
+    // --- Raiders you can see (slice GB4b) ---
+    // When a raid comes to a bed within VisibleRange of the player, awake, a real deer or rabbit is sent instead: it appears out of sight RaiderSpawnMin to
+    // RaiderSpawnMax from the bed, walks to it, and eats for its EatSeconds before its bite is taken. Startled on the way or while eating (the animal's own
+    // senses: come close, or shoot), it bolts and the crop is spared. It can be hunted like any other. Too far, asleep, or no spot to come from: the raid is
+    // worked out by the hour as before.
+
+    public const float VisibleRange = 90f;
+    public const float RaiderSpawnMin = 35f, RaiderSpawnMax = 60f;
+    public const float RaiderMinFromPlayer = 25f;
+    public const float RaiderTimeoutSeconds = 180f;   // a raider that cannot reach the bed in this long gives up
+
+    public static float EatSeconds(string speciesId) => speciesId == "deer" ? 20f : 15f;
+
+    // How close to the bed's middle it stands to eat: a deer reaches in from the edge, a rabbit sits on the bed.
+    public static float EatReach(string speciesId) => speciesId == "deer" ? 1.0f : 0.4f;
+
+    public static float Bite(string speciesId) => speciesId == "deer" ? DeerBite : RabbitBite;
+
+    public static bool Eats(string speciesId, string cropId, bool young) => speciesId == "deer" ? DeerEats(cropId) : RabbitEats(cropId, young);
+
+    // Whether a bed's raider can be one you see: you are near and awake.
+    public static bool Visible(float metresToPlayer, bool asleep) => !asleep && metresToPlayer <= VisibleRange;
+
+    public static string EatingBanner(string animal, string crop) => $"A {animal.ToLowerInvariant()} is eating your {crop} - chase it off!";
+
+    public static string AteBanner(string animal, string crop) => $"The {animal.ToLowerInvariant()} ate some of your {crop} - a fence keeps them out";
+
     // The bed's fence, for its second line.
     public static string ProtectionText(Protection p) =>
         p.deer ? "fenced against deer and rabbits" : p.rabbits ? "fenced against rabbits (deer jump wattle)" : "not fenced - deer and rabbits can get at it";
@@ -293,5 +324,5 @@ public static class FenceRules
         "Build sections end to end round your beds (each snaps to the last one's free end) and close the ring; a ring with any wattle in it lets deer jump in. The Hammer builds it.";
 
     public static readonly string GateHelp =
-        $"a 4 ft gate as tall as the deer fence, from {GateLumber} Lumber and {GateCordage} Cordage for the hinges. Put it in a fence ring like a section: it swings open as you walk into it and shuts behind you, and it counts as deer fence. The Hammer builds it.";
+        $"an 8 ft gate, as wide as a section and as tall as the fence beside it (waist high in wattle, 7 ft in deer fence), from {GateLumber} Lumber and {GateCordage} Cordage for the hinges. Put it in a fence ring like a section: it swings open as you walk into it and shuts behind you. The Hammer builds it.";
 }

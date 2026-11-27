@@ -214,10 +214,11 @@ Mike said to proceed as planned, so these numbers are my defaults (*for Mike to 
   |---|---|---|---|
   | **Wattle Fence** | 2.4 m section, 1 m high | 4 Sticks, 6 Branches | rabbits (deer jump it) |
   | **Deer Fence** | 2.4 m section, 2.1 m (7 ft) | 1 Log, 1 Wire Mesh | deer and rabbits |
-  | **Gate** | 1.2 m wide, deer-fence height | 2 Lumber, 1 Cordage | counts as deer fence |
+  | **Gate** | 2.4 m wide (a section), as tall as the fence beside it | 2 Lumber, 1 Cordage | as the fence it stands in |
 
 - **Wire Mesh:** $15 a roll at the Trading Post, one roll a panel.
 - **The Gate** swings open as you walk into it and shuts behind you, like the cabin and smokehouse doors. Every panel blocks the player.
+- **Gate size (Mike's play-test, 2026-11-26):** a Gate is as wide as a section and as tall as the fence beside it: waist high between wattle sections, 7 ft in deer fence (the taller when it stands between the two; 7 ft on its own). It redraws when a section beside it is built or taken down. Its leaf uses the cabin door's planks (the first version's leaf drew nearly black). A Gate built before this was 1.2 m and now draws 2.4 m: take it down with the Hammer and place it again.
 - **Placing:** a new panel snaps to the nearest free end of a fence within 1.6 m of where you aim, and runs toward the aim. If another free end lies along its line (within 0.8 m), the panel is cut to fit and closes the gap; the ghost shows it shorter and says "closes the ring - cut to fit". With no fence near, a panel stands on its own and the mouse wheel turns it. A panel may run right beside a bed but not over one, and not through a tree or a building. R with the Hammer takes a panel or gate down (half the materials back).
 - **Protection:** dangling panels are pruned away until only closed rings are left. A bed inside a ring is protected: any ring keeps rabbits out, and a ring of only deer fence and gates keeps deer out too. A planted bed's text says "fenced against deer and rabbits", "fenced against rabbits (deer jump wattle)" or "not fenced - deer and rabbits can get at it".
 - **Raids (light nibbling):** at 6 am and 7 pm, each open bed may be visited.
@@ -231,6 +232,17 @@ Mike said to proceed as planned, so these numbers are my defaults (*for Mike to 
 - **Saved data:** fence panels are ordinary saved piles (three kinds appended: WattleFence, DeerFence, FenceGate). A cut panel's length is saved in its jobHours, which a fence has no other use for.
 - **Art:** the wattle fence, deer fence, gate frame and Wire Mesh roll, with their build and item icons.
 - **Not yet (GB4b):** seeing the deer and rabbits walk in and eat when you are nearby.
+
+## 15. As built: slice GB4b (2026-11-26)
+
+- **Raiders you can see:** when a dawn or dusk raid rolls for a bed within **90 m** of you while you're awake, a real rabbit or deer is sent instead of the hidden bite.
+- **How it comes:** it appears 35 to 60 m from the bed, out of your sight if it can be (and never within 25 m of you), and walks to the bed.
+- **Eating:** at the bed, a banner says "A deer is eating your Beans - chase it off!". It eats for 20 seconds (a deer) or 15 (a rabbit). Only then is its bite taken (a tenth or a twentieth of the square), with the banner "The deer ate some of your Beans - a fence keeps them out". Afterwards it wanders off a little way.
+- **Chasing it off:** if you come close enough to startle it (its normal hearing and scent, so crouching gets you closer) or shoot near it, it bolts and the crop is spared. It can be hunted like any other deer or rabbit.
+- **When nothing happens:** if the crop is harvested or cleared, or a closed fence goes up round the bed while it is on its way, it takes nothing. A raider that can't reach the bed in 3 minutes gives up.
+- **Falls back to the hour:** too far, asleep, or no spot for it to come from, and the raid is worked out by the hour as in GB4a.
+- **Testing key:** / sends a rabbit at once to the nearest planted, unfenced bed it would eat; Shift+/ sends a deer. Development builds only.
+- **Not saved:** a raider on its way is lost on save and load, like all the animals.
 
 ---
 
