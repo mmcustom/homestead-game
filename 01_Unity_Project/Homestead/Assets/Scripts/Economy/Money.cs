@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 // All money in the game is a long number of cents, and every conversion, display and sum goes through here so no other script does
@@ -114,6 +115,10 @@ public struct TradingPostSaveData
     public int version;
     public int money;
     public long cents;
+    // Trading Post deliveries paid for and on their way (slice D1, 2026-11-27; additive: an older save has none).
+    public List<DeliveryOrder> deliveries;
+    // Pole Barn crews booked (slice B1a; additive).
+    public List<CrewJob> crews;
 
     public static TradingPostSaveData FromCents(long cents) => new TradingPostSaveData
     {

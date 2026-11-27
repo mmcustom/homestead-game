@@ -41,7 +41,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     bool UsesTransferScreen => state.kind == PileKind.WoodStorage || state.kind == PileKind.RockStorage ||
                                 state.IsWaterBarrel || state.kind == PileKind.FoodCache ||
                                 state.kind == PileKind.StorageBin || state.kind == PileKind.SaltBarrel || state.kind == PileKind.CompostBin || state.kind == PileKind.DryingRack || state.kind == PileKind.ToolRack ||
-                                state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart || state.kind == PileKind.RootCellar;
+                                state.kind == PileKind.WoodShed || state.kind == PileKind.Shelving || state.kind == PileKind.HandCart || state.kind == PileKind.RootCellar ||
+                                state.kind == PileKind.DeliveryPad || WoodManager.IsBarn(state.kind);
 
     // A felled tree's pile (and anything dropped as one) opens the take-only screen on E: the player picks what to take and the rest stays
     // (Mike, 2026-10-24). A Small Cabin's CabinSite keeps its instant E.
@@ -57,6 +58,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
                 return "";
             if (IsCellar && !PlayerInside())
                 return RootCellarRules.OutsidePrompt;
+            if (IsBarn && !PlayerInside())
+                return BarnRules.OutsidePrompt;
+            if (IsBarn)
+                return $"Open the barn's shelves  ({Describe(state)}; {BarnRules.KgText(BarnSize, CartLoadKg(state))})";
             if (IsCellar)
                 return $"Open the Root Cellar's shelves  ({Describe(state)}; {RootCellarRules.KgText(CartLoadKg(state))})";
             if (IsSaltBarrel)
@@ -101,6 +106,11 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (IsCellar && !PlayerInside())
         {
             ToolStatus.Flash(RootCellarRules.OutsidePrompt, 3f);
+            return;
+        }
+        if (IsBarn && !PlayerInside())
+        {
+            ToolStatus.Flash(BarnRules.OutsidePrompt, 3f);
             return;
         }
         // Opens even when empty now — there may be something to put in.
@@ -511,10 +521,17 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     // the whole units of it that still fit under the 100 kg (12 Logs, 20 Stone, 28 Clay, 66 Firewood in an empty cart). Anything else: StorageRoom.
     bool IsCart => state != null && state.kind == PileKind.HandCart;
     bool IsCellar => state != null && state.kind == PileKind.RootCellar;
+    bool IsBarn => state != null && WoodManager.IsBarn(state.kind);   // the Pole Barn (B1a): a walk-in store, held to BarnRules.CapacityKg by weight
+    BarnRules.Size BarnSize => WoodManager.BarnSizeOf(state.kind);
     bool IsSaltBarrel => state != null && state.kind == PileKind.SaltBarrel;
 
     int RoomFor(string itemId)
     {
+        if (IsBarn)
+        {
+            ItemDefinition goods = ItemDatabase.Get(itemId);
+            return BarnRules.UnitsThatFit(BarnSize, CartLoadKg(state), goods != null ? goods.WeightKg : 0f);
+        }
         if (IsCellar)
         {
             ItemDefinition food = ItemDatabase.Get(itemId);
@@ -567,7 +584,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         }
         if (RoomFor(itemId) <= 0)
         {
-            reason = IsCart ? CartRules.NoRoomReason(CartLoadKg(state)) : IsCellar ? $"the cellar is full ({RootCellarRules.KgText(CartLoadKg(state))})"
+            reason = IsCart ? CartRules.NoRoomReason(CartLoadKg(state)) : IsBarn ? $"the barn is full ({BarnRules.KgText(BarnSize, CartLoadKg(state))})" : IsCellar ? $"the cellar is full ({RootCellarRules.KgText(CartLoadKg(state))})"
                    : IsSaltBarrel ? SaltBarrelRules.FullReason(CartLoadKg(state)) : "the barrel is full";
             return false;
         }
@@ -868,6 +885,10 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             case PileKind.Shelving: BuildShelving(); return;
             case PileKind.HandCart: BuildCart(random); return;
             case PileKind.RootCellar: BuildRootCellar(); return;
+            case PileKind.DeliveryPad: BuildDeliveryPad(random); return;
+            case PileKind.PoleBarnSmall:
+            case PileKind.PoleBarnMedium:
+            case PileKind.PoleBarnLarge: BuildPoleBarn(); return;
         }
 
         int logs = Mathf.Min(state.Count(WoodManager.LogsId), 6);
@@ -956,7 +977,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (cellarPlayer == null)
             return true;
         Vector3 local = transform.InverseTransformPoint(cellarPlayer.transform.position);
-        return RootCellarRules.IsInside(local.x, local.z);
+        return IsBarn ? BarnRules.IsInside(BarnSize, local.x, local.z) : RootCellarRules.IsInside(local.x, local.z);
     }
 
     public const int CellarFramePieces = 13 + 7; // the visible pieces (13) and the colliders (7), all before the stored food
@@ -1284,6 +1305,57 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
     }
 
     // A lidded box of split wood (the Food Cache) or an open, lighter-coloured bin (the Storage Bin).
+    // The Pole Barn (slice B1a): PoleBarnVisuals draws it; E answers at the shelves along the back, from inside.
+    void BuildPoleBarn()
+    {
+        PoleBarnVisuals.Build(transform, BarnSize, pieces);
+        float w = BarnRules.Width(BarnSize), l = BarnRules.Length(BarnSize);
+        box.center = new Vector3(0f, 1.1f, l / 2f - 0.55f);
+        box.size = new Vector3(w * 0.8f, 2.2f, 0.7f);
+    }
+
+    // The Delivery Pad (slice D1): a 3 m square of gravel with a timber edge, and a pallet with a tarp over it while anything waits on it.
+    void BuildDeliveryPad(System.Random random)
+    {
+        const float half = 1.5f;
+        box.center = new Vector3(0f, 0.4f, 0f);
+        box.size = new Vector3(half * 2f, 0.8f, half * 2f);
+        // The Blender model (structure_deliverypad), its Load child shown while anything waits on the pad; the shapes below without it.
+        GameObject prefab = Resources.Load<GameObject>(ArtPrefix + "structure_deliverypad");
+        if (prefab != null)
+        {
+            GameObject art = Instantiate(prefab, transform, false);
+            art.name = "PadArt";
+            foreach (Collider c in art.GetComponentsInChildren<Collider>())
+                Destroy(c);
+            foreach (Transform t in art.GetComponentsInChildren<Transform>(true))
+                if (t.name == "Load")
+                    t.gameObject.SetActive(!state.IsEmpty);
+            pieces.Add(art);
+            return;
+        }
+        Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, 0.02f, 0f), Vector3.zero, new Vector3(half * 2f, 0.04f, half * 2f), null), new Color(0.52f, 0.5f, 0.46f));
+        foreach (float s in new[] { -1f, 1f })
+        {
+            Piece(PrimitiveType.Cube, new Vector3(s * half, 0.05f, 0f), Vector3.zero, new Vector3(0.1f, 0.1f, half * 2f + 0.1f), bark);
+            Piece(PrimitiveType.Cube, new Vector3(0f, 0.05f, s * half), Vector3.zero, new Vector3(half * 2f + 0.1f, 0.1f, 0.1f), bark);
+        }
+        for (int i = 0; i < 10; i++)
+        {
+            float g = 0.42f + (float)random.NextDouble() * 0.1f;
+            Tinted(Piece(PrimitiveType.Sphere, new Vector3(((float)random.NextDouble() - 0.5f) * 2.6f, 0.04f, ((float)random.NextDouble() - 0.5f) * 2.6f), Vector3.zero,
+                         new Vector3(0.12f, 0.05f, 0.12f), null), new Color(g, g * 0.97f, g * 0.92f));
+        }
+        if (!state.IsEmpty)
+        {
+            float h = Mathf.Clamp(0.3f + state.Total / 200f, 0.3f, 1.4f);
+            Piece(PrimitiveType.Cube, new Vector3(0f, 0.11f, 0f), Vector3.zero, new Vector3(1.2f, 0.14f, 1.0f), bark);
+            Tinted(Piece(PrimitiveType.Cube, new Vector3(0f, 0.18f + h / 2f, 0f), Vector3.zero, new Vector3(1.15f, h, 0.95f), null), new Color(0.16f, 0.3f, 0.55f)); // the tarp over the load
+        }
+        box.center = new Vector3(0f, 0.4f, 0f);
+        box.size = new Vector3(half * 2f, 0.8f, half * 2f);
+    }
+
     void BuildBox(Vector3 size, float tint, bool lid)
     {
         GameObject body = Piece(PrimitiveType.Cube, new Vector3(0f, size.y / 2f, 0f), Vector3.zero, size, bark);

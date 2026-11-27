@@ -254,10 +254,10 @@ MonoBehaviour:
   - itemId: sinew
     group: 3
     pool: sinew
-    baseCents: 100
-    kind: 1
+    baseCents: 250
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 100
   - itemId: venison
     group: 2
     pool: venison
@@ -485,31 +485,31 @@ MonoBehaviour:
   - itemId: firewood
     group: 0
     pool: firewood
-    baseCents: 100
-    kind: 1
+    baseCents: 250
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 100
   - itemId: logs
     group: 0
     pool: logs
-    baseCents: 300
-    kind: 1
+    baseCents: 750
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 300
   - itemId: stone
     group: 0
     pool: stone
-    baseCents: 100
-    kind: 1
+    baseCents: 250
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 100
   - itemId: charcoal
     group: 0
     pool: charcoal
-    baseCents: 100
-    kind: 1
+    baseCents: 400
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 100
   - itemId: rabbit_snare
     group: 5
     pool: rabbit_snare
@@ -639,45 +639,45 @@ MonoBehaviour:
   - itemId: buckskin_coat
     group: 5
     pool: buckskin_coat
-    baseCents: 9000
-    kind: 1
+    baseCents: 22500
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 9000
   - itemId: buckskin_leggings
     group: 5
     pool: buckskin_leggings
-    baseCents: 5000
-    kind: 1
+    baseCents: 12500
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 5000
   - itemId: fur_hat
     group: 5
     pool: fur_hat
-    baseCents: 1800
-    kind: 1
+    baseCents: 4500
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 1800
   - itemId: fur_mittens
     group: 5
     pool: fur_mittens
-    baseCents: 1600
-    kind: 1
+    baseCents: 4000
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 1600
   - itemId: moccasins
     group: 5
     pool: moccasins
-    baseCents: 3000
-    kind: 1
+    baseCents: 7500
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 3000
   - itemId: leather_pack
     group: 5
     pool: leather_pack
-    baseCents: 7500
-    kind: 1
+    baseCents: 18750
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 7500
   - itemId: clay_cup
     group: 5
     pool: clay_cup
@@ -737,10 +737,10 @@ MonoBehaviour:
   - itemId: fertilizer
     group: 6
     pool: fertilizer
-    baseCents: 50
-    kind: 1
+    baseCents: 125
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 50
   - itemId: dried_berries
     group: 4
     pool: dried_berries
@@ -828,10 +828,10 @@ MonoBehaviour:
   - itemId: rawhide
     group: 3
     pool: rawhide
-    baseCents: 1200
-    kind: 1
+    baseCents: 3000
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 1200
   - itemId: dried_furs
     group: 3
     pool: dried_furs
@@ -842,24 +842,24 @@ MonoBehaviour:
   - itemId: buckskin
     group: 3
     pool: buckskin
-    baseCents: 2400
-    kind: 1
+    baseCents: 9600
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 2400
   - itemId: tanned_furs
     group: 3
     pool: tanned_furs
-    baseCents: 600
-    kind: 1
+    baseCents: 2400
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 600
   - itemId: leather
     group: 3
     pool: leather
-    baseCents: 3000
-    kind: 1
+    baseCents: 12000
+    kind: 0
     seasonalBuy: 0
-    sellCents: 0
+    sellCents: 3000
   - itemId: hoe
     group: 7
     pool: hoe
@@ -1105,6 +1105,69 @@ MonoBehaviour:
     kind: 0
     seasonalBuy: 0
     sellCents: 0
+  - itemId: sticks
+    group: 0
+    pool: sticks
+    baseCents: 25
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 10
+  - itemId: branches
+    group: 0
+    pool: branches
+    baseCents: 50
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 20
+  - itemId: tall_grass
+    group: 0
+    pool: tall_grass
+    baseCents: 25
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 10
+  - itemId: clay
+    group: 0
+    pool: clay
+    baseCents: 125
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 50
+  - itemId: sand
+    group: 0
+    pool: sand
+    baseCents: 75
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 30
+  - itemId: tanbark
+    group: 3
+    pool: tanbark
+    baseCents: 125
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 50
+  - itemId: wooden_wheel
+    group: 5
+    pool: wooden_wheel
+    baseCents: 500
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 200
+  - itemId: tripod
+    group: 5
+    pool: tripod
+    baseCents: 500
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 200
+  - itemId: iron_bar
+    group: 7
+    pool: iron_bar
+    baseCents: 2000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: -1
   groups:
   - group: 0
     dropBp: 400

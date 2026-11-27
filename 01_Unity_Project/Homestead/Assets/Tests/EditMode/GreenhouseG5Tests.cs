@@ -60,7 +60,7 @@ public class GreenhouseG5Tests
     public void TheWorldWiresItUp()
     {
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener }"), "appended");
+        Assert.That(wood, Does.Contain("WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall"), "appended");
         Assert.That(wood, Does.Contain("public static bool IsHouseFitting(PileKind kind) => IsHeatKind(kind) || kind == PileKind.HoseBib || kind == PileKind.VentOpener;"), "the bib snaps into a greenhouse like the stove");
         Assert.That(wood, Does.Contain("if (WateringFittings.IsPump(kind) && !WateringFittings.PumpSiteOk(kind, spot.point))"), "pumps on the bank");
         string fittings = SourceText("Scripts/World/WateringFittings.cs");

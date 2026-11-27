@@ -333,9 +333,9 @@ public class WorkshopTests
     {
         Assert.That(LedgerCategories.ForSale(MarketGroup.Crafted), Is.EqualTo(LedgerCategory.SalesCrafted));
         Assert.That(LedgerCategories.Name(LedgerCategory.SalesCrafted), Is.EqualTo("Crafted goods"));
-        Assert.That(LedgerCategories.Count, Is.EqualTo(19));
+        Assert.That(LedgerCategories.Count, Is.EqualTo(21));
         Assert.That(LedgerCategories.LastIncomeId, Is.EqualTo(7));
-        Assert.That(Enum.GetValues(typeof(LedgerCategory)).Length, Is.EqualTo(19));
+        Assert.That(Enum.GetValues(typeof(LedgerCategory)).Length, Is.EqualTo(21), "Delivery fees (D1) and Contractors (B1, 2026-11-27) were added later, not by the furniture");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
     }
 
@@ -370,7 +370,7 @@ public class WorkshopTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(88), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); nothing was inserted in the middle (the three garden fence kinds came last, GB4a)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); nothing was inserted in the middle (the three garden fence kinds came last, GB4a)");
     }
 
     [Test]
@@ -742,7 +742,7 @@ public class WorkshopTests
         Assert.That(names, Does.Contain("jobHours"));
         Assert.That(names.Length, Is.EqualTo(23), "GB3b added chillDays; a2-1 added no saved field; the Garden Bed (GB1) added four; Pottery P1 added jobCount; the Leach Hopper stock added hopperWater and hopperBatch");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(88), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the Potter and Kiln kinds, then the rest appended through the garden fences (GB4a)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the Potter and Kiln kinds, then the rest appended through the garden fences (GB4a)");
     }
 
     // --- The Workshop screen's text ---

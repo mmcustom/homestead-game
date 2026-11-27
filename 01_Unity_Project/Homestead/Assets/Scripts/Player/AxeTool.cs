@@ -343,6 +343,11 @@ public class AxeTool : MonoBehaviour
 
         bool cabin = state.kind == PileKind.CabinSite;
         string name = WoodManager.PileName(state.kind);
+        if (state.jobItem == BarnRules.CrewMarker)
+        {
+            ToolStatus.Report(BarnRules.CrewHasIt);
+            return;
+        }
         string needs = cabin ? wood.SiteNeeds(state) : WellsAndOuthouses.SiteNeeds(state);
         if (needs != null)
         {
@@ -367,7 +372,7 @@ public class AxeTool : MonoBehaviour
                 state.buildProgress = 0.99f; // CompleteCabin refused (the site is out of its own reach): try again next blow
             return;
         }
-        string message = WellsAndOuthouses.FinishedMessage(state.kind);
+        string message = WellsAndOuthouses.FinishedMessageFor(state);
         if (rules.FinishSite(state))
             ToolStatus.Flash(message);
     }

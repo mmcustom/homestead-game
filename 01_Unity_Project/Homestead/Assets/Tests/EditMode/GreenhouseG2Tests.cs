@@ -127,7 +127,7 @@ public class GreenhouseG2Tests
     public void TheWorldWiresItUp()
     {
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener }"), "appended, so saves keep their numbers");
+        Assert.That(wood, Does.Contain("ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall"), "appended, so saves keep their numbers");
         Assert.That(wood, Does.Contain("return ColdFrameOf(bed) ?? HouseAt(bed.position);"), "a bed's cover is its frame or its house");
         Assert.That(wood, Does.Contain("if (InsideAnyHouse(spot.point, 0.3f))"), "nothing else is built inside");
         string sites = SourceText("Scripts/Managers/WellsAndOuthouses.cs");

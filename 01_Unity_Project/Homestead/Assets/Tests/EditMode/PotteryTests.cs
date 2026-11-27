@@ -97,7 +97,7 @@ public class PotteryTests
     {
         foreach (PotteryRules.Recipe r in PotteryRules.Recipes)
             Assert.That(MarketCatalog.Table.SellBaseCents(r.itemId), Is.EqualTo(0L), r.itemId);
-        Assert.That(MarketCatalog.Table.SellBaseCents("sand"), Is.EqualTo(0L));
+        Assert.That(MarketCatalog.Table.SellBaseCents("sand"), Is.EqualTo(30L), "Sand is bought and sold since 2026-11-27");
     }
 
     [Test]
@@ -491,7 +491,7 @@ public class PotteryTests
         Assert.That((int)Kind("WorkshopSite"), Is.EqualTo(33));
         Assert.That((int)Kind("Workshop"), Is.EqualTo(34));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(88));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95));
     }
 
     [Test]

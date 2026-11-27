@@ -1382,3 +1382,15 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - structure_ventopener (ventopener.py): a steel wall plate, a brass wax cylinder lying along it and a steel lifting arm on a pivot, 232 tris with both arms. The origin is the mount point on the wall; the game lifts it to 1.5 m in a greenhouse, or just under a Cold Frame's lid. It stands out from the wall into the house (Unity +Z). State_Open (the arm raised 55 degrees) and State_Shut (8 degrees); State_Shut is saved hidden so the build icon shows one arm.
 - item_vent_opener: the same with the arm half raised, 196 tris. Build and item icons rendered.
 - Status: in Unity, awaiting Mike's in-game check.
+
+## Slice D1 art: the Delivery Pad (2026-11-27, awaiting Mike's in-game check)
+
+- structure_deliverypad (deliverypad.py): a 3 m square of lumpy gravel with a timber edge, and a child Load (a pallet with a blue tarp tied over the goods), 704 tris. The game shows Load only while something waits on the pad; WoodPile draws the prefab (and falls back to simple shapes without it). Linking the mesh turned the open gravel sheet face-down; the script turns it back up. Build icon rendered.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Slice B1a art: the Pole Barn (2026-11-27, awaiting Mike's in-game check)
+
+- structure_polebarnsmall / _medium / _large (barn.py): post-frame barns 7.32 x 9.75, 9.14 x 12.19 and 12.19 x 18.29 m (BarnRules), 3,988 / 4,756 / 6,532 tris. Treated posts, girts and webbed trusses inside; barn-red ribbed steel walls; a ribbed galvalume roof with a ridge cap, rake trim and fascia; white corner, base and door trim; a white louvred diamond vent in the front gable; a gravel floor; a red sliding door with a white X-brace, slid open beside the doorway (Unity -X); three-tier shelves with crates along the back wall. One Body; the game adds its own colliders and strips any in the art. Parts red, roof, trim, wood, gravel. The front (doorway) is Unity -Z. On the Small barn the open door reaches about 0.9 m past the corner, as the code's primitive did.
+- The first bake had a glossy roof that mirrored the icon renderer's backdrop (a black patch in the Build icon); the roof and trim are now rougher.
+- item_barn_post (48 tris), item_barn_truss (144 tris, lying flat with gusset plates) and item_steel_sheet (a stack of five ribbed red sheets, 300 tris). Build icons for the three sites and three barns, and item icons for the three parts, rendered.
+- Status: in Unity, awaiting Mike's in-game check.

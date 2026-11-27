@@ -256,12 +256,12 @@ public class SmithyTests
     public void TheTwoSmithyKindsAreFortyThreeAndFortyFourAndNothingElseWasAdded()
     {
         Type kind = Find("PileKind");
-        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(88));
+        Assert.That(Enum.GetValues(kind).Length, Is.EqualTo(95));
         Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42), "nothing moved");
         Assert.That((int)Enum.Parse(kind, "SmithySite"), Is.EqualTo(43));
         Assert.That((int)Enum.Parse(kind, "Smithy"), Is.EqualTo(44));
         string[] names = Enum.GetNames(kind);
-        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names[57], Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat"); Assert.That(names[58], Is.EqualTo("GardenBed"), "the Garden Bed (58) came after the Sawmill"); Assert.That(names[59], Is.EqualTo("TanningVatSite"), "the Tanning Vat Site (59, 2026-11-25) came after the Garden Bed"); Assert.That(names[60], Is.EqualTo("RaisedBedSite"), "the Raised Bed Site (60, GB2) came after the Tanning Vat Site"); Assert.That(names.Last(), Is.EqualTo("VentOpener"), "the Vent Opener (87, G6) came last; the four watering kinds (83 to 86, G5) came last, after the three greenhouse heat kinds (80 to 82, G4), the Glass Greenhouse kinds and the Seedling Bench (73 to 79, G3), the Hoop Houses (67 to 72, G2), the Cold Frames (64 to 66, G1) and the garden fences (61 to 63, GB4a)");
+        Assert.That(names[44], Is.EqualTo("Smithy")); Assert.That(names[45], Is.EqualTo("CompostBin")); Assert.That(names[46], Is.EqualTo("DryingRack")); Assert.That(names[48], Is.EqualTo("Smokehouse")); Assert.That(names[50], Is.EqualTo("RootCellar")); Assert.That(names[52], Is.EqualTo("SawPit")); Assert.That(names[53], Is.EqualTo("SaltBarrel")); Assert.That(names[54], Is.EqualTo("HideFrame")); Assert.That(names[55], Is.EqualTo("TanningVat")); Assert.That(names[57], Is.EqualTo("Sawmill"), "the Sawmill's two kinds (56, 57) came after the Tanning Vat"); Assert.That(names[58], Is.EqualTo("GardenBed"), "the Garden Bed (58) came after the Sawmill"); Assert.That(names[59], Is.EqualTo("TanningVatSite"), "the Tanning Vat Site (59, 2026-11-25) came after the Garden Bed"); Assert.That(names[60], Is.EqualTo("RaisedBedSite"), "the Raised Bed Site (60, GB2) came after the Tanning Vat Site"); Assert.That(names.Last(), Is.EqualTo("PoleBarnLarge"), "the six Pole Barn kinds (89 to 94, B1) came last; the Delivery Pad (88, D1) came last; the Vent Opener (87, G6) came last; the four watering kinds (83 to 86, G5) came last, after the three greenhouse heat kinds (80 to 82, G4), the Glass Greenhouse kinds and the Seedling Bench (73 to 79, G3), the Hoop Houses (67 to 72, G2), the Cold Frames (64 to 66, G1) and the garden fences (61 to 63, GB4a)");
         Assert.That(names.Any(n => n.Contains("Forge") || n.Contains("Anvil") || n.Contains("Skillet")), Is.False, "one combined Smithy: no separate Forge or Anvil kinds");
     }
 
@@ -434,10 +434,10 @@ public class SmithyTests
             Assert.That(table.BuyBaseCents(id), Is.EqualTo(0L), "not sold in the store");
             Assert.That(table.SellBaseCents(id), Is.EqualTo(cents));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(156), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); 89 and the three, then the hand tools and the maple gear (2026-11-14), then Fertilizer, the five dried foods and the three salt rows (2026-11-22)");
-        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28), "22 and the three, less the three hand tools now stocked");
-        Assert.That(table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14");
-        Assert.That(table.TryGetRow("iron_bar", out _), Is.False, "the Iron Bar still has no row");
+        Assert.That(table.Rows.Count, Is.EqualTo(165), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); 89 and the three, then the hand tools and the maple gear (2026-11-14), then Fertilizer, the five dried foods and the three salt rows (2026-11-22)");
+        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(30), "the Wooden Wheel and the Tripod (2026-11-27); 22 and the three, less the three hand tools now stocked");
+        Assert.That(table.Stock.Count, Is.EqualTo(94), "the store's supplies, the chain goods, the Wheel, the Tripod, the clothing and the Leather Pack (25, 2026-11-27); the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14");
+        Assert.That(table.SellBaseCents("iron_bar"), Is.EqualTo(0L), "the Iron Bar is sold since 2026-11-27, but still never bought");
         // The Box of Nails went on the shelf for the Glass Greenhouse (G3, 2026-11-26), at the homemade 2.5x, and is still bought back at Mike's price.
         Assert.That(table.TryGetRow("nails_box", out MarketRow nails), Is.True);
         Assert.That(nails.kind, Is.EqualTo(MarketKind.Stocked));
@@ -461,8 +461,8 @@ public class SmithyTests
         Assert.That(asset, Does.Contain("  - itemId: nails_box\n    group: 5\n    pool: nails_box\n    baseCents: 4000\n    kind: 0\n    seasonalBuy: 0\n    sellCents: 1600\n"), "on the shelf since G3");
         int rows = asset.Split(new[] { "\n  - itemId: " }, StringSplitOptions.None).Length - 1;
         Assert.That(rows, Is.EqualTo(MarketCatalog.Rows.Length), "the asset and the catalog agree");
-        Assert.That(rows, Is.EqualTo(156));
-        Assert.That(asset, Does.Not.Contain("iron_bar"));
+        Assert.That(rows, Is.EqualTo(165));
+        Assert.That(asset, Does.Contain("itemId: iron_bar"), "on the shelf since 2026-11-27, never bought back");
     }
 
     [Test]
@@ -470,7 +470,7 @@ public class SmithyTests
     {
         Assert.That(LedgerCategories.ForSale(MarketGroup.Crafted), Is.EqualTo(LedgerCategory.SalesCrafted), "Crafted goods");
         Assert.That(LedgerCategories.PurchaseIsListed("door_hinges"), Is.False, "they cannot be bought");
-        Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new category");
+        Assert.That(LedgerCategories.Count, Is.EqualTo(21), "no new category");
         Assert.That(MarketCatalog.Table.RuleOf("door_hinges").group, Is.EqualTo(MarketCatalog.Table.RuleOf("rough_stool").group), "the same group as the Workshop's pieces");
     }
 
@@ -910,7 +910,7 @@ public class SmithyTests
     [Test]
     public void TheSmithyEntryUnlocksOnAPlacedSiteOrAnIronBarAndTheBloomeryAndBarHelpPointToIt()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(24)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(35)); // 11 chains + the Melee entry (Hands M0e-3) + Spoilage + Drying + Salting
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry entry), Is.True);
         Assert.That(entry.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(KnowHowRules.ForItem("iron_bar"), Is.EqualTo(new[] { "smelting", "smithy" }));
@@ -922,7 +922,7 @@ public class SmithyTests
         Assert.That(KnowHowRules.NewUnlocks(new[] { "smithy" }, KnowHowRules.ForHappening(KnowHowRules.Happening.SmithySitePlaced)), Is.Empty, "never twice");
         Assert.That(KnowHowRules.Backfill(id => false, false, false, false, smithyPlaced: true), Is.EqualTo(new[] { "smithy" }));
         Assert.That(KnowHowRules.Backfill(id => id == "iron_bar", false, false, false), Is.EqualTo(new[] { "smelting", "smithy" }));
-        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery, smithy)"));
+        Assert.That(SourceText("Scripts/Managers/JournalManager.cs"), Does.Contain("hopper, tripod, taps, pit, bloomery, smithy, built)"));
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("KnowHowRules.Happening.SmithySitePlaced"));
 
         KnowHowRules.TryGet(KnowHowRules.Smelting, out KnowHowRules.Entry smelting);
@@ -1042,7 +1042,7 @@ public class SmithyTests
         Assert.That(WorkshopRules.Recipes.Select(r => r.hours), Is.EqualTo(new[] { 3, 2, 4, 5 }));
         Assert.That(WorkshopRules.SiteLogs, Is.EqualTo(5));
         Assert.That(WorkshopRules.LogsCap, Is.EqualTo(6));
-        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
+        Assert.That(MarketCatalog.Table.Stock.Count, Is.EqualTo(94), "the store's supplies, the chain goods, the Wheel, the Tripod, the clothing and the Leather Pack (25, 2026-11-27); the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
         Assert.That(MarketCatalog.Table.BuyBaseCents("iron_ore"), Is.EqualTo(400L));
         Assert.That(MarketCatalog.Table.SellBaseCents("charcoal"), Is.EqualTo(100L));
         Assert.That(MarketCatalog.Table.SellBaseCents("rough_stool"), Is.EqualTo(1400L));

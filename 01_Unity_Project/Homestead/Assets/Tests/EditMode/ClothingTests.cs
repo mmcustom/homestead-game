@@ -132,8 +132,9 @@ public class ClothingTests
             Assert.That(cat.enumNames[cat.enumValueIndex], Is.EqualTo("Clothing"));
             Assert.That(table.TryGetRow(piece.itemId, out MarketRow row), Is.True, piece.itemId);
             Assert.That(row.group, Is.EqualTo(MarketGroup.Crafted));
-            Assert.That(row.kind, Is.EqualTo(MarketKind.Bought));
-            Assert.That(row.baseCents, Is.EqualTo(piece.baseCents));
+            Assert.That(row.kind, Is.EqualTo(MarketKind.Stocked), "on the shelf since 2026-11-27");
+            Assert.That(row.baseCents, Is.EqualTo(ToolRules.StoreCents(piece.baseCents)), "at 2.5x");
+            Assert.That(table.SellBaseCents(piece.itemId), Is.EqualTo(piece.baseCents), "and still bought at its price");
         }
     }
 
@@ -178,7 +179,8 @@ public class ClothingTests
         Assert.That(Resources.Load("Items/Tools/leather_pack"), Is.Not.Null);
         Assert.That(MarketCatalog.Table.TryGetRow("leather_pack", out MarketRow row), Is.True);
         Assert.That(row.group, Is.EqualTo(MarketGroup.Crafted));
-        Assert.That(row.baseCents, Is.EqualTo(7500L));
+        Assert.That(row.baseCents, Is.EqualTo(18750L), "on the shelf at 2.5x since 2026-11-27");
+        Assert.That(MarketCatalog.Table.SellBaseCents("leather_pack"), Is.EqualTo(7500L), "and still bought at $75");
         Assert.That(MarketCatalog.Table.TryGetRow("rawhide_lashing", out _), Is.False, "the Lashing is not sold");
     }
 

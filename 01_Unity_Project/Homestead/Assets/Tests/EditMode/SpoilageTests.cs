@@ -133,7 +133,7 @@ public class SpoilageTests
         Assert.That(((Array)wm.GetField("Buildable").GetValue(null)).Cast<object>(), Does.Contain(bin));
         Assert.That(wm.GetMethod("PileName").Invoke(null, new[] { bin }), Is.EqualTo("Compost Bin"));
         Assert.That(wm.GetMethod("NeedsHammerToBuild").Invoke(null, new[] { bin }), Is.True);
-        Assert.That(MarketCatalog.Rows.Any(r => r.itemId == CompostRules.FertilizerId && r.kind == MarketKind.Bought && r.baseCents == 50), Is.True);
+        Assert.That(MarketCatalog.Rows.Any(r => r.itemId == CompostRules.FertilizerId && r.kind == MarketKind.Stocked && r.sellCents == 50), Is.True);
         Assert.That(KnowHowRules.ForItem(SpoilageRules.RotId), Does.Contain(KnowHowRules.Spoilage));
     }
 

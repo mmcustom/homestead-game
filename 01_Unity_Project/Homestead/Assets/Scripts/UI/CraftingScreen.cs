@@ -434,6 +434,19 @@ public class CraftingScreen : GameScreen
 
     Entry Selected() => shown.Find(e => e.key == selectedKey[(int)mode]);
 
+    // The description takes as many lines as it needs (at least the old three-line box), and the info line, the heading and the list of
+    // needs move down under it, so a long description is never cut off (Mike's play-test, 2026-11-27: the Delivery Pad's was).
+    void FitDescription()
+    {
+        Canvas.ForceUpdateCanvases();
+        float helpHeight = Mathf.Max(84f, Mathf.Ceil(helpLabel.preferredHeight) + 4f);
+        Top(helpLabel.rectTransform, 50f, helpHeight);
+        float y = 50f + helpHeight + 2f;
+        Top(infoLabel.rectTransform, y, 28f);
+        Top(reqHeading.rectTransform, y + 36f, 32f);
+        reqLabel.rectTransform.offsetMax = new Vector2(0f, -(y + 72f));
+    }
+
     void UpdateDetail()
     {
         Entry e = Shown();
@@ -444,6 +457,7 @@ public class CraftingScreen : GameScreen
         infoLabel.text = none ? "" : e.info;
         reqHeading.text = none ? "" : RequirementsHeading(e);
         reqLabel.text = none ? "" : Requirements(e);
+        FitDescription();
 
         string message = Notice;
         if (message == null && e != null && mode == Mode.Build && !e.can && !string.IsNullOrEmpty(e.reason))
@@ -743,6 +757,10 @@ public class CraftingScreen : GameScreen
             case PileKind.HandPump:
             case PileKind.FuelPump:
             case PileKind.VentOpener:
+            case PileKind.DeliveryPad:
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge:
             case PileKind.HideFrame:
             case PileKind.TanningVat:
             case PileKind.TanningVatSite:
@@ -1013,6 +1031,10 @@ public class CraftingScreen : GameScreen
             case PileKind.HandPump:
             case PileKind.FuelPump: return WateringRules.Help(kind.ToString());
             case PileKind.VentOpener: return VentRules.Help();
+            case PileKind.DeliveryPad: return DeliveryRules.Help();
+            case PileKind.PoleBarnSiteSmall:
+            case PileKind.PoleBarnSiteMedium:
+            case PileKind.PoleBarnSiteLarge: return BarnRules.SiteHelp(WoodManager.BarnSizeOf(kind));
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
             case PileKind.CompostBin: return "put in Rot and Tall Grass (R). Every 4 Rot and 2 Tall Grass compost into 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen; take the Fertilizer out (E). The Trading Post buys Fertilizer until there is farming.";
             case PileKind.DryingRack: return "hang up to 12 fresh berries, apples, pawpaws, mushrooms, raw meat or raw fish on it (R). They dry in daylight while it is not raining: about 2 days for fruit and mushrooms, 3 for meat and fish. Dried food is light and keeps for months; take it off (E).";

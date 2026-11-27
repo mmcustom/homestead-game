@@ -232,6 +232,7 @@ public class StorageTransferScreen : GameScreen
                              : state.kind == PileKind.CompostBin ? (state.IsEmpty ? "Empty" : $"{state.Total} stored") + "   ·   " + SpoilageManager.CompostStatus(state)
                              : state.kind == PileKind.DryingRack ? DryingHeader(state)
                              : state.kind == PileKind.RootCellar ? RootCellarRules.KgText(WoodPile.CartLoadKg(state)) + "   ·   ages a third as fast, never freezes"
+                             : WoodManager.IsBarn(state.kind) ? BarnRules.KgText(WoodManager.BarnSizeOf(state.kind), WoodPile.CartLoadKg(state))
                              : state.kind == PileKind.SaltBarrel ? SaltBarrelRules.KgText(WoodPile.CartLoadKg(state)) + "   ·   kept dry under its lid"
                              : state.IsEmpty ? "Empty" : $"{state.Total} stored   ·   no limit";
 
@@ -338,6 +339,10 @@ public class StorageTransferScreen : GameScreen
             case PileKind.ToolRack: return "A Tool Rack only holds Tools.";
             case PileKind.WoodShed: return "A Wood Shed only holds wood.";
             case PileKind.HandCart: return CartRules.HoldsText;
+            case PileKind.DeliveryPad: return "A Delivery Pad holds anything but water. Trading Post deliveries are left here.";
+            case PileKind.PoleBarnSmall:
+            case PileKind.PoleBarnMedium:
+            case PileKind.PoleBarnLarge: return $"A Pole Barn holds anything but water, up to {BarnRules.CapacityKg(WoodManager.BarnSizeOf(kind)):0} kg.";
             default: return "A Wood Pile only holds wood.";
         }
     }

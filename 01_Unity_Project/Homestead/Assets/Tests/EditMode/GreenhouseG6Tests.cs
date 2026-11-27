@@ -60,7 +60,7 @@ public class GreenhouseG6Tests
     public void TheWorldWiresItUp()
     {
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("HandPump, FuelPump, VentOpener }"), "appended");
+        Assert.That(wood, Does.Contain("HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall"), "appended");
         Assert.That(wood, Does.Contain("IsWalkIn(host) || (fitting == PileKind.VentOpener && IsColdFrame(host))"), "a cold frame takes one too");
         Assert.That(wood, Does.Contain("kind == PileKind.VentOpener ? 3 : 0"), "its own spot");
         string beds = SourceText("Scripts/World/GardenBeds.cs");

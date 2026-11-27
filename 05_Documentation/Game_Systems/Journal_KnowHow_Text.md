@@ -284,3 +284,143 @@ A kitchen garden feeds you and earns money. Mark out a Garden Bed from the Build
 Buy seed at the Trading Post: seed packets, tomato plants, and potatoes for planting. With the Hoe in hand, aim at a dug bed and press E to plant; R picks which seed. Crops grow day by day with the warmth: lettuce in about 50 days, tomatoes 75, potatoes 100. Tender crops (corn, beans, tomatoes, squash) die in any frost, so plant them after the last spring frost, around the middle of May; lettuce, carrots, potatoes and kale can go in from April.
 
 Rain waters the beds. In a dry spell, fill a Watering Can or Bucket and press E on a bed to water it. When a crop is ready, E harvests it; tomatoes, beans and kale keep giving pickings for weeks. A Shovel's R fills an empty bed back in.
+
+---
+
+## 25. Better Beds: Soil, Raised Beds and Frost
+
+Trigger: first Raised Bed Site placed, or first Row Cover or Fertilizer held.
+
+Every crop taken to its end wears a bed's soil. A rich bed grows about 3 crops before it is spent, and a spent bed gives three quarters of a full harvest; beans put a little back. The bed's prompt shows its soil: rich, good, worn or spent. When there is nothing else to do at a bed, E spreads one Fertilizer, and 4 bring a spent bed back to rich. Make Fertilizer in a Compost Bin, or buy it at the Trading Post ($1.25).
+
+A Raised Bed is warmer and drains. Place a Raised Bed Site from the Build tab (under Other), deliver 2 Lumber with R, hammer the frame up, then fill it with the Shovel. Or hold the Hammer at a dug bed and press R with 2 Lumber in your pack. Its crops are about a week ahead in spring, and heavy rain never waterlogs it.
+
+A Row Cover ($6 at the Trading Post) keeps 3 C of frost off a crop. R lays it over a bed and R takes it off; it is used again and again. Above 27 C, a crop under it grows a little slower.
+
+At 6 pm, if tonight's low could hurt a crop, a message says how many beds are at risk, and whether a Row Cover will be enough.
+
+---
+
+## 26. Saving Your Own Seed
+
+Trigger: first garden crop harvested, or first Tomato Seed held.
+
+Seed you save costs nothing. With the Hoe in hand, press R on a growing square before its first pick to mark it saved for seed (R again unmarks it). A saved square is never picked: it stays in the ground until the seed is ripe, then E collects seed for 4 squares, with some food for most crops.
+
+Beans, tomatoes, lettuce, both corns and squash ripen their seed the same summer. Corn needs at least 2 saved squares of the same corn standing together, or it sets no good seed. Potatoes are their own seed: keep some from the harvest. Carrots and kale need a winter in the ground first: after about 6 weeks of cold they grow again, and the seed is ripe the next summer. E with 4 Tall Grass mulches a saved carrot or kale square against hard frost.
+
+Saved Tomato Seed sown straight into a bed starts about a month behind a bought Tomato Plant, unless you start it on a seedling bench in a Glass Greenhouse. Seed keeps 2 to 4 years; old seed comes up poorly, and the Inventory shows its age once it is a year old.
+
+---
+
+## 27. Fences and Garden Raiders
+
+Trigger: first fence section or gate placed, or first Wire Mesh held.
+
+At dawn and dusk, rabbits and deer come to nibble open garden beds, and over a season a bed can lose about a quarter of its crop. If you are nearby you will see the animal walk in and eat: come close or shoot near it and it bolts, and the crop is spared.
+
+A closed ring of fence keeps them out. Build fences from the Build tab, under Other, with the Hammer:
+- Wattle Fence: 4 Sticks and 6 Branches a section, 1 m high. It keeps rabbits out; deer jump it.
+- Deer Fence: 1 Log and 1 Wire Mesh ($15 at the Trading Post) a section, 7 ft high. It keeps deer and rabbits out.
+- Gate: 2 Lumber and 1 Cordage. It swings open as you walk into it and shuts behind you.
+
+A new section snaps to the end of the fence near where you aim, and one that would close a gap is cut to fit. Only a closed ring protects, and a planted bed says whether it is fenced, and against what. R with the Hammer takes a section down.
+
+---
+
+## 28. Cold Frames
+
+Trigger: first Cold Frame built, or first Window Sash held.
+
+A Cold Frame is a low box with a glass lid that keeps a few garden squares warm. Build one from the Build tab (under Other) with the Hammer: 2 Window Sashes ($8 each at the Trading Post) and 2 Lumber for each square, in Small (1 square), Medium (2) or Large (3). Its beds come with it, already dug.
+
+Shut, the lid keeps the inside about 5 C warmer at night, and the sun can heat it far more by day. Propped open, it stays close to the outside air. E on the front board props the lid or shuts it, and the frame shows the inside temperature. Shut it on frosty nights and open it on sunny days, or tender greens cook. A Vent Opener does this for you (see "Vent Openers").
+
+Lettuce, kale, carrots and beans fit under the lid. No rain gets in with the lid shut, so water the beds; deer and rabbits cannot reach them. For extra warmth, E with 2 Fertilizer digs a hotbed into a frame's bed: it warms the soil about 8 C for 4 weeks. R with the Hammer takes the frame down once its beds are empty.
+
+---
+
+## 29. Hoop Houses
+
+Trigger: first Hoop House Site placed, or first Greenhouse Hoop or Greenhouse Plastic held.
+
+A Hoop House is a walk-in tunnel of plastic over steel hoops, with its beds inside. Place a Hoop House Site from the Build tab (under Other) on dry, fairly level ground, then deliver Lumber, Greenhouse Hoops, Greenhouse Plastic and Cordage with R. A Small house (8 squares) takes 8 Lumber, 6 Hoops, 1 Plastic and 2 Cordage; the Medium (16 squares) and Large (36) take more. Hoops are $12 at the Trading Post or forged at a Smithy (1 Iron Bar and 1 Charcoal), and Plastic is $20 a sheet. Then hold click with the Hammer.
+
+With the sides down the house keeps about 5 C of warmth at night and gains a lot in the sun; E at the door rolls the sides up on warm days. No rain falls inside, so water the beds.
+
+Snow piles on the plastic while it snows. With 2 cm or more on it, E at the door sweeps it off, an hour's work. If it reaches 30 cm the plastic tears, and plastic wears out after 4 years anyway. A torn house gives no cover until E fits new sheets from your pack.
+
+---
+
+## 30. Glass Greenhouses and Seedling Benches
+
+Trigger: first Glass Greenhouse Site placed, or first Glass Pane or Start held.
+
+A Glass Greenhouse is the warmest cover, and the glass lasts for good. Place a Glass Greenhouse Site from the Build tab (under Other), deliver Lumber, Stone, Glass Panes ($3 each at the Trading Post) and Boxes of Nails with R, then hold click with the Hammer. A Small one (4 squares and 1 bench) takes 16 Lumber, 10 Stone, 24 Panes and 1 Box of Nails; the Medium (9 squares) and Large (30) take more. No Iron Bars are needed.
+
+With the vents shut it keeps about 7 C of warmth at night and heats up fast in the sun; E at the door opens or shuts the vents. No rain falls inside, so water the beds.
+
+The seedling benches along the back start transplants. With seed in your pack, E sows a tray (R picks which seed). When it is ready, E takes up the transplants: 1 Tomato Seed gives 12 Tomato Plants in 30 days, and 1 Lettuce, Kale or Squash Seed gives 3 Starts. Plant them with the Hoe like seed; they start well grown, and wilt if left unplanted for a week.
+
+---
+
+## 31. Heating a Greenhouse
+
+Trigger: first stove, heater or barrels built, or first Greenhouse Stove, Propane Heater or Propane Tank held.
+
+Each greenhouse has a heater spot and a barrel spot inside, and the build ghost snaps to them. Build these with the Hammer from the Build tab:
+- Wood Stove: 1 Greenhouse Stove ($40 at the Trading Post) and 2 Stone. R loads Firewood (up to 8) and E lights it. It burns one Firewood an hour, only while the house would be below 8 C.
+- Propane Heater: 1 Propane Heater ($35). R loads Propane Tanks ($12, up to 2) and E turns it on. It keeps the house at 5 C or above and uses propane only for the warmth it adds.
+- Water Barrels: 4 Logs. They soak up the sun by day and give the warmth back at night, with no fuel.
+
+A banner says when a stove or heater runs out. The Small Hoop House has no room for a heater, and the Small Glass Greenhouse none for barrels. R with the Hammer takes them out, with any fuel inside, and a greenhouse with heat in it cannot be taken down until they are out.
+
+---
+
+## 32. Watering Without the Can
+
+Trigger: first Hose Bib, Hose Reel or pump built, or first Garden Hose, Drip Kit, pump or Gasoline held.
+
+Fittings water many beds at once. Each draws from the nearest Water Barrel, Rain Barrel or pump within 15 m that has water. Build them with the Hammer:
+- Hose Bib: 1 Garden Hose ($8 at the Trading Post). It is fitted inside a greenhouse beside the door and waters that greenhouse's beds.
+- Hose Reel: 1 Garden Hose and 1 Lumber, outdoors. It waters the open garden beds within 12 m.
+- Hand Pump: 1 Hand Pump ($30) and 2 Lumber, within 5 m of the creek or a pond, or beside a Well. E pumps 20 L into its 200 L tank.
+- Fuel Pump: 1 Fuel Pump ($90) and 2 Lumber, beside the creek or a pond. R loads Gasoline ($3 a can, up to 4); each can pumps about 400 L.
+
+E at a bib or reel soaks all its beds at once. With a Drip Kit ($15) in your pack, E fits it, and from then on it waters by itself every morning at 6. When it can't, a banner that morning and the fitting's prompt say why.
+
+---
+
+## 33. Vent Openers
+
+Trigger: first Vent Opener built or held.
+
+A Vent Opener ($35 at the Trading Post) opens and shuts a cover for you, with no power. Its wax swells as it warms and pushes the lid, the sides or the vents open. Build it with the Hammer on the inside of a Cold Frame's back wall, or inside a Hoop House or Glass Greenhouse beside the door; the build ghost snaps to the spot.
+
+Every hour it opens the cover when the inside would reach 24 C (75 F) shut, and shuts it when it would stay at 18 C (64 F) or below. In between it leaves it as it is. You can still open or shut the cover by hand with E, but the opener has its say again the next hour.
+
+E at the opener says what it is doing. R with the Hammer takes it off, and a frame or greenhouse with one fitted cannot be taken down until it is off.
+
+---
+
+## 34. Deliveries from the Trading Post
+
+Trigger: first Delivery Pad built.
+
+The Trading Post sells only what you can carry, unless it delivers. Build a Delivery Pad first: it is free, from the Build tab (under Other), and you can have one at a time.
+
+At the Trading Post (T), press the button at the top of the store's list to switch from Carry to Deliver. Each store row then adds to the order instead of your pack, with no weight limit. The order on the right shows the goods, the delivery fee and the weight. Place Order pays for it all at once: $50 a delivery, or free when the goods come to $1,000 or more.
+
+The order arrives on the pad at 8 a.m.: the next day for up to 500 kg, in 2 days for up to 2,000 kg, and in 3 days for more. A banner says when it is there. Take what you want with E; the pad keeps the rest, and R puts things back. Take the pad up with the Hammer once it is empty, and build it again wherever you want deliveries.
+
+---
+
+## 35. The Pole Barn
+
+Trigger: first Pole Barn Site marked out.
+
+A Pole Barn is a big post-frame building for storing everything the homestead needs. It comes in three sizes: Small (24 x 32 ft, holds 5,000 kg), Medium (30 x 40 ft, 10,000 kg) and Large (40 x 60 ft, 20,000 kg). Mark out a Pole Barn Site from the Build tab (under Other); it is free and needs fairly flat, open ground.
+
+Then, at the Trading Post (T), switch to Deliver: your site has two choices. Order the kit ($7,500, $12,000 or $22,000) and it is delivered onto the site: posts, trusses and steel sheets. Build it yourself in three stages with the Hammer: set the posts, raise the trusses, then put on the roof and walls. Or hire the crew ($13,000, $20,000 or $36,000): half is paid now and half when they finish. They start 3 days later and take about a week.
+
+Walk in through the big door and press E at the shelves along the back to store things or take them. It holds anything but water.

@@ -113,7 +113,7 @@ public class GreenhouseG3Tests
     public void TheWorldWiresItUp()
     {
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener }"), "appended");
+        Assert.That(wood, Does.Contain("HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall"), "appended");
         Assert.That(wood, Does.Contain("AddHousePile(house, PileKind.SeedlingBench, turn, terrain, x, z);"), "the benches come with the house");
         Assert.That(wood, Does.Contain("foreach (WoodPileState bench in BenchesIn(frame))\n            RemovePile(bench);"), "and go with it");
         string sites = SourceText("Scripts/Managers/WellsAndOuthouses.cs");

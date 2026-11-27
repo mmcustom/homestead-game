@@ -72,6 +72,9 @@ public static class MarketCatalog
     // A hand tool the player can also make, now on the shelf (Mike, 2026-11-14): sold at ToolRules.StoreCents of what the store pays, and still bought back at that price.
     static MarketRow Homemade(string id, MarketGroup group, long sellCents) => Row(id, group, ToolRules.StoreCents(sellCents), MarketKind.Stocked, sellCents: sellCents);
 
+    // An item that would skip a whole production chain (Mike, 2026-11-27): on the shelf, but at SupplyRules.ChainStoreCents so making it pays; bought back as before.
+    static MarketRow Chain(string id, MarketGroup group, long sellCents) => Row(id, group, SupplyRules.ChainStoreCents(sellCents), MarketKind.Stocked, sellCents: sellCents);
+
     static MarketGroupRule Rule(MarketGroup group, int dropBp, int floorBp, int spring, int summer, int fall, int winter) =>
         new MarketGroupRule { group = group, dropBp = dropBp, floorBp = floorBp, spring = spring, summer = summer, fall = fall, winter = winter };
 
@@ -121,7 +124,7 @@ public static class MarketCatalog
         Row("deer_antlers", MarketGroup.Hides, 600, MarketKind.Bought),
         Row("small_furs", MarketGroup.Hides, 300, MarketKind.Bought),
         Row("feathers", MarketGroup.Hides, 100, MarketKind.Bought),
-        Row("sinew", MarketGroup.Hides, 100, MarketKind.Bought),
+        Homemade("sinew", MarketGroup.Hides, 100), // on the shelf since 2026-11-27
         Row("venison", MarketGroup.GameMeat, 300, MarketKind.Bought),
         Row("turkey_meat", MarketGroup.GameMeat, 200, MarketKind.Bought),
         Row("waterfowl_meat", MarketGroup.GameMeat, 200, MarketKind.Bought),
@@ -154,11 +157,11 @@ public static class MarketCatalog
         Row("cattail", MarketGroup.Forage, 100, MarketKind.Bought),
         Row("chicken_eggs", MarketGroup.Farm, 100, MarketKind.Bought),
         Row("goat_milk", MarketGroup.Farm, 100, MarketKind.Bought),
-        Row("firewood", MarketGroup.WoodStone, 100, MarketKind.Bought),
-        Row("logs", MarketGroup.WoodStone, 300, MarketKind.Bought),
-        Row("stone", MarketGroup.WoodStone, 100, MarketKind.Bought),
+        Homemade("firewood", MarketGroup.WoodStone, 100), // these three on the shelf since 2026-11-27
+        Homemade("logs", MarketGroup.WoodStone, 300),
+        Homemade("stone", MarketGroup.WoodStone, 100),
         // Metalworking M1: Charcoal from the Charcoal Pit sells for $1 in the wood-and-stone group (the store never sells it, so there is no buy loop).
-        Row(MetalRules.CharcoalId, MarketGroup.WoodStone, MetalRules.CharcoalBaseCents, MarketKind.Bought),
+        Chain(MetalRules.CharcoalId, MarketGroup.WoodStone, MetalRules.CharcoalBaseCents), // on the shelf since 2026-11-27, at the chain price
         Homemade("rabbit_snare", MarketGroup.Crafted, 100),
         Homemade("box_trap", MarketGroup.Crafted, 200),
         Homemade("fish_trap", MarketGroup.Crafted, 300),
@@ -182,13 +185,13 @@ public static class MarketCatalog
         Row(WorkshopRules.ChairId, MarketGroup.Crafted, WorkshopRules.Recipes[2].baseCents, MarketKind.Bought),
         Row(WorkshopRules.TableId, MarketGroup.Crafted, WorkshopRules.Recipes[3].baseCents, MarketKind.Bought),
         // Tanning slice T5a: the five pieces of clothing from the Workshop's Leatherwork, in the Crafted group (ClothingRules has the prices).
-        Row(ClothingRules.Pieces[0].itemId, MarketGroup.Crafted, ClothingRules.Pieces[0].baseCents, MarketKind.Bought),
-        Row(ClothingRules.Pieces[1].itemId, MarketGroup.Crafted, ClothingRules.Pieces[1].baseCents, MarketKind.Bought),
-        Row(ClothingRules.Pieces[2].itemId, MarketGroup.Crafted, ClothingRules.Pieces[2].baseCents, MarketKind.Bought),
-        Row(ClothingRules.Pieces[3].itemId, MarketGroup.Crafted, ClothingRules.Pieces[3].baseCents, MarketKind.Bought),
-        Row(ClothingRules.Pieces[4].itemId, MarketGroup.Crafted, ClothingRules.Pieces[4].baseCents, MarketKind.Bought),
+        Homemade(ClothingRules.Pieces[0].itemId, MarketGroup.Crafted, ClothingRules.Pieces[0].baseCents),
+        Homemade(ClothingRules.Pieces[1].itemId, MarketGroup.Crafted, ClothingRules.Pieces[1].baseCents),
+        Homemade(ClothingRules.Pieces[2].itemId, MarketGroup.Crafted, ClothingRules.Pieces[2].baseCents),
+        Homemade(ClothingRules.Pieces[3].itemId, MarketGroup.Crafted, ClothingRules.Pieces[3].baseCents),
+        Homemade(ClothingRules.Pieces[4].itemId, MarketGroup.Crafted, ClothingRules.Pieces[4].baseCents),
         // T5b: the Leather Pack (the Rawhide Lashing is not sold).
-        Row(ClothingRules.PackId, MarketGroup.Crafted, ClothingRules.Pieces[6].baseCents, MarketKind.Bought),
+        Homemade(ClothingRules.PackId, MarketGroup.Crafted, ClothingRules.Pieces[6].baseCents), // the clothing and the pack on the shelf since 2026-11-27
         // Pottery P2: the five fired pieces from the Kiln, in the Crafted group (10% off per unit, floor 0.1); the dry pieces and Sand have no row, so they do not sell. PotteryRules has the prices.
         Row(PotteryRules.FiredCupId, MarketGroup.Crafted, PotteryRules.Recipes[0].firedCents, MarketKind.Bought),
         Row(PotteryRules.FiredBowlId, MarketGroup.Crafted, PotteryRules.Recipes[1].firedCents, MarketKind.Bought),
@@ -202,7 +205,7 @@ public static class MarketCatalog
         // and still bought back at its forged price.
         Homemade(SmithyRules.Recipes[2].itemId, MarketGroup.Crafted, SmithyRules.Recipes[2].baseCents),
         // Food_Spoilage_and_Preservation.md 2: Fertilizer from the Compost Bin, bought until farming gives it a use on the homestead. Appended last, as the asset row was.
-        Row(CompostRules.FertilizerId, MarketGroup.Farm, CompostRules.FertilizerBaseCents, MarketKind.Bought),
+        Homemade(CompostRules.FertilizerId, MarketGroup.Farm, CompostRules.FertilizerBaseCents), // on the shelf since 2026-11-27
         // Food_Spoilage_and_Preservation.md 3: dried food from the Drying Rack, each its own pool, in the group of what it was dried from (DryingRules has the prices).
         Row(DryingRules.DriedBerriesId, MarketGroup.Forage, DryingRules.DriedBerriesCents, MarketKind.Bought),
         Row(DryingRules.DriedApplesId, MarketGroup.Forage, DryingRules.DriedApplesCents, MarketKind.Bought),
@@ -220,13 +223,13 @@ public static class MarketCatalog
         Row(HideRules.SaltedDeerHideId, MarketGroup.Hides, HideRules.SaltedDeerHideCents, MarketKind.Bought),
         Row(HideRules.SaltedFursId, MarketGroup.Hides, HideRules.SaltedFursCents, MarketKind.Bought),
         // Tanning_Hides_and_Furs.md 3 (slice T2): what the Hide Frame makes, each its own pool (HideFrameRules has the prices).
-        Row(HideFrameRules.RawhideId, MarketGroup.Hides, HideFrameRules.RawhideCents, MarketKind.Bought),
+        Homemade(HideFrameRules.RawhideId, MarketGroup.Hides, HideFrameRules.RawhideCents), // on the shelf since 2026-11-27
         Row(HideFrameRules.DriedFursId, MarketGroup.Hides, HideFrameRules.DriedFursCents, MarketKind.Bought),
         // Tanning_Hides_and_Furs.md 4 (slice T3): brain-tanned goods from the Smokehouse (SmokeRules has the prices). The soft hides between are not bought.
-        Row(SmokeRules.BuckskinId, MarketGroup.Hides, SmokeRules.BuckskinCents, MarketKind.Bought),
-        Row(SmokeRules.TannedFursId, MarketGroup.Hides, SmokeRules.TannedFursCents, MarketKind.Bought),
+        Chain(SmokeRules.BuckskinId, MarketGroup.Hides, SmokeRules.BuckskinCents), // on the shelf since 2026-11-27, at the chain price
+        Chain(SmokeRules.TannedFursId, MarketGroup.Hides, SmokeRules.TannedFursCents),
         // Tanning_Hides_and_Furs.md 5 (slice T4): Leather from the Tanning Vat (TanningVatRules has the price). Tanbark is not bought.
-        Row(TanningVatRules.LeatherId, MarketGroup.Hides, TanningVatRules.LeatherCents, MarketKind.Bought),
+        Chain(TanningVatRules.LeatherId, MarketGroup.Hides, TanningVatRules.LeatherCents), // on the shelf since 2026-11-27, at the chain price
         // Gardening_Basics.md (slice GB1): the Hoe and Watering Can, seed packets, tomato plants and potatoes on the shelf (potatoes also bought back at GardenRules' price),
         // and the garden's produce in its own Produce group, which pays most in winter and least in the summer glut (GardenRules has the prices).
         Row(GardenRules.HoeId, MarketGroup.Stocked, GardenRules.HoeStoreCents, MarketKind.Stocked),
@@ -272,6 +275,16 @@ public static class MarketCatalog
         Row(WateringRules.GasolineId, MarketGroup.Stocked, WateringRules.GasolineStoreCents, MarketKind.Stocked),
         // Greenhouses G6 (2026-11-27): the wax Vent Opener (VentRules has the price).
         Row(VentRules.ItemId, MarketGroup.Stocked, VentRules.StoreCents, MarketKind.Stocked),
+        // Everything you need or can build (Mike, 2026-11-27; SupplyRules): the materials the store did not deal in, now bought and sold, and Iron Bars sold only.
+        Homemade(SupplyRules.SticksId, MarketGroup.WoodStone, SupplyRules.SticksCents),
+        Homemade(SupplyRules.BranchesId, MarketGroup.WoodStone, SupplyRules.BranchesCents),
+        Homemade(SupplyRules.TallGrassId, MarketGroup.WoodStone, SupplyRules.TallGrassCents),
+        Homemade(SupplyRules.ClayId, MarketGroup.WoodStone, SupplyRules.ClayCents),
+        Homemade(SupplyRules.SandId, MarketGroup.WoodStone, SupplyRules.SandCents),
+        Homemade(SupplyRules.TanbarkId, MarketGroup.Hides, SupplyRules.TanbarkCents),
+        Homemade(SupplyRules.WheelId, MarketGroup.Crafted, SupplyRules.WheelCents),
+        Homemade(SupplyRules.TripodId, MarketGroup.Crafted, SupplyRules.TripodCents),
+        Row(SupplyRules.IronBarId, MarketGroup.Stocked, SupplyRules.IronBarStoreCents, MarketKind.Stocked, sellCents: SupplyRules.NotBoughtBack),
     };
 
     public static readonly MarketGroupRule[] Groups =
@@ -385,6 +398,8 @@ public sealed class MarketTable
             return 0;
         if (row.kind != MarketKind.Stocked)
             return row.baseCents;
+        if (row.sellCents < 0)
+            return 0; // sold but never bought back (SupplyRules.NotBoughtBack: Iron Bars)
         return row.sellCents > 0 ? row.sellCents : Money.SellBackCents(row.baseCents, SellBackPercent);
     }
 

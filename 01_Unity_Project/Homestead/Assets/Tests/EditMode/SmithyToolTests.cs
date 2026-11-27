@@ -486,10 +486,10 @@ public class SmithyToolTests
             Assert.That(table.Stock.Any(r => r.itemId == id), Is.True, id + " is on the Trading Post list");
             Assert.That(LedgerCategories.ForPurchase(id), Is.EqualTo(LedgerCategory.BuyTools), id + " is a tool purchase");
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(156));
-        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(28));
-        Assert.That(table.Stock.Count, Is.EqualTo(69), "the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
-        Assert.That(LedgerCategories.Count, Is.EqualTo(19), "no new Ledger category");
+        Assert.That(table.Rows.Count, Is.EqualTo(165));
+        Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(30), "and the Wooden Wheel and the Tripod (2026-11-27)");
+        Assert.That(table.Stock.Count, Is.EqualTo(94), "the store's supplies, the chain goods, the Wheel, the Tripod, the clothing and the Leather Pack (25, 2026-11-27); the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); and Salt (2026-11-22), and the Bark Spud (2026-11-23)");
+        Assert.That(LedgerCategories.Count, Is.EqualTo(21), "no new Ledger category");
         Assert.That(SourceText("Resources/Market/MarketData.asset").Contains("iron_shovel"), Is.True, "the asset was reseeded");
         Assert.That(SourceText("Scripts/Managers/DifficultyManager.cs").Contains("iron_"), Is.False, "the starting kits are the stone tools");
     }
@@ -629,7 +629,7 @@ public class SmithyToolTests
     [Test]
     public void TheSmithyEntryNowTeachesTheToolsAndTheItemHelpExists()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(24), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(35), "the Smithy entry was updated in place; the twelfth is the Melee entry (Hands M0e-3), the thirteenth Spoilage, the fourteenth Drying, the fifteenth Salting");
         Assert.That(KnowHowRules.TryGet(KnowHowRules.Smithy, out KnowHowRules.Entry smithy), Is.True);
         Assert.That(smithy.title, Is.EqualTo("The Smithy: Forging Iron Goods"));
         Assert.That(smithy.body, Does.Contain("an iron Shovel and Pick Axe for your own use"));
@@ -673,7 +673,7 @@ public class SmithyToolTests
         Assert.That(text, Does.Contain("and into an iron Shovel and Pick Axe for your own use."));
         Assert.That(text, Does.Contain("An Iron Shovel (2 Iron Bars, 2 Charcoal, 3 Sticks and 1 Cordage) and an Iron Pick Axe (2 Iron Bars, 2 Charcoal, 2 Sticks and 1 Cordage) take 3 game hours each."));
         Assert.That(text, Does.Not.Contain("it holds 8 of each"));
-        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(24), "eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
+        Assert.That(Regex.Matches(text, @"^## \d+\. ", RegexOptions.Multiline).Count, Is.EqualTo(35), "the Pole Barn entry (B1, 2026-11-27); the Deliveries entry (D1, 2026-11-27); the nine garden and greenhouse entries (2026-11-27); eleven chains, the Melee entry (Hands M0e-3), Spoilage, Drying and Salting");
     }
 
     // --- Saving ---
@@ -686,7 +686,7 @@ public class SmithyToolTests
         Assert.That(fields.Any(f => f.ToLowerInvariant().Contains("stick") || f.ToLowerInvariant().Contains("cordage") || f.ToLowerInvariant().Contains("tool")), Is.False);
         Assert.That(((int)Find("SaveManager").GetField("SaveVersion", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static).GetRawConstantValue()), Is.EqualTo(1));
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(88), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a); no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a); no new kind (46 since the Compost Bin, 47 since the Drying Rack)");
         Assert.That((int)Enum.Parse(Find("PileKind"), "Smithy"), Is.EqualTo(44));
         Assert.That(CharcoalRules.BurnMarker, Is.EqualTo("charcoal_burn"));
         Assert.That(BloomeryRules.SmeltMarker, Is.EqualTo("iron_smelt"));

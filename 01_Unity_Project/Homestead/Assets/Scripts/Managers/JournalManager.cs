@@ -231,7 +231,13 @@ public class JournalManager : MonoBehaviour, ISaveable
         }
         bool taps = TapManager.Instance != null && TapManager.Instance.Taps.Count > 0;
 
-        List<string> earned = KnowHowRules.Backfill(id => inventory.Player.Has(id), hopper, tripod, taps, pit, bloomery, smithy);
+        // The garden and greenhouse builds standing in the world (2026-11-27).
+        var built = new List<KnowHowRules.Happening>();
+        if (WoodManager.Instance != null)
+            foreach (WoodPileState pile in WoodManager.Instance.Piles)
+                if (WoodManager.KnowHowHappeningFor(pile.kind) is KnowHowRules.Happening h && !built.Contains(h))
+                    built.Add(h);
+        List<string> earned = KnowHowRules.Backfill(id => inventory.Player.Has(id), hopper, tripod, taps, pit, bloomery, smithy, built);
         if (Unlock(earned, announce: false) > 0)
         {
             ToolStatus.Flash(KnowHowRules.BackfillFlash(earned), 4f);

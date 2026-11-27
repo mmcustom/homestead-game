@@ -92,9 +92,9 @@ public class TripodWorldTests
     }
 
     [Test]
-    public void TheTripodHasNoMarketRow()
+    public void TheTripodIsBoughtAndSoldSince20261127()
     {
-        Assert.That(MarketCatalog.Table.TryGetRow("tripod", out _), Is.False, "it cannot be bought or sold");
+        Assert.That(MarketCatalog.Table.TryGetRow("tripod", out _), Is.True, "on the shelf at $5, bought at $2");
     }
 
     // --- The new-game kits ---

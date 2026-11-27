@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
@@ -91,7 +91,7 @@ public class SawmillTests
     public void ItIsBuiltFromTheOtherTabAndHasItsKnowHowEntry()
     {
         Assert.That(SourceText("Scripts/Managers/WoodManager.cs"), Does.Contain("PileKind.SawPitSite, PileKind.SawmillSite,"));
-        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.SawmillSite:\n            case PileKind.GardenBed:\n            case PileKind.RaisedBedSite:\n            case PileKind.WattleFence:\n            case PileKind.DeerFence:\n            case PileKind.FenceGate:\n            case PileKind.ColdFrameSmall:\n            case PileKind.ColdFrameMedium:\n            case PileKind.ColdFrameLarge:\n            case PileKind.HoopHouseSiteSmall:\n            case PileKind.HoopHouseSiteMedium:\n            case PileKind.HoopHouseSiteLarge:\n            case PileKind.GlassHouseSiteSmall:\n            case PileKind.GlassHouseSiteMedium:\n            case PileKind.GlassHouseSiteLarge:\n            case PileKind.GreenhouseStove:\n            case PileKind.PropaneHeater:\n            case PileKind.WaterBarrels:\n            case PileKind.HoseBib:\n            case PileKind.HoseReel:\n            case PileKind.HandPump:\n            case PileKind.FuelPump:\n            case PileKind.VentOpener:\n            case PileKind.HideFrame:"));
+        Assert.That(SourceText("Scripts/UI/CraftingScreen.cs"), Does.Contain("case PileKind.SawmillSite:\n            case PileKind.GardenBed:\n            case PileKind.RaisedBedSite:\n            case PileKind.WattleFence:\n            case PileKind.DeerFence:\n            case PileKind.FenceGate:\n            case PileKind.ColdFrameSmall:\n            case PileKind.ColdFrameMedium:\n            case PileKind.ColdFrameLarge:\n            case PileKind.HoopHouseSiteSmall:\n            case PileKind.HoopHouseSiteMedium:\n            case PileKind.HoopHouseSiteLarge:\n            case PileKind.GlassHouseSiteSmall:\n            case PileKind.GlassHouseSiteMedium:\n            case PileKind.GlassHouseSiteLarge:\n            case PileKind.GreenhouseStove:\n            case PileKind.PropaneHeater:\n            case PileKind.WaterBarrels:\n            case PileKind.HoseBib:\n            case PileKind.HoseReel:\n            case PileKind.HandPump:\n            case PileKind.FuelPump:\n            case PileKind.VentOpener:\n            case PileKind.DeliveryPad:\n            case PileKind.PoleBarnSiteSmall:\n            case PileKind.PoleBarnSiteMedium:\n            case PileKind.PoleBarnSiteLarge:\n            case PileKind.HideFrame:"));
         Assert.That(KnowHowRules.Entries.Select(e => e.id).ElementAt(22), Is.EqualTo("sawmill"));
         Assert.That(KnowHowRules.Entries[22].title, Is.EqualTo("The Sawmill"));
         Assert.That(KnowHowRules.ForHappening(KnowHowRules.Happening.SawmillSitePlaced), Is.EqualTo(new[] { "sawmill" }));
