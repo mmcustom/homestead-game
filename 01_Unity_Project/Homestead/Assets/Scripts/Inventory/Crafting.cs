@@ -10,6 +10,7 @@ using UnityEngine;
 // The Primitive Axe (Wood_Gathering_System.md) and the Knife (Hunting_System.md) are the same stone-on-a-stick make.
 // Cordage itself (Trapping_System.md's sourcing, 2026-09-26) twists from whichever natural fibre the player has: 3 Tall
 // Grass, 2 Cattail stalks, or 1 Sinew from a deer or turkey — one recipe with alternative ingredients.
+// Slice B1b (2026-11-27): what is on the shelves of a Pole Barn within 50 m counts as well as the pack (WoodManager.Have and Spend).
 public static class Crafting
 {
     public struct Ingredient
@@ -80,7 +81,7 @@ public static class Crafting
         if (inventory == null)
             return 0;
         var left = new System.Collections.Generic.Dictionary<string, int>();
-        int Have(string id) => left.TryGetValue(id, out int n) ? n : (left[id] = inventory.Player.Count(id));
+        int Have(string id) => left.TryGetValue(id, out int n) ? n : (left[id] = WoodManager.Have(id));
 
         int crafts = 0;
         while (crafts < cap)
@@ -120,7 +121,7 @@ public static class Crafting
             {
                 ItemDefinition item = ItemDatabase.Get(i.itemId);
                 ingredients.Add(new CraftIngredient(i.itemId, i.quantity, item != null ? item.WeightKg : 0f));
-                have[i.itemId] = inventory.Player.Count(i.itemId);
+                have[i.itemId] = WoodManager.Have(i.itemId);
             }
             sets.Add(ingredients);
         }
@@ -137,7 +138,7 @@ public static class Crafting
         if (inventory == null)
             return null;
         foreach (Ingredient[] set in Sets(recipe))
-            if (Array.TrueForAll(set, i => inventory.Player.Count(i.itemId) >= i.quantity))
+            if (Array.TrueForAll(set, i => WoodManager.Have(i.itemId) >= i.quantity))
                 return set;
         return null;
     }
@@ -177,7 +178,7 @@ public static class Crafting
     }
 
     static (string itemId, int missing)[] Shortfall(Ingredient[] set, InventoryManager inventory) =>
-        Array.ConvertAll(set, i => (i.itemId, i.quantity - inventory.Player.Count(i.itemId)));
+        Array.ConvertAll(set, i => (i.itemId, i.quantity - WoodManager.Have(i.itemId)));
 
     public static bool CanCraft(Recipe recipe, out string reason)
     {
@@ -231,7 +232,7 @@ public static class Crafting
 
         InventoryManager inventory = InventoryManager.Instance;
         foreach (Ingredient ingredient in Affordable(recipe))
-            inventory.RemoveFromPlayer(ingredient.itemId, ingredient.quantity);
+            WoodManager.Spend(ingredient.itemId, ingredient.quantity); // the pack first, then a Pole Barn within 50 m (B1b)
         // The ingredients usually weigh at least as much as what's made, so it fits once they're used; if it doesn't,
         // what the pack can't carry is left on the ground in front of the player rather than lost.
         int count = Mathf.Max(1, recipe.outputCount);

@@ -298,7 +298,7 @@ public static class WateringFittings
         if (kind != PileKind.HandPump || WoodManager.Instance == null)
             return false;
         foreach (WoodPileState pile in WoodManager.Instance.Piles)
-            if (pile.kind == PileKind.Well && Vector3.Distance(pile.position, point) <= WateringRules.PumpWellMetres + 1f)
+            if ((pile.kind == PileKind.Well || pile.kind == PileKind.DrilledWell) && Vector3.Distance(pile.position, point) <= WateringRules.PumpWellMetres + 1f)
                 return true;
         return false;
     }

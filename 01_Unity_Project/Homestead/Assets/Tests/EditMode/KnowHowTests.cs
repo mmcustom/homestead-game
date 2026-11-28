@@ -19,9 +19,9 @@ public class KnowHowTests
     [Test]
     public void ThereAreTwelveEntriesWithUniqueIdsTitlesAndBodies()
     {
-        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(35)); // the eleven chains, Hands M0e-3's "Fighting with your hands and a Knife" and "Food Spoils: Rot and Compost"
-        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(35));
-        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(35));
+        Assert.That(KnowHowRules.Entries.Length, Is.EqualTo(38)); // the eleven chains, Hands M0e-3's "Fighting with your hands and a Knife" and "Food Spoils: Rot and Compost"
+        Assert.That(KnowHowRules.Entries.Select(e => e.id).Distinct().Count(), Is.EqualTo(38));
+        Assert.That(KnowHowRules.Entries.Select(e => e.title).Distinct().Count(), Is.EqualTo(38));
         foreach (KnowHowRules.Entry e in KnowHowRules.Entries)
         {
             Assert.That(e.title, Is.Not.Empty);
@@ -43,7 +43,7 @@ public class KnowHowTests
             "Smelting Iron in the Bloomery", "The Smithy: Forging Iron Goods", "Fighting with your hands and a Knife",
             "Food Spoils: Rot and Compost", "Drying Food on a Rack", "Salting Meat and Fish", "Smoking Meat and Fish", "The Root Cellar", "Sawing Lumber in a Saw Pit", "Hides Spoil: Salt or Tan Them", "The Hide Frame: Scraping and Rawhide", "Brain Tanning: Buckskin and Furs", "Bark Tanning: Leather", "The Sawmill", "The Kitchen Garden",
             "Better Beds: Soil, Raised Beds and Frost", "Saving Your Own Seed", "Fences and Garden Raiders", "Cold Frames", "Hoop Houses",
-            "Glass Greenhouses and Seedling Benches", "Heating a Greenhouse", "Watering Without the Can", "Vent Openers", "Deliveries from the Trading Post", "The Pole Barn",
+            "Glass Greenhouses and Seedling Benches", "Heating a Greenhouse", "Watering Without the Can", "Vent Openers", "Deliveries from the Trading Post", "The Pole Barn", "Your Phone", "The Drilled Well", "Power: Solar, Batteries and the Generator",
         }));
         Assert.That(KnowHowRules.Entries.Select(e => e.id), Is.EqualTo(new[]
         {
@@ -51,7 +51,7 @@ public class KnowHowTests
             KnowHowRules.Charcoal, KnowHowRules.IronOre, KnowHowRules.Smelting, KnowHowRules.Smithy, KnowHowRules.Melee,
             KnowHowRules.Spoilage, KnowHowRules.Drying, KnowHowRules.Salting, KnowHowRules.Smoking, KnowHowRules.Cellar, KnowHowRules.Sawing, KnowHowRules.Hides, KnowHowRules.HideFrame, KnowHowRules.BrainTanning, KnowHowRules.BarkTanning, KnowHowRules.Sawmill, KnowHowRules.Garden,
             KnowHowRules.BetterBeds, KnowHowRules.SeedSaving, KnowHowRules.Fences, KnowHowRules.ColdFrames, KnowHowRules.HoopHouses,
-            KnowHowRules.GlassHouses, KnowHowRules.GreenhouseHeat, KnowHowRules.Watering, KnowHowRules.Venting, KnowHowRules.Deliveries, KnowHowRules.Barn,
+            KnowHowRules.GlassHouses, KnowHowRules.GreenhouseHeat, KnowHowRules.Watering, KnowHowRules.Venting, KnowHowRules.Deliveries, KnowHowRules.Barn, KnowHowRules.Phone, KnowHowRules.DrilledWell, KnowHowRules.Power,
         }));
     }
 
@@ -110,14 +110,14 @@ public class KnowHowTests
     public void EveryTriggerNamesARealEntry()
     {
         var ids = new List<string>();
-        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle", "charcoal", "iron_ore", "iron_bar", "knife", "rot", "dried_meat", "salt", "deer_hide", "buckskin", "tomato" })
+        foreach (string itemId in new[] { "ash", "kindling_bundle", "tripod", "spile", "sap_bucket", "maple_sap", "lye", "potash_kettle", "charcoal", "iron_ore", "iron_bar", "knife", "rot", "dried_meat", "salt", "deer_hide", "buckskin", "tomato", "smartphone" })
             ids.AddRange(KnowHowRules.ForItem(itemId));
         foreach (KnowHowRules.Happening h in Enum.GetValues(typeof(KnowHowRules.Happening)))
             ids.AddRange(KnowHowRules.ForHappening(h));
         Assert.That(ids, Is.Not.Empty);
         foreach (string id in ids)
             Assert.That(KnowHowRules.TryGet(id, out _), Is.True, id);
-        Assert.That(ids.Distinct().Count(), Is.EqualTo(35), "and every entry has a way to unlock");
+        Assert.That(ids.Distinct().Count(), Is.EqualTo(38), "and every entry has a way to unlock");
     }
 
     [Test]

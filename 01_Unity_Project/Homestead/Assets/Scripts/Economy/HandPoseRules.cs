@@ -109,6 +109,17 @@ public static class HandPoseRules
         return new HandPose { X = 0.17f * m, Y = -0.13f, Z = 0.56f, Pitch = -6f, Yaw = -5f * m, Roll = 5f * m };
     }
 
+    // The phone up (slice P1, P): both hands hold it low in front, the right on its right edge and the left on its left, palms turned in. The phone itself sits at
+    // PhoneAt in the rig's space, its screen facing the eye. No breathing or step sway: the phone is held still so its screen stays readable.
+    public static readonly (float x, float y, float z) PhoneAt = (0f, -0.005f, 0.20f);
+    public const float PhoneScale = 1f;
+
+    public static HandPose PhoneTarget(HandSide side)
+    {
+        float m = side == HandSide.Right ? 1f : -1f;
+        return new HandPose { X = 0.062f * m, Y = -0.085f, Z = 0.165f, Pitch = 10f, Yaw = -32f * m, Roll = -62f * m };
+    }
+
     // What the hands do while the world is live but no tool can be used: a Hand Cart being pushed, or a creek knock-down. Both drop whatever is in hand.
     public static string EffectiveTool(string wanted, bool pushingCart, bool knockedDown) => pushingCart || knockedDown ? null : wanted;
 

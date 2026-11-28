@@ -200,7 +200,7 @@ public class CartTests
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("HandCart"), Is.EqualTo(32));
         Assert.That((int)Kind("Felled"), Is.EqualTo(0));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a, 2026-11-25); nothing was inserted in the middle (the Workshop kinds, 33 and 34, came after the cart; the Potter kinds, 35 and 36, after them)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(100), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a, 2026-11-25); nothing was inserted in the middle (the Workshop kinds, 33 and 34, came after the cart; the Potter kinds, 35 and 36, after them)");
     }
 
     [Test]
@@ -651,7 +651,7 @@ public class CartTests
     [Test]
     public void LedgerCategoriesAndTheLedgerVersionAreUntouched()
     {
-        Assert.That(LedgerCategories.Count, Is.EqualTo(21));
+        Assert.That(LedgerCategories.Count, Is.EqualTo(22));
         Assert.That(LedgerCategories.LastIncomeId, Is.EqualTo(7));
         Assert.That((int)LedgerCategory.BuyOtherGoods, Is.EqualTo(18));
         Assert.That(Find("LedgerSaveData").GetField("CurrentVersion").GetRawConstantValue(), Is.EqualTo(1));
@@ -663,6 +663,6 @@ public class CartTests
         Assert.That((int)Kind("LeachHopper"), Is.EqualTo(30));
         Assert.That((int)Kind("HandCartSite"), Is.EqualTo(31));
         Assert.That((int)Kind("HandCart"), Is.EqualTo(32));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a, 2026-11-25); no kind was added for the cart handle or the held cart (33 through the cart, plus the two Workshop kinds and the two Potter kinds)");
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(100), "the Vent Opener (G6, 2026-11-27); the Hose Bib, Hose Reel, Hand Pump and Fuel Pump (G5, 2026-11-27); the Wood Stove, Propane Heater and Water Barrels (G4, 2026-11-26); the six Glass Greenhouse kinds and the Seedling Bench (G3, 2026-11-26); the six Hoop House kinds (G2, 2026-11-26); the three Cold Frame kinds (G1, 2026-11-26); the three garden fence kinds (GB4a, 2026-11-25); no kind was added for the cart handle or the held cart (33 through the cart, plus the two Workshop kinds and the two Potter kinds)");
     }
 }

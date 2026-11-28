@@ -116,7 +116,7 @@ public class PoleBarnB1Tests
     public void TheKindsAreAppendedAndOnlyTheSitesAreBuilt()
     {
         string wood = SourceText("Scripts/Managers/WoodManager.cs");
-        Assert.That(wood, Does.Contain("DeliveryPad, PoleBarnSiteSmall, PoleBarnSiteMedium, PoleBarnSiteLarge, PoleBarnSmall, PoleBarnMedium, PoleBarnLarge }"), "appended");
+        Assert.That(wood, Does.Contain("DeliveryPad, PoleBarnSiteSmall, PoleBarnSiteMedium, PoleBarnSiteLarge, PoleBarnSmall, PoleBarnMedium, PoleBarnLarge, DrilledWellSite, DrilledWell, PowerShed, SolarRack, Generator }"), "appended");
         var buildable = ((System.Collections.IEnumerable)Find("WoodManager").GetField("Buildable").GetValue(null)).Cast<object>().Select(o => o.ToString()).ToArray();
         Assert.That(buildable, Does.Contain("PoleBarnSiteSmall"));
         Assert.That(buildable, Does.Contain("PoleBarnSiteLarge"));

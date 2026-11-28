@@ -281,7 +281,7 @@ public class AshTests
         Assert.That(LedgerCategories.ForSale(MarketGroup.Ash), Is.EqualTo(LedgerCategory.SalesWoodStone));
         Assert.That(LedgerCategories.ForSale(Table.RuleOf("kindling_bundle").group), Is.EqualTo(LedgerCategory.SalesCrafted));
         Assert.That(LedgerCategories.IsIncome(LedgerCategories.ForSale(MarketGroup.Ash)), Is.True);
-        Assert.That(LedgerCategories.Count, Is.EqualTo(21), "no new ledger category");
+        Assert.That(LedgerCategories.Count, Is.EqualTo(22), "no new ledger category");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
         Assert.That(MarketRules.GroupName(MarketGroup.Ash), Is.EqualTo("Ash"));
     }

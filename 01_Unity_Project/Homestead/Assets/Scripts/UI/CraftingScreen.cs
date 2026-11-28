@@ -627,7 +627,19 @@ public class CraftingScreen : GameScreen
         return rules.shallow.liningStone;
     }
 
-    static int Pack(InventoryManager inventory, string itemId) => inventory != null ? inventory.Player.Count(itemId) : 0;
+    // What can be spent: the pack, then the shelves of a Pole Barn within 50 m (slice B1b).
+    static int Pack(InventoryManager inventory, string itemId) => inventory != null ? WoodManager.Have(itemId) : 0;
+
+    // A line under an entry when a barn nearby holds any of what it takes, so the counts make sense.
+    static void NoteBarn(Entry e, IEnumerable<string> itemIds)
+    {
+        foreach (string id in itemIds)
+            if (WoodManager.BarnStockNearPlayer(id) > 0)
+            {
+                e.notes.Add((BarnRules.FeedNote, 0));
+                return;
+            }
+    }
 
     // The nearest placed site of this kind within NearbySiteMetres of the player, or null.
     WoodPileState NearestSite(WoodManager wood, PileKind kind)
@@ -682,9 +694,10 @@ public class CraftingScreen : GameScreen
             {
                 var reqs = new List<MaterialLine>();
                 foreach (Crafting.Ingredient i in set)
-                    reqs.Add(new MaterialLine(ItemName(i.itemId), inventory != null ? inventory.Player.Count(i.itemId) : 0, i.quantity));
+                    reqs.Add(new MaterialLine(ItemName(i.itemId), Pack(inventory, i.itemId), i.quantity));
                 e.sets.Add(reqs);
             }
+            NoteBarn(e, System.Array.ConvertAll(Crafting.IngredientSets(r)[0], i => i.itemId));
             e.marker = MaterialCheckRules.RowMarker(AsSets(e));
             e.act = () => DoCraft(e);
             entries.Add(e);
@@ -761,6 +774,10 @@ public class CraftingScreen : GameScreen
             case PileKind.PoleBarnSiteSmall:
             case PileKind.PoleBarnSiteMedium:
             case PileKind.PoleBarnSiteLarge:
+            case PileKind.DrilledWellSite:
+            case PileKind.PowerShed:
+            case PileKind.SolarRack:
+            case PileKind.Generator:
             case PileKind.HideFrame:
             case PileKind.TanningVat:
             case PileKind.TanningVatSite:
@@ -909,6 +926,7 @@ public class CraftingScreen : GameScreen
                 reqs.Add(new MaterialLine(ItemName(c.itemId), Pack(inventory, c.itemId), c.count));
             if (reqs.Count > 0)
                 e.sets.Add(reqs);
+            NoteBarn(e, System.Array.ConvertAll(wood.CostOf(kind), c => c.itemId));
         }
         e.marker = MaterialCheckRules.RowMarker(AsSets(e));
         if (WoodManager.NeedsHammerToBuild(kind))
@@ -1035,6 +1053,10 @@ public class CraftingScreen : GameScreen
             case PileKind.PoleBarnSiteSmall:
             case PileKind.PoleBarnSiteMedium:
             case PileKind.PoleBarnSiteLarge: return BarnRules.SiteHelp(WoodManager.BarnSizeOf(kind));
+            case PileKind.DrilledWellSite: return DrillRules.SiteHelp(0f);
+            case PileKind.PowerShed: return "a small shed for the power system: the Inverter on its wall (6,000 W) and a rack for up to 8 Battery Modules (5 kWh each; R installs them). R also lays Buried Cable from it to the buildings it powers; E opens its panel.";
+            case PileKind.SolarRack: return "a tilted frame on open ground for four 400 W Solar Panels (R mounts them). Trees within about 12 m shade it. Its power goes to the Power Shed.";
+            case PileKind.Generator: return "a 5,000 W gasoline generator, the backup: it starts by itself when the batteries fall below 20% and stops at 80%, burning about half a gallon an hour. R loads Gasoline (up to 5 cans).";
             case PileKind.StorageBin: return "store Cordage, hides, furs, arrows and the like (R), take them back (E).";
             case PileKind.CompostBin: return "put in Rot and Tall Grass (R). Every 4 Rot and 2 Tall Grass compost into 1 Fertilizer in about 7 days, slower in the cold and not at all while frozen; take the Fertilizer out (E). The Trading Post buys Fertilizer until there is farming.";
             case PileKind.DryingRack: return "hang up to 12 fresh berries, apples, pawpaws, mushrooms, raw meat or raw fish on it (R). They dry in daylight while it is not raining: about 2 days for fruit and mushrooms, 3 for meat and fish. Dried food is light and keeps for months; take it off (E).";

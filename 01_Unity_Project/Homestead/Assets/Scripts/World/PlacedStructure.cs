@@ -25,6 +25,11 @@ public static class StructureVisuals
         switch (state.kind)
         {
             case PileKind.Well: BuildWell(parent, state, bark, pieces, random, out boxCenter, out boxSize); return;
+            case PileKind.DrilledWellSite: DrilledWellVisuals.BuildSite(parent, state, pieces, out boxCenter, out boxSize); return; // slice P2
+            case PileKind.DrilledWell: DrilledWellVisuals.Build(parent, pieces, out boxCenter, out boxSize); return;
+            case PileKind.PowerShed:
+            case PileKind.SolarRack:
+            case PileKind.Generator: PowerStructures.Build(parent, state, pieces, out boxCenter, out boxSize); return; // the power system (E1)
             case PileKind.Outhouse: BuildOuthouse(parent, state, bark, pieces, out boxCenter, out boxSize); return;
             case PileKind.OuthouseSite: BuildOuthouseSite(parent, state, bark, pieces, random, 0.6f, out boxCenter, out boxSize); return;
             case PileKind.WaterBarrelSite:
@@ -1499,6 +1504,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             switch (state.kind)
             {
                 case PileKind.Well: return WellPrompt();
+                case PileKind.DrilledWell: return WellPrompt(); // slice P2: the same water, its own numbers
+                case PileKind.DrilledWellSite: return DrilledSitePrompt();
+                case PileKind.PowerShed:
+                case PileKind.SolarRack:
+                case PileKind.Generator: return PowerStructures.Prompt(state);
                 case PileKind.Kitchen: return KitchenPrompt();
                 case PileKind.Countertop: return Name + "\nA work surface under the kitchen roof - nothing to do at it yet";
                 case PileKind.Grill: return GrillPrompt();
@@ -3532,7 +3542,18 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         string detail = note.Length > 0 ? $", {note}" : "";
         if (state.litres <= 0)
             return $"Well  (dry for now - it recovers {w.RecoveryPerHour(state):0.#} L per hour){(state.contaminatedHours > 0f ? ", flood water got in" : "")}";
-        return $"Draw water  ({quality} water{detail}, {state.litres} of {w.NumbersOf(state).bufferLitres} L)";
+        return $"{(state.kind == PileKind.DrilledWell ? "Pump water" : "Draw water")}  ({quality} water{detail}, {state.litres} of {w.NumbersOf(state).bufferLitres} L)";
+    }
+
+    // A Drilled Well Site (slice P2): what to do, the quote, or how far the driller has got.
+    string DrilledSitePrompt()
+    {
+        CrewJob job = TradingPost.Instance != null ? TradingPost.Instance.CrewFor(state.id) : null;
+        if (job == null)
+            return $"{DrillRules.SitePrompt}\nQuote: {DrillRules.Quote(state.depthToWater)}";
+        int today = TimeManager.Instance != null ? TimeManager.Instance.TotalDays : 0;
+        return state.buildProgress > 0f ? $"{DrillRules.SiteName}  (drilling - {state.buildProgress * 100f:0}% done)"
+                                        : $"{DrillRules.SiteName}  ({DrillRules.Waiting(job.bookedDay + DrillRules.LeadDays - today)})";
     }
 
     string OuthousePrompt()
@@ -3610,8 +3631,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return "";
             if (WellsAndOuthouses.IsStagedSite(state.kind))
             {
+                bool barn = BarnLoadable(out string fromBarn) > 0; // a Pole Barn within 50 m tops the site up (B1b)
                 if (CarriedStorable(out string what) > 0)
-                    return $"Store {what}"; // delivering is free; the Hammer finishes the Well
+                    return barn ? BarnRules.StorePrompt(what) : $"Store {what}"; // delivering is free; the Hammer finishes the Well
+                if (barn)
+                    return BarnRules.LoadPrompt(fromBarn);
                 return state.kind == PileKind.KitchenRoofSite && state.IsEmpty
                     ? (WoodManager.HammerEquipped ? "Dismantle the hearth  (half the Stone and Clay back, rounded down; the fire must be out)" : "Dismantle the hearth  (needs the Hammer)")
                     : "";
@@ -3624,6 +3648,8 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
                 return GreenhouseHeat.SecondaryPrompt(state);
             if (WateringFittings.IsWaterKind(state.kind))
                 return WateringFittings.SecondaryPrompt(state);
+            if (PowerStructures.IsPowerKind(state.kind))
+                return PowerStructures.SecondaryPrompt(state);
             if (state.kind == PileKind.VentOpener)
                 return VentOpeners.SecondaryPrompt(state);
             if (WoodManager.IsFenceKind(state.kind))
@@ -3695,6 +3721,11 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         switch (state.kind)
         {
             case PileKind.Well: DrawWater(player); break;
+            case PileKind.DrilledWell: DrawWater(player); break;
+            case PileKind.DrilledWellSite: ToolStatus.Flash(DrilledSitePrompt(), 3.5f); break;
+            case PileKind.PowerShed:
+            case PileKind.SolarRack:
+            case PileKind.Generator: PowerStructures.Interact(state); break;
             case PileKind.Kitchen: ToolStatus.Flash($"{Name}: {KitchenFire()}. Light it, feed it and cook at the fire itself.", 3.5f); break;
             case PileKind.Countertop: ToolStatus.Flash($"{Name}: a work surface under the roof. Nothing to do at it yet.", 3f); break;
             case PileKind.Grill: ToolStatus.Flash($"{Name}: {GrillFire()}. Light it, feed it and cook at the fire on top.", 3.5f); break;
@@ -3884,7 +3915,7 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             return;
         if (WellsAndOuthouses.IsStagedSite(state.kind))
         {
-            if (state.kind == PileKind.KitchenRoofSite && CarriedStorable(out _) <= 0)
+            if (state.kind == PileKind.KitchenRoofSite && CarriedStorable(out _) <= 0 && BarnLoadable(out _) <= 0)
                 Dismantle(); // a hearth-built site with nothing to deliver: R takes the hearth down
             else
                 StoreMaterials();
@@ -3896,6 +3927,13 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         else if (state.kind == PileKind.SeedlingBench)
         {
             GreenhouseBenches.Secondary(state); // R picks the next seed for an empty tray (G3)
+        }
+        else if (PowerStructures.IsPowerKind(state.kind))
+        {
+            if (WoodManager.HammerEquipped)
+                Dismantle(); // R with the Hammer takes it down; what is in it comes back (E1)
+            else
+                PowerStructures.Secondary(state); // batteries, panels or Gasoline in; at the shed, lay cable
         }
         else if (WateringFittings.IsWaterKind(state.kind))
         {
@@ -3998,6 +4036,30 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         return total;
     }
 
+    // Slice B1b: what the Pole Barns within 50 m of the site could add to its current stage, after what the player carries.
+    int BarnLoadable(out string what)
+    {
+        what = "";
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null || Inventory == null)
+            return 0;
+        int total = 0;
+        var names = new List<string>();
+        foreach (string id in WellsAndOuthouses.DeliveryIds(state.kind))
+        {
+            if (!state.Accepts(id))
+                continue;
+            int missing = WellsAndOuthouses.NeedOf(state, id) - state.Count(id) - Inventory.Player.Count(id);
+            int n = Mathf.Min(missing, wood.BarnStock(state.position, id));
+            if (n <= 0)
+                continue;
+            total += n;
+            names.Add($"{n} {ItemDatabase.Get(id)?.DisplayName ?? id}");
+        }
+        what = string.Join(", ", names);
+        return total;
+    }
+
     void StoreMaterials()
     {
         WoodManager wood = WoodManager.Instance;
@@ -4020,6 +4082,21 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
             foreach ((int day, int count) in days)
                 state.Add(id, count, WoodManager.IsWood(id) ? day : 0);
             stored += removed;
+        }
+        // Then the rest from the Pole Barns within 50 m of the site, nearest first (B1b). Asked again after the pack, since what came
+        // from the pack may have opened the next part of the stage (the Well cap timber after its lining).
+        foreach (string id in WellsAndOuthouses.DeliveryIds(state.kind))
+        {
+            if (!state.Accepts(id))
+                continue;
+            int n = WellsAndOuthouses.NeedOf(state, id) - state.Count(id);
+            if (n <= 0)
+                continue;
+            foreach (WoodStack batch in wood.TakeFromBarns(state.position, id, n))
+            {
+                state.Add(id, batch.count, WoodManager.IsWood(id) ? batch.day : 0);
+                stored += batch.count;
+            }
         }
 
         if (stored <= 0)
@@ -4209,9 +4286,14 @@ public class PlacedStructure : MonoBehaviour, IInteractable, ISecondaryInteracta
         foreach (WoodStack cost in WoodManager.Instance.CostOf(state)) // a Well gives back half of the lining its own depth took
             refund.Return(cost.itemId, cost.count / 2);
         // A greenhouse stove or heater (G4) gives back the fuel in it, whole.
-        if (WoodManager.IsHeatKind(state.kind) || WateringFittings.IsWaterKind(state.kind))
+        if (WoodManager.IsHeatKind(state.kind) || WateringFittings.IsWaterKind(state.kind) || PowerStructures.IsPowerKind(state.kind))
             foreach (WoodStack fuel in state.contents)
                 refund.Return(fuel.itemId, fuel.count);
+        // The power system's bought pieces (the inverter, the generator) come back whole, not halved like lumber (E1).
+        if (PowerStructures.IsPowerKind(state.kind))
+            foreach (WoodStack cost in WoodManager.Instance.CostOf(state))
+                if (cost.itemId != WateringRules.LumberId)
+                    refund.Return(cost.itemId, cost.count - cost.count / 2);
         string name = Name;
         // A Leach Hopper gives back the Ash still leaching and the Lye waiting in it, whole; the water is lost.
         if (state.kind == PileKind.LeachHopper)

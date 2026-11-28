@@ -44,7 +44,7 @@ public class FelledTree
 // Kitchen add-ons, batch 1: Countertop, Shelving, Grill (a Wood-Fired Grill: a second furnished fire) and SlopSink stand in the four fixed slots of a finished Kitchen
 // (Setbacks.KitchenLayout; WoodManager.AddonSlots). Single-step builds with the Hammer; the slot is just their position, so there is no parent link saved.
 // (Saved as numbers, so new kinds go on the end.)
-public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate, ColdFrameSmall, ColdFrameMedium, ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall, PoleBarnSiteMedium, PoleBarnSiteLarge, PoleBarnSmall, PoleBarnMedium, PoleBarnLarge }
+public enum PileKind { Felled, WoodStorage, RockStorage, WaterBarrel, FoodCache, StorageBin, Tent, LeanTo, Cabin, CabinSite, ToolRack, TarpShelter, RainBarrel, WellSite, Well, Outhouse, OuthouseSite, WaterBarrelSite, RainBarrelSite, FoodCacheSite, WoodShedSite, WoodShed, KitchenSite, KitchenRoofSite, Kitchen, Countertop, Shelving, Grill, SlopSink, LeachHopperSite, LeachHopper, HandCartSite, HandCart, WorkshopSite, Workshop, PotterSite, PotterShed, KilnSite, Kiln, CharcoalPitSite, CharcoalPit, BloomerySite, Bloomery, SmithySite, Smithy, CompostBin, DryingRack, SmokehouseSite, Smokehouse, RootCellarSite, RootCellar, SawPitSite, SawPit, SaltBarrel, HideFrame, TanningVat, SawmillSite, Sawmill, GardenBed, TanningVatSite, RaisedBedSite, WattleFence, DeerFence, FenceGate, ColdFrameSmall, ColdFrameMedium, ColdFrameLarge, HoopHouseSiteSmall, HoopHouseSiteMedium, HoopHouseSiteLarge, HoopHouseSmall, HoopHouseMedium, HoopHouseLarge, GlassHouseSiteSmall, GlassHouseSiteMedium, GlassHouseSiteLarge, GlassHouseSmall, GlassHouseMedium, GlassHouseLarge, SeedlingBench, GreenhouseStove, PropaneHeater, WaterBarrels, HoseBib, HoseReel, HandPump, FuelPump, VentOpener, DeliveryPad, PoleBarnSiteSmall, PoleBarnSiteMedium, PoleBarnSiteLarge, PoleBarnSmall, PoleBarnMedium, PoleBarnLarge, DrilledWellSite, DrilledWell, PowerShed, SolarRack, Generator }
 
 [Serializable]
 public class WoodPileState
@@ -293,7 +293,7 @@ public class WoodPileState
     public bool IsOpenWoodPile => IsWoodPile;
     public bool IsWoodShed => kind == PileKind.WoodShed;
     // Drawn and handled by PlacedStructure, not WoodPile or Shelter.
-    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || kind == PileKind.Smithy || kind == PileKind.Smokehouse || kind == PileKind.SawPit || kind == PileKind.HideFrame || kind == PileKind.TanningVat || kind == PileKind.Sawmill || kind == PileKind.GardenBed || WoodManager.IsFenceKind(kind) || WoodManager.IsColdFrame(kind) || WoodManager.IsWalkIn(kind) || kind == PileKind.SeedlingBench || WoodManager.IsHeatKind(kind) || WateringFittings.IsWaterKind(kind) || kind == PileKind.VentOpener || WellsAndOuthouses.IsStagedSite(kind);
+    public bool IsPlacedStructure => kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.DrilledWellSite || kind == PileKind.DrilledWell || PowerStructures.IsPowerKind(kind) || kind == PileKind.Outhouse || kind == PileKind.Kitchen || kind == PileKind.Countertop || kind == PileKind.Grill || kind == PileKind.SlopSink || kind == PileKind.LeachHopper || kind == PileKind.Workshop || kind == PileKind.PotterShed || kind == PileKind.Kiln || kind == PileKind.CharcoalPit || kind == PileKind.Bloomery || kind == PileKind.Smithy || kind == PileKind.Smokehouse || kind == PileKind.SawPit || kind == PileKind.HideFrame || kind == PileKind.TanningVat || kind == PileKind.Sawmill || kind == PileKind.GardenBed || WoodManager.IsFenceKind(kind) || WoodManager.IsColdFrame(kind) || WoodManager.IsWalkIn(kind) || kind == PileKind.SeedlingBench || WoodManager.IsHeatKind(kind) || WateringFittings.IsWaterKind(kind) || kind == PileKind.VentOpener || WellsAndOuthouses.IsStagedSite(kind);
     public bool IsKitchen => kind == PileKind.KitchenSite || kind == PileKind.KitchenRoofSite || kind == PileKind.Kitchen;
     // A Countertop, Shelving, Grill or Slop Sink: stands in one of a finished Kitchen's four fixed slots (Setbacks.KitchenLayout).
     public bool IsKitchenAddon => WoodManager.IsKitchenAddon(kind);
@@ -321,6 +321,11 @@ public class WoodPileState
             case PileKind.Shelving: return WoodManager.IsDryGoods(itemId) || WoodManager.IsStorableFood(itemId);
             case PileKind.ToolRack: return WoodManager.IsTool(itemId);
             case PileKind.DeliveryPad: return !WoodManager.IsWater(itemId); // Trading Post deliveries, and anything put back (slice D1)
+            case PileKind.DrilledWellSite:
+            case PileKind.DrilledWell: return false; // the driller brings everything (slice P2)
+            case PileKind.PowerShed:
+            case PileKind.SolarRack:
+            case PileKind.Generator: return false; // R puts batteries, panels or Gasoline in (PowerStructures), not the store screen (slice E1)
             case PileKind.CabinSite:
                 return WoodManager.Instance != null && Array.IndexOf(WoodManager.CabinMaterialIds, itemId) >= 0 &&
                        Count(itemId) < WoodManager.Instance.CabinRequired(itemId);
@@ -857,6 +862,28 @@ public class WoodManager : MonoBehaviour, ISaveable
         return radius * WidthScale(index);
     }
 
+    // How many standing trees stand within radius of a point (horizontally): the shade on a Solar Panel Rack (slice E1).
+    public int CountTrees(Vector3 point, float radius)
+    {
+        if (!WorldLoaded)
+            return 0;
+        int n = 0, cells = Mathf.CeilToInt(radius / CellSize);
+        var centre = new Vector2Int(Mathf.FloorToInt(point.x / CellSize), Mathf.FloorToInt(point.z / CellSize));
+        for (int dz = -cells; dz <= cells; dz++)
+        for (int dx = -cells; dx <= cells; dx++)
+        {
+            if (!grid.TryGetValue(new Vector2Int(centre.x + dx, centre.y + dz), out List<int> list))
+                continue;
+            foreach (int index in list)
+            {
+                Vector3 tree = WorldPosition(index);
+                if (new Vector2(point.x - tree.x, point.z - tree.z).magnitude <= radius)
+                    n++;
+            }
+        }
+        return n;
+    }
+
     // The standing tree whose trunk is nearest a point (horizontally), within reach of its bark. -1 if none.
     public int FindTree(Vector3 point, float reach)
     {
@@ -1356,6 +1383,90 @@ public class WoodManager : MonoBehaviour, ISaveable
                 list.Add(pile);
         return list;
     }
+
+    // --- Slice B1b (Mike, 2026-11-27): what is on a Pole Barn's shelves within 50 m of the player counts for builds, sites and crafting ---
+
+    static PlayerController feedPlayer;
+
+    // Where the player stands, or null outside the World.
+    public static Vector3? PlayerSpot
+    {
+        get
+        {
+            if (feedPlayer == null)
+                feedPlayer = FindAnyObjectByType<PlayerController>();
+            return feedPlayer != null ? feedPlayer.transform.position : (Vector3?)null;
+        }
+    }
+
+    // The finished barns, nearest first.
+    public List<WoodPileState> BarnsNearestTo(Vector3 at)
+    {
+        var list = new List<WoodPileState>();
+        foreach (WoodPileState pile in piles)
+            if (IsBarn(pile.kind))
+                list.Add(pile);
+        list.Sort((a, b) => FlatDistance(a.position, at).CompareTo(FlatDistance(b.position, at)));
+        return list;
+    }
+
+    // The barns that feed a spot: those within BarnRules.FeedRadius, nearest first.
+    public List<WoodPileState> BarnsFeeding(Vector3 at)
+    {
+        List<WoodPileState> list = BarnsNearestTo(at);
+        list.RemoveAll(b => !BarnRules.Feeds(b.position.x - at.x, b.position.z - at.z));
+        return list;
+    }
+
+    public int BarnStock(Vector3 at, string itemId)
+    {
+        int n = 0;
+        foreach (WoodPileState barn in BarnsFeeding(at))
+            n += barn.Count(itemId);
+        return n;
+    }
+
+    // What the barns near the player hold of an item (0 outside the World).
+    public static int BarnStockNearPlayer(string itemId) => Instance != null && PlayerSpot is Vector3 at ? Instance.BarnStock(at, itemId) : 0;
+
+    // What the player can spend on a build or a craft: the pack, then the barns near them.
+    public static int Have(string itemId)
+    {
+        int pack = InventoryManager.Instance != null ? InventoryManager.Instance.Player.Count(itemId) : 0;
+        return pack + BarnStockNearPlayer(itemId);
+    }
+
+    // Takes up to count of an item from the barns that feed a spot, nearest first, and returns what came as (day, count) batches.
+    public List<WoodStack> TakeFromBarns(Vector3 at, string itemId, int count)
+    {
+        var taken = new List<WoodStack>();
+        List<WoodPileState> barns = BarnsFeeding(at);
+        var have = new List<int>();
+        foreach (WoodPileState barn in barns)
+            have.Add(barn.Count(itemId));
+        int[] take = BarnRules.Allocate(count, have);
+        for (int i = 0; i < barns.Count; i++)
+        {
+            if (take[i] <= 0)
+                continue;
+            taken.AddRange(barns[i].Take(itemId, take[i]));
+            NotifyChanged(barns[i]);
+        }
+        return taken;
+    }
+
+    // Spends an item for a build or a craft: from the pack first, then from the barns near the player. Returns how many were spent.
+    public static int Spend(string itemId, int count)
+    {
+        if (count <= 0 || InventoryManager.Instance == null)
+            return 0;
+        int spent = InventoryManager.Instance.RemoveFromPlayer(itemId, count);
+        if (spent < count && Instance != null && PlayerSpot is Vector3 at)
+            foreach (WoodStack batch in Instance.TakeFromBarns(at, itemId, count - spent))
+                spent += batch.count;
+        return spent;
+    }
+
     public static int HouseSquares(PileKind kind) => IsHoopKind(kind) ? HoopHouseRules.Squares(HoopSizeOf(kind)) : GlassHouseRules.Squares(GlassSizeOf(kind));
     public static (float x, float z) HouseSquareAt(PileKind kind, int i) => IsHoopKind(kind) ? HoopHouseRules.SquareAt(HoopSizeOf(kind), i) : GlassHouseRules.SquareAt(GlassSizeOf(kind), i);
 
@@ -1589,6 +1700,8 @@ public class WoodManager : MonoBehaviour, ISaveable
         if (kind == PileKind.VentOpener) return KnowHowRules.Happening.VentOpenerPlaced;
         if (kind == PileKind.DeliveryPad) return KnowHowRules.Happening.DeliveryPadPlaced;
         if (IsBarnKind(kind)) return KnowHowRules.Happening.BarnPlaced;
+        if (kind == PileKind.DrilledWellSite || kind == PileKind.DrilledWell) return KnowHowRules.Happening.DrilledWellPlaced;
+        if (PowerStructures.IsPowerKind(kind)) return KnowHowRules.Happening.PowerShedPlaced;
         return null;
     }
 
@@ -1861,7 +1974,7 @@ public class WoodManager : MonoBehaviour, ISaveable
 
     public static readonly PileKind[] Buildable =
         { PileKind.WoodStorage, PileKind.RockStorage, PileKind.WaterBarrelSite, PileKind.RainBarrelSite, PileKind.FoodCacheSite, PileKind.WoodShedSite, PileKind.StorageBin, PileKind.SaltBarrel, PileKind.CompostBin, PileKind.DryingRack, PileKind.HideFrame, PileKind.ToolRack, PileKind.TarpShelter, PileKind.Tent, PileKind.LeanTo, PileKind.CabinSite,
-          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.ColdFrameSmall, PileKind.ColdFrameMedium, PileKind.ColdFrameLarge, PileKind.HoopHouseSiteSmall, PileKind.HoopHouseSiteMedium, PileKind.HoopHouseSiteLarge, PileKind.GlassHouseSiteSmall, PileKind.GlassHouseSiteMedium, PileKind.GlassHouseSiteLarge, PileKind.GreenhouseStove, PileKind.PropaneHeater, PileKind.WaterBarrels, PileKind.HoseBib, PileKind.HoseReel, PileKind.HandPump, PileKind.FuelPump, PileKind.VentOpener, PileKind.DeliveryPad, PileKind.PoleBarnSiteSmall, PileKind.PoleBarnSiteMedium, PileKind.PoleBarnSiteLarge, PileKind.TanningVatSite,
+          PileKind.WellSite, PileKind.OuthouseSite, PileKind.KitchenSite, PileKind.LeachHopperSite, PileKind.HandCartSite, PileKind.WorkshopSite, PileKind.PotterSite, PileKind.KilnSite, PileKind.CharcoalPitSite, PileKind.BloomerySite, PileKind.SmithySite, PileKind.SmokehouseSite, PileKind.RootCellarSite, PileKind.SawPitSite, PileKind.SawmillSite, PileKind.GardenBed, PileKind.RaisedBedSite, PileKind.WattleFence, PileKind.DeerFence, PileKind.FenceGate, PileKind.ColdFrameSmall, PileKind.ColdFrameMedium, PileKind.ColdFrameLarge, PileKind.HoopHouseSiteSmall, PileKind.HoopHouseSiteMedium, PileKind.HoopHouseSiteLarge, PileKind.GlassHouseSiteSmall, PileKind.GlassHouseSiteMedium, PileKind.GlassHouseSiteLarge, PileKind.GreenhouseStove, PileKind.PropaneHeater, PileKind.WaterBarrels, PileKind.HoseBib, PileKind.HoseReel, PileKind.HandPump, PileKind.FuelPump, PileKind.VentOpener, PileKind.DeliveryPad, PileKind.PoleBarnSiteSmall, PileKind.PoleBarnSiteMedium, PileKind.PoleBarnSiteLarge, PileKind.DrilledWellSite, PileKind.PowerShed, PileKind.SolarRack, PileKind.Generator, PileKind.TanningVatSite,
           PileKind.Countertop, PileKind.Shelving, PileKind.Grill, PileKind.SlopSink };
 
     public const string TentId = "tent";
@@ -1935,6 +2048,11 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.CabinSite: return "Small Cabin Site";
             case PileKind.WellSite: return "Well Site";
             case PileKind.Well: return "Well";
+            case PileKind.DrilledWellSite: return DrillRules.SiteName;
+            case PileKind.DrilledWell: return DrillRules.Name;
+            case PileKind.PowerShed: return "Power Shed";
+            case PileKind.SolarRack: return "Solar Panel Rack";
+            case PileKind.Generator: return "Generator";
             case PileKind.Outhouse: return "Outhouse";
             case PileKind.OuthouseSite: return "Outhouse Site";
             case PileKind.WaterBarrelSite: return "Water Barrel Site";
@@ -2024,6 +2142,10 @@ public class WoodManager : MonoBehaviour, ISaveable
             case PileKind.HoseBib: return new[] { new WoodStack { itemId = WateringRules.HoseId, count = 1 } };
             case PileKind.HoseReel: return new[] { new WoodStack { itemId = WateringRules.HoseId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = WateringRules.ReelLumber } };
             case PileKind.HandPump: return new[] { new WoodStack { itemId = WateringRules.HandPumpId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = WateringRules.PumpLumber } };
+            // The power system (slice E1): the shed is built round its inverter; the rack is a lumber frame; the generator is set down as it is.
+            case PileKind.PowerShed: return new[] { new WoodStack { itemId = PowerRules.InverterId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = 12 } };
+            case PileKind.SolarRack: return new[] { new WoodStack { itemId = WateringRules.LumberId, count = 6 } };
+            case PileKind.Generator: return new[] { new WoodStack { itemId = PowerRules.GeneratorId, count = 1 } };
             case PileKind.FuelPump: return new[] { new WoodStack { itemId = WateringRules.FuelPumpId, count = 1 }, new WoodStack { itemId = WateringRules.LumberId, count = WateringRules.PumpLumber } };
             // Automatic venting (G6).
             case PileKind.VentOpener: return new[] { new WoodStack { itemId = VentRules.ItemId, count = 1 } };
@@ -2147,7 +2269,7 @@ public class WoodManager : MonoBehaviour, ISaveable
 
         var shortfalls = new List<(string, int)>();
         foreach (WoodStack c in CostOf(kind))
-            shortfalls.Add((c.itemId, c.count - inventory.Player.Count(c.itemId)));
+            shortfalls.Add((c.itemId, c.count - Have(c.itemId))); // the pack and the barns near the player (B1b)
         string needs = Crafting.NeedsText(shortfalls);
         if (needs != null)
         {
@@ -2302,7 +2424,7 @@ public class WoodManager : MonoBehaviour, ISaveable
         // hollows (WellsAndOuthouses.CanPlace); the refusal names what it is too close to.
         // A Wood Shed Site keeps off floodplain and 3 m from the cabin (the same call).
 
-        if ((kind == PileKind.WellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite || kind == PileKind.LeachHopperSite || kind == PileKind.HandCartSite || kind == PileKind.WorkshopSite || kind == PileKind.PotterSite || kind == PileKind.KilnSite || kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite || kind == PileKind.SmithySite) && WellsAndOuthouses.Instance != null &&
+        if ((kind == PileKind.WellSite || kind == PileKind.DrilledWellSite || kind == PileKind.OuthouseSite || kind == PileKind.WoodShedSite || kind == PileKind.KitchenSite || kind == PileKind.LeachHopperSite || kind == PileKind.HandCartSite || kind == PileKind.WorkshopSite || kind == PileKind.PotterSite || kind == PileKind.KilnSite || kind == PileKind.CharcoalPitSite || kind == PileKind.BloomerySite || kind == PileKind.SmithySite) && WellsAndOuthouses.Instance != null &&
             !WellsAndOuthouses.Instance.CanPlace(kind, spot.point, null, out reason))
             return false;
         // The Smokehouse (Food_Spoilage_and_Preservation.md 5) keeps the Kiln's clear air from buildings and trees, off floodplain (the same call).
@@ -2485,6 +2607,8 @@ public class WoodManager : MonoBehaviour, ISaveable
     {
         switch (kind)
         {
+            case PileKind.PowerShed:
+            case PileKind.SolarRack:
             case PileKind.WoodStorage:
             case PileKind.RockStorage:
             case PileKind.StorageBin:
@@ -2587,7 +2711,7 @@ public class WoodManager : MonoBehaviour, ISaveable
             return false;
 
         foreach (WoodStack c in CostOf(kind))
-            InventoryManager.Instance.RemoveFromPlayer(c.itemId, c.count);
+            Spend(c.itemId, c.count); // the pack first, then the barns near the player (B1b)
         // An add-on is built exactly in its slot, facing the middle of the kitchen, whatever the ghost said.
         if (IsKitchenAddon(kind) && KitchenForSlot(spot.point, out WoodPileState slotKitchen, out int slotIndex))
             yaw = Setbacks.KitchenLayout.SlotYaw(slotKitchen.yaw, slotIndex);
@@ -2612,6 +2736,9 @@ public class WoodManager : MonoBehaviour, ISaveable
         // A Well Site remembers how deep the water is where it was placed (the same lookup the ghost's preview showed).
         if (kind == PileKind.WellSite && WellsAndOuthouses.Instance != null && WellsAndOuthouses.Instance.WellWaterAt(spot.point, out WellWaterResult water) && water.Diggable)
             pile.depthToWater = water.depthToWater;
+        // A Drilled Well Site remembers it too, however deep (slice P2): the driller's quote is by it.
+        if (kind == PileKind.DrilledWellSite && WellsAndOuthouses.Instance != null && WellsAndOuthouses.Instance.WellWaterAt(spot.point, out WellWaterResult deep))
+            pile.depthToWater = deep.depthToWater;
         piles.Add(pile);
         if (kind == PileKind.LeachHopperSite && JournalManager.Instance != null)
             JournalManager.Instance.NoteHappening(KnowHowRules.Happening.HopperSitePlaced);

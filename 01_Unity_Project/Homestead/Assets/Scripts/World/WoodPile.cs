@@ -359,6 +359,11 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             if (state == null)
                 return "";
             int carried = CarriedStorable(out string what);
+            // A Small Cabin site within 50 m of a Pole Barn is topped up from it after the pack (B1b).
+            string barnWhat = "";
+            int fromBarn = IsCabinSite ? CabinBarnLoadable(out barnWhat) : 0;
+            if (fromBarn > 0)
+                return carried > 0 ? BarnRules.StorePrompt(what) : BarnRules.LoadPrompt(barnWhat);
             // R stores what the site still takes; with nothing to store it takes the site down, like the Lean-To's
             // pack-up — the one key left over on the site, since E takes materials back.
             if (carried <= 0 && IsCabinSite && WellsAndOuthouses.MaterialsLocked(state))
@@ -389,7 +394,7 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         }
 
         // A CabinSite with nothing left to store takes itself down (see SecondaryPrompt).
-        if (IsCabinSite && CarriedStorable(out _) <= 0)
+        if (IsCabinSite && CarriedStorable(out _) <= 0 && CabinBarnLoadable(out _) <= 0)
         {
             ToolStatus.Flash(RemoveStructure());
             return;
@@ -398,6 +403,8 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
         // A felled tree's pile and a CabinSite keep the quick bulk store.
         bool wasComplete = IsCabinSite && WoodManager.Instance != null && WoodManager.Instance.SiteNeeds(state) == null;
         int stored = StoreEligible();
+        if (IsCabinSite)
+            stored += TopUpCabinFromBarns(); // then the rest from a Pole Barn within 50 m (B1b)
         if (stored <= 0)
         {
             // Nothing carried is still wanted: say how far along the site is, so the cap is not a silent refusal.
@@ -672,6 +679,48 @@ public class WoodPile : MonoBehaviour, IInteractable, ISecondaryInteractable
             stored += removed;
             if (!isCabinSite)
                 room -= removed;
+        }
+        return stored;
+    }
+
+    // Slice B1b: what the Pole Barns within 50 m of a Small Cabin site could add, after what the player carries.
+    int CabinBarnLoadable(out string what)
+    {
+        what = "";
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null || Inventory == null || WellsAndOuthouses.MaterialsLocked(state))
+            return 0;
+        int total = 0;
+        var parts = new List<string>();
+        foreach (WoodStack cost in wood.CostOf(PileKind.Cabin))
+        {
+            int missing = cost.count - state.Count(cost.itemId) - Inventory.Player.Count(cost.itemId);
+            int n = Mathf.Min(missing, wood.BarnStock(state.position, cost.itemId));
+            if (n <= 0)
+                continue;
+            total += n;
+            parts.Add($"{n} {ItemDatabase.Get(cost.itemId)?.DisplayName ?? cost.itemId}");
+        }
+        what = Shorten(parts);
+        return total;
+    }
+
+    int TopUpCabinFromBarns()
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null || WellsAndOuthouses.MaterialsLocked(state))
+            return 0;
+        int stored = 0;
+        foreach (WoodStack cost in wood.CostOf(PileKind.Cabin))
+        {
+            int n = cost.count - state.Count(cost.itemId);
+            if (n <= 0)
+                continue;
+            foreach (WoodStack batch in wood.TakeFromBarns(state.position, cost.itemId, n))
+            {
+                state.Add(cost.itemId, batch.count, WoodManager.IsWood(cost.itemId) ? batch.day : 0);
+                stored += batch.count;
+            }
         }
         return stored;
     }

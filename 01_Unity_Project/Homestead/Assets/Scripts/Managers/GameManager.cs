@@ -97,6 +97,10 @@ public class GameManager : MonoBehaviour, ISaveable
             TradingPost.Instance.ResetMoney(land.HasValue ? land.Value.reserveCents : 0);
             TradingPost.Instance.ResetDeliveries();
         }
+        if (PhoneManager.Instance != null)
+            PhoneManager.Instance.ResetForNewGame(); // no plan yet (the phone itself is in the kit)
+        if (PowerManager.Instance != null)
+            PowerManager.Instance.ResetPower(); // no power system (E1)
         if (MarketManager.Instance != null)
             MarketManager.Instance.ResetMarket(true); // a new market: every price starts at its current-season target
         if (LedgerManager.Instance != null)
@@ -243,6 +247,10 @@ public class GameManager : MonoBehaviour, ISaveable
             TradingPost.Instance.ResetMoney(0);
             TradingPost.Instance.ResetDeliveries(); // a save with none on their way has none
         }
+        if (PhoneManager.Instance != null)
+            PhoneManager.Instance.ResetForLoad(); // a save with no phone section is from before the phone: it gets one
+        if (PowerManager.Instance != null)
+            PowerManager.Instance.ResetPower(); // a save with no power section has none
         if (MoneyManager.Instance != null)
             MoneyManager.Instance.ResetLoan(); // a save with no loan section (an old game) has no loan
         if (MarketManager.Instance != null)

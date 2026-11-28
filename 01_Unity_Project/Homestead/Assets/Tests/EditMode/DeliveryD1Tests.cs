@@ -83,10 +83,10 @@ public class DeliveryD1Tests
         Assert.That(wood, Does.Contain("case PileKind.DeliveryPad: return !WoodManager.IsWater(itemId);"), "it takes anything but water");
         Assert.That(wood, Does.Contain("if (kind == PileKind.DeliveryPad && DeliveryPad != null)"), "one at a time");
         string post = SourceText("Scripts/Managers/TradingPost.cs");
-        Assert.That(post, Does.Contain("if (WoodManager.Instance == null || WoodManager.Instance.DeliveryPad == null)"), "no pad, no order");
+        Assert.That(post, Does.Contain("if (!HasDropPoint)"), "no pad (and since B1b no Pole Barn), no order");
         Assert.That(post, Does.Contain("LedgerManager.Instance.Record(LedgerCategory.DeliveryFees, fee);"));
-        Assert.That(post, Does.Contain("ToolStatus.Banner(DeliveryRules.Arrived, 8f);"));
-        Assert.That(post, Does.Contain("ToolStatus.Banner(DeliveryRules.Waiting, 8f);"), "and says so if the pad was taken up meanwhile");
+        Assert.That(post, Does.Contain(": DeliveryRules.Arrived, 8f);"), "on the pad (since B1b, the barn first)");
+        Assert.That(post, Does.Contain(": DeliveryRules.Waiting, 8f);"), "and says so if the pad was taken up meanwhile");
         Assert.That(SourceText("Scripts/World/WoodPile.cs"), Does.Contain("state.kind == PileKind.DeliveryPad || WoodManager.IsBarn(state.kind);"), "a store: E takes, R puts back");
         Assert.That(SourceText("Scripts/UI/TradingPostScreen.cs"), Does.Contain("bool ok = post.PlaceOrder(out string message);"));
         Assert.That(SourceText("Scripts/Managers/GameManager.cs"), Does.Contain("TradingPost.Instance.ResetDeliveries();"));
