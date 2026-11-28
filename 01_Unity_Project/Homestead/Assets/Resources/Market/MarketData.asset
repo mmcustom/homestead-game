@@ -1105,6 +1105,41 @@ MonoBehaviour:
     kind: 0
     seasonalBuy: 0
     sellCents: 0
+  - itemId: solar_panel
+    group: 7
+    pool: solar_panel
+    baseCents: 26000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: battery_module
+    group: 7
+    pool: battery_module
+    baseCents: 120000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: power_inverter
+    group: 7
+    pool: power_inverter
+    baseCents: 155000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: generator
+    group: 7
+    pool: generator
+    baseCents: 120000
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
+  - itemId: buried_cable
+    group: 7
+    pool: buried_cable
+    baseCents: 150
+    kind: 0
+    seasonalBuy: 0
+    sellCents: 0
   - itemId: sticks
     group: 0
     pool: sticks

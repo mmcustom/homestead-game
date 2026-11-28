@@ -252,7 +252,7 @@ public class TradingPostScreen : GameScreen
     void OrderPanel(TradingPost post)
     {
         BarnRows(post);
-        bool pad = WoodManager.Instance != null && WoodManager.Instance.DeliveryPad != null;
+        bool pad = TradingPost.HasDropPoint; // a Delivery Pad or a Pole Barn (B1b)
         if (!pad)
             UiKit.Height(UiKit.Text(sellList, "NoPad", DeliveryRules.NoPad, 20, new Color(0.68f, 0.18f, 0.08f)), 56f);
         if (post.Order.Count == 0)
@@ -330,7 +330,8 @@ public class TradingPostScreen : GameScreen
                 continue;
             }
             BarnChoice(BarnRules.KitRow(size), "Order", () => post.OrderBarnKit(site, out string m) ? m : m);
-            BarnChoice(BarnRules.CrewRow(size), "Hire", () => post.HireBarnCrew(site, out string m) ? m : m);
+            // Since slice P1 (Mike, 2026-11-27) every crew is hired by phone.
+            UiKit.Height(UiKit.Text(sellList, "BarnCrew", BarnRules.CrewByPhone(size), 18, UiKit.InkMuted), 30f);
         }
     }
 

@@ -421,6 +421,38 @@ Trigger: first Pole Barn Site marked out.
 
 A Pole Barn is a big post-frame building for storing everything the homestead needs. It comes in three sizes: Small (24 x 32 ft, holds 5,000 kg), Medium (30 x 40 ft, 10,000 kg) and Large (40 x 60 ft, 20,000 kg). Mark out a Pole Barn Site from the Build tab (under Other); it is free and needs fairly flat, open ground.
 
-Then, at the Trading Post (T), switch to Deliver: your site has two choices. Order the kit ($7,500, $12,000 or $22,000) and it is delivered onto the site: posts, trusses and steel sheets. Build it yourself in three stages with the Hammer: set the posts, raise the trusses, then put on the roof and walls. Or hire the crew ($13,000, $20,000 or $36,000): half is paid now and half when they finish. They start 3 days later and take about a week.
+Then, at the Trading Post (T), switch to Deliver and order the kit ($7,500, $12,000 or $22,000) and it is delivered onto the site: posts, trusses and steel sheets. Build it yourself in three stages with the Hammer: set the posts, raise the trusses, then put on the roof and walls. Or hire the crew by phone (P, Contractors; $13,000, $20,000 or $36,000): half is paid now and half when they finish. They start 3 days later and take about a week.
 
 Walk in through the big door and press E at the shelves along the back to store things or take them. It holds anything but water.
+
+Anything you build or craft within 50 m of a barn can use what is on its shelves: the Build and Craft tabs count it, and R at a building site loads what you carry, then the rest from the barn. Trading Post deliveries go into the barn nearest the Delivery Pad when it has room, so you can order without a pad; what does not fit goes on the pad.
+
+## 36. Your Phone
+
+Trigger: the smartphone in the pack (everyone starts with one).
+
+Everyone starts with a smartphone. Press P to raise it in your hands; P or Esc puts it away. While it is up you stand still and the mouse is free, so click the apps.
+
+With no service it still shows the time and the date. Open Bills & Plan to start the plan: unlimited talk, text and data for $25 a month, paid when you start it and then on the 15th of every month. If a bill comes when you are short of cash, the service is suspended until you pay it from Bills & Plan; nothing else is lost. You can cancel at any time and the service runs to the next bill day.
+
+With service: Weather shows the conditions now and tonight's low, Market shows what the Trading Post pays and charges today, and Contractors hires crews, such as the Pole Barn crew. The phone bill shows in the Ledger as Bills.
+
+## 37. The Drilled Well
+
+Trigger: first Drilled Well Site marked out.
+
+A drilled well goes down to the deep water a shovel can't reach. Mark out a Drilled Well Site from the Build tab (under Other); it is free, and it keeps a well's distances from the outhouse and the water, but it has no depth limit.
+
+Then hire the driller by phone (P, Contractors). The quote is by the depth where you staked it: about $3,800 on low ground near water up to about $8,500 on high ground. Half is paid when you book; the rig comes 3 days later and drills for 2, and the rest is paid when it is done.
+
+The finished well has a cast-iron hand pump: press E to fill your Bucket or Canteen, or to drink. Its water is excellent and safe, and flood water and the outhouse can't foul it. It holds up to 1,000 L and refills about 40 L an hour, even in a drought, so only heavy use runs it low. A garden Hand Pump beside it can draw from it too.
+
+## 38. Power: Solar, Batteries and the Generator
+
+Trigger: first Power Shed, Solar Panel Rack or Generator built.
+
+Power comes in pieces you buy at the Trading Post and add up. Build a Power Shed (Build tab, Other; 12 Lumber and an Inverter, with the Hammer) and press R there to install Battery Modules (5 kWh each, up to 8). Build Solar Panel Racks on open ground (6 Lumber each) and press R to mount Solar Panels (400 W each, four to a rack). Trees within about 12 m shade a rack and cut what it makes.
+
+Every hour the panels make power by the sun's height and the sky: most at midday in summer, little on a grey winter day, nothing at night. The batteries store it, and they are never run below 10%. A Generator (set it down from the Build tab) runs on Gasoline: load cans with R. It starts by itself when the batteries fall below 20% and stops at 80%, burning about half a gallon an hour.
+
+To wire a building, carry Buried Cable (sold by the foot), press R at the Power Shed and then E on the building; the run takes a foot of cable for every foot of distance. Wired cabins, barns, greenhouses and workshops get electric lights that come on at dusk. E at the Power Shed (or the Power app on your phone) shows the charge, what the sun is making, what is being used and the generator's fuel.

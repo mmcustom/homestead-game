@@ -275,6 +275,12 @@ public static class MarketCatalog
         Row(WateringRules.GasolineId, MarketGroup.Stocked, WateringRules.GasolineStoreCents, MarketKind.Stocked),
         // Greenhouses G6 (2026-11-27): the wax Vent Opener (VentRules has the price).
         Row(VentRules.ItemId, MarketGroup.Stocked, VentRules.StoreCents, MarketKind.Stocked),
+        // The power system E1 (2026-11-28): the pieces at real 2026 prices (PowerRules has them).
+        Row(PowerRules.PanelId, MarketGroup.Stocked, PowerRules.PanelCents, MarketKind.Stocked),
+        Row(PowerRules.BatteryId, MarketGroup.Stocked, PowerRules.BatteryCents, MarketKind.Stocked),
+        Row(PowerRules.InverterId, MarketGroup.Stocked, PowerRules.InverterCents, MarketKind.Stocked),
+        Row(PowerRules.GeneratorId, MarketGroup.Stocked, PowerRules.GeneratorCents, MarketKind.Stocked),
+        Row(PowerRules.CableId, MarketGroup.Stocked, PowerRules.CableCentsPerFoot, MarketKind.Stocked),
         // Everything you need or can build (Mike, 2026-11-27; SupplyRules): the materials the store did not deal in, now bought and sold, and Iron Bars sold only.
         Homemade(SupplyRules.SticksId, MarketGroup.WoodStone, SupplyRules.SticksCents),
         Homemade(SupplyRules.BranchesId, MarketGroup.WoodStone, SupplyRules.BranchesCents),

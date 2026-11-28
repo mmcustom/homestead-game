@@ -314,7 +314,7 @@ public class KilnTests
         Assert.That((int)Kind("PotterShed"), Is.EqualTo(36));
         Assert.That((int)Kind("KilnSite"), Is.EqualTo(37));
         Assert.That((int)Kind("Kiln"), Is.EqualTo(38));
-        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(95));
+        Assert.That(Enum.GetValues(Find("PileKind")).Length, Is.EqualTo(100));
     }
 
     [Test]
@@ -612,8 +612,8 @@ public class KilnTests
             Assert.That(table.SellBaseCents(pair.Key), Is.EqualTo(pair.Value), pair.Key);
             Assert.That(table.BuyBaseCents(pair.Key), Is.EqualTo(stocked ? pair.Value * 5 / 2 : 0L), pair.Key + (stocked ? " is stocked" : " is not stocked"));
         }
-        Assert.That(table.Rows.Count, Is.EqualTo(165));
-        Assert.That(table.Stock.Count, Is.EqualTo(94), "the store's supplies, the chain goods, the Wheel, the Tripod, the clothing and the Leather Pack (25, 2026-11-27); the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
+        Assert.That(table.Rows.Count, Is.EqualTo(170));
+        Assert.That(table.Stock.Count, Is.EqualTo(99), "the five power parts (E1, 2026-11-28); the store's supplies, the chain goods, the Wheel, the Tripod, the clothing and the Leather Pack (25, 2026-11-27); the Vent Opener (G6, 2026-11-27); the Garden Hose, Drip Kit, Hand Pump, Fuel Pump and Gasoline (G5, 2026-11-27); the Greenhouse Stove, Propane Heater and Propane Tank (G4, 2026-11-26); the Glass Pane and the Box of Nails on the shelf (G3, 2026-11-26); the Greenhouse Hoop and Plastic (G2, 2026-11-26); the Window Sash (G1, 2026-11-26); Wire Mesh (GB4a, 2026-11-25); the Row Cover (GB2, 2026-11-25); the Crock Pot (2026-11-25); the Hoe, Watering Can, seven seeds, Tomato Plants and Potatoes (GB1, 2026-11-25); the Bark Spud (2026-11-23); Salt (2026-11-22); the rest of the hand tools and the maple gear joined the shelf 2026-11-14; the five hand tools joined the shelf 2026-11-14; Stocked is 22: Iron Ore joined it (Metalworking M1)");
         Assert.That(table.Rows.Count(r => r.group == MarketGroup.Crafted), Is.EqualTo(30), "and the Wooden Wheel and the Tripod (2026-11-27)");
         MarketGroupRule crafted = table.RuleOf("clay_cup");
         Assert.That(crafted.dropBp, Is.EqualTo(1000), "10% off per unit");

@@ -31,7 +31,7 @@ public static class DeliveryRules
     // --- Words ---
 
     public const string PadName = "Delivery Pad";
-    public const string NoPad = "Build a Delivery Pad first (Build tab, Other) - deliveries come to it";
+    public const string NoPad = "Build a Delivery Pad or a Pole Barn first (Build tab, Other) - deliveries come to them";
     public const string OnlyOnePad = "You already have a Delivery Pad - empty it and take it up with the Hammer to move it";
     public const string EmptyOrder = "The order is empty - switch to Deliver and add things from the store";
     public const string Arrived = "Your Trading Post delivery is on the Delivery Pad";
@@ -44,6 +44,9 @@ public static class DeliveryRules
     public static string Summary(long goodsCents, float kg) =>
         $"Goods {Money.Format(goodsCents)}  +  delivery {(FeeFor(goodsCents) == 0 ? "free" : Money.Format(FeeFor(goodsCents)))}  =  {Money.Format(goodsCents + FeeFor(goodsCents))}" +
         $"\n{Math.Round(kg):0} kg, arrives {DayWord(DaysFor(kg))} at {ArrivalHour} a.m.{(goodsCents > 0 && goodsCents < FreeFromCents ? $"  (free over {Money.Format(FreeFromCents)})" : "")}";
+
+    // Slice B1b: with a Pole Barn standing, the order comes to the barn (what doesn't fit goes on the pad).
+    public static string Placed(int days, bool toBarn) => toBarn ? $"Order placed - it arrives at your Pole Barn {DayWord(days)} at {ArrivalHour} a.m." : Placed(days);
 
     public static string Placed(int days) => $"Order placed - it arrives on the Delivery Pad {DayWord(days)} at {ArrivalHour} a.m.";
 
@@ -81,4 +84,8 @@ public class CrewJob
     public int size;        // BarnRules.Size
     public int bookedDay;
     public bool balancePaid;
+    public int job;         // what the crew builds (slice P2; appended, so an older save's crews are 0): JobBarn or JobDrill
+    public long cents;      // the whole job's price, when it depends on the site (the Drilled Well's quote); 0 for a barn (BarnRules has it)
+
+    public const int JobBarn = 0, JobDrill = 1;
 }

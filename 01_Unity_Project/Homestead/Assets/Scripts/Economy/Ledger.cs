@@ -39,11 +39,14 @@ public enum LedgerCategory
 
     // Expenses: contractors hired (the Pole Barn's crew, slice B1a, 2026-11-27; later the well driller and the rest).
     Contractors = 20,
+
+    // Expenses: monthly bills (the phone plan, slice P1, 2026-11-27; later internet and utilities).
+    Bills = 21,
 }
 
 public static class LedgerCategories
 {
-    public const int Count = 21;
+    public const int Count = 22;
     public const int LastIncomeId = 7;
 
     public static bool IsIncome(LedgerCategory category) => (int)category <= LastIncomeId;
@@ -72,6 +75,7 @@ public static class LedgerCategories
             case LedgerCategory.BuyBuildingMaterials: return "Bought: building materials";
             case LedgerCategory.DeliveryFees: return "Delivery fees";
             case LedgerCategory.Contractors: return "Contractors";
+            case LedgerCategory.Bills: return "Bills";
             default: return "Bought: other goods";
         }
     }
@@ -139,6 +143,10 @@ public static class LedgerCategories
         { WateringRules.FuelPumpId, LedgerCategory.BuyOtherGoods },
         { WateringRules.GasolineId, LedgerCategory.BuyOtherGoods },
         { VentRules.ItemId, LedgerCategory.BuyOtherGoods },
+        // Power E1 (2026-11-28): the solar, battery and generator parts and the cable are what the system is built from.
+        { PowerRules.PanelId, LedgerCategory.BuyBuildingMaterials }, { PowerRules.BatteryId, LedgerCategory.BuyBuildingMaterials },
+        { PowerRules.InverterId, LedgerCategory.BuyBuildingMaterials }, { PowerRules.GeneratorId, LedgerCategory.BuyBuildingMaterials },
+        { PowerRules.CableId, LedgerCategory.BuyBuildingMaterials },
         // Everything you need or can build (2026-11-27): building materials, and the rest as other goods.
         { "firewood", LedgerCategory.BuyCookingWaterFire }, { "logs", LedgerCategory.BuyBuildingMaterials }, { "stone", LedgerCategory.BuyBuildingMaterials },
         { SupplyRules.SticksId, LedgerCategory.BuyBuildingMaterials }, { SupplyRules.BranchesId, LedgerCategory.BuyBuildingMaterials },

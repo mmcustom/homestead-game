@@ -213,7 +213,7 @@ public class TradingPost : MonoBehaviour, ISaveable
             message = DeliveryRules.EmptyOrder;
             return false;
         }
-        if (WoodManager.Instance == null || WoodManager.Instance.DeliveryPad == null)
+        if (!HasDropPoint) // a Delivery Pad, or a Pole Barn (B1b)
         {
             message = DeliveryRules.NoPad;
             return false;
@@ -238,10 +238,60 @@ public class TradingPost : MonoBehaviour, ISaveable
         money = Money.Sub(money, total);
         deliveries.Add(sent);
         order.Clear();
-        message = DeliveryRules.Placed(DeliveryRules.DaysFor(kg));
+        message = DeliveryRules.Placed(DeliveryRules.DaysFor(kg), DropBarns().Count > 0);
         MoneyChanged?.Invoke();
         OrderChanged?.Invoke();
         return true;
+    }
+
+    // --- Slice B1b (Mike, 2026-11-27): a standing Pole Barn is a drop point too ---
+
+    // Whether an order has somewhere to go: a Delivery Pad or a finished barn.
+    public static bool HasDropPoint => WoodManager.Instance != null && (WoodManager.Instance.DeliveryPad != null || DropBarns().Count > 0);
+
+    // The barns a delivery fills, in turn: nearest the Delivery Pad first, or the first built when there is no pad.
+    static List<WoodPileState> DropBarns()
+    {
+        WoodManager wood = WoodManager.Instance;
+        if (wood == null)
+            return new List<WoodPileState>();
+        WoodPileState pad = wood.DeliveryPad;
+        if (pad != null)
+            return wood.BarnsNearestTo(pad.position);
+        var barns = new List<WoodPileState>();
+        foreach (WoodPileState pile in wood.Piles)
+            if (WoodManager.IsBarn(pile.kind))
+                barns.Add(pile);
+        barns.Sort((a, b) => a.id.CompareTo(b.id));
+        return barns;
+    }
+
+    // Puts what fits of an arrived order into the barns, by weight, and takes it off the order's lines. Returns whether anything went in.
+    static bool IntoBarns(DeliveryOrder order)
+    {
+        bool any = false;
+        foreach (WoodPileState barn in DropBarns())
+        {
+            BarnRules.Size size = WoodManager.BarnSizeOf(barn.kind);
+            int fresh = SpoilageManager.Convert(SpoilageManager.FreshStamp(), FreshClock.Outdoor, SpoilageManager.ClockOf(barn.kind));
+            bool changed = false;
+            foreach (DeliveryLine line in order.lines)
+            {
+                if (line.count <= 0 || !barn.Accepts(line.itemId))
+                    continue;
+                ItemDefinition item = ItemDatabase.Get(line.itemId);
+                int n = Math.Min(line.count, BarnRules.UnitsThatFit(size, WoodPile.CartLoadKg(barn), item != null ? item.WeightKg : 0f));
+                if (n <= 0)
+                    continue;
+                barn.Add(line.itemId, n, item != null && item.IsPerishable ? fresh : 0);
+                line.count -= n;
+                changed = any = true;
+            }
+            if (changed)
+                WoodManager.Instance.NotifyChanged(barn);
+        }
+        order.lines.RemoveAll(l => l.count <= 0);
+        return any;
     }
 
     // Days until the next delivery comes (0: today), or -1 if none is on its way.
@@ -351,12 +401,97 @@ public class TradingPost : MonoBehaviour, ISaveable
         return true;
     }
 
+    // --- The well driller (slice P2, DrillRules): hired by phone for a Drilled Well Site, priced by its depth ---
+
+    public bool HireDriller(WoodPileState site, out string message)
+    {
+        if (site == null || site.kind != PileKind.DrilledWellSite)
+        {
+            message = DrillRules.NoSite;
+            return false;
+        }
+        if (CrewFor(site.id) != null)
+        {
+            message = DrillRules.CrewHasIt;
+            return false;
+        }
+        long cents = DrillRules.JobCents(site.depthToWater), deposit = DrillRules.Deposit(cents);
+        if (deposit > money)
+        {
+            message = $"Not enough money - the driller wants {Money.Format(deposit)} now.";
+            return false;
+        }
+        if (LedgerManager.Instance != null)
+            LedgerManager.Instance.Record(LedgerCategory.Contractors, deposit);
+        money = Money.Sub(money, deposit);
+        site.jobItem = DrillRules.CrewMarker;
+        crews.Add(new CrewJob { siteId = site.id, bookedDay = Today, job = CrewJob.JobDrill, cents = cents });
+        WoodManager.Instance.NotifyChanged(site);
+        message = DrillRules.Booked(cents);
+        MoneyChanged?.Invoke();
+        OrderChanged?.Invoke();
+        return true;
+    }
+
+    // The driller's hour: the site shows the rig while it drills (buildProgress); when it is done the balance is taken (as soon as there is the cash) and the well stands.
+    void DrillUpdate(int i, CrewJob job, double now)
+    {
+        WoodPileState site = PileById(job.siteId);
+        if (site == null || site.kind != PileKind.DrilledWellSite)
+        {
+            crews.RemoveAt(i);
+            return;
+        }
+        float progress = DrillRules.Progress(job.bookedDay, now);
+        if (progress < 1f)
+        {
+            if (Mathf.Abs(site.buildProgress - progress) > 0.02f || (progress > 0f && site.buildProgress <= 0f))
+            {
+                site.buildProgress = progress;
+                WoodManager.Instance.NotifyChanged(site);
+            }
+            return;
+        }
+        if (!job.balancePaid)
+        {
+            long balance = DrillRules.Balance(job.cents);
+            if (balance > money)
+            {
+                if (owedTold.Add(job.siteId))
+                    ToolStatus.Banner(DrillRules.Owed(balance), 10f);
+                return;
+            }
+            if (LedgerManager.Instance != null)
+                LedgerManager.Instance.Record(LedgerCategory.Contractors, balance);
+            money = Money.Sub(money, balance);
+            job.balancePaid = true;
+            MoneyChanged?.Invoke();
+        }
+        // Done and paid: the well stands, full.
+        site.jobItem = null;
+        site.kind = PileKind.DrilledWell;
+        site.buildProgress = 0f;
+        site.builtDay = Today;
+        site.litres = DrillRules.BufferLitres;
+        site.contaminatedHours = 0f;
+        crews.RemoveAt(i);
+        owedTold.Remove(job.siteId);
+        WoodManager.Instance.NotifyChanged(site);
+        ToolStatus.Banner(DrillRules.Done(DrillRules.Balance(job.cents)), 10f);
+        OrderChanged?.Invoke();
+    }
+
     // The crews' hour: the site shows how far along they are; when they are done the balance is taken (as soon as there is the cash) and the barn stands.
     void CrewsUpdate(double now)
     {
         for (int i = crews.Count - 1; i >= 0; i--)
         {
             CrewJob job = crews[i];
+            if (job.job == CrewJob.JobDrill)
+            {
+                DrillUpdate(i, job, now);
+                continue;
+            }
             WoodPileState site = PileById(job.siteId);
             if (site == null || !WoodManager.IsBarnSite(site.kind))
             {
@@ -413,7 +548,7 @@ public class TradingPost : MonoBehaviour, ISaveable
             return;
         double now = TimeManager.Instance.TotalHours;
         CrewsUpdate(now);
-        bool arrived = false, waiting = false, kit = false;
+        bool arrived = false, waiting = false, kit = false, inBarn = false;
         for (int i = deliveries.Count - 1; i >= 0; i--)
         {
             if (!DeliveryRules.Due(deliveries[i].arriveHours, now))
@@ -431,6 +566,14 @@ public class TradingPost : MonoBehaviour, ISaveable
                 kit = true;
                 continue;
             }
+            // Into the barns first, as much as fits (B1b); the rest onto the pad, or it waits for room or a pad.
+            if (IntoBarns(deliveries[i]))
+                inBarn = true;
+            if (deliveries[i].lines.Count == 0)
+            {
+                deliveries.RemoveAt(i);
+                continue;
+            }
             WoodPileState pad = WoodManager.Instance.DeliveryPad;
             if (pad == null)
             {
@@ -446,14 +589,14 @@ public class TradingPost : MonoBehaviour, ISaveable
         }
         if (kit)
             ToolStatus.Banner("The Pole Barn kit is on its site - build it with the Hammer, stage by stage", 8f);
-        if (arrived)
+        if (arrived || inBarn)
         {
-            ToolStatus.Banner(DeliveryRules.Arrived, 8f);
+            ToolStatus.Banner(inBarn ? (arrived ? BarnRules.InBarnAndPad : BarnRules.InBarn) : DeliveryRules.Arrived, 8f);
             waitingTold = false;
         }
-        else if (waiting && !waitingTold)
+        if (waiting && !waitingTold)
         {
-            ToolStatus.Banner(DeliveryRules.Waiting, 8f);
+            ToolStatus.Banner(DropBarns().Count > 0 ? BarnRules.BarnFull : DeliveryRules.Waiting, 8f);
             waitingTold = true;
         }
     }

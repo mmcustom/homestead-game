@@ -279,7 +279,7 @@ public class RegrowTests
     {
         Type kind = Find("PileKind");
         string[] names = Enum.GetNames(kind);
-        Assert.That(names.Length, Is.EqualTo(95));
+        Assert.That(names.Length, Is.EqualTo(100));
         Assert.That(names[0], Is.EqualTo("Felled"));
         Assert.That(names[44], Is.EqualTo("Smithy"), "the Charcoal Pit's two kinds (39, 40), the Bloomery's two (41, 42) and the Smithy's two (43, 44) came after the Kiln (38), and the Compost Bin (45) after them");
         Assert.That((int)Enum.Parse(kind, "Bloomery"), Is.EqualTo(42));

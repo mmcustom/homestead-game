@@ -206,10 +206,63 @@ Built in two parts: B1a, the barn (parts, the staged site, the crew, the walk-in
 - **Know-how:** "The Pole Barn" (entry 35), unlocked by marking out a site.
 - **Art:** structure_polebarnsmall / _medium / _large (about 4,000 to 6,500 triangles) and item_barn_post, item_barn_truss and item_steel_sheet; Build and item icons rendered from them.
 - **Code:** Economy/BarnRules.cs (every number and the words), WoodManager (kinds 89 to 94 appended), WellsAndOuthouses (the staged site in three stages), TradingPost and TradingPostScreen (the kit, the crew and their saving), World/PoleBarnVisuals.cs (the site and the barn), PlacedStructure, WoodPile, StorageTransferScreen, CraftingScreen, PlacementMode, AxeTool, Ledger, KnowHowRules; tests in PoleBarnB1Tests.
+**Mike's answers for slice B1b, the barn feeding builds and taking deliveries (2026-11-27):**
+1. **Staged sites:** R at a site within 50 m of a barn loads what the player carries first, then tops up from the barn in the same press.
+2. **Drop point:** a standing barn counts as a drop point, so an order can be placed with no Delivery Pad; the pad is only needed when no barn has room.
+3. **Overflow:** as much as fits goes into the barn and the rest onto the Delivery Pad (or it waits for a pad if there is none).
+4. **More than one barn:** the barn nearest the Delivery Pad (the first one built if there is no pad), spilling over to the next barn when it is full.
+
+**As built: slice B1b (2026-11-27), awaiting Mike's play-test:**
+- **What feeds:** the shelves of every finished Pole Barn within 50 m (measured flat). For builds and crafting the distance is from where the player stands; for a site it is from the site. The nearest barn is used first.
+- **One-step builds (Build tab):** the materials counts and the "Needs ..." check include the barns, and building pays from the pack first, then the barns. A line under the entry says the counts include a barn within 50 m.
+- **Crafting (Craft tab):** the same. The counts, the Craft button and the amount stepper include the barns, and crafting spends the pack first, then the barns. The stepper still judges the weight as if every ingredient came out of the pack; anything made that the pack can't hold goes on the ground in front of you, as before.
+- **Staged sites and the Small Cabin site:** R stores what you carry, then tops the current stage up from the barns in the same press. The prompt says "Store ..., then the rest from the barn", or "Load from the barn (...)" when you carry none of it. A Kitchen hearth's R only takes it down when neither the pack nor a barn has anything for it.
+- **Deliveries:** a standing barn is a drop point, so Place Order works with no Delivery Pad. An order fills the barn nearest the pad (or the first built), then the next, by weight; whatever doesn't fit goes on the pad. With no pad, the rest waits on the order until there is room or a pad, and a banner says so. The order message says it arrives at your Pole Barn. Pole Barn kits still go onto their own site.
+- **Know-how:** "The Pole Barn" (entry 35) has a fourth paragraph on feeding and deliveries; the Build tab help for the barn sites says so too.
+- **Code:** BarnRules (FeedRadius, Allocate, the words), DeliveryRules (NoPad, Placed to the barn), WoodManager (BarnsNearestTo, BarnsFeeding, BarnStock, Have, TakeFromBarns, Spend; CanStartBuild and BuildPile use them), Crafting, CraftingScreen, PlacedStructure and WoodPile (R tops sites up), TradingPost (HasDropPoint, DropBarns, IntoBarns) and TradingPostScreen; tests in PoleBarnB1bTests.
 **Then:** the phone, bills and the contractor frame (build-order steps 2 and 3), power, water pressure, septic and greywater, and livestock in the barn.
 
 Sources (2026-11-27): HomeGuide, pole barn kit prices and pole barn prices (kit $10 to $30 per sq ft, built $15 to $40, labour $5 to $10); PoleBarnCosts 2026 guides (kit vs contractor; Midwest at the low end); Angeles Millwork and Ricci Lumber delivery pages (flat $45 to $50 delivery, free over a minimum order).
 
+# The phone, bills and contractors (Mike, 2026-11-27)
+
+**Mike's answers (2026-11-27):**
+1. **Getting a phone:** the player starts with a smartphone in the pack. It does nothing useful until a service plan is paid.
+2. **Opening it:** its own key, P. It should look like a real smartphone held in the player's hands: the first-person hands raise a 3D phone, and its screen shows the apps, the time and the weather when it has service.
+3. **The plan:** one plan, $25 a month (unlimited talk, text and data, the real 2026 cheap prepaid price), billed on the 15th.
+4. **Apps:** Contractors, Weather, Bills & Plan and Market prices, plus Mike's own app icons on the home screen (Brandy's Bakery, Sweet Swap, Fast Food Frenzy, Starforge and My Tech App) as free advertising.
+5. **No service** (no plan yet, or a bill unpaid): the screen still shows the time and date with a "No Service" bar; apps that need service are greyed out except Bills & Plan, to sign up.
+6. **The first contractor job is a Drilled Well:** a new structure, separate from the hand-dug Well, at about the real Ohio price ($5,320 for an average 140 ft well, $25 to $55 a foot). A cased well with a hand pump now: clean water that never runs dry. An electric pump comes with Power later.
+7. **All hiring is by phone:** the Pole Barn crew moves from the Trading Post counter to the phone's Contractors app; the barn kit is still ordered at the Trading Post.
+
+Built in two parts: P1, the phone, its plan and bills, and the apps (the Pole Barn crew moves into Contractors); P2, the Drilled Well job.
+
+**Mike's answers for slice P2, the Drilled Well (2026-11-27):**
+1. **Price by depth at the spot:** the quote depends on how deep the aquifer is where the site is staked, from about $3,500 on low ground near water to about $9,000 on high ground (real Ohio drillers: $25 to $55 a foot). The phone shows the quote before hiring.
+2. **A big supply that refills:** about 1,000 L of excellent water, refilling about 40 L an hour, so heavy use can run it low.
+3. **Hiring:** mark out a free Drilled Well Site on the Build tab and hire the driller by phone, half now and half when done; the rig comes 3 days after booking and drills for 2.
+
+**As built: slice P2 (2026-11-27), awaiting Mike's play-test:**
+- **The site:** a Drilled Well Site under Other on the Build tab, free. It keeps a well's distances (from the outhouse, water's own zone, floodplain and hollows) but has no depth limit. It remembers the depth to water where it was placed (the same lookup the hand-dug Well's ghost shows). It looks like four stakes with orange flagging round a marked spot; E or its prompt says to hire by phone and shows the quote.
+- **The quote:** the drilled depth is 70 ft plus 15 ft for every metre to the water table, between 80 and 250 ft (about 92 ft by the creek, about 205 ft where a hand-dug well is too deep); the price is $30 a foot plus $1,000 for the casing cap, the pump and the permit: about $3,800 to $8,500 (an unknown depth is quoted as the average 140 ft, $5,200).
+- **Hiring (phone, Contractors, "Well drilling"):** each site with its quote and a Hire button for half now, or the rig's status once booked. The rig (a yellow truck with its mast up, and a pile of cuttings that grows) shows up 3 days later and drills for 2. When it is done the balance is taken (or a banner says it is due and it is taken as soon as there is the cash), and the site becomes the Drilled Well, full. Both payments are Contractors in the ledger; the job is saved with the crews (CrewJob gained a job type and a price).
+- **The Drilled Well:** a concrete pad, the steel casing and its bolted cap, and a cast-iron pitcher pump (structure_drilledwell). E pumps water into the Bucket or a Canteen, or drinks: excellent water (flood water and a privy can't foul it), up to 1,000 L, refilling 40 L an hour, drought or not. It counts as a Well for the outhouse distances and for a garden Hand Pump beside it.
+- **Know-how:** "The Drilled Well" (entry 37), unlocked by marking out the site. The Build tab help says all this.
+- **Code:** Economy/DrillRules.cs (depth, price, timing, water, words), WoodManager (kinds 95 and 96 appended: DrilledWellSite, DrilledWell), WellsAndOuthouses (setbacks, water quality, numbers, the hourly refill), TradingPost (HireDriller, the driller's hour), PhoneView (the Well drilling section), World/DrilledWellVisuals.cs (the site, the rig and the well), PlacedStructure, WateringFittings, CraftingScreen, DeliveryRules (CrewJob), KnowHowRules; tests in DrillP2Tests.
+
+**As built: slice P1 (2026-11-27), awaiting Mike's play-test:**
+- **The phone:** a Smartphone item (0.2 kg) in both starting kits; a save from before it gets one in the pack when it loads. P raises it, P or Esc puts it away (Esc doesn't also open the pause menu). It can't come up while placing a build, pushing the cart or knocked down in the creek; opening any menu puts it away.
+- **In the hands:** both first-person hands hold a 3D phone (item_smartphone, graphite with a camera bump) low in front, its screen facing the eye; it slides up as it comes out. The tool in hand is lowered while the phone is up. The world keeps running (it is a phone, not a pause menu), but you stand still and the mouse is free.
+- **The screen:** a panel drawn over the 3D screen each frame, fitted to where its corners land on the display, so the text is sharp and big and the mouse clicks it. A status bar (the time, "5G" or "No Service", the battery), and a home bar at the bottom that goes back home.
+- **Home:** a big clock, the date, and the temperature and weather (with service) or "No service - open Bills & Plan to start a plan" (without). Nine apps, three across: Contractors, Weather, Bills & Plan, Market, then Brandy's Bakery, Sweet Swap, Fast Food Frenzy, Starforge and My Tech App, with Mike's own icons (copied to Art/References/PhoneApps; Fast Food Frenzy's is its burger on a red tile). Without service every app but Bills & Plan is greyed out and says it needs service.
+- **Bills & Plan:** the plan ($25 a month, unlimited talk, text and data, billed on the 15th), its status, the next bill date and the cash; Start the plan (the first month is paid now), Cancel (service runs to the next bill day, then ends with nothing more to pay), Keep my plan, and Pay now when suspended. The last six bills are listed.
+- **Bills:** on the 15th the $25 comes out of the cash with a short message; with too little cash the plan is suspended with a banner until it is paid from the app (nothing else is lost, and no more bills pile up meanwhile). They show in the ledger and the statement under a new category, "Bills" (category 21, appended).
+- **Weather:** the temperature, conditions and feels-like, precipitation, wind, humidity, tonight's expected low (with "frost likely" at 32 F or below), sunrise and sunset, and the creek. There is no multi-day forecast in the game's weather yet.
+- **Market:** the season's note, then what the Trading Post pays for each thing it buys and what it charges for each thing it sells, today, alphabetically.
+- **Contractors:** each Pole Barn Site with the crew's price and a Hire button (half now), or the crew's progress once hired. The Trading Post's Deliver panel no longer hires; it says to hire by phone.
+- **The ads:** Mike's apps open a page with the icon, the name and a line ("A cozy bakery game by Mike Mack" and so on).
+- **Know-how:** "Your Phone" (entry 36), unlocked by having the phone (so at once); an Inventory tip for the phone. The Pole Barn entry and the barn's Build help now say the crew is hired by phone.
+- **Code:** Economy/PhoneRules.cs (the plan, bills and suspension, the words, the apps), Managers/PhoneManager.cs (the plan's state, billing on the 15th, saving), UI/PhoneView.cs (P, the 3D phone, the screen and the apps), HandPoseRules (the phone pose), PlayerHands, PlayerController, DifficultyManager (the kit), GameManager, Ledger, TradingPostScreen, BarnRules, KnowHowRules; tests in PhoneP1Tests.
 # Dependencies
 
 The calendar decision (seasons and month length), Money Phase D2 (income per game day with the Workshop, pottery and metal in play), `Skills_and_Progression.md` (parked), the Power and Vehicles designs, and art for the phone UI, Delivery Spot, delivery truck and crew.

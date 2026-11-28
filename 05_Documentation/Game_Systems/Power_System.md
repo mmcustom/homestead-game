@@ -128,3 +128,60 @@ Real-world off-grid sizing data and formulas this document's numbers are grounde
 - [Complete Off-Grid Cabin Power Setup (2026): Three Full Builds](https://www.offgridbenchmark.com/guides/complete-off-grid-cabin-power-setup/)
 - [Off-Grid Daily Energy Needs: How to Calculate](https://voltcalcs.com/blog/off-grid-load-calculation-guide)
 - [Small Wind Turbine Size by Power Rating (With Charts)](https://www.attainablehome.com/small-wind-turbine-size-by-power-rating/)
+
+---
+
+# Mike's answers (2026-11-28): the first power system
+
+1. **What it runs first:** the Greenhouse Thermostat Controller, an electric pump on the Drilled Well, electric lights, Workshop power tools, and battery-powered (cordless) hand tools: a Chainsaw, an Impact Driver, a Circular Saw and a Work Light (a generic brand, no real names).
+2. **Sources:** solar panels and a battery bank, with a gas generator as backup (Gasoline is already in the game). Wind comes in a later slice.
+3. **Depth:** a real energy budget. Every game hour the panels make watt-hours by the sun and the cloud, the batteries store them, each powered thing draws its real watts, and the generator starts by itself when the batteries run low.
+4. **Getting it:** buy the pieces and install them yourself, or hire an electrician by phone to do it all (more money, less work).
+5. **Wiring:** run it yourself. Buried outdoor cable, bought by the foot: with a Wire Spool in hand, click the Power Shed, then the thing to power; a shallow trench line shows, and a longer run takes more cable.
+6. **Panels:** ground racks on open, sunny ground (trees that shade them cut their output). Roof mounts on the Pole Barn come later.
+7. **Buying:** pieces that add up, not kits: 400 W panels, 5 kWh battery modules, one inverter and a generator, sized to what is run; the Power panel shows whether it is enough.
+8. **Cordless tools:** they take battery packs, which recharge in a Charger wired to the system (it shows as a load).
+9. **Watching it:** both a Power app on the phone and a panel at the Power Shed (E): battery charge, what is making power and what is using it, and the generator's fuel.
+
+# Real prices (checked 2026-11-28)
+
+| Piece | Real price | Notes |
+|---|---|---|
+| 400 W solar panel | $200 to $350 each for small DIY jobs ($0.80 to $1.40 a watt) | game: $260 |
+| 5.12 kWh LiFePO4 rack battery | $212 to $253 a kWh; one well-known 48 V 100 Ah module $1,199 | game: $1,200 |
+| Off-grid inverter/charger | 3 kW about $700; 6 kW (8 kW of solar input) about $1,550 | game: one 6 kW, $1,550 |
+| 10/2 UF-B buried cable | $1.20 to $2.71 a foot | game: $1.50 a foot |
+| 5,000 W gasoline generator | about $1,100 to $1,800; 0.4 to 0.7 gal an hour at half load | game: $1,200, 0.55 gal (2.1 L) an hour at half load |
+| Installed solar (an electrician) | small systems $2.50 to $3.50 a watt installed | the hire price is built from this |
+
+# Slices (proposed)
+
+- **E1, the power system:** the Power Shed (the inverter, with battery modules stored in it), Solar Panel Racks, the Generator, the Wire Spool and buried runs, the hourly energy budget, the Power app and the shed's panel, and the first load: electric lights in the cabin, the Pole Barn and the greenhouses, on from dusk.
+- **E2, powered upgrades:** the Greenhouse Thermostat Controller and the Drilled Well's electric pump.
+- **E3, power tools:** the Charger and battery packs, the cordless Chainsaw, Impact Driver, Circular Saw and Work Light, and Workshop power tools.
+- **E4, the electrician:** hire the whole system by phone.
+# As built: slice E1 (2026-11-28, awaiting Mike's play-test)
+
+**The parts (Trading Post, Stocked, at the real prices above):** Solar Panel (400 W, $260), Battery Module (5.12 kWh, $1,200), Power Inverter (6,000 W, $1,550), Generator (5,000 W, $1,200) and Buried Cable ($1.50 a foot). Each has an Inventory tip, and buying them is booked under "Bought: building materials" in the ledger.
+
+**The three structures (Build tab, under Other):**
+- **Power Shed:** 1 Power Inverter + 12 Lumber, needs the Hammer. R installs Battery Modules from the pack (up to 8). E opens the shed's power panel. R with nothing to install starts or stops laying cable from it.
+- **Solar Rack:** 6 Lumber, needs the Hammer. R mounts Solar Panels (up to 4; the rack shows each one). Trees within 12 m shade it, 15% a tree, at most 90%.
+- **Generator:** placed from 1 Generator. R loads Gasoline cans (up to 5). It starts by itself below 20% charge and stops above 80%, burning 0.25 gal an hour idling up to 0.85 gal at full load.
+- Dismantling returns what is inside, and the Inverter and Generator come back whole.
+
+**Wiring:** start at the Power Shed (R), walk to a building and press E. The run takes Buried Cable from the pack by the foot (metres x 3.28, rounded up; 150 m at most), and a trench line is drawn. These buildings can be wired: the Cabin, the Pole Barns, the walk-in greenhouses, the Workshop, the Potter's Shed, the Smithy and the Kitchen.
+
+**The hourly budget (PowerRules.Hour):** panels make panels x 400 W x 0.8 x sun height^2 x clear sky x (1 - shade) watt-hours. Batteries are kept above 10%. No inverter, or more than 6,000 W of load, means no power. When the batteries can't carry the load, the loads go off and whatever comes in still charges them.
+
+**The first load, lights:** every wired building gets electric lights from dusk to 10:30 pm and from 5:30 am to sunrise, while the system has power.
+
+**Watching it:** the phone's new Power app (after Market) and the shed's panel both show charge, solar, generator, load and fuel.
+
+**Know-how:** entry 38, "Power: Solar, Batteries and the Generator", unlocked by placing a Power Shed.
+
+**Art:** structure_powershed, structure_solarrack (Panel_1 to Panel_4), structure_generator, and the five item models; build and item icons rendered. The icon renderer now keeps the long Solar Rack in the usual front view (ItemIconRenderer.SeenAsBuilding).
+
+**Tests:** PowerE1Tests (11), and the count tests: 100 PileKinds ending with Generator, 38 know-how entries, 170 market rows, 99 stocked, 91 sell back, 62 in the Stocked group, and the phone's ten apps.
+
+**Not in E1 (the later slices):** the Thermostat Controller and well pump (E2), the cordless tools and Charger (E3), and hiring an electrician (E4).

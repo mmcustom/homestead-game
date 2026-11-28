@@ -179,7 +179,7 @@ public class PlayerController : MonoBehaviour, ISaveable
     public IInteractable Focus => focus;
 
     // Without a GameManager (e.g. pressing Play directly in World), the controller runs so movement can be tested.
-    static bool CanAct => GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
+    static bool CanAct => (GameManager.Instance == null || GameManager.Instance.State == GameState.Playing) && !PhoneView.IsOpen; // the phone up (P): no walking, looking or tools
 
     void Awake()
     {
@@ -253,7 +253,7 @@ public class PlayerController : MonoBehaviour, ISaveable
         // Esc while typing a journal note belongs to the text field, and Esc in the slot panel to the panel, not the pause menu.
         // Esc while placing a structure cancels the placement (PlacementMode), it doesn't pause.
         if (pauseAction != null && pauseAction.WasPressedThisFrame() && GameManager.Instance != null && !GameScreens.IsTyping && !GameScreens.EscapeEndedTyping && !SlotPanel.IsOpen &&
-            !PlacementMode.Active)
+            !PlacementMode.Active && !PhoneView.TookEscape)
             GameManager.Instance.TogglePause();
 
         if (!CanAct || moveAction == null)
@@ -288,7 +288,12 @@ public class PlayerController : MonoBehaviour, ISaveable
         }
 
         if (!placing && focus != null && interactAction.WasPressedThisFrame())
-            focus.Interact(this);
+        {
+            // Laying cable from the Power Shed (E1): E on a building wires it instead.
+            WoodPileState wireTo = focus is PlacedStructure ps ? ps.State : focus is WoodPile wp ? wp.State : null;
+            if (PowerManager.WiringFrom == null || PowerManager.Instance == null || !PowerManager.Instance.TryWire(wireTo))
+                focus.Interact(this);
+        }
         else if (!placing && focus is ISecondaryInteractable secondary && interactAltAction != null &&
                  interactAltAction.WasPressedThisFrame() && !string.IsNullOrEmpty(secondary.SecondaryPrompt))
             secondary.SecondaryInteract(this);

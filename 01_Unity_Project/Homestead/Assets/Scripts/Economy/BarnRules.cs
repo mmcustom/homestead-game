@@ -79,6 +79,7 @@ public static class BarnRules
     public const string CrewHasIt = "The crew has this site - they'll finish it";
     public static string KitRow(Size s) => $"Order the kit  {Money_Format(KitCents(s))}  ({Posts(s)} posts, {Trusses(s)} trusses, {Sheets(s)} steel sheets, delivered to the site)";
     public static string CrewRow(Size s) => $"Hire the crew  {Money_Format(CrewCents(s))}  (half now; they start in {LeadDays} days and take {CrewDays(s)})";
+    public static string CrewByPhone(Size s) => $"Or hire the crew by phone (P, Contractors): {Money_Format(CrewCents(s))}, half now";
     public static string CrewBooked(Size s) => $"Crew booked - {Money_Format(CrewDeposit(s))} paid; they start in {LeadDays} days and finish in about {LeadDays + CrewDays(s)}";
     public static string CrewWaiting(Size s, int daysToStart) => daysToStart > 0 ? $"The crew starts in {daysToStart} day{(daysToStart == 1 ? "" : "s")}" : "The crew is at work";
     public static string CrewDone(Size s) => $"The crew has finished your {Name(s)} - the {Money_Format(CrewBalance(s))} balance is paid";
@@ -88,7 +89,32 @@ public static class BarnRules
     public static string SiteHelp(Size s) =>
         $"a {Feet(s)} post-frame barn with a big sliding doorway and storage shelves at the back for up to {CapacityKg(s):0} kg of anything but water. " +
         $"Mark out the site (free), then at the Trading Post (T, switch to Deliver) order the kit ({Money_Format(KitCents(s))}: {Posts(s)} posts, {Trusses(s)} trusses, " +
-        $"{Sheets(s)} steel sheets, delivered to the site) and build it in three stages with the Hammer, or hire the crew ({Money_Format(CrewCents(s))}, half now, half when done).";
+        $"{Sheets(s)} steel sheets, delivered to the site) and build it in three stages with the Hammer, or hire the crew by phone (P, Contractors; {Money_Format(CrewCents(s))}, half now, half when done). " +
+        $"Once it stands, anything built or crafted within {FeedRadius:0} m can use what is on its shelves, and deliveries go into it.";
+
+    // --- Slice B1b (Mike, 2026-11-27): a barn feeds what is built and crafted within FeedRadius, and takes deliveries ---
+
+    public const float FeedRadius = 50f;
+    public static bool Feeds(float dx, float dz) => dx * dx + dz * dz <= FeedRadius * FeedRadius;
+
+    // How many to take from each source in turn (the first sources first) to make up want; the counts add up to less when they run out.
+    public static int[] Allocate(int want, System.Collections.Generic.IList<int> have)
+    {
+        var take = new int[have.Count];
+        for (int i = 0; i < have.Count && want > 0; i++)
+        {
+            take[i] = Math.Max(0, Math.Min(want, have[i]));
+            want -= take[i];
+        }
+        return take;
+    }
+
+    public static string LoadPrompt(string what) => $"Load from the barn  ({what})";
+    public static string StorePrompt(string what) => $"Store {what}, then the rest from the barn";
+    public const string FeedNote = "Counts what is on the shelves of a Pole Barn within 50 m";
+    public const string InBarn = "Your Trading Post delivery is in the Pole Barn";
+    public const string InBarnAndPad = "Your Trading Post delivery is in the Pole Barn - what didn't fit is on the Delivery Pad";
+    public const string BarnFull = "Part of a Trading Post delivery is waiting - make room in the Pole Barn or build a Delivery Pad";
 
     static string Money_Format(long cents) => Money.Format(cents);
 }

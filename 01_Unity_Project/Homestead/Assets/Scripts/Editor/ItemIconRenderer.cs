@@ -100,6 +100,9 @@ public static class ItemIconRenderer
     // Shelters with one sloped roof read as bare poles from the usual angle (the roof is seen edge-on), so they are seen from higher up.
     static bool SteepRoof(string artId) => artId == "structure_leanto" || artId == "structure_tarpshelter";
 
+    // Long, low structures that would otherwise be laid on the diagonal like a tool (the Solar Rack, Power E1) keep the usual front view.
+    static bool SeenAsBuilding(string artId) => artId == "structure_solarrack";
+
     // The kind a site becomes (the Kitchen's roof stage is still the Kitchen); a finished kind is itself.
     static PileKind BuiltFrom(PileKind kind)
     {
@@ -244,7 +247,7 @@ public static class ItemIconRenderer
         Vector3 s = local.size;
         int[] order = { 0, 1, 2 };
         System.Array.Sort(order, (a, b) => s[b].CompareTo(s[a]));
-        bool elongated = s[order[0]] > 2.6f * s[order[1]];
+        bool elongated = s[order[0]] > 2.6f * s[order[1]] && !SeenAsBuilding(model.name);
 
         if (elongated)
         {

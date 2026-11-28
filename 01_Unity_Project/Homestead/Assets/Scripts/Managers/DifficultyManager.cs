@@ -79,7 +79,7 @@ public class DifficultyManager : MonoBehaviour, ISaveable
         StartingWeapon weapon = StartingWeapons.For((int)tier);
         if (tier == Difficulty.Pioneer)
         {
-            var pioneer = new System.Collections.Generic.List<(string, int)> { (WaterSource.BucketItemId, 1), ("cordage", 3), (Knife.Id, 1) };
+            var pioneer = new System.Collections.Generic.List<(string, int)> { (WaterSource.BucketItemId, 1), ("cordage", 3), (Knife.Id, 1), (PhoneRules.PhoneId, 1) };
             pioneer.AddRange(StartingWeapons.Items(weapon));
             return pioneer.ToArray();
         }
@@ -88,7 +88,7 @@ public class DifficultyManager : MonoBehaviour, ISaveable
         {
             (WoodManager.TentId, 1), (SleepManager.SleepingBagId, 1), (Cooking.PotId, 1), (TripodRules.TripodId, 1), (WaterSource.BucketItemId, 1),
             (AxeTool.AxeId, 1), (AxeTool.PickAxeId, 1), (AxeTool.ShovelId, 1), (WaterQualities.CanteenId, 1),
-            (FireManager.IgnitionId, 1), ("cordage", 3), (Knife.Id, 1),
+            (FireManager.IgnitionId, 1), ("cordage", 3), (Knife.Id, 1), (PhoneRules.PhoneId, 1), // the smartphone (slice P1, Mike 2026-11-27: everyone starts with one, no service)
         };
         kit.AddRange(StartingWeapons.Items(weapon));
         if (tier == Difficulty.Homesteader)

@@ -534,7 +534,7 @@ public class LedgerTests
     [Test]
     public void CategoryIdsAreAppendOnly()
     {
-        Assert.That(LedgerCategories.Count, Is.EqualTo(21));
+        Assert.That(LedgerCategories.Count, Is.EqualTo(22));
         Assert.That((int)LedgerCategory.SalesWoodStone, Is.EqualTo(0));
         Assert.That((int)LedgerCategory.SalesStockedBack, Is.EqualTo(7));
         Assert.That((int)LedgerCategory.LoanInterest, Is.EqualTo(8));

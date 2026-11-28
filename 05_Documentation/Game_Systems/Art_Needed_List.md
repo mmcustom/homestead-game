@@ -1394,3 +1394,24 @@ Sources: one shared file, Art/Blender_Work/structure_wave3/structure_wave3.blend
 - The first bake had a glossy roof that mirrored the icon renderer's backdrop (a black patch in the Build icon); the roof and trim are now rougher.
 - item_barn_post (48 tris), item_barn_truss (144 tris, lying flat with gusset plates) and item_steel_sheet (a stack of five ribbed red sheets, 300 tris). Build icons for the three sites and three barns, and item icons for the three parts, rendered.
 - Status: in Unity, awaiting Mike's in-game check.
+
+## Slice P1 art: the smartphone (2026-11-27, awaiting Mike's in-game check)
+
+- item_smartphone (phone.py): a 72 x 152 x 8 mm phone standing upright, the screen facing Unity -Z (toward the eye when PhoneView holds it up), 578 tris. A graphite frame with rounded corners and side buttons, a black glass front and a three-lens camera bump on the back. The screen is its own child, Screen (a flat quad exactly the screen's size, 66 x 143 mm), which PhoneView fits its apps panel over. Parts frame, screen, lens. Item icon rendered (it shows the back).
+- The phone's app icons (Resources/Phone/app_*.png, 256 px Sprites): Contractors, Weather, Bills & Plan and Market drawn in code (PowerShell, System.Drawing); Brandy's Bakery, Sweet Swap, Starforge and My Tech App from Mike's own app icons, and Fast Food Frenzy from its burger art on a red tile. Copies in Art/References/PhoneApps.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Slice P2 art: the Drilled Well (2026-11-27, awaiting Mike's in-game check)
+
+- structure_drilledwell (drilledwell.py): a 1.1 m round concrete pad with a raised lip, the 6 in steel casing with a bolted cap flange, and a cast-iron pitcher pump on top (a fluted barrel, the spout to the front, Unity -Z, and the handle raised to the back), 1,212 tris. Parts concrete, steel, iron. Build icons rendered for the Drilled Well Site and the Drilled Well.
+- The site and the drill rig (stakes with orange flagging; a yellow truck with its mast up and a pile of cuttings) are code primitives (DrilledWellVisuals), not art yet.
+- Status: in Unity, awaiting Mike's in-game check.
+
+## Slice E1 art: the power system (2026-11-28, awaiting Mike's in-game check)
+
+- structure_powershed (power.py): a 2.0 x 1.6 m board-and-batten shed on a skid, 2.1 m tall with a shed roof, the door and the grey inverter box (with a conduit to the ground) on the front, Unity +Z. 256 tris. Parts wood, roof, metal, dark.
+- structure_solarrack (power.py): a galvanised ground rack, 4.6 m wide, with four 1.13 x 1.72 m panels tilted 35 degrees to the front, Unity +Z. Each panel is its own child, Panel_1 to Panel_4, so PowerStructures shows as many as are mounted. 468 tris. Parts metal, cell, frame. The cells are matte (roughness 0.55 to 0.7) so the icon matte doesn't read them as see-through.
+- structure_generator / item_generator (power.py): an open-frame 5,000 W generator, a yellow tank over the black engine in a tube frame, 0.88 x 0.6 x 0.65 m. 284 tris.
+- item_solar_panel, item_battery_module (blue-grey case), item_power_inverter (grey box with a display), item_buried_cable (a black coil): small item models for the icons.
+- Icons: the build icons for the Power Shed, Solar Rack and Generator, and the five item icons.
+- Status: in Unity, awaiting Mike's in-game check.

@@ -322,7 +322,7 @@ public class MapleTests
         Assert.That(LedgerCategories.ForSale(MarketGroup.Maple), Is.EqualTo(LedgerCategory.SalesFarm));
         Assert.That(LedgerCategories.ForSale(Table.RuleOf("maple_syrup").group), Is.EqualTo(LedgerCategory.SalesFarm));
         Assert.That(LedgerCategories.IsIncome(LedgerCategories.ForSale(MarketGroup.Maple)), Is.True);
-        Assert.That(LedgerCategories.Count, Is.EqualTo(21), "no new ledger category");
+        Assert.That(LedgerCategories.Count, Is.EqualTo(22), "no new ledger category");
         Assert.That(LedgerSaveData.CurrentVersion, Is.EqualTo(1));
         Assert.That(MarketRules.GroupName(MarketGroup.Maple), Is.EqualTo("Maple syrup"));
     }

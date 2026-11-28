@@ -88,7 +88,9 @@ public class PlayerHands : MonoBehaviour
     public bool ForcePushing { get; set; } // a diagnostic: show the push pose without a Hand Cart
     public HandMotion? ForceMotion { get; set; } // a diagnostic: hold the hands at one motion and one step phase (ForceStepPhase) so a screenshot can look at mid-stride
     public float ForceStepPhase { get; set; }
-    public bool Pushing { get => pushing; set => pushing = value; } // the Hand Cart is being pushed: both hands take the push pose
+    public bool Pushing { get => pushing; set => pushing = value; }
+    bool phoning; // the phone is up (PhoneView): both hands take the phone pose
+    public bool Phoning => phoning; // the Hand Cart is being pushed: both hands take the push pose
     ParticleSystem[] flameParticles;
     InventoryManager inventory;
     int layer = -1;
@@ -675,7 +677,8 @@ public class PlayerHands : MonoBehaviour
         float dt = Time.deltaTime;
         // No tool can be used while pushing the Hand Cart (both hands on its handles) or knocked down by the creek: the hands drop what they hold (the cart pose is a fixed two-handed push).
         pushing = ForcePushing || CartHandler.Pushing;
-        string effective = HandPoseRules.EffectiveTool(wanted, pushing, CreekCrossing.InputLocked);
+        phoning = PhoneView.IsOpen; // the phone up (slice P1): both hands hold it and the tool is put down
+        string effective = phoning ? null : HandPoseRules.EffectiveTool(wanted, pushing, CreekCrossing.InputLocked);
         raise.Tick(dt, effective);
         action.SetAim(scope);
         if (!HoldSwing)
@@ -778,6 +781,18 @@ public class PlayerHands : MonoBehaviour
             return;
         ShowHeld(shownTool);
         ShowRifleThumb(shownTool);
+        if (phoning && shownTool == null)
+        {
+            // The phone (PhoneView draws it on this rig): both hands on its edges, fingers wrapped.
+            SelectPose(true);
+            PlaceHand(handR, HandPoseRules.PhoneTarget(HandSide.Right));
+            PlaceHand(handL, HandPoseRules.PhoneTarget(HandSide.Left));
+            handR.gameObject.SetActive(true);
+            handL.gameObject.SetActive(true);
+            return;
+        }
+        if (shownTool == null)
+            SelectPose(false); // the phone put away: the relaxed hands again
 
         bool rightHolds = shownTool != null;
         bool leftShown = HeldTools.LeftHandShown(shownTool);

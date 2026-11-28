@@ -971,6 +971,8 @@ public class WellsAndOuthouses : MonoBehaviour
                 case PileKind.Cabin: sites.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = "Small Cabin" }); break;
                 case PileKind.CabinSite: sites.Add(new SiteInfo { kind = SiteKind.Building, position = pile.position, name = "Small Cabin site" }); break;
                 case PileKind.Well:
+                case PileKind.DrilledWell:
+                case PileKind.DrilledWellSite:
                 case PileKind.WellSite: sites.Add(new SiteInfo { kind = SiteKind.Well, position = pile.position, name = "well" }); break;
                 case PileKind.OuthouseSite:
                     if (includeSites)
@@ -1137,7 +1139,7 @@ public class WellsAndOuthouses : MonoBehaviour
     // build never differ). ignore is the structure itself when an Outhouse checks a new pit spot.
     public bool CanPlace(PileKind kind, Vector3 point, WoodPileState ignore, out string reason)
     {
-        bool well = kind == PileKind.WellSite || kind == PileKind.Well;
+        bool well = kind == PileKind.WellSite || kind == PileKind.Well || kind == PileKind.DrilledWellSite || kind == PileKind.DrilledWell; // a drilled well keeps the same distances (slice P2), with no depth limit
         SetbackRules rules = Rules;
 
         if (well)
@@ -1392,6 +1394,8 @@ public class WellsAndOuthouses : MonoBehaviour
     public WaterQuality WellQuality(WoodPileState well, out string note)
     {
         note = "";
+        if (well.kind == PileKind.DrilledWell)
+            return WaterQuality.Excellent; // cased and deep (slice P2): flood water and a privy can't reach it
         if (well.contaminatedHours > 0f)
         {
             note = "flood water got in";
@@ -1426,9 +1430,17 @@ public class WellsAndOuthouses : MonoBehaviour
     // refuses it) falls back to Legacy too, so nothing ever divides by zero.
     public WellWaterResult NumbersOf(WoodPileState well)
     {
+        if (well.kind == PileKind.DrilledWell)
+            return DrilledNumbers(well.depthToWater);
         WellWaterResult result = WellWater.ForDepth(well.depthToWater, WellRules());
         return result.Diggable ? result : WellWater.ForDepth(0f, WellRules());
     }
+
+    // A Drilled Well (slice P2): a big supply that refills fast, drought or not.
+    public static WellWaterResult DrilledNumbers(float depth) => new WellWaterResult(depth, WellTier.Deep, new WellTierNumbers
+    {
+        bufferLitres = DrillRules.BufferLitres, recoveryLitresPerHour = DrillRules.RecoveryLitresPerHour, droughtRecoveryLitresPerHour = DrillRules.RecoveryLitresPerHour,
+    });
 
     // The same when the component is not there (Edit Mode tests): the defaults.
     public static WellWaterResult WellNumbers(WoodPileState well) =>
@@ -1856,7 +1868,7 @@ public class WellsAndOuthouses : MonoBehaviour
         bool flood = StreamManager.State == StreamState.FlashFlood;
         foreach (WoodPileState pile in wood.Piles)
         {
-            if (pile.kind != PileKind.Well)
+            if (pile.kind != PileKind.Well && pile.kind != PileKind.DrilledWell)
                 continue;
             float rate = RecoveryPerHour(pile);
             int buffer = NumbersOf(pile).bufferLitres;
@@ -1867,7 +1879,7 @@ public class WellsAndOuthouses : MonoBehaviour
                 pile.contaminatedHours = Mathf.Max(0f, pile.contaminatedHours - 1f);
                 changed = true;
             }
-            if (flood && CreekEdgeDistance(pile.position) <= wellFloodReachMetres)
+            if (flood && pile.kind == PileKind.Well && CreekEdgeDistance(pile.position) <= wellFloodReachMetres)
             {
                 pile.contaminatedHours = wellContaminatedHours;
                 changed = true;
